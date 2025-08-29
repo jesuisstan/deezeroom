@@ -1,4 +1,5 @@
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet, Pressable, TextInput } from 'react-native';
+import { useState } from 'react';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
@@ -6,6 +7,8 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function HomeScreen() {
+  const [name, setName] = useState('');
+
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
     const data = await response.json();
@@ -13,7 +16,10 @@ export default function HomeScreen() {
   };
 
   const postGreeting = async () => {
-    const response = await fetch('/api/greeting?name=Kadi', { method: 'POST' });
+    const response = await fetch(
+      `/api/greeting?name=${encodeURIComponent(name)}`,
+      { method: 'POST' }
+    );
     const data = await response.json();
     alert(data.greeting);
   };
@@ -46,7 +52,7 @@ export default function HomeScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Hosting example</ThemedText>
+        <ThemedText type="title">deezeroom app</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Open an API route</ThemedText>
@@ -55,11 +61,19 @@ export default function HomeScreen() {
             GET /api/greeting
           </ThemedText>
         </Pressable>
-        <Pressable onPress={postGreeting}>
-          <ThemedText style={{ textDecorationLine: 'underline' }}>
-            POST /api/greeting
-          </ThemedText>
-        </Pressable>
+        <ThemedView style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your name"
+            value={name}
+            onChangeText={setName}
+          />
+          <Pressable onPress={postGreeting}>
+            <ThemedText style={{ textDecorationLine: 'underline' }}>
+              POST /api/greeting
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
         <Pressable onPress={postGraphql}>
           <ThemedText style={{ textDecorationLine: 'underline' }}>
             POST /api/graphql
@@ -86,6 +100,18 @@ const styles = StyleSheet.create({
   stepContainer: {
     gap: 8,
     marginBottom: 8
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 8,
+    flex: 1
   },
   icon: {
     bottom: 0,
