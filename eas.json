@@ -1,1 +1,26 @@
-{}
+{
+  "cli": {
+    "version": "latest"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "image": "latest"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "image": "latest"
+      }
+    },
+    "production": {
+      "distribution": "internal",
+      "android": {
+        "image": "latest"
+      }
+    }
+  }
+}
