@@ -6,6 +6,21 @@
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
+const accentMain = '#a238ff';
+const accentStrong = '#9333e8';
+const accentWeak = '#c17aff';
+
+const textMain = '#fdfcfe';
+const textSecondary = '#a9a6aa';
+const textDisabled = '#555257';
+const textInverse = '#000';
+
+const bgMain = '#0f0d13';
+const bgSecondary = '#1b191f';
+const bgTertiary = '#29282d';
+const bgTertiaryHover = '#3a393d';
+const bgTtransparent = '#0000004d';
+
 export const Colors = {
   light: {
     text: '#11181C',

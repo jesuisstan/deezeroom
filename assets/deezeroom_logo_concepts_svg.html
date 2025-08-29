@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>deezeroom — logo (heart with vertical soundwaves)</title>
+    <style>
+      body {
+        background: #fdfcfe;
+        color: #0f0d13;
+        font-family: 'League Gothic', sans-serif;
+        padding: 20px;
+      }
+      svg {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: auto;
+      }
+      .caption {
+        max-width: 800px;
+        margin: 16px auto;
+        color: #ccc;
+        font-size: 14px;
+      }
+      @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
+    </style>
+    <!-- Preload font for SVG -->
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=League+Gothic&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript
+      ><link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=League+Gothic&display=swap"
+    /></noscript>
+  </head>
+  <body>
+    <!-- Logo with vertical soundwave heart and rectangular highlight -->
+    <svg
+      viewBox="0 0 1300 300"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="deezeroom logo"
+    >
+      <defs>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
+        </style>
+      </defs>
+      <!-- Purple heart with vertical soundwave-like bars (top to bottom orientation) -->
+      <g transform="translate(40,40)">
+        <g fill="#a238ff">
+          <!-- Vertical bars forming heart shape (tall center, shorter sides) -->
+          <rect x="150" y="30" width="10" height="40" rx="5" />
+          <rect x="165" y="20" width="10" height="60" rx="5" />
+          <rect x="180" y="10" width="10" height="80" rx="5" />
+          <rect x="195" y="20" width="10" height="90" rx="5" />
+          <rect x="210" y="30" width="10" height="105" rx="5" />
+          <rect x="225" y="20" width="10" height="90" rx="5" />
+          <rect x="240" y="10" width="10" height="80" rx="5" />
+          <rect x="255" y="20" width="10" height="60" rx="5" />
+          <rect x="270" y="30" width="10" height="40" rx="5" />
+        </g>
+      </g>
+
+      <!-- Wordmark -->
+      <text
+        x="340"
+        y="170"
+        font-family="League Gothic, Impact, Arial Black, sans-serif"
+        font-size="160"
+        fill="#0f0d13"
+        style="font-weight: bold; letter-spacing: 16px"
+      >
+        deezeroom
+      </text>
+
+      <!-- Purple rectangle framing 'oom' -->
+      <rect
+        x="655"
+        y="72"
+        width="271"
+        height="109"
+        rx="5"
+        fill="none"
+        stroke="#a238ff"
+        stroke-width="6"
+        opacity="0.9"
+      />
+    </svg>
+  </body>
+</html>

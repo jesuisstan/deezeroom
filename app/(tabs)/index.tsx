@@ -1,10 +1,9 @@
-import { StyleSheet, Pressable, TextInput } from 'react-native';
+import { StyleSheet, Pressable, TextInput, Image } from 'react-native';
 import { useState } from 'react';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
@@ -43,11 +42,9 @@ export default function HomeScreen() {
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1D6B2', dark: '#1E3A34' }}
       headerImage={
-        <IconSymbol
-          size={180}
-          color="#0a7ea4"
-          name="shippingbox.fill"
-          style={styles.icon}
+        <Image
+          source={require('@/assets/images/logo/deezeroom-black-transparent.png')}
+          style={styles.logo}
         />
       }
     >
@@ -113,9 +110,12 @@ const styles = StyleSheet.create({
     padding: 8,
     flex: 1
   },
-  icon: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute'
+  logo: {
+    position: 'absolute',
+    width: '50%',
+    height: '50%',
+    resizeMode: 'contain',
+    bottom: 10,
+    left: -200
   }
 });
