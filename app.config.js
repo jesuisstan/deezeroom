@@ -11,12 +11,15 @@ module.exports = () => ({
     newArchEnabled: true,
     ios: {
       supportsTablet: true
+      //googleServicesFile: './credentials/ios/GoogleService-Info.plist'
     },
     android: {
+      package: 'com.krivtsoff.deezeroom',
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
-      }
+      },
+      googleServicesFile: './credentials/android/google-services.json'
     },
     web: {
       bundler: 'metro',
