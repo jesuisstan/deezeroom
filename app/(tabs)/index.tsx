@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
@@ -40,7 +41,10 @@ export default function HomeScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1D6B2', dark: '#1E3A34' }}
+      headerBackgroundColor={{
+        light: Colors.dark.background,
+        dark: Colors.light.background
+      }}
       headerImage={
         <Image
           source={require('@/assets/images/logo/deezeroom-black-transparent.png')}
@@ -64,6 +68,7 @@ export default function HomeScreen() {
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
+            placeholderTextColor={Colors.light.accentWeak}
           />
           <Pressable onPress={postGreeting}>
             <ThemedText style={{ textDecorationLine: 'underline' }}>
@@ -105,17 +110,18 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.light.accentMain,
+    color: Colors.light.accentWeak,
     borderRadius: 4,
     padding: 8,
     flex: 1
   },
   logo: {
     position: 'absolute',
-    width: '50%',
-    height: '50%',
+    width: '70%',
+    //height: '50%',
     resizeMode: 'contain',
     bottom: 10,
-    left: -200
+    left: 10
   }
 });

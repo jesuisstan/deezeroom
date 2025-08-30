@@ -23,19 +23,27 @@ const bgTtransparent = '#0000004d';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#fdfcfe',
+    background: '#0f0d13',
     tint: tintColorLight,
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight
+    tabIconSelected: tintColorLight,
+
+    accentMain: '#a238ff',
+    accentStrong: '#9333e8',
+    accentWeak: '#c17aff'
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#0f0d13',
+    background: '#fdfcfe',
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark
+    tabIconSelected: tintColorDark,
+
+    accentMain: '#a238ff',
+    accentStrong: '#9333e8',
+    accentWeak: '#c17aff'
   }
 };
