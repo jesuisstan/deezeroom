@@ -19,7 +19,9 @@ module.exports = () => ({
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
       },
-      googleServicesFile: './credentials/android/google-services.json'
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ||
+        './credentials/android/google-services.json'
     },
     web: {
       bundler: 'metro',
@@ -32,7 +34,7 @@ module.exports = () => ({
         {
           fonts: [
             './assets/fonts/LeagueGothic-Regular.ttf',
-            './assets/foassets/images/ic_Italipngegular.ttf'
+            './assets/fonts/LeagueGothic_Italic-Regular.ttf'
           ]
         }
       ],

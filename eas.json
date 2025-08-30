@@ -7,6 +7,9 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
+      },
       "android": {
         "image": "latest"
       },
@@ -16,6 +19,9 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
+      },
       "android": {
         "image": "latest"
       },
@@ -25,6 +31,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
+      },
       "android": {
         "image": "latest"
       },
