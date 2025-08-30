@@ -1,13 +1,23 @@
 import { StyleSheet, Pressable, TextInput, Image } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import shootAlert from '@/utils/shoot-alert';
+import { useNetwork } from '@/contexts/NetworkContext';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
+
+  const { isConnected } = useNetwork();
+
+  useEffect(() => {
+    if (!isConnected) {
+      shootAlert('Network Error!', 'Please check your internet connection.');
+    }
+  }, [isConnected]);
 
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
@@ -49,6 +59,7 @@ export default function HomeScreen() {
         <Image
           source={require('@/assets/images/logo/deezeroom-black-transparent.png')}
           style={styles.logo}
+          resizeMode="contain"
         />
       }
     >
@@ -122,7 +133,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '70%',
     //height: '50%',
-    resizeMode: 'contain',
     bottom: 10,
     left: 10
   }

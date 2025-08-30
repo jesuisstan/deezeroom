@@ -10,30 +10,26 @@ module.exports = () => ({
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
-      supportsTablet: true,
-      googleServicesFile: './credentials/ios/GoogleService-Info.plist'
+      supportsTablet: true
     },
     android: {
-      package: 'com.krivtsoff.deezeroom',
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
-      },
-      googleServicesFile: './credentials/android/google-services.json'
+      }
     },
     web: {
       bundler: 'metro',
       output: 'server',
-      favicon: './assets/images/favicon.png'
+      favicon: './assets/images/favicon.ico'
     },
     plugins: [
-      //['@react-native-google-signin/google-signin'],
       [
         'expo-font',
         {
           fonts: [
             './assets/fonts/LeagueGothic-Regular.ttf',
-            './assets/fonts/LeagueGothic_Italic-Regular.ttf'
+            './assets/foassets/images/ic_Italipngegular.ttf'
           ]
         }
       ],
@@ -52,7 +48,7 @@ module.exports = () => ({
           image: './assets/images/splash.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#ffffff'
+          backgroundColor: '#0f0d13'
         }
       ]
     ],
