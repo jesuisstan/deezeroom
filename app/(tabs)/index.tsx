@@ -1,23 +1,24 @@
 import { StyleSheet, Pressable, TextInput, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
+import { ThemedText } from '@/components/ui/ThemedText';
+import { ThemedView } from '@/components/ui/ThemedView';
 import { Colors } from '@/constants/Colors';
 import shootAlert from '@/utils/shoot-alert';
 import { useNetwork } from '@/contexts/NetworkContext';
+import { HelloWave } from '@/components/HelloWave';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
 
-  const { isConnected } = useNetwork();
+  //const { isConnected } = useNetwork();
 
-  useEffect(() => {
-    if (!isConnected) {
-      shootAlert('Network Error!', 'Please check your internet connection.');
-    }
-  }, [isConnected]);
+  //useEffect(() => {
+  //  if (!isConnected) {
+  //    shootAlert('Network Error!', 'Please check your internet connection.');
+  //  }
+  //}, [isConnected]);
 
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
@@ -64,7 +65,7 @@ export default function HomeScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">deezeroom app ppp</ThemedText>
+        <ThemedText type="title">deezeroom app</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Open an API route</ThemedText>
@@ -93,15 +94,7 @@ export default function HomeScreen() {
           </ThemedText>
         </Pressable>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">
-          Inspecting environment variables
-        </ThemedText>
-        <ThemedText>SECRET_VALUE: {process.env.SECRET_VALUE}</ThemedText>
-        <ThemedText>
-          EXPO_PUBLIC_VALUE: {process.env.EXPO_PUBLIC_VALUE}
-        </ThemedText>
-      </ThemedView>
+      <HelloWave />
     </ParallaxScrollView>
   );
 }
