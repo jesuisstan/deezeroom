@@ -53,7 +53,7 @@ export default function HomeScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">deezeroom app</ThemedText>
+        <ThemedText type="title">deezeroom app g</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Open an API route</ThemedText>

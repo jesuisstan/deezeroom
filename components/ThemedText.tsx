@@ -21,6 +21,8 @@ export function ThemedText({
     <Text
       style={[
         { color },
+        //{ letterSpacing: 1 },
+        { fontFamily: 'LeagueGothic', letterSpacing: 4 },
         type === 'default' ? styles.default : undefined,
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
@@ -40,17 +42,16 @@ const styles = StyleSheet.create({
   },
   defaultSemiBold: {
     fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600'
+    lineHeight: 24
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32
+    lineHeight: 32,
+    letterSpacing: 4
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold'
+    fontFamily: 'LeagueGothic_Italic'
   },
   link: {
     lineHeight: 30,

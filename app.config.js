@@ -24,20 +24,28 @@ module.exports = () => ({
       favicon: './assets/images/favicon.png'
     },
     plugins: [
-      'expo-font',
+      [
+        'expo-font',
+        {
+          fonts: [
+            './assets/fonts/LeagueGothic-Regular.ttf',
+            './assets/fonts/LeagueGothic_Italic-Regular.ttf'
+          ]
+        }
+      ],
       [
         'expo-router',
         {
           origin:
             process.env.NODE_ENV === 'development'
               ? 'http://localhost:8081'
-              : 'https://hosting-example.expo.app'
+              : 'https://deezeroom.expo.app'
         }
       ],
       [
         'expo-splash-screen',
         {
-          image: './assets/images/splash-icon.png',
+          image: './assets/images/splash.png',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#ffffff'

@@ -68,7 +68,7 @@ export default function TabTwoScreen() {
         <ThemedText>
           Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText>{' '}
           to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
+          <ThemedText style={{ fontFamily: 'LeagueGothic' }}>
             custom fonts such as this one.
           </ThemedText>
         </ThemedText>
