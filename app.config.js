@@ -10,7 +10,8 @@ module.exports = () => ({
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      googleServicesFile: './credentials/ios/GoogleService-Info.plist'
     },
     android: {
       package: 'com.krivtsoff.deezeroom',
@@ -18,7 +19,7 @@ module.exports = () => ({
         foregroundImage: './assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
       },
-      googleServicesFile: process.env.GOOGLE_SERVICES_FILE
+      googleServicesFile: './credentials/android/google-services.json'
     },
     web: {
       bundler: 'metro',
@@ -26,6 +27,7 @@ module.exports = () => ({
       favicon: './assets/images/favicon.png'
     },
     plugins: [
+      //['@react-native-google-signin/google-signin'],
       [
         'expo-font',
         {
