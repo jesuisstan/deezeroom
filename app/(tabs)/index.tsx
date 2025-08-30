@@ -53,7 +53,7 @@ export default function HomeScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">deezeroom app g</ThemedText>
+        <ThemedText type="title">deezeroom app</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Open an API route</ThemedText>
@@ -83,8 +83,10 @@ export default function HomeScreen() {
         </Pressable>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Inspect environment variables</ThemedText>
-        <ThemedText>MY_VALUE: {process.env.MY_VALUE}</ThemedText>
+        <ThemedText type="subtitle">
+          Inspecting environment variables
+        </ThemedText>
+        <ThemedText>SECRET_VALUE: {process.env.SECRET_VALUE}</ThemedText>
         <ThemedText>
           EXPO_PUBLIC_VALUE: {process.env.EXPO_PUBLIC_VALUE}
         </ThemedText>

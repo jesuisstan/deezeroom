@@ -13,10 +13,12 @@ module.exports = () => ({
       supportsTablet: true
     },
     android: {
+      package: 'com.krivtsoff.deezeroom',
       adaptiveIcon: {
         foregroundImage: './assets/images/adaptive-icon.png',
-        backgroundColor: '#ffffff'
-      }
+        backgroundColor: '#0f0d13'
+      },
+      googleServicesFile: process.env.GOOGLE_SERVICES_FILE
     },
     web: {
       bundler: 'metro',

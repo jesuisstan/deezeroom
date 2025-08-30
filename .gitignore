@@ -8,6 +8,11 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+/android
+/ios
+/.gradle/
+build/
+
 
 # Native
 *.orig.*
@@ -50,7 +55,9 @@ yarn-error.*
 *.keystore
 
 # Google Services (e.g. APIs or Firebase)
+/credentials
 google-services.json
+GoogleService-Info.plist
 
 # Android Profiling
 *.hprof

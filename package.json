@@ -11,7 +11,10 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "clean": "npx rimraf node_modules && npx rimraf package-lock.json && npx rimraf .expo && npx rimraf android && npx rimraf ios && npx rimraf web",
-    "c:i": "npm run clean && npm install"
+    "c:i": "npm run clean && npm install",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "build:dev:web": "eas build --profile development --platform web"
   },
   "jest": {
     "preset": "jest-expo"
@@ -42,7 +45,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
-    "react-native-webview": "13.13.5"
+    "react-native-webview": "13.13.5",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
