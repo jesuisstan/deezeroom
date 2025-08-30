@@ -30,7 +30,7 @@
       }
     },
     "production": {
-      "autoIncrement": true,
+      "distribution": "internal",
       "env": {
         "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
       },
@@ -41,8 +41,5 @@
         "image": "latest"
       }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }
