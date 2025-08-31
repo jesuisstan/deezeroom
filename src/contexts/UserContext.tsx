@@ -73,7 +73,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
     } catch (error) {
       console.error('Sign out error:', error);
-      shootAlert('Error', 'Failed to sign out');
+      shootAlert('Error', 'Failed to sign out', 'error', true);
     }
   };
 

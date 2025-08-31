@@ -5,15 +5,14 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  setDoc,
   deleteDoc,
   query,
   where,
   orderBy,
   limit,
   onSnapshot,
-  serverTimestamp,
-  DocumentData,
-  QuerySnapshot
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { User } from 'firebase/auth';
@@ -81,18 +80,24 @@ export class UserService {
     user: User,
     additionalData?: Partial<UserProfile>
   ): Promise<void> {
-    const userRef = doc(db, this.collection, user.uid);
-    const userData: Partial<UserProfile> = {
-      uid: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || '',
-      photoURL: user.photoURL || undefined,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      ...additionalData
-    };
+    try {
+      const userRef = doc(db, this.collection, user.uid);
+      const userData: Partial<UserProfile> = {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: user.displayName || '',
+        photoURL: user.photoURL || undefined,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        ...additionalData
+      };
 
-    await updateDoc(userRef, userData);
+      await setDoc(userRef, userData, { merge: true });
+      console.log('User profile created/updated successfully');
+    } catch (error) {
+      console.error('Error in createOrUpdateUser:', error);
+      throw error;
+    }
   }
 
   // Получить профиль пользователя
@@ -112,10 +117,14 @@ export class UserService {
     data: Partial<UserProfile>
   ): Promise<void> {
     const userRef = doc(db, this.collection, uid);
-    await updateDoc(userRef, {
-      ...data,
-      updatedAt: serverTimestamp()
-    });
+    await setDoc(
+      userRef,
+      {
+        ...data,
+        updatedAt: serverTimestamp()
+      },
+      { merge: true }
+    );
   }
 
   // Подписаться на изменения профиля пользователя

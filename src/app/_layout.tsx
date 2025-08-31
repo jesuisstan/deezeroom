@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AlertNotificationRoot } from 'react-native-alert-notification';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -35,17 +36,19 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <NetworkProvider>
-        <UserProvider>
-          <DeezeroomApp />
-          <StatusBar
-            style="dark"
-            backgroundColor="transparent"
-            translucent={true}
-          />
-        </UserProvider>
-      </NetworkProvider>
-    </ThemeProvider>
+    <AlertNotificationRoot>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <NetworkProvider>
+          <UserProvider>
+            <DeezeroomApp />
+            <StatusBar
+              style="dark"
+              backgroundColor="transparent"
+              translucent={true}
+            />
+          </UserProvider>
+        </NetworkProvider>
+      </ThemeProvider>
+    </AlertNotificationRoot>
   );
 }

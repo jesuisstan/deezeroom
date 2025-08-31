@@ -39,7 +39,7 @@ const LoginScreen: FC = () => {
 
       if (!idToken) {
         console.error('No idToken received');
-        shootAlert('Error', 'No token received from Google');
+        shootAlert('Error', 'No token received from Google', 'error', true);
         return;
       }
 
@@ -59,12 +59,19 @@ const LoginScreen: FC = () => {
             favoriteArtists: []
           }
         });
-        shootAlert('Success', 'You have successfully signed in!');
+        shootAlert(
+          'Success',
+          'You have successfully signed in!',
+          'success',
+          true
+        );
       } catch (error) {
         console.error('Error creating user profile:', error);
         shootAlert(
           'Warning',
-          'Sign in completed, but failed to create profile.'
+          'Sign in completed, but failed to create profile.',
+          'warning',
+          true
         );
       }
     } catch (error) {
@@ -79,7 +86,12 @@ const LoginScreen: FC = () => {
             console.log('Sign-in is already in progress');
             break;
           case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            shootAlert('Error', 'Google Play Services not available');
+            shootAlert(
+              'Error',
+              'Google Play Services not available',
+              'error',
+              true
+            );
             break;
           default:
             shootAlert(
