@@ -1,8 +1,7 @@
 import 'react-native-reanimated';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useUser } from '@/contexts/UserContext';
-import { Colors } from '@/constants/Colors';
 import LoginScreen from '@/components/LoginScreen';
 import { ThemedText } from '@/components/ui/ThemedText';
 
@@ -12,14 +11,14 @@ const DeezeroomApp = () => {
   // Show loading while checking authentication state
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 bg-bg-main">
         <ThemedText type="title">Loading...</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-bg-main">
       {!user ? (
         <LoginScreen />
       ) : (
@@ -35,7 +34,7 @@ const DeezeroomApp = () => {
             options={{
               headerShown: false,
               headerStyle: {
-                backgroundColor: Colors.light.background
+                backgroundColor: '#0f0d13'
               }
             }}
           />
@@ -45,12 +44,5 @@ const DeezeroomApp = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background
-  }
-});
 
 export default DeezeroomApp;

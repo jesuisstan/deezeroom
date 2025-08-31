@@ -1,4 +1,4 @@
-import { Text, type TextProps, StyleSheet } from 'react-native';
+import { Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
 
@@ -13,49 +13,37 @@ export function ThemedText({
   lightColor,
   darkColor,
   type = 'default',
+  className,
   ...rest
-}: ThemedTextProps) {
+}: ThemedTextProps & { className?: string }) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+
+  const getTypeClasses = () => {
+    switch (type) {
+      case 'default':
+        return 'text-base leading-6';
+      case 'title':
+        return 'text-3xl leading-8 tracking-widest';
+      case 'defaultSemiBold':
+        return 'text-base leading-6 font-semibold';
+      case 'subtitle':
+        return 'text-xl font-italic';
+      case 'link':
+        return 'leading-8 text-base text-tint-light';
+      default:
+        return 'text-base leading-6';
+    }
+  };
 
   return (
     <Text
       style={[
         { color },
-        //{ letterSpacing: 1 },
         { fontFamily: 'LeagueGothic', letterSpacing: 4 },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
         style
       ]}
+      className={`${getTypeClasses()} ${className || ''}`}
       {...rest}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24
-  },
-  title: {
-    fontSize: 32,
-    lineHeight: 32,
-    letterSpacing: 4
-  },
-  subtitle: {
-    fontSize: 20,
-    fontFamily: 'LeagueGothic_Italic'
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4'
-  }
-});

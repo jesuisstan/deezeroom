@@ -1,7 +1,6 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import UserProfileScreen from '@/components/UserProfile';
-import { Colors } from '@/constants/Colors';
 import { useUser } from '@/contexts/UserContext';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { StatusBar } from 'expo-status-bar';
@@ -9,10 +8,8 @@ import { StatusBar } from 'expo-status-bar';
 const SignOutButton = () => {
   const { signOut } = useUser();
   return (
-    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <ThemedText style={{ color: '#009BFF', fontSize: 16 }}>
-        Sign Out
-      </ThemedText>
+    <TouchableOpacity onPress={signOut} className="mr-4">
+      <ThemedText className="text-blue-500 text-base">Sign Out</ThemedText>
     </TouchableOpacity>
   );
 };
@@ -21,16 +18,16 @@ export default function ProfilePage() {
   return (
     <>
       <StatusBar style="dark" backgroundColor="transparent" hidden={true} />
-      <View style={styles.container}>
+      <View className="flex-1 bg-bg-main">
         <Stack.Screen
           options={{
             title: 'Profile',
             headerShown: true,
             headerRight: () => <SignOutButton />,
             headerStyle: {
-              backgroundColor: Colors.light.text
+              backgroundColor: '#fdfcfe'
             },
-            headerTintColor: Colors.light.accentMain,
+            headerTintColor: '#a238ff',
             headerTitleStyle: {
               fontFamily: 'LeagueGothic',
               fontSize: 30
@@ -42,10 +39,3 @@ export default function ProfilePage() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background
-  }
-});

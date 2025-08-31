@@ -1,11 +1,10 @@
 import { Tabs } from 'expo-router';
-import { Platform, Text, TouchableOpacity, Image } from 'react-native';
+import { Platform, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useUser } from '@/contexts/UserContext';
 
@@ -20,13 +19,7 @@ const ProfileButton = () => {
     >
       <Image
         source={{ uri: user?.photoURL || 'https://via.placeholder.com/32' }}
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          borderWidth: 2,
-          borderColor: Colors.light.accentMain
-        }}
+        className="w-8 h-8 rounded-full border-2 border-accent-main"
       />
     </TouchableOpacity>
   );
@@ -38,7 +31,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#0a7ea4',
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,

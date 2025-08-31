@@ -1,10 +1,9 @@
-import { StyleSheet, Pressable, TextInput, Image } from 'react-native';
+import { Pressable, TextInput, Image } from 'react-native';
 import { useEffect, useState } from 'react';
 
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
-import { Colors } from '@/constants/Colors';
 import shootAlert from '@/utils/shoot-alert';
 import { useNetwork } from '@/contexts/NetworkContext';
 import { HelloWave } from '@/components/HelloWave';
@@ -52,80 +51,42 @@ export default function HomeScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{
-        light: Colors.dark.background,
-        dark: Colors.light.background
+        light: '#fdfcfe',
+        dark: '#0f0d13'
       }}
       headerImage={
         <Image
           source={require('@/assets/images/logo/deezeroom-black-transparent.png')}
-          style={styles.logo}
+          className="absolute w-3/4 bottom-2.5 left-2.5"
           resizeMode="contain"
         />
       }
     >
-      <ThemedView style={styles.titleContainer}>
+      <ThemedView className="flex-row items-center gap-2">
         <ThemedText type="title">deezeroom app</ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
+      <ThemedView className="gap-2 mb-2">
         <ThemedText type="subtitle">Open an API route</ThemedText>
         <Pressable onPress={fetchGreeting}>
-          <ThemedText style={{ textDecorationLine: 'underline' }}>
-            GET /api/greeting
-          </ThemedText>
+          <ThemedText className="underline">GET /api/greeting</ThemedText>
         </Pressable>
-        <ThemedView style={styles.inputContainer}>
+        <ThemedView className="flex-row items-center gap-2">
           <TextInput
-            style={styles.input}
+            className="border border-accent-main text-accent-weak rounded p-2 flex-1"
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
-            placeholderTextColor={Colors.light.accentWeak}
+            placeholderTextColor="#c17aff"
           />
           <Pressable onPress={postGreeting}>
-            <ThemedText style={{ textDecorationLine: 'underline' }}>
-              POST /api/greeting
-            </ThemedText>
+            <ThemedText className="underline">POST /api/greeting</ThemedText>
           </Pressable>
         </ThemedView>
         <Pressable onPress={postGraphql}>
-          <ThemedText style={{ textDecorationLine: 'underline' }}>
-            POST /api/graphql
-          </ThemedText>
+          <ThemedText className="underline">POST /api/graphql</ThemedText>
         </Pressable>
       </ThemedView>
       <HelloWave />
     </ParallaxScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.light.accentMain,
-    color: Colors.light.accentWeak,
-    borderRadius: 4,
-    padding: 8,
-    flex: 1
-  },
-  logo: {
-    position: 'absolute',
-    width: '70%',
-    //height: '50%',
-    bottom: 10,
-    left: 10
-  }
-});

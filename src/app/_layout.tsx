@@ -1,3 +1,4 @@
+import '../global.css';
 import {
   DarkTheme,
   DefaultTheme,
@@ -14,7 +15,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import { UserProvider } from '@/contexts/UserContext';
 import DeezeroomApp from '@/components/DeezeroomApp';
-import { Platform } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 import { Colors } from '@/constants/Colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -22,19 +23,23 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
+  const [fontsLoaded] = useFonts({
     LeagueGothic: require('@/assets/fonts/LeagueGothic-Regular.ttf'),
     LeagueGothic_Italic: require('@/assets/fonts/LeagueGothic_Italic-Regular.ttf')
   });
 
   useEffect(() => {
-    if (loaded) {
+    if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [fontsLoaded]);
 
-  if (!loaded) {
-    return null;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
   }
 
   const appContent = (

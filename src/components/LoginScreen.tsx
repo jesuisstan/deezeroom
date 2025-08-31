@@ -1,17 +1,10 @@
-import { FC, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Image,
-  Platform,
-  TouchableOpacity
-} from 'react-native';
+import { FC } from 'react';
+import { View, Image, Platform, TouchableOpacity } from 'react-native';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '@/utils/firebase';
 import { UserService } from '@/utils/firebaseService';
 import shootAlert from '@/utils/shoot-alert';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { Colors } from '@/constants/Colors';
 import {
   GoogleSignin,
   statusCodes,
@@ -111,20 +104,20 @@ const LoginScreen: FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
+    <View className="flex-1 bg-bg-main items-center justify-center p-5">
+      <View className="mb-10 items-center">
         <Image
           source={require('@/assets/images/logo/deezeroom-white-transparent.png')}
-          style={styles.logo}
+          className="w-96"
           resizeMode="contain"
         />
       </View>
 
       <TouchableOpacity
-        style={styles.signInButton}
+        className="bg-accent-main px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
         onPress={handleGoogleSignIn}
       >
-        <ThemedText style={styles.signInButtonText}>
+        <ThemedText className="text-bg-main text-base font-semibold">
           Sign in with Google
         </ThemedText>
       </TouchableOpacity>
@@ -133,41 +126,3 @@ const LoginScreen: FC = () => {
 };
 
 export default LoginScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20
-  },
-  logoContainer: {
-    marginBottom: 40,
-    alignItems: 'center'
-  },
-  logo: {
-    width: 300
-  },
-  signInButton: {
-    backgroundColor: Colors.light.accentMain,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
-    minWidth: 200,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5
-  },
-  signInButtonText: {
-    color: Colors.light.background,
-    fontSize: 16,
-    fontWeight: '600'
-  }
-});

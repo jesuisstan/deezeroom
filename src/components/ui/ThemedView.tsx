@@ -11,12 +11,19 @@ export function ThemedView({
   style,
   lightColor,
   darkColor,
+  className,
   ...otherProps
-}: ThemedViewProps) {
+}: ThemedViewProps & { className?: string }) {
   const backgroundColor = useThemeColor(
     { light: lightColor, dark: darkColor },
     'background'
   );
 
-  return <View style={[{ backgroundColor }, style]} {...otherProps} />;
+  return (
+    <View
+      style={[{ backgroundColor }, style]}
+      className={className}
+      {...otherProps}
+    />
+  );
 }

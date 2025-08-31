@@ -1,4 +1,4 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 
 import { Collapsible } from '@/components/ui/Collapsible';
 import { ExternalLink } from '@/components/ui/ExternalLink';
@@ -17,11 +17,11 @@ export default function TabTwoScreen() {
           size={310}
           color="#808080"
           name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+          style={{ position: 'absolute', bottom: -90, left: -35 }}
         />
       }
     >
-      <ThemedView style={styles.titleContainer}>
+      <ThemedView className="flex-row gap-2">
         <ThemedText
           type="title"
           onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
@@ -64,7 +64,7 @@ export default function TabTwoScreen() {
         </ThemedText>
         <Image
           source={require('@/assets/images/react-logo.png')}
-          style={{ alignSelf: 'center' }}
+          className="self-center"
         />
         <ExternalLink href="https://reactnative.dev/docs/images">
           <ThemedText type="link">Learn more</ThemedText>
@@ -74,7 +74,7 @@ export default function TabTwoScreen() {
         <ThemedText>
           Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText>{' '}
           to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'LeagueGothic' }}>
+          <ThemedText className="font-['LeagueGothic']">
             custom fonts such as this one.
           </ThemedText>
         </ThemedText>
@@ -120,16 +120,3 @@ export default function TabTwoScreen() {
     </ParallaxScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute'
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8
-  }
-});

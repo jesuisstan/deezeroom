@@ -1,7 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import {
   View,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -12,7 +11,6 @@ import {
 import { useUser } from '@/contexts/UserContext';
 import { UserService, UserProfile } from '@/utils/firebaseService';
 import { ThemedText } from '@/components/ui/ThemedText';
-import { Colors } from '@/constants/Colors';
 
 const UserProfileScreen: FC = () => {
   const { user, signOut } = useUser();
@@ -101,7 +99,7 @@ const UserProfileScreen: FC = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 bg-bg-main px-4">
         <ThemedText type="title">Loading profile...</ThemedText>
       </View>
     );
@@ -109,40 +107,40 @@ const UserProfileScreen: FC = () => {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 bg-bg-main px-4">
         <ThemedText type="title">User not authorized</ThemedText>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView className="flex-1 bg-bg-main px-4">
+      <View className="flex-row items-center mb-6 pb-4 border-b border-accent-main">
         <Image
           source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
-          style={styles.avatar}
+          className="w-20 h-20 rounded-full mr-4"
         />
-        <View style={styles.headerInfo}>
+        <View className="flex-1">
           <ThemedText type="title">{user.displayName || 'User'}</ThemedText>
           <ThemedText type="subtitle">{user.email}</ThemedText>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
+      <View className="mb-6">
+        <View className="flex-row justify-between items-center mb-4">
           <ThemedText type="subtitle">Basic information</ThemedText>
           <TouchableOpacity
             onPress={() => setEditing(!editing)}
-            style={styles.editButton}
+            className="p-2 bg-accent-main rounded-lg"
           >
             <ThemedText>{editing ? 'Cancel' : 'Edit'}</ThemedText>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Name</ThemedText>
           <TextInput
-            style={[styles.input, !editing && styles.disabledInput]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.displayName}
             onChangeText={(text) =>
               setFormData({ ...formData, displayName: text })
@@ -152,14 +150,10 @@ const UserProfileScreen: FC = () => {
           />
         </View>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>About me</ThemedText>
           <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              !editing && styles.disabledInput
-            ]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.bio}
             onChangeText={(text) => setFormData({ ...formData, bio: text })}
             editable={editing}
@@ -169,10 +163,10 @@ const UserProfileScreen: FC = () => {
           />
         </View>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Location</ThemedText>
           <TextInput
-            style={[styles.input, !editing && styles.disabledInput]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.location}
             onChangeText={(text) =>
               setFormData({ ...formData, location: text })
@@ -183,22 +177,13 @@ const UserProfileScreen: FC = () => {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <ThemedText type="subtitle">Private information</ThemedText>
-        <TouchableOpacity
-          onPress={() => setEditing(!editing)}
-          style={styles.editButton}
-        >
-          <ThemedText>{editing ? 'Cancel' : 'Edit'}</ThemedText>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.section}>
+      <View className="mb-6">
         <ThemedText type="subtitle">Private information</ThemedText>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Phone</ThemedText>
           <TextInput
-            style={[styles.input, !editing && styles.disabledInput]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.phone}
             onChangeText={(text) => setFormData({ ...formData, phone: text })}
             editable={editing}
@@ -207,10 +192,10 @@ const UserProfileScreen: FC = () => {
           />
         </View>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Birth date</ThemedText>
           <TextInput
-            style={[styles.input, !editing && styles.disabledInput]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.birthDate}
             onChangeText={(text) =>
               setFormData({ ...formData, birthDate: text })
@@ -221,17 +206,13 @@ const UserProfileScreen: FC = () => {
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View className="mb-6">
         <ThemedText type="subtitle">Music preferences</ThemedText>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Favorite genres</ThemedText>
           <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              !editing && styles.disabledInput
-            ]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.favoriteGenres}
             onChangeText={(text) =>
               setFormData({ ...formData, favoriteGenres: text })
@@ -243,14 +224,10 @@ const UserProfileScreen: FC = () => {
           />
         </View>
 
-        <View style={styles.field}>
+        <View className="mb-4">
           <ThemedText>Favorite artists</ThemedText>
           <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              !editing && styles.disabledInput
-            ]}
+            className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.favoriteArtists}
             onChangeText={(text) =>
               setFormData({ ...formData, favoriteArtists: text })
@@ -264,82 +241,15 @@ const UserProfileScreen: FC = () => {
       </View>
 
       {editing && (
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+        <TouchableOpacity
+          className="bg-accent-main p-4 rounded-lg items-center mt-4"
+          onPress={handleSave}
+        >
+          <ThemedText className="text-bg-main font-bold">Save</ThemedText>
         </TouchableOpacity>
       )}
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-    paddingHorizontal: 16
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.accentMain
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 16
-  },
-  headerInfo: {
-    flex: 1
-  },
-  section: {
-    marginBottom: 24
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16
-  },
-  editButton: {
-    padding: 8,
-    backgroundColor: Colors.light.accentMain,
-    borderRadius: 8
-  },
-  field: {
-    marginBottom: 16
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: Colors.light.accentMain,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 4,
-    backgroundColor: Colors.light.background,
-    color: Colors.light.text
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top'
-  },
-  disabledInput: {
-    backgroundColor: Colors.light.accentMain,
-    color: Colors.light.accentMain
-  },
-  saveButton: {
-    backgroundColor: Colors.light.accentMain,
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16
-  },
-  saveButtonText: {
-    color: Colors.light.background,
-    fontWeight: 'bold'
-  }
-});
 
 export default UserProfileScreen;
