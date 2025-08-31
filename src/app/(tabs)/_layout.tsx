@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Platform, Text, TouchableOpacity } from 'react-native';
+import { Platform, Text, TouchableOpacity, Image } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -8,11 +9,25 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useUser } from '@/contexts/UserContext';
 
-const SignOutButton = () => {
-  const { signOut } = useUser();
+const ProfileButton = () => {
+  const { user } = useUser();
+  const router = useRouter();
+
   return (
-    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
-      <Text style={{ color: '#007AFF', fontSize: 16 }}>Sign Out</Text>
+    <TouchableOpacity
+      onPress={() => router.push('/profile')}
+      style={{ marginRight: 16 }}
+    >
+      <Image
+        source={{ uri: user?.photoURL || 'https://via.placeholder.com/32' }}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          borderWidth: 2,
+          borderColor: Colors.light.accentMain
+        }}
+      />
     </TouchableOpacity>
   );
 };
@@ -33,7 +48,11 @@ export default function TabLayout() {
             position: 'absolute'
           },
           default: {}
-        })
+        }),
+        headerTitleStyle: {
+          fontFamily: 'LeagueGothic',
+          fontSize: 30
+        }
       }}
     >
       <Tabs.Screen
@@ -42,7 +61,8 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="shippingbox.fill" color={color} />
-          )
+          ),
+          headerRight: () => <ProfileButton />
         }}
       />
       <Tabs.Screen
@@ -51,17 +71,18 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
-          )
+          ),
+          headerRight: () => <ProfileButton />
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="explore"
         options={{
-          title: 'Profile',
+          title: 'Explore',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
+            <IconSymbol size={28} name="shippingbox.fill" color={color} />
           ),
-          headerRight: () => <SignOutButton />
+          headerRight: () => <ProfileButton />
         }}
       />
     </Tabs>

@@ -1,26 +1,18 @@
 import 'react-native-reanimated';
-import { View, StyleSheet, StatusBar } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
-
 import { useUser } from '@/contexts/UserContext';
 import { Colors } from '@/constants/Colors';
 import LoginScreen from '@/components/LoginScreen';
 import { ThemedText } from '@/components/ui/ThemedText';
 
 const DeezeroomApp = () => {
-  const { user, loading, signOut } = useUser();
+  const { user, loading } = useUser();
 
   // Show loading while checking authentication state
   if (loading) {
     return (
       <View style={styles.container}>
-        <StatusBar
-          animated={true}
-          backgroundColor={Colors.light.bgTtransparent}
-          barStyle="dark-content"
-          showHideTransition="slide"
-          hidden={false}
-        />
         <ThemedText type="title">Loading...</ThemedText>
       </View>
     );
@@ -28,13 +20,6 @@ const DeezeroomApp = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        animated={true}
-        backgroundColor={Colors.light.bgTtransparent}
-        barStyle="dark-content"
-        showHideTransition="slide"
-        hidden={false}
-      />
       {!user ? (
         <LoginScreen />
       ) : (
@@ -43,6 +28,15 @@ const DeezeroomApp = () => {
             name="(tabs)"
             options={{
               headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="profile"
+            options={{
+              headerShown: false,
+              headerStyle: {
+                backgroundColor: Colors.light.background
+              }
             }}
           />
           <Stack.Screen name="+not-found" />

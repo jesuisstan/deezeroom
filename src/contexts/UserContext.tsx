@@ -67,6 +67,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       // Sign out from Google (if possible)
       try {
         await GoogleSignin.signOut();
+        console.log('Google sign out successful');
       } catch (googleError) {
         console.log('Google sign out error (non-critical):', googleError);
       }

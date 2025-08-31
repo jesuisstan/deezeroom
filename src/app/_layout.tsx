@@ -39,7 +39,11 @@ export default function RootLayout() {
       <NetworkProvider>
         <UserProvider>
           <DeezeroomApp />
-          {/*<StatusBar style="auto" />*/}
+          <StatusBar
+            style="dark"
+            backgroundColor="transparent"
+            translucent={true}
+          />
         </UserProvider>
       </NetworkProvider>
     </ThemeProvider>
