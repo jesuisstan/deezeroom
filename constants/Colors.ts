@@ -32,7 +32,8 @@ export const Colors = {
 
     accentMain: '#a238ff',
     accentStrong: '#9333e8',
-    accentWeak: '#c17aff'
+    accentWeak: '#c17aff',
+    bgTtransparent: '#0000004d'
   },
   dark: {
     text: '#0f0d13',
@@ -44,6 +45,7 @@ export const Colors = {
 
     accentMain: '#a238ff',
     accentStrong: '#9333e8',
-    accentWeak: '#c17aff'
+    accentWeak: '#c17aff',
+    bgTtransparent: '#0000004d'
   }
 };

@@ -39,7 +39,7 @@ export default function RootLayout() {
       <NetworkProvider>
         <UserProvider>
           <DeezeroomApp />
-          <StatusBar style="auto" />
+          {/*<StatusBar style="auto" />*/}
         </UserProvider>
       </NetworkProvider>
     </ThemeProvider>

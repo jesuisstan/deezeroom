@@ -1,12 +1,21 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text, TouchableOpacity } from 'react-native';
 
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useUser } from '@/contexts/UserContext';
+
+const SignOutButton = () => {
+  const { signOut } = useUser();
+  return (
+    <TouchableOpacity onPress={signOut} style={{ marginRight: 16 }}>
+      <Text style={{ color: '#007AFF', fontSize: 16 }}>Sign Out</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -15,7 +24,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
@@ -46,12 +55,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="profile"
         options={{
-          title: 'Explore',
+          title: 'Profile',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
-          )
+            <IconSymbol size={28} name="person.fill" color={color} />
+          ),
+          headerRight: () => <SignOutButton />
         }}
       />
     </Tabs>

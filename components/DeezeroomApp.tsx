@@ -3,26 +3,34 @@ import { View, StyleSheet, StatusBar } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useUser } from '@/contexts/UserContext';
-//import { useNetwork } from '@/contexts/NetworkContext';
-//import shootAlert from '@/utils/shoot-alert';
 import { Colors } from '@/constants/Colors';
 import LoginScreen from '@/components/LoginScreen';
+import { ThemedText } from '@/components/ui/ThemedText';
 
 const DeezeroomApp = () => {
-  const { user } = useUser();
+  const { user, loading, signOut } = useUser();
 
-  //const { isConnected } = useNetwork();
-  //useEffect(() => {
-  //  if (!isConnected) {
-  //    shootAlert('Network Error!', 'Please check your internet connection.');
-  //  }
-  //}, [isConnected]);
+  // Show loading while checking authentication state
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar
+          animated={true}
+          backgroundColor={Colors.light.bgTtransparent}
+          barStyle="dark-content"
+          showHideTransition="slide"
+          hidden={false}
+        />
+        <ThemedText type="title">Loading...</ThemedText>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <StatusBar
         animated={true}
-        backgroundColor={Colors.light.accentMain}
+        backgroundColor={Colors.light.bgTtransparent}
         barStyle="dark-content"
         showHideTransition="slide"
         hidden={false}
@@ -31,7 +39,12 @@ const DeezeroomApp = () => {
         <LoginScreen />
       ) : (
         <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              headerShown: false
+            }}
+          />
           <Stack.Screen name="+not-found" />
         </Stack>
       )}
@@ -42,7 +55,7 @@ const DeezeroomApp = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: 'relative'
+    backgroundColor: Colors.light.background
   }
 });
 
