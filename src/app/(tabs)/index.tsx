@@ -11,18 +11,22 @@ import { HelloWave } from '@/components/HelloWave';
 export default function HomeScreen() {
   const [name, setName] = useState('');
 
-  //const { isConnected } = useNetwork();
+  const { isConnected } = useNetwork();
 
-  //useEffect(() => {
-  //  if (!isConnected) {
-  //    shootAlert('Network Error!', 'Please check your internet connection.');
-  //  }
-  //}, [isConnected]);
+  useEffect(() => {
+    if (!isConnected) {
+      shootAlert(
+        'toast',
+        'Network Error!',
+        'Please check your internet connection.'
+      );
+    }
+  }, [isConnected]);
 
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
     const data = await response.json();
-    shootAlert('dialog', 'Greeting', data.greeting, 'success');
+    shootAlert('dialog', 'Greeting', data.greeting, 'warning');
   };
 
   const postGreeting = async () => {
@@ -31,7 +35,7 @@ export default function HomeScreen() {
       { method: 'POST' }
     );
     const data = await response.json();
-    shootAlert('toast', 'Greeting', data.greeting, 'success');
+    shootAlert('toast', 'Greeting', data.greeting, 'error');
   };
 
   const postGraphql = async () => {
@@ -45,7 +49,7 @@ export default function HomeScreen() {
       })
     });
     const data = await response.json();
-    shootAlert('dialog', 'Greeting', data.greeting, 'success');
+    shootAlert('dialog', 'Greeting', data.data.greeting, 'success');
   };
 
   return (

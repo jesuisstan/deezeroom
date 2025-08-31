@@ -33,7 +33,9 @@ export const Colors = {
     accentMain: '#a238ff',
     accentStrong: '#9333e8',
     accentWeak: '#c17aff',
-    bgTtransparent: '#0000004d'
+    bgTtransparent: '#0000004d',
+
+    tintColorLight: '#0a7ea4'
   },
   dark: {
     text: '#0f0d13',

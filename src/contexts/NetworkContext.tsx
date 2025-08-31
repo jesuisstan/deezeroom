@@ -42,7 +42,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
 
         // Fallback to a simple fetch to a CORS-friendly endpoint
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4000);
+        const timeout = setTimeout(() => controller.abort(), 5000);
         const res = await fetch('https://httpbin.org/status/200', {
           method: 'GET',
           cache: 'no-store',

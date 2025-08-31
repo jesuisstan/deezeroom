@@ -89,7 +89,7 @@ const ProfileScreen: FC = () => {
   }
 
   return (
-    <ScrollView className="flex-1 bg-bg-main px-4">
+    <ScrollView className="flex-1 bg-bg-main px-4 py-4">
       <View className="flex-row items-center mb-6 pb-4 border-b border-accent-main">
         <Image
           source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
