@@ -14,6 +14,8 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import { UserProvider } from '@/contexts/UserContext';
 import DeezeroomApp from '@/components/DeezeroomApp';
+import { Platform } from 'react-native';
+import { Colors } from '@/constants/Colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -35,20 +37,58 @@ export default function RootLayout() {
     return null;
   }
 
+  const appContent = (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <NetworkProvider>
+        <UserProvider>
+          <DeezeroomApp />
+          <StatusBar
+            style="dark"
+            backgroundColor="transparent"
+            translucent={true}
+          />
+        </UserProvider>
+      </NetworkProvider>
+    </ThemeProvider>
+  );
+
+  // For web we don't use AlertNotificationRoot because of problems with useColorScheme
+  if (Platform.OS === 'web') {
+    return appContent;
+  }
+
   return (
-    <AlertNotificationRoot>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <NetworkProvider>
-          <UserProvider>
-            <DeezeroomApp />
-            <StatusBar
-              style="dark"
-              backgroundColor="transparent"
-              translucent={true}
-            />
-          </UserProvider>
-        </NetworkProvider>
-      </ThemeProvider>
+    <AlertNotificationRoot
+      toastConfig={{
+        autoClose: 3000
+      }}
+      dialogConfig={{
+        closeOnOverlayTap: true,
+        autoClose: false
+      }}
+      theme={colorScheme === 'dark' ? 'dark' : 'light'}
+      colors={[
+        {
+          label: '#fdfcfe',
+          card: '#1b191f',
+          overlay: '#0000004d',
+          success: Colors.dark.accentMain,
+          danger: '#ef4444',
+          warning: '#f59e0b',
+          info: Colors.light.accentMain
+        },
+        {
+          label: '#0f0d13',
+          card: '#fdfcfe',
+          overlay: '#0000004d',
+          success: Colors.dark.accentMain,
+          danger: '#ef4444',
+          warning: '#f59e0b',
+          info: Colors.dark.accentMain
+        }
+      ]}
+    >
+      {appContent}
     </AlertNotificationRoot>
   );
 }

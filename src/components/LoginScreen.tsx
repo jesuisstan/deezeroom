@@ -39,7 +39,7 @@ const LoginScreen: FC = () => {
 
       if (!idToken) {
         console.error('No idToken received');
-        shootAlert('Error', 'No token received from Google', 'error', true);
+        shootAlert('toast', 'Error', 'No token received from Google', 'error');
         return;
       }
 
@@ -60,18 +60,18 @@ const LoginScreen: FC = () => {
           }
         });
         shootAlert(
+          'toast',
           'Success',
           'You have successfully signed in!',
-          'success',
-          true
+          'success'
         );
       } catch (error) {
         console.error('Error creating user profile:', error);
         shootAlert(
+          'toast',
           'Warning',
           'Sign in completed, but failed to create profile.',
-          'warning',
-          true
+          'warning'
         );
       }
     } catch (error) {
@@ -87,20 +87,22 @@ const LoginScreen: FC = () => {
             break;
           case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
             shootAlert(
+              'toast',
               'Error',
               'Google Play Services not available',
-              'error',
-              true
+              'error'
             );
             break;
           default:
             shootAlert(
+              'toast',
               'Sign in error',
               'Failed to sign in with Google. Please try again.'
             );
         }
       } else {
         shootAlert(
+          'toast',
           'Sign in error',
           'Failed to sign in with Google. Please try again.'
         );

@@ -1,13 +1,26 @@
 import { ALERT_TYPE, Dialog, Toast } from 'react-native-alert-notification';
+import { Platform } from 'react-native';
 
-type AlertType = 'success' | 'error' | 'warning' | 'info';
+type AlertType = 'success' | 'error' | 'warning';
+type NotificationType = 'toast' | 'dialog';
 
 const shootAlert = (
+  notificationType: NotificationType,
   headerText: string,
   messageText: string,
-  type: AlertType = 'info',
-  useToast: boolean = false
+  type: AlertType = 'success'
 ) => {
+  // For web use native alert, because AlertNotificationRoot is not available
+  if (Platform.OS === 'web') {
+    if (notificationType === 'dialog') {
+      alert(`${headerText}\n\n${messageText}`);
+    } else {
+      // For toast on web use console.log
+      console.log(`${headerText}: ${messageText}`);
+    }
+    return;
+  }
+
   const alertType =
     type === 'success'
       ? ALERT_TYPE.SUCCESS
@@ -15,9 +28,9 @@ const shootAlert = (
         ? ALERT_TYPE.DANGER
         : type === 'warning'
           ? ALERT_TYPE.WARNING
-          : ALERT_TYPE.SUCCESS;
+          : ALERT_TYPE.INFO;
 
-  if (useToast) {
+  if (notificationType === 'toast') {
     Toast.show({
       type: alertType,
       title: headerText,

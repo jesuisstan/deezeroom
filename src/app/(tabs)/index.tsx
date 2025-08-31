@@ -23,7 +23,7 @@ export default function HomeScreen() {
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
     const data = await response.json();
-    alert(data.greeting);
+    shootAlert('dialog', 'Greeting', data.greeting, 'success');
   };
 
   const postGreeting = async () => {
@@ -32,7 +32,7 @@ export default function HomeScreen() {
       { method: 'POST' }
     );
     const data = await response.json();
-    alert(data.greeting);
+    shootAlert('toast', 'Greeting', data.greeting, 'success');
   };
 
   const postGraphql = async () => {
@@ -46,8 +46,7 @@ export default function HomeScreen() {
       })
     });
     const data = await response.json();
-
-    alert(data.data.greeting);
+    shootAlert('dialog', 'Greeting', data.greeting, 'success');
   };
 
   return (

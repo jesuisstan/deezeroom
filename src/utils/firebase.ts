@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import * as FBauth from 'firebase/auth';
+import { Platform } from 'react-native';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -14,11 +15,22 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = FBauth.initializeAuth(app, {
-  persistence: (FBauth as any).getReactNativePersistence(
-    ReactNativeAsyncStorage
-  )
-});
+
+// Инициализация auth с учетом платформы
+let auth: FBauth.Auth;
+
+if (Platform.OS === 'web') {
+  // Для веб-версии используем стандартную инициализацию
+  auth = FBauth.getAuth(app);
+} else {
+  // Для мобильных платформ используем ReactNative persistence
+  auth = FBauth.initializeAuth(app, {
+    persistence: (FBauth as any).getReactNativePersistence(
+      ReactNativeAsyncStorage
+    )
+  });
+}
+
 const db = getFirestore(app);
 
 export { app, auth, db };

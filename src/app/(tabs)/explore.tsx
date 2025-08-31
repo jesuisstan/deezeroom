@@ -6,6 +6,7 @@ import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import shootAlert from '@/utils/shoot-alert';
 
 export default function TabTwoScreen() {
   return (
@@ -21,7 +22,12 @@ export default function TabTwoScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">THIS APP GONNA BE AWESOME</ThemedText>
+        <ThemedText
+          type="title"
+          onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
+        >
+          THIS APP GONNA BE AWESOME
+        </ThemedText>
       </ThemedView>
       <ThemedText>
         This app includes example code to help you get started.
