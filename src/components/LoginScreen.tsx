@@ -100,7 +100,7 @@ const LoginScreen: FC = () => {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/images/logo/deezeroom-white-transparent.png')}
+          source={require('@/assets/images/logo/deezeroom-white-transparent.png')}
           style={styles.logo}
           resizeMode="contain"
         />

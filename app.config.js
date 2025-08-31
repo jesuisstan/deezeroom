@@ -5,7 +5,7 @@ module.exports = () => ({
     slug: 'deezeroom',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
@@ -17,7 +17,7 @@ module.exports = () => ({
     android: {
       package: 'com.krivtsoff.deezeroom',
       adaptiveIcon: {
-        foregroundImage: './assets/images/adaptive-icon.png',
+        foregroundImage: './src/assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
       },
       googleServicesFile:
@@ -27,15 +27,15 @@ module.exports = () => ({
     web: {
       bundler: 'metro',
       output: 'server',
-      favicon: './assets/images/favicon.ico'
+      favicon: './src/assets/images/favicon.ico'
     },
     plugins: [
       [
         'expo-font',
         {
           fonts: [
-            './assets/fonts/LeagueGothic-Regular.ttf',
-            './assets/fonts/LeagueGothic_Italic-Regular.ttf'
+            './src/assets/fonts/LeagueGothic-Regular.ttf',
+            './src/assets/fonts/LeagueGothic_Italic-Regular.ttf'
           ]
         }
       ],
@@ -51,7 +51,7 @@ module.exports = () => ({
       [
         'expo-splash-screen',
         {
-          image: './assets/images/splash.png',
+          image: './src/assets/images/splash.png',
           imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#0f0d13'

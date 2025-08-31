@@ -20,8 +20,8 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
-    LeagueGothic: require('../assets/fonts/LeagueGothic-Regular.ttf'),
-    LeagueGothic_Italic: require('../assets/fonts/LeagueGothic_Italic-Regular.ttf')
+    LeagueGothic: require('@/assets/fonts/LeagueGothic-Regular.ttf'),
+    LeagueGothic_Italic: require('@/assets/fonts/LeagueGothic_Italic-Regular.ttf')
   });
 
   useEffect(() => {
