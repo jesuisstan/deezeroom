@@ -10,13 +10,15 @@ type NotificationType = 'toast' | 'dialog';
  * @param headerText - text to show in the header of the alert
  * @param messageText - text to show in the body of the alert
  * @param type - type of alert (success, error, warning)
+ * @param sticky - if true, the Toast alert will not close automatically
  * @returns void
  */
 const shootAlert = (
   notificationType: NotificationType,
   headerText: string,
   messageText: string,
-  type: AlertType = 'success'
+  type: AlertType = 'success',
+  sticky: boolean = false
 ) => {
   // For web use native alert, because AlertNotificationRoot is not available
   if (Platform.OS === 'web') {
@@ -43,7 +45,7 @@ const shootAlert = (
       type: alertType,
       title: headerText,
       textBody: messageText,
-      autoClose: 3000
+      autoClose: sticky ? false : 3000
     });
   } else {
     Dialog.show({

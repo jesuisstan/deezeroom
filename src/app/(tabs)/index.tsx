@@ -1,27 +1,14 @@
 import { Pressable, TextInput, Image } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import shootAlert from '@/utils/shoot-alert';
-import { useNetwork } from '@/contexts/NetworkContext';
 import { HelloWave } from '@/components/HelloWave';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
-
-  const { isConnected } = useNetwork();
-
-  useEffect(() => {
-    if (!isConnected) {
-      shootAlert(
-        'toast',
-        'Network Error!',
-        'Please check your internet connection.'
-      );
-    }
-  }, [isConnected]);
 
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');

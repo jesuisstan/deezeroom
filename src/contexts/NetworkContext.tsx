@@ -4,9 +4,11 @@ import {
   useContext,
   useEffect,
   useState,
-  ReactNode
+  ReactNode,
+  useRef
 } from 'react';
 import { AppState, Platform } from 'react-native';
+import shootAlert from '@/utils/shoot-alert';
 
 type TNetworkContextState = {
   isConnected: boolean;
@@ -22,6 +24,8 @@ const NetworkContext = createContext<TNetworkContextState | undefined>(
 
 export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
+  //const previousConnectionState = useRef<boolean>(true);
+  const lastNotificationTime = useRef<number>(0);
 
   useEffect(() => {
     let mounted = true;
@@ -36,7 +40,11 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           typeof navigator !== 'undefined' &&
           'onLine' in navigator
         ) {
-          setIsConnected(navigator.onLine);
+          const newConnectionState = navigator.onLine;
+          if (newConnectionState !== isConnected) {
+            setIsConnected(newConnectionState);
+            showNetworkNotification(newConnectionState);
+          }
           return;
         }
 
@@ -50,16 +58,49 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
         } as RequestInit);
         clearTimeout(timeout);
         if (!mounted) return;
-        setIsConnected(res.ok);
+
+        const newConnectionState = res.ok;
+        if (newConnectionState !== isConnected) {
+          setIsConnected(newConnectionState);
+          showNetworkNotification(newConnectionState);
+        }
       } catch {
         if (!mounted) return;
-        setIsConnected(false);
+        const newConnectionState = false;
+        if (newConnectionState !== isConnected) {
+          setIsConnected(newConnectionState);
+          showNetworkNotification(newConnectionState);
+        }
       }
     };
 
-    // Initial check and then poll every 5s
+    const showNetworkNotification = (connected: boolean) => {
+      const now = Date.now();
+      // Show notification not more often than every 20 seconds
+      if (now - lastNotificationTime.current > 20000) {
+        if (connected) {
+          shootAlert(
+            'toast',
+            'Connection Restored!',
+            'Internet connection is back online.',
+            'success'
+          );
+        } else {
+          shootAlert(
+            'toast',
+            'Network Error!',
+            'Please check your internet connection.',
+            'error',
+            true
+          );
+        }
+        lastNotificationTime.current = now;
+      }
+    };
+
+    // Initial check and then poll every 10 seconds
     checkOnline();
-    interval = setInterval(checkOnline, 5000);
+    interval = setInterval(checkOnline, 10000);
 
     // Re-check when app comes to foreground
     const appStateSub = AppState.addEventListener('change', (state) => {
@@ -74,8 +115,14 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
       typeof window !== 'undefined' &&
       typeof window.addEventListener === 'function'
     ) {
-      onlineListener = () => setIsConnected(true);
-      offlineListener = () => setIsConnected(false);
+      onlineListener = () => {
+        setIsConnected(true);
+        showNetworkNotification(true);
+      };
+      offlineListener = () => {
+        setIsConnected(false);
+        showNetworkNotification(false);
+      };
       window.addEventListener('online', onlineListener);
       window.addEventListener('offline', offlineListener);
     }
@@ -97,7 +144,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           window.removeEventListener('offline', offlineListener);
       }
     };
-  }, []);
+  }, [isConnected]);
 
   return (
     <NetworkContext.Provider value={{ isConnected }}>
