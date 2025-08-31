@@ -15,8 +15,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import { UserProvider } from '@/contexts/UserContext';
 import DeezeroomApp from '@/components/DeezeroomApp';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import { Colors } from '@/constants/Colors';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -35,11 +36,7 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <ActivityIndicatorScreen />;
   }
 
   const appContent = (

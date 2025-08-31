@@ -1,15 +1,15 @@
 import { View, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
-import UserProfileScreen from '@/components/UserProfile';
+import ProfileScreen from '@/components/ProfileScreen';
 import { useUser } from '@/contexts/UserContext';
-import { ThemedText } from '@/components/ui/ThemedText';
 import { StatusBar } from 'expo-status-bar';
+import { LogOut } from 'lucide-react-native';
 
 const SignOutButton = () => {
   const { signOut } = useUser();
   return (
-    <TouchableOpacity onPress={signOut} className="mr-4">
-      <ThemedText className="text-blue-500 text-base">Sign Out</ThemedText>
+    <TouchableOpacity onPress={signOut} className="mr-4 p-2">
+      <LogOut size={22} color="#a238ff" />
     </TouchableOpacity>
   );
 };
@@ -34,7 +34,7 @@ export default function ProfilePage() {
             }
           }}
         />
-        <UserProfileScreen />
+        <ProfileScreen />
       </View>
     </>
   );

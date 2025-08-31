@@ -1,8 +1,7 @@
 import { FC } from 'react';
 import { View, Image, Platform, TouchableOpacity } from 'react-native';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { auth } from '@/utils/firebase';
-import { UserService } from '@/utils/firebaseService';
+import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
 import { ThemedText } from '@/components/ui/ThemedText';
 import {
@@ -27,7 +26,7 @@ const LoginScreen: FC = () => {
       const userInfo = await GoogleSignin.signIn();
       console.log('Google sign-in successful:', userInfo);
 
-      // Get ID token for Firebase
+      // Get ID token from Google for Firebase
       const { idToken } = await GoogleSignin.getTokens();
 
       if (!idToken) {
@@ -36,37 +35,21 @@ const LoginScreen: FC = () => {
         return;
       }
 
-      // Create Firebase credential
+      // Create Firebase credential from Google ID token with GoogleAuthProvider ("translates" Google ID token to Firebase credential)
       const credential = GoogleAuthProvider.credential(idToken);
       console.log('Created Firebase credential');
 
-      // Sign in to Firebase
+      // Sign in to Firebase with Google credential
       const { user } = await signInWithCredential(auth, credential);
-      console.log('Firebase sign-in successful:', user);
+      console.log('Firebase sign-in successful');
 
-      // Create user profile
-      try {
-        await UserService.createOrUpdateUser(user, {
-          musicPreferences: {
-            favoriteGenres: [],
-            favoriteArtists: []
-          }
-        });
-        shootAlert(
-          'toast',
-          'Success',
-          'You have successfully signed in!',
-          'success'
-        );
-      } catch (error) {
-        console.error('Error creating user profile:', error);
-        shootAlert(
-          'toast',
-          'Warning',
-          'Sign in completed, but failed to create profile.',
-          'warning'
-        );
-      }
+      // Profile will be automatically created/loaded in UserContext
+      shootAlert(
+        'toast',
+        'Success',
+        'You have successfully signed in!',
+        'success'
+      );
     } catch (error) {
       console.error('Google sign-in error:', error);
 
@@ -90,14 +73,16 @@ const LoginScreen: FC = () => {
             shootAlert(
               'toast',
               'Sign in error',
-              'Failed to sign in with Google. Please try again.'
+              'Failed to sign in with Google. Please try again.',
+              'error'
             );
         }
       } else {
         shootAlert(
           'toast',
           'Sign in error',
-          'Failed to sign in with Google. Please try again.'
+          'Failed to sign in with Google. Please try again.',
+          'error'
         );
       }
     }

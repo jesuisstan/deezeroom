@@ -14,10 +14,9 @@ import {
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '@/utils/firebase-init';
 import { User } from 'firebase/auth';
 
-// Типы данных
 export interface UserProfile {
   uid: string;
   email: string;
@@ -71,11 +70,9 @@ export interface Vote {
   createdAt: any;
 }
 
-// Сервис для работы с пользователями
 export class UserService {
   private static collection = 'users';
 
-  // Создать или обновить профиль пользователя
   static async createOrUpdateUser(
     user: User,
     additionalData?: Partial<UserProfile>
@@ -100,7 +97,6 @@ export class UserService {
     }
   }
 
-  // Получить профиль пользователя
   static async getUserProfile(uid: string): Promise<UserProfile | null> {
     const userRef = doc(db, this.collection, uid);
     const userSnap = await getDoc(userRef);
@@ -111,7 +107,6 @@ export class UserService {
     return null;
   }
 
-  // Обновить профиль пользователя
   static async updateUserProfile(
     uid: string,
     data: Partial<UserProfile>
@@ -127,7 +122,7 @@ export class UserService {
     );
   }
 
-  // Подписаться на изменения профиля пользователя
+  // Subscribe to user profile changes
   static subscribeToUserProfile(
     uid: string,
     callback: (user: UserProfile | null) => void
@@ -143,11 +138,9 @@ export class UserService {
   }
 }
 
-// Сервис для работы с плейлистами
 export class PlaylistService {
   private static collection = 'playlists';
 
-  // Создать новый плейлист
   static async createPlaylist(
     data: Omit<Playlist, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> {
@@ -162,7 +155,7 @@ export class PlaylistService {
     return docRef.id;
   }
 
-  // Получить плейлист по ID
+  // Get playlist by ID
   static async getPlaylist(id: string): Promise<Playlist | null> {
     const playlistRef = doc(db, this.collection, id);
     const playlistSnap = await getDoc(playlistRef);
@@ -173,7 +166,7 @@ export class PlaylistService {
     return null;
   }
 
-  // Получить плейлисты пользователя
+  // Get user playlists
   static async getUserPlaylists(userId: string): Promise<Playlist[]> {
     const q = query(
       collection(db, this.collection),
@@ -187,7 +180,7 @@ export class PlaylistService {
     );
   }
 
-  // Получить публичные плейлисты
+  // Get public playlists
   static async getPublicPlaylists(): Promise<Playlist[]> {
     const q = query(
       collection(db, this.collection),
@@ -202,7 +195,7 @@ export class PlaylistService {
     );
   }
 
-  // Добавить трек в плейлист
+  // Add track to playlist
   static async addTrackToPlaylist(
     playlistId: string,
     track: Omit<MusicTrack, 'id' | 'addedAt'>
@@ -223,7 +216,7 @@ export class PlaylistService {
     });
   }
 
-  // Удалить трек из плейлиста
+  // Remove track from playlist
   static async removeTrackFromPlaylist(
     playlistId: string,
     trackId: string
@@ -242,7 +235,7 @@ export class PlaylistService {
     });
   }
 
-  // Подписаться на изменения плейлиста
+  // Subscribe to playlist changes
   static subscribeToPlaylist(
     playlistId: string,
     callback: (playlist: Playlist | null) => void
@@ -258,11 +251,11 @@ export class PlaylistService {
   }
 }
 
-// Сервис для работы с голосованием
+// Service for working with voting
 export class VoteService {
   private static collection = 'votes';
 
-  // Добавить голос за трек
+  // Add vote for track
   static async addVote(vote: Omit<Vote, 'id' | 'createdAt'>): Promise<string> {
     const voteData = {
       ...vote,
@@ -273,7 +266,7 @@ export class VoteService {
     return docRef.id;
   }
 
-  // Получить голоса для трека
+  // Get votes for track
   static async getTrackVotes(
     trackId: string,
     playlistId: string
@@ -290,7 +283,7 @@ export class VoteService {
     );
   }
 
-  // Удалить голос пользователя
+  // Remove user vote
   static async removeUserVote(
     trackId: string,
     userId: string,

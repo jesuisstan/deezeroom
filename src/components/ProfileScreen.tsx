@@ -5,17 +5,14 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  Alert,
-  Platform
+  Alert
 } from 'react-native';
 import { useUser } from '@/contexts/UserContext';
-import { UserService, UserProfile } from '@/utils/firebaseService';
 import { ThemedText } from '@/components/ui/ThemedText';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 
-const UserProfileScreen: FC = () => {
-  const { user, signOut } = useUser();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+const ProfileScreen: FC = () => {
+  const { user, profile, profileLoading, updateProfile } = useUser();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     displayName: '',
@@ -27,45 +24,28 @@ const UserProfileScreen: FC = () => {
     favoriteArtists: ''
   });
 
+  // Initialize form data from profile
   useEffect(() => {
-    if (user) {
-      loadUserProfile();
+    if (profile && !editing) {
+      setFormData({
+        displayName: profile.displayName || '',
+        bio: profile.publicInfo?.bio || '',
+        location: profile.publicInfo?.location || '',
+        phone: profile.privateInfo?.phone || '',
+        birthDate: profile.privateInfo?.birthDate || '',
+        favoriteGenres:
+          profile.musicPreferences?.favoriteGenres?.join(', ') || '',
+        favoriteArtists:
+          profile.musicPreferences?.favoriteArtists?.join(', ') || ''
+      });
     }
-  }, [user]);
-
-  const loadUserProfile = async () => {
-    if (!user) return;
-
-    try {
-      const userProfile = await UserService.getUserProfile(user.uid);
-      setProfile(userProfile);
-
-      if (userProfile) {
-        setFormData({
-          displayName: userProfile.displayName || '',
-          bio: userProfile.publicInfo?.bio || '',
-          location: userProfile.publicInfo?.location || '',
-          phone: userProfile.privateInfo?.phone || '',
-          birthDate: userProfile.privateInfo?.birthDate || '',
-          favoriteGenres:
-            userProfile.musicPreferences?.favoriteGenres?.join(', ') || '',
-          favoriteArtists:
-            userProfile.musicPreferences?.favoriteArtists?.join(', ') || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      Alert.alert('Error', 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [profile, editing]);
 
   const handleSave = async () => {
     if (!user) return;
 
     try {
-      const updateData: Partial<UserProfile> = {
+      const updateData = {
         displayName: formData.displayName,
         publicInfo: {
           bio: formData.bio,
@@ -87,8 +67,7 @@ const UserProfileScreen: FC = () => {
         }
       };
 
-      await UserService.updateUserProfile(user.uid, updateData);
-      await loadUserProfile(); // Reload profile
+      await updateProfile(updateData);
       setEditing(false);
       Alert.alert('Success', 'Profile updated');
     } catch (error) {
@@ -97,12 +76,8 @@ const UserProfileScreen: FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <View className="flex-1 bg-bg-main px-4">
-        <ThemedText type="title">Loading profile...</ThemedText>
-      </View>
-    );
+  if (profileLoading) {
+    return <ActivityIndicatorScreen />;
   }
 
   if (!user) {
@@ -252,4 +227,4 @@ const UserProfileScreen: FC = () => {
   );
 };
 
-export default UserProfileScreen;
+export default ProfileScreen;

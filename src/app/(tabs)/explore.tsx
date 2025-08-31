@@ -7,8 +7,14 @@ import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import shootAlert from '@/utils/shoot-alert';
+import { useUser } from '@/contexts/UserContext';
 
 export default function TabTwoScreen() {
+  const { user, profile, profileLoading, updateProfile } = useUser();
+  console.log('USER', user);
+  console.log('PROFILE', profile);
+  console.log('PROFILE LOADING', profileLoading);
+  console.log('UPDATE PROFILE', updateProfile); // debug
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}

@@ -3,18 +3,14 @@ import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useUser } from '@/contexts/UserContext';
 import LoginScreen from '@/components/LoginScreen';
-import { ThemedText } from '@/components/ui/ThemedText';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 
 const DeezeroomApp = () => {
   const { user, loading } = useUser();
 
   // Show loading while checking authentication state
   if (loading) {
-    return (
-      <View className="flex-1 bg-bg-main">
-        <ThemedText type="title">Loading...</ThemedText>
-      </View>
-    );
+    return <ActivityIndicatorScreen />;
   }
 
   return (

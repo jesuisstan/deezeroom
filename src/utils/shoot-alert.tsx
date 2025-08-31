@@ -4,6 +4,14 @@ import { Platform } from 'react-native';
 type AlertType = 'success' | 'error' | 'warning';
 type NotificationType = 'toast' | 'dialog';
 
+/**
+ * shootAlert is used to show alerts to the user in the app.
+ * @param notificationType - type of notification (toast or dialog)
+ * @param headerText - text to show in the header of the alert
+ * @param messageText - text to show in the body of the alert
+ * @param type - type of alert (success, error, warning)
+ * @returns void
+ */
 const shootAlert = (
   notificationType: NotificationType,
   headerText: string,

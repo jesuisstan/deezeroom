@@ -11,14 +11,19 @@ import {
   onAuthStateChanged,
   signOut as firebaseSignOut
 } from 'firebase/auth';
-import { auth } from '@/utils/firebase';
+import { auth } from '@/utils/firebase-init';
+import { UserService, UserProfile } from '@/utils/firebase-services';
 import shootAlert from '@/utils/shoot-alert';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 type TUserContextType = {
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   signOut: () => Promise<void>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 type TUserProviderProps = {
@@ -27,8 +32,12 @@ type TUserProviderProps = {
 
 const initialUserContext: TUserContextType = {
   user: null,
+  profile: null,
   loading: true,
-  signOut: async () => {}
+  profileLoading: false,
+  signOut: async () => {},
+  updateProfile: async () => {},
+  refreshProfile: async () => {}
 };
 
 const UserContext = createContext<TUserContextType>(initialUserContext);
@@ -40,6 +49,59 @@ export const UserProvider: FC<TUserProviderProps> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  // Load user profile
+  const loadUserProfile = async (currentUser: User) => {
+    try {
+      setProfileLoading(true);
+      const userProfile = await UserService.getUserProfile(currentUser.uid);
+
+      if (userProfile) {
+        setProfile(userProfile);
+      } else {
+        // If profile does not exist, create it
+        console.log('Creating new user profile...');
+        await UserService.createOrUpdateUser(currentUser, {
+          musicPreferences: {
+            favoriteGenres: [],
+            favoriteArtists: []
+          }
+        });
+        // Load created profile
+        const newProfile = await UserService.getUserProfile(currentUser.uid);
+        setProfile(newProfile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Update profile
+  const updateProfile = async (data: Partial<UserProfile>) => {
+    if (!user) return;
+
+    try {
+      await UserService.updateUserProfile(user.uid, data);
+      // Optimistically update local state
+      if (profile) {
+        setProfile({ ...profile, ...data, updatedAt: new Date() });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  // Refresh profile from server
+  const refreshProfile = async () => {
+    if (!user) return;
+    await loadUserProfile(user);
+  };
 
   useEffect(() => {
     // Configure Google Sign-In when app loads
@@ -50,9 +112,17 @@ export const UserProvider: FC<TUserProviderProps> = ({
     });
 
     // Track authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
+
+      // Load user profile when user is signed in
+      if (currentUser) {
+        await loadUserProfile(currentUser);
+      } else {
+        setProfile(null);
+        setProfileLoading(false);
+      }
     });
 
     // Cleanup subscription on unmount
@@ -71,6 +141,10 @@ export const UserProvider: FC<TUserProviderProps> = ({
       } catch (googleError) {
         console.log('Google sign out error (non-critical):', googleError);
       }
+
+      // Clear profile
+      setProfile(null);
+      setProfileLoading(false);
     } catch (error) {
       console.error('Sign out error:', error);
       shootAlert('toast', 'Error', 'Failed to sign out', 'error');
@@ -78,7 +152,17 @@ export const UserProvider: FC<TUserProviderProps> = ({
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, signOut }}>
+    <UserContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        profileLoading,
+        signOut,
+        updateProfile,
+        refreshProfile
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

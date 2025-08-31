@@ -16,14 +16,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Инициализация auth с учетом платформы
+// Initialize auth with platform
 let auth: FBauth.Auth;
 
 if (Platform.OS === 'web') {
-  // Для веб-версии используем стандартную инициализацию
+  // For web version we use standard initialization // todo
   auth = FBauth.getAuth(app);
 } else {
-  // Для мобильных платформ используем ReactNative persistence
+  // For mobile platforms we use ReactNative persistence
   auth = FBauth.initializeAuth(app, {
     persistence: (FBauth as any).getReactNativePersistence(
       ReactNativeAsyncStorage
