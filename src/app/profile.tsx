@@ -5,6 +5,7 @@ import { useUser } from '@/contexts/UserContext';
 import { ThemedText } from '@/components/ui/ThemedText';
 import { StatusBar } from 'expo-status-bar';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeProvider';
 
 const SignOutButton = () => {
   const { signOut } = useUser();
@@ -18,10 +19,16 @@ const SignOutButton = () => {
   );
 };
 
-export default function ProfilePage() {
+const ProfilePage = () => {
+  const { theme } = useTheme();
+
   return (
     <>
-      <StatusBar style="dark" backgroundColor="transparent" hidden={true} />
+      <StatusBar
+        style={theme === 'dark' ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        hidden={true}
+      />
       <View className="flex-1 bg-bg-main">
         <Stack.Screen
           options={{
@@ -42,4 +49,6 @@ export default function ProfilePage() {
       </View>
     </>
   );
-}
+};
+
+export default ProfilePage;

@@ -1,6 +1,5 @@
+import { useTheme } from '@/contexts/ThemeProvider';
 import { Text, type TextProps } from 'react-native';
-
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -17,10 +16,8 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps & { className?: string }) {
   const hasExplicitColors = !!(lightColor || darkColor);
-  const themedColor = useThemeColor(
-    { light: lightColor, dark: darkColor },
-    'text'
-  );
+  const { theme } = useTheme();
+  const themedColor = theme === 'light' ? lightColor : darkColor;
   const color = hasExplicitColors ? themedColor : undefined;
 
   const getTypeClasses = () => {
@@ -52,7 +49,7 @@ export function ThemedText({
       style={[color ? { color } : {}, getFontStyle(), style]}
       className={`${getTypeClasses()} ${
         !hasExplicitColors && !(className && /\btext-/.test(className))
-          ? 'text-text-primary dark:text-text-dark-primary'
+          ? 'text-text-primary dark:text-text-primary'
           : ''
       } ${className || ''}`}
       {...rest}

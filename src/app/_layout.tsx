@@ -1,29 +1,22 @@
 import '../global.css';
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider
-} from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AlertNotificationRoot } from 'react-native-alert-notification';
 import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { NetworkProvider } from '@/contexts/NetworkContext';
 import { UserProvider } from '@/contexts/UserContext';
 import DeezeroomApp from '@/components/DeezeroomApp';
 import { Platform } from 'react-native';
 import { Colors } from '@/constants/Colors';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+const RootLayout = () => {
   const [fontsLoaded] = useFonts({
     // League Gothic Variable Font (width variations)
     LeagueGothic: require('@/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf'),
@@ -31,6 +24,8 @@ export default function RootLayout() {
     Inter: require('@/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
     'Inter-Italic': require('@/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf')
   });
+
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -43,12 +38,12 @@ export default function RootLayout() {
   }
 
   const appContent = (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider>
       <NetworkProvider>
         <UserProvider>
           <DeezeroomApp />
           <StatusBar
-            style="dark"
+            style={theme === 'dark' ? 'light' : 'dark'}
             backgroundColor="transparent"
             translucent={true}
           />
@@ -71,7 +66,7 @@ export default function RootLayout() {
         closeOnOverlayTap: true,
         autoClose: false
       }}
-      theme={colorScheme === 'dark' ? 'dark' : 'light'}
+      //theme={colorScheme === 'dark' ? 'dark' : 'light'} // todo
       colors={[
         {
           label: '#fdfcfe',
@@ -96,4 +91,6 @@ export default function RootLayout() {
       {appContent}
     </AlertNotificationRoot>
   );
-}
+};
+
+export default RootLayout;

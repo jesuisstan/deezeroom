@@ -19,7 +19,7 @@ export default function HomeScreen() {
         />
       }
     >
-      <ThemedView className="flex-row items-center gap-2">
+      <ThemedView className="flex-row items-center gap-2 bg-accent">
         <ThemedText type="title">Hello!</ThemedText>
         <HelloWave />
       </ThemedView>

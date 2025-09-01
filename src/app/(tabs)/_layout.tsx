@@ -1,37 +1,28 @@
 import { Tabs } from 'expo-router';
-import { Platform, TouchableOpacity, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-
+import { Platform, View } from 'react-native';
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { useUser } from '@/contexts/UserContext';
+import ThemeToggle from '@/components/ThemeToggle';
+import { useTheme } from '@/contexts/ThemeProvider';
+import ProfileButton from '@/components/ProfileButton';
 
-const ProfileButton = () => {
-  const { user } = useUser();
-  const router = useRouter();
-
+const HeaderRight = () => {
   return (
-    <TouchableOpacity
-      onPress={() => router.push('/profile')}
-      style={{ marginRight: 16 }}
-    >
-      <Image
-        source={{ uri: user?.photoURL || 'https://via.placeholder.com/32' }}
-        className="w-12 h-12 rounded-full border-2 border-accent-main"
-      />
-    </TouchableOpacity>
+    <View className="flex-row items-center gap-4">
+      <ThemeToggle />
+      <ProfileButton />
+    </View>
   );
 };
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colorScheme === 'dark' ? '#fff' : '#0a7ea4',
+        tabBarActiveTintColor: theme === 'dark' ? '#ff00Ff' : '#0a7ea4',
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -55,7 +46,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="shippingbox.fill" color={color} />
           ),
-          headerRight: () => <ProfileButton />
+          headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
@@ -65,7 +56,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
-          headerRight: () => <ProfileButton />
+          headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
@@ -75,7 +66,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="shippingbox.fill" color={color} />
           ),
-          headerRight: () => <ProfileButton />
+          headerRight: () => <HeaderRight />
         }}
       />
     </Tabs>

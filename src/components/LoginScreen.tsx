@@ -9,10 +9,14 @@ import {
   statusCodes,
   isErrorWithCode
 } from '@react-native-google-signin/google-signin';
+import { useTheme } from '@/contexts/ThemeProvider';
+import ThemeToggle from './ThemeToggle';
 
 const LoginScreen: FC = () => {
   // Google Sign-In is already configured in UserContext
 
+  const { theme } = useTheme();
+  console.log('theme from LoginScreen', theme); // debug
   const handleGoogleSignIn = async () => {
     try {
       console.log('Starting Google sign in');
@@ -89,7 +93,8 @@ const LoginScreen: FC = () => {
   };
 
   return (
-    <View className="flex-1 bg-bg-main items-center justify-center p-5">
+    <View className="flex-1 bg-background items-center justify-center p-5">
+      <ThemeToggle />
       <View className="mb-10 items-center">
         <Image
           source={require('@/assets/images/logo/deezeroom-white-transparent.png')}
@@ -99,10 +104,10 @@ const LoginScreen: FC = () => {
       </View>
 
       <TouchableOpacity
-        className="bg-accent-main px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
+        className="bg-secondary px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
         onPress={handleGoogleSignIn}
       >
-        <ThemedText className="text-bg-main text-base font-semibold">
+        <ThemedText className="text-accent text-base font-semibold">
           Sign in with Google
         </ThemedText>
       </TouchableOpacity>
