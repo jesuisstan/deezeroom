@@ -22,8 +22,9 @@ export default function TabTwoScreen() {
         <ThemedText
           type="title"
           onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
+          className="text-primary-main"
         >
-          THIS APP GONNA BE AWESOME
+          THIS APP gonna BE AWESOME
         </ThemedText>
       </ThemedView>
       <ThemedText>

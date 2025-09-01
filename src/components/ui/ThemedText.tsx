@@ -16,7 +16,12 @@ export function ThemedText({
   className,
   ...rest
 }: ThemedTextProps & { className?: string }) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const hasExplicitColors = !!(lightColor || darkColor);
+  const themedColor = useThemeColor(
+    { light: lightColor, dark: darkColor },
+    'text'
+  );
+  const color = hasExplicitColors ? themedColor : undefined;
 
   const getTypeClasses = () => {
     switch (type) {
@@ -44,8 +49,12 @@ export function ThemedText({
 
   return (
     <Text
-      style={[{ color }, getFontStyle(), style]}
-      className={`${getTypeClasses()} ${className || ''}`}
+      style={[color ? { color } : {}, getFontStyle(), style]}
+      className={`${getTypeClasses()} ${
+        !hasExplicitColors && !(className && /\btext-/.test(className))
+          ? 'text-text-primary dark:text-text-dark-primary'
+          : ''
+      } ${className || ''}`}
       {...rest}
     />
   );
