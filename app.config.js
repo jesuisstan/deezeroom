@@ -56,7 +56,8 @@ module.exports = () => ({
           resizeMode: 'contain',
           backgroundColor: '#0f0d13'
         }
-      ]
+      ],
+      ['expo-audio']
     ],
     experiments: {
       typedRoutes: true

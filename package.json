@@ -6,7 +6,8 @@
     "preinstall": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
     "start": "expo start",
     "start:clear": "npx expo start --clear",
-    "reset-project": "node ./scripts/reset-project.js",
+    "start:tunnel": "npx expo start --tunnel",
+    "start:tunnel:clear": "npx expo start --tunnel --clear",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
@@ -15,7 +16,8 @@
     "c:i": "npm run clean && npm install",
     "build:dev:android": "eas build --profile development --platform android",
     "build:dev:ios": "eas build --profile development --platform ios",
-    "build:dev:web": "eas build --profile development --platform web"
+    "build:dev:web": "eas build --profile development --platform web",
+    "build:prod:android": "eas build --profile production --platform android"
   },
   "jest": {
     "preset": "jest-expo"
@@ -56,7 +58,8 @@
     "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "expo-audio": "~0.4.9"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
