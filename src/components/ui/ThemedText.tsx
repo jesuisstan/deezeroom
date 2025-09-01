@@ -35,13 +35,16 @@ export function ThemedText({
     }
   };
 
+  const getFontStyle = () => {
+    if (type === 'title' || type === 'subtitle') {
+      return { fontFamily: 'LeagueGothic', letterSpacing: 4 };
+    }
+    return {};
+  };
+
   return (
     <Text
-      style={[
-        { color },
-        { fontFamily: 'LeagueGothic', letterSpacing: 4 },
-        style
-      ]}
+      style={[{ color }, getFontStyle(), style]}
       className={`${getTypeClasses()} ${className || ''}`}
       {...rest}
     />

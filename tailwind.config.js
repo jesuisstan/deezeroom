@@ -4,33 +4,91 @@ module.exports = {
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'Arial', 'sans-serif'],
+        inter: ['Inter', 'Arial', 'sans-serif'],
+        'league-gothic': ['LeagueGothic', 'Arial Black', 'sans-serif']
+      },
       colors: {
-        accent: {
-          main: '#a238ff',
-          strong: '#9333e8',
-          weak: '#c17aff'
+        // Primary colors (Deezer brand)
+        primary: {
+          main: '#a238ff', // Deezer purple
+          hover: '#7328b5', // Darker purple on hover
+          pressed: '#7328b5', // Pressed state
+          light: '#c17aff', // Light purple
+          disabled: '#e1dde4' // Disabled state
         },
+
+        // Text colors
         text: {
-          main: '#fdfcfe',
-          secondary: '#a9a6aa',
-          disabled: '#555257',
-          inverse: '#000'
+          primary: '#0f0d13', // Main text (dark theme)
+          secondary: '#6f6d71', // Secondary text
+          disabled: '#6f6d71', // Disabled text
+          inverse: '#ffffff', // Light text on dark bg
+          accent: '#fdfbff' // Text on accent background
         },
+
+        // Background colors
         bg: {
-          main: '#0f0d13',
-          secondary: '#1b191f',
-          tertiary: '#29282d',
-          'tertiary-hover': '#3a393d',
-          transparent: '#0000004d'
+          main: '#0f0d13', // Main background (dark)
+          secondary: '#1b191f', // Secondary background
+          tertiary: '#464549', // Tertiary background
+          light: '#ffffff', // Light background
+          'tertiary-hover': '#eae8ec', // Hover state
+          contrast: '#eae8ec' // Contrast background
         },
-        tint: {
-          light: '#0a7ea4',
-          dark: '#fff'
+
+        // Border colors
+        border: {
+          primary: '#c2c0c4', // Main borders
+          hover: '#b4b1b6', // Hover state
+          accent: '#a238ff' // Accent borders
         },
-        icon: {
-          light: '#687076',
-          dark: '#9BA1A6'
+
+        // Intent colors
+        intent: {
+          error: '#df3c3c', // Error states
+          warning: '#ec7f11', // Warning states
+          success: '#00b23d' // Success states
+        },
+
+        // Neutral colors
+        neutral: {
+          50: '#f8f8f9',
+          100: '#f4f4f4',
+          200: '#eaeaea',
+          300: '#d1d1d6',
+          400: '#a2a2ad',
+          500: '#52525d',
+          600: '#32323d',
+          700: '#23232d',
+          800: '#191922',
+          900: '#121216'
         }
+      },
+
+      // Font sizes (Deezer scale)
+      fontSize: {
+        '2xs': '0.625rem', // 10px
+        xs: '0.75rem', // 12px
+        s: '0.875rem', // 14px
+        m: '1rem', // 16px
+        l: '1.125rem', // 18px
+        xl: '1.25rem', // 20px
+        '2xl': '1.5rem', // 24px
+        '3xl': '1.875rem', // 30px
+        '4xl': '2.25rem', // 36px
+        '5xl': '3rem', // 48px
+        '6xl': '3.75rem' // 60px
+      },
+
+      // Letter spacing (Deezer style)
+      letterSpacing: {
+        tight: '-0.025em',
+        normal: '0em',
+        wide: '0.025em',
+        wider: '0.05em',
+        widest: '0.1em'
       }
     }
   },

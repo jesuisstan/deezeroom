@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', 'Arial', sans-serif;
+  }
+
+  body {
+    font-family: 'Inter', 'Arial', sans-serif;
+  }
+}

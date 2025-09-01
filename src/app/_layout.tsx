@@ -25,8 +25,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
-    LeagueGothic: require('@/assets/fonts/LeagueGothic-Regular.ttf'),
-    LeagueGothic_Italic: require('@/assets/fonts/LeagueGothic_Italic-Regular.ttf')
+    // League Gothic Variable Font (width variations)
+    LeagueGothic: require('@/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf'),
+    // Inter Variable Fonts (weight and optical size variations)
+    Inter: require('@/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
+    'Inter-Italic': require('@/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf')
   });
 
   useEffect(() => {

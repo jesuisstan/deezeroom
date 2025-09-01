@@ -76,6 +76,9 @@ export default function HomeScreen() {
         <Pressable onPress={postGraphql}>
           <ThemedText className="underline">POST /api/graphql</ThemedText>
         </Pressable>
+        <ThemedText>
+          Whereas disregard and contempt for human rights have resulted
+        </ThemedText>
       </ThemedView>
       <HelloWave />
     </ParallaxScrollView>
