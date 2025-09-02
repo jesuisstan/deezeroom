@@ -27,7 +27,7 @@ module.exports = () => ({
     web: {
       bundler: 'metro',
       output: 'server',
-      favicon: './src/assets/images/favicon.ico'
+      favicon: './src/assets/images/favicon.png'
     },
     plugins: [
       [
@@ -53,7 +53,6 @@ module.exports = () => ({
         'expo-splash-screen',
         {
           image: './src/assets/images/splash.png',
-          imageWidth: 200,
           resizeMode: 'contain',
           backgroundColor: '#0f0d13'
         }

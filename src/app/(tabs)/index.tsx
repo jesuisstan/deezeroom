@@ -52,8 +52,8 @@ export default function HomeScreen() {
         <Image
           source={
             theme === 'dark'
-              ? require('@/assets/images/logo/deezeroom-white-transparent.png')
-              : require('@/assets/images/logo/deezeroom-black-transparent.png')
+              ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
+              : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
           }
           className="absolute w-3/4 bottom-2.5 left-2.5"
           resizeMode="contain"

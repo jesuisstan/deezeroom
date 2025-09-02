@@ -99,8 +99,8 @@ const LoginScreen: FC = () => {
         <Image
           source={
             theme === 'dark'
-              ? require('@/assets/images/logo/deezeroom-white-transparent.png')
-              : require('@/assets/images/logo/deezeroom-black-transparent.png')
+              ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
+              : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
           }
           className="w-96"
           resizeMode="contain"

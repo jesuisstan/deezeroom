@@ -23,32 +23,32 @@ const BASE = {
   light: {
     primary: '#a238ff',
     accent: '#7328b5',
-    secondary: '#1b191f',
-    background: '#ffffff',
-    backgroundSecondary: '#c2c0c4',
     text: '#0f0d13',
-    disabled: '#e1dde4',
+    secondary: '#1b191f',
+    background: '#fdfcfe',
+    backgroundSecondary: '#a9a6aa',
+    disabled: '#555257',
     border: '#c2c0c4',
     borderHovered: '#b4b1b6',
-    divider: '#c2c0c4',
+    divider: '#555257',
     intentError: '#df3c3c',
     intentWarning: '#ec7f11',
-    intentSuccess: '#00b23d'
+    intentSuccess: '#00babc'
   },
   dark: {
     primary: '#a238ff',
     accent: '#7328b5',
-    secondary: '#eae8ec',
+    text: '#fdfcfe',
+    secondary: '#a9a6aa',
     background: '#0f0d13',
-    backgroundSecondary: '#464549',
-    text: '#ffffff',
-    disabled: '#e1dde4',
+    backgroundSecondary: '#29282d',
+    disabled: '#555257',
     border: '#c2c0c4',
     borderHovered: '#b4b1b6',
-    divider: '#c2c0c4',
+    divider: '#555257',
     intentError: '#df3c3c',
     intentWarning: '#ec7f11',
-    intentSuccess: '#00b23d'
+    intentSuccess: '#00babc'
   }
 } as const;
 
