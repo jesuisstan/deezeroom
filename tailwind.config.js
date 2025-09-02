@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
@@ -11,10 +12,18 @@ module.exports = {
       },
       colors: {
         primary: 'var(--color-primary)',
+        accent: 'var(--color-accent)',
         secondary: 'var(--color-secondary)',
         background: 'var(--color-background)',
+        'background-secondary': 'var(--color-background-secondary)',
         text: 'var(--color-text)',
-        accent: 'var(--color-accent)'
+        disabled: 'var(--color-disabled)',
+        border: 'var(--color-border)',
+        'border-hovered': 'var(--color-border-hovered)',
+        divider: 'var(--color-divider)',
+        'intent-error': 'var(--color-intent-error)',
+        'intent-warning': 'var(--color-intent-warning)',
+        'intent-success': 'var(--color-intent-success)'
       },
 
       // Font sizes (Deezer scale)

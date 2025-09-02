@@ -7,7 +7,7 @@ import {
   Image,
   Alert
 } from 'react-native';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/providers/UserProvider';
 import { ThemedText } from '@/components/ui/ThemedText';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 

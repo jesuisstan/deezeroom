@@ -4,8 +4,9 @@ import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import ThemeToggle from '@/components/ThemeToggle';
-import { useTheme } from '@/contexts/ThemeProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import ProfileButton from '@/components/ProfileButton';
+import { themeColors } from '@/utils/color-theme';
 
 const HeaderRight = () => {
   return (
@@ -22,7 +23,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: theme === 'dark' ? '#ff00Ff' : '#0a7ea4',
+        tabBarActiveTintColor: themeColors.dark.primary,
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -35,7 +36,15 @@ export default function TabLayout() {
         }),
         headerTitleStyle: {
           fontFamily: 'LeagueGothic',
-          fontSize: 30
+          fontSize: 30,
+          color:
+            theme === 'dark' ? themeColors.dark.text : themeColors.light.text
+        },
+        headerStyle: {
+          backgroundColor:
+            theme === 'dark'
+              ? themeColors.dark.background
+              : themeColors.light.background
         }
       }}
     >

@@ -1,5 +1,5 @@
 import { Pressable, View } from 'react-native';
-import { useTheme } from '@/contexts/ThemeProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import Feather from '@expo/vector-icons/Feather';
 import Animated, {
   useSharedValue,
@@ -7,6 +7,7 @@ import Animated, {
   withSpring
 } from 'react-native-reanimated';
 import { useEffect } from 'react';
+import { themeColors } from '@/utils/color-theme';
 
 const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
@@ -29,7 +30,7 @@ const ThemeToggle = () => {
   return (
     <Pressable
       onPress={toggleTheme}
-      className="w-24 h-12 p-1 bg-secondary relative flex-row rounded-full items-center justify-between"
+      className="w-24 h-12 p-1 bg-background-secondary relative flex-row rounded-full items-center justify-between"
     >
       <Icon icon="sun" />
       <Icon icon="moon" />
@@ -49,8 +50,8 @@ const Icon = (props: any) => {
     <View className="w-10 h-10 relative z-50 rounded-full items-center justify-center flex flex-row">
       <Feather
         name={props.icon}
-        size={20}
-        color={`${isDark ? 'white' : 'black'}`}
+        size={18}
+        color={`${isDark ? themeColors.light.background : themeColors.dark.background}`}
       />
     </View>
   );

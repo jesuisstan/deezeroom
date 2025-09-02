@@ -1,10 +1,10 @@
 import { View, ActivityIndicator } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import { themeColors } from '@/utils/color-theme';
 
 const ActivityIndicatorScreen = () => {
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <ActivityIndicator size="large" color={Colors.light.accentMain} />
+      <ActivityIndicator size="large" color={themeColors.light.accent} />
     </View>
   );
 };

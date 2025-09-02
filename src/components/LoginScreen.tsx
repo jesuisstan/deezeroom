@@ -9,14 +9,14 @@ import {
   statusCodes,
   isErrorWithCode
 } from '@react-native-google-signin/google-signin';
-import { useTheme } from '@/contexts/ThemeProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import ThemeToggle from './ThemeToggle';
 
 const LoginScreen: FC = () => {
-  // Google Sign-In is already configured in UserContext
+  // Google Sign-In is already configured in UserContext in UserProvider.tsx
 
   const { theme } = useTheme();
-  console.log('theme from LoginScreen', theme); // debug
+
   const handleGoogleSignIn = async () => {
     try {
       console.log('Starting Google sign in');
@@ -47,7 +47,7 @@ const LoginScreen: FC = () => {
       const { user } = await signInWithCredential(auth, credential);
       console.log('Firebase sign-in successful');
 
-      // Profile will be automatically created/loaded in UserContext
+      // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
       shootAlert(
         'toast',
         'Success',
@@ -97,7 +97,11 @@ const LoginScreen: FC = () => {
       <ThemeToggle />
       <View className="mb-10 items-center">
         <Image
-          source={require('@/assets/images/logo/deezeroom-white-transparent.png')}
+          source={
+            theme === 'dark'
+              ? require('@/assets/images/logo/deezeroom-white-transparent.png')
+              : require('@/assets/images/logo/deezeroom-black-transparent.png')
+          }
           className="w-96"
           resizeMode="contain"
         />

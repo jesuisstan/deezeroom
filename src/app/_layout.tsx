@@ -5,13 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AlertNotificationRoot } from 'react-native-alert-notification';
 import 'react-native-reanimated';
-import { NetworkProvider } from '@/contexts/NetworkContext';
-import { UserProvider } from '@/contexts/UserContext';
+import { NetworkProvider } from '@/providers/NetworkProvider';
+import { UserProvider } from '@/providers/UserProvider';
 import DeezeroomApp from '@/components/DeezeroomApp';
 import { Platform } from 'react-native';
-import { Colors } from '@/constants/Colors';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import { ThemeProvider, useTheme } from '@/contexts/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -66,25 +66,25 @@ const RootLayout = () => {
         closeOnOverlayTap: true,
         autoClose: false
       }}
-      //theme={colorScheme === 'dark' ? 'dark' : 'light'} // todo
+      //theme={theme === 'dark' ? 'dark' : 'light'} // todo
       colors={[
         {
-          label: '#fdfcfe',
-          card: '#1b191f',
-          overlay: '#0000004d',
-          success: Colors.dark.accentMain,
-          danger: '#ef4444',
-          warning: '#f59e0b',
-          info: Colors.light.accentMain
+          label: themeColors.light.text,
+          card: themeColors.light.backgroundSecondary,
+          overlay: themeColors.light.background,
+          success: themeColors.light.primary,
+          danger: themeColors.light.intentError,
+          warning: themeColors.light.intentWarning,
+          info: themeColors.light.primary
         },
         {
-          label: '#0f0d13',
-          card: '#fdfcfe',
-          overlay: '#0000004d',
-          success: Colors.dark.accentMain,
-          danger: '#ef4444',
-          warning: '#f59e0b',
-          info: Colors.dark.accentMain
+          label: themeColors.dark.text,
+          card: themeColors.dark.backgroundSecondary,
+          overlay: themeColors.dark.background,
+          success: themeColors.dark.accent,
+          danger: themeColors.dark.intentError,
+          warning: themeColors.dark.intentWarning,
+          info: themeColors.dark.accent
         }
       ]}
     >

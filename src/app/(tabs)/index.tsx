@@ -6,9 +6,12 @@ import { ThemedText } from '@/components/ui/ThemedText';
 import { ThemedView } from '@/components/ui/ThemedView';
 import shootAlert from '@/utils/shoot-alert';
 import { HelloWave } from '@/components/HelloWave';
+import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');
+  const { theme } = useTheme();
 
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
@@ -42,18 +45,22 @@ export default function HomeScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{
-        light: '#fdfcfe',
-        dark: '#0f0d13'
+        light: themeColors.light.backgroundSecondary,
+        dark: themeColors.dark.backgroundSecondary
       }}
       headerImage={
         <Image
-          source={require('@/assets/images/logo/deezeroom-black-transparent.png')}
+          source={
+            theme === 'dark'
+              ? require('@/assets/images/logo/deezeroom-white-transparent.png')
+              : require('@/assets/images/logo/deezeroom-black-transparent.png')
+          }
           className="absolute w-3/4 bottom-2.5 left-2.5"
           resizeMode="contain"
         />
       }
     >
-      <ThemedView className="flex-row items-center gap-2">
+      <ThemedView className="flex-row items-center gap-2 bg">
         <ThemedText type="title">deezeroom app</ThemedText>
       </ThemedView>
       <ThemedView className="gap-2 mb-2">
@@ -63,11 +70,11 @@ export default function HomeScreen() {
         </Pressable>
         <ThemedView className="flex-row items-center gap-2">
           <TextInput
-            className="border border-accent-main text-accent-weak rounded p-2 flex-1"
+            className="border border-accent text-intent-warning rounded p-2 flex-1"
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
-            placeholderTextColor="#c17aff"
+            placeholderTextColor={themeColors.light.accent}
           />
           <Pressable onPress={postGreeting}>
             <ThemedText className="underline">POST /api/greeting</ThemedText>

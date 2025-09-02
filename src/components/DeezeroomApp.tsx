@@ -1,7 +1,7 @@
 import 'react-native-reanimated';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/providers/UserProvider';
 import LoginScreen from '@/components/LoginScreen';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 

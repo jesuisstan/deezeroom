@@ -1,4 +1,4 @@
-import { useTheme } from '@/contexts/ThemeProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { Text, type TextProps } from 'react-native';
 
 export type ThemedTextProps = TextProps & {

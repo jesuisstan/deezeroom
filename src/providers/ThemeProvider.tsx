@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
-import { View } from 'react-native';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform, View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colorScheme } from 'nativewind';
 import { themes } from '@/utils/color-theme';
@@ -14,20 +14,27 @@ type ThemeContextType = {
 };
 
 export const ThemeContext = createContext<ThemeContextType>({
-  theme: 'light',
+  theme: 'dark',
   toggleTheme: () => {}
 });
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('dark');
 
   console.log('ThemeProvider - currentTheme:', currentTheme);
 
   const toggleTheme = () => {
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     setCurrentTheme(newTheme);
     colorScheme.set(newTheme);
   };
+
+  // Web: set the dark mode strategy to class, so we can manually control the dark mode
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    // @ts-ignore - web shim from rn-css-interop
+    (StyleSheet as any).setFlag?.('darkMode', 'class');
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme: currentTheme, toggleTheme }}>

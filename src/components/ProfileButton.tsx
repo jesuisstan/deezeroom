@@ -1,6 +1,6 @@
 import { Image, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useUser } from '@/contexts/UserContext';
+import { useUser } from '@/providers/UserProvider';
 
 const ProfileButton = () => {
   const { user } = useUser();
