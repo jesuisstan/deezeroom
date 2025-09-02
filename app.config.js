@@ -34,8 +34,9 @@ module.exports = () => ({
         'expo-font',
         {
           fonts: [
-            './src/assets/fonts/LeagueGothic-Regular.ttf',
-            './src/assets/fonts/LeagueGothic_Italic-Regular.ttf'
+            './src/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf',
+            './src/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf',
+            './src/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf'
           ]
         }
       ],
