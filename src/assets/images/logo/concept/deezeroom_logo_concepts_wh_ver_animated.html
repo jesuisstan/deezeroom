@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>deezeroom — logo (heart with vertical soundwaves)</title>
+    <style>
+      body {
+        background: #0f0d13;
+        color: #fdfcfe;
+        font-family: 'League Gothic', sans-serif;
+        padding: 20px;
+      }
+      svg {
+        width: 100%;
+        max-width: 800px;
+        display: block;
+        margin: auto;
+      }
+      .caption {
+        max-width: 800px;
+        margin: 16px auto;
+        color: #0f0d13;
+        font-size: 14px;
+      }
+      @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
+
+      :root {
+        /* 14s total: 5s intro + 4s hold + 5s outro */
+        --cycle: 14s;
+      }
+
+      /* Common transform settings for bars */
+      #heart .bar {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+      }
+      #heart .left {
+        --fromX: -200px;
+      }
+      #heart .right {
+        --fromX: 200px;
+      }
+      /* Center bar: appears first, leaves last */
+      #heart .center {
+        animation: bar-center var(--cycle) ease-in-out infinite both;
+      }
+      @keyframes bar-center {
+        0% {
+          opacity: 0;
+          transform: translateX(0) scaleY(0.2);
+        }
+        10% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        93% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(0) scaleY(0.2);
+        }
+      }
+
+      /* Pairs fly in symmetrically L/R and leave in reverse order */
+      #heart .pair-1 {
+        animation: bar-p1 var(--cycle) ease-in-out infinite both;
+      }
+      #heart .pair-2 {
+        animation: bar-p2 var(--cycle) ease-in-out infinite both;
+      }
+      #heart .pair-3 {
+        animation: bar-p3 var(--cycle) ease-in-out infinite both;
+      }
+      #heart .pair-4 {
+        animation: bar-p4 var(--cycle) ease-in-out infinite both;
+      }
+
+      /* Timeline (percent of 14s cycle):
+         Intro within 0–35.714% (~0–5s)
+         Hold 35.714–64.286% (~4s)
+         Outro 64.286–100% (~5s)
+         Appear windows:
+           p1: 10–18%, p2: 18–25%, p3: 25–32%, p4: 32–35.7%
+         Leave windows:
+           p4: 64.3–72%, p3: 72–79%, p2: 79–86%, p1: 86–93% */
+      @keyframes bar-p1 {
+        0%,
+        10% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+        18%,
+        86% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        93%,
+        100% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+      }
+      @keyframes bar-p2 {
+        0%,
+        18% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+        25%,
+        79% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        86%,
+        100% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+      }
+      @keyframes bar-p3 {
+        0%,
+        25% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+        32%,
+        72% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        79%,
+        100% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+      }
+      @keyframes bar-p4 {
+        0%,
+        32% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+        35.7%,
+        64.3% {
+          opacity: 1;
+          transform: translateX(0) scaleY(1);
+        }
+        72%,
+        100% {
+          opacity: 0;
+          transform: translateX(var(--fromX)) scaleY(0.2);
+        }
+      }
+
+      /* Wordmark: slower appear from bottom (≈2s), then leaves first */
+      #wordmark {
+        opacity: 0;
+        transform: translateY(40px);
+        animation: wordmark-seq var(--cycle) ease-in-out infinite both;
+      }
+      @keyframes wordmark-seq {
+        0%,
+        21% {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+        35.7% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        64.3% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        71%,
+        100% {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+      }
+
+      /* Frame around 'room': stroke draw/undraw effect */
+      #room-frame {
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 714;
+        stroke-dashoffset: 714;
+        animation: frame-seq var(--cycle) ease-in-out infinite both;
+      }
+      @keyframes frame-seq {
+        0%,
+        25% {
+          stroke-dashoffset: 714;
+        }
+        35.7% {
+          stroke-dashoffset: 0;
+        }
+        64.3% {
+          stroke-dashoffset: 0;
+        }
+        71%,
+        100% {
+          stroke-dashoffset: 714;
+        }
+      }
+    </style>
+    <!-- Preload font for SVG -->
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=League+Gothic&display=swap"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript
+      ><link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=League+Gothic&display=swap"
+    /></noscript>
+  </head>
+  <body>
+    <!-- Logo with vertical soundwave heart and rectangular highlight -->
+    <svg
+      viewBox="0 0 1200 5200"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="deezeroom logo"
+    >
+      <defs>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
+        </style>
+      </defs>
+      <!-- Purple heart with vertical soundwave-like bars (top to bottom orientation) -->
+      <g id="heart" transform="translate(160,160)">
+        <g fill="#a238ff">
+          <!-- Vertical bars forming heart shape (tall center, shorter sides) -->
+          <rect
+            class="bar left pair-4"
+            x="0"
+            y="90"
+            width="40"
+            height="230"
+            rx="20"
+          />
+          <rect
+            class="bar left pair-3"
+            x="60"
+            y="40"
+            width="40"
+            height="330"
+            rx="20"
+          />
+          <rect
+            class="bar left pair-2"
+            x="120"
+            y="-20"
+            width="40"
+            height="430"
+            rx="20"
+          />
+          <rect
+            class="bar left pair-1"
+            x="180"
+            y="30"
+            width="40"
+            height="470"
+            rx="20"
+          />
+          <rect
+            class="bar center"
+            x="240"
+            y="60"
+            width="40"
+            height="530"
+            rx="20"
+          />
+          <rect
+            class="bar right pair-1"
+            x="300"
+            y="30"
+            width="40"
+            height="470"
+            rx="20"
+          />
+          <rect
+            class="bar right pair-2"
+            x="360"
+            y="-20"
+            width="40"
+            height="430"
+            rx="20"
+          />
+          <rect
+            class="bar right pair-3"
+            x="420"
+            y="40"
+            width="40"
+            height="330"
+            rx="20"
+          />
+          <rect
+            class="bar right pair-4"
+            x="480"
+            y="90"
+            width="40"
+            height="230"
+            rx="20"
+          />
+        </g>
+      </g>
+
+      <!-- Wordmark -->
+      <text
+        id="wordmark"
+        x="421"
+        y="871"
+        font-family="League Gothic, Impact, Arial White, sans-serif"
+        font-size="108"
+        fill="#fdfcfe"
+        style="font-weight: bold; letter-spacing: 20px"
+        text-anchor="middle"
+      >
+        DEEZEROOM
+      </text>
+
+      <!-- Purple rectangle framing 'room' -->
+      <rect
+        id="room-frame"
+        x="427"
+        y="776"
+        width="248"
+        height="109"
+        rx="20"
+        fill="none"
+        stroke="#a238ff"
+        stroke-width="10"
+      />
+    </svg>
+  </body>
+</html>
