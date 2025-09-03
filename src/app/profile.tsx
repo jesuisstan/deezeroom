@@ -2,7 +2,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { Stack } from 'expo-router';
 import ProfileScreen from '@/components/ProfileScreen';
 import { useUser } from '@/providers/UserProvider';
-import { ThemedText } from '@/components/ui/ThemedText';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
@@ -14,7 +14,7 @@ const SignOutButton = () => {
       className="bg-accent-main px-4 py-2 rounded-full min-w-50 items-center shadow-lg"
       onPress={signOut}
     >
-      <ThemedText className="text-bg-main text-base">Sign Out</ThemedText>
+      <TextCustom className="text-bg-main text-base">Sign Out</TextCustom>
     </TouchableOpacity>
   );
 };

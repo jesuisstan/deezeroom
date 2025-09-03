@@ -1,21 +1,23 @@
 import { FC } from 'react';
-import { View, Image, Platform, TouchableOpacity } from 'react-native';
+import { View, Platform, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
-import { ThemedText } from '@/components/ui/ThemedText';
+import { TextCustom } from '@/components/ui/TextCustom';
 import {
   GoogleSignin,
   statusCodes,
   isErrorWithCode
 } from '@react-native-google-signin/google-signin';
+import ThemeToggle from '@/components/ThemeToggle';
+import { Text } from 'react-native';
+import VideoBanner from '@/components/VideoBanner';
+import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/providers/ThemeProvider';
-import ThemeToggle from './ThemeToggle';
 
 const LoginScreen: FC = () => {
   // Google Sign-In is already configured in UserContext in UserProvider.tsx
-
-  const { theme } = useTheme();
 
   const handleGoogleSignIn = async () => {
     try {
@@ -44,7 +46,7 @@ const LoginScreen: FC = () => {
       console.log('Created Firebase credential');
 
       // Sign in to Firebase with Google credential
-      const { user } = await signInWithCredential(auth, credential);
+      await signInWithCredential(auth, credential);
       console.log('Firebase sign-in successful');
 
       // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
@@ -91,31 +93,35 @@ const LoginScreen: FC = () => {
       }
     }
   };
+  const { theme } = useTheme();
 
   return (
-    <View className="flex-1 bg-background items-center justify-center p-5">
-      <ThemeToggle />
-      <View className="mb-10 items-center">
-        <Image
-          source={
-            theme === 'dark'
-              ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
-              : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
-          }
-          className="w-96"
-          resizeMode="contain"
-        />
-      </View>
+    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
+      <StatusBar
+        style={theme === 'dark' ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        hidden={true}
+      />
+      <VideoBanner
+        videoSource={require('@/assets/videos/welcome-screen-construction.mp4')}
+        className="bg-black"
+      />
 
-      <TouchableOpacity
-        className="bg-secondary px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
-        onPress={handleGoogleSignIn}
-      >
-        <ThemedText className="text-accent text-base font-semibold">
-          Sign in with Google
-        </ThemedText>
-      </TouchableOpacity>
-    </View>
+      <View className="flex-1 bg-background items-center justify-center p-5 gap-6">
+        <Text className="text-intent-success text-2xl font-semibold">
+          Sign in
+        </Text>
+        <TouchableOpacity
+          className="bg-secondary px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
+          onPress={handleGoogleSignIn}
+        >
+          <TextCustom className="text-intent-warning text-2xl font-semibold">
+            Sign in with Google
+          </TextCustom>
+        </TouchableOpacity>
+        <ThemeToggle />
+      </View>
+    </SafeAreaView>
   );
 };
 

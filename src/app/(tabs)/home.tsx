@@ -1,9 +1,8 @@
-import { Platform } from 'react-native';
+import { Platform, View, Text } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
-import { ThemedText } from '@/components/ui/ThemedText';
-import { ThemedView } from '@/components/ui/ThemedView';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function HomeScreen() {
@@ -19,44 +18,56 @@ export default function HomeScreen() {
         />
       }
     >
-      <ThemedView className="flex-row items-center gap-2 bg-accent">
-        <ThemedText type="title">Hello!</ThemedText>
+      <View className="flex-row items-center gap-2">
+        <TextCustom type="title">Hello TextCustom Title G g!</TextCustom>
         <HelloWave />
-      </ThemedView>
-      <ThemedView className="gap-2 mb-2">
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{' '}
-          to see changes. Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView className="gap-2 mb-2">
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this
-          starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView className="gap-2 mb-2">
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText>{' '}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{' '}
-          directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+      </View>
+      <View>
+        <TextCustom type="subtitle">
+          Some ordinary TextCustom, type - Subtitle
+        </TextCustom>
+        <TextCustom>Some ordinary TextCustom, type - default</TextCustom>
+        <TextCustom className="font-bold">
+          Some ordinary TextCustom, type - bold
+        </TextCustom>
+        <TextCustom type="bold">
+          Some ordinary TextCustom, type - bold
+        </TextCustom>
+        <TextCustom type="link">
+          Some ordinary TextCustom, type - link
+        </TextCustom>
+        <TextCustom type="italic">
+          Some ordinary TextCustom, type - italic
+        </TextCustom>
+
+        <Text>
+          Some ordinary Text from 'react-native', no style. DO NOT USE
+        </Text>
+        <TextCustom>{'\n'}</TextCustom>
+        <View>
+          <TextCustom>
+            Some ordinary TextCustom default,{' '}
+            <TextCustom type="bold">bold</TextCustom>,{' '}
+            <TextCustom type="link">link</TextCustom>,{' '}
+            <TextCustom className="text-intent-warning">
+              text-intent-warning
+            </TextCustom>
+            <TextCustom>, use this styled textcustom to style text</TextCustom>
+          </TextCustom>
+        </View>
+        <TextCustom>{'\n'}</TextCustom>
+        <View>
+          <TextCustom>
+            Some ordinary TextCustom, default,{' '}
+            <TextCustom className="font-bold">bold</TextCustom>,{' '}
+            <TextCustom className="underline">link</TextCustom>,{' '}
+            <TextCustom className="text-intent-warning">
+              text-intent-warning
+            </TextCustom>
+            <TextCustom>, use this styled textcustom to style text</TextCustom>
+          </TextCustom>
+        </View>
+      </View>
     </ParallaxScrollView>
   );
 }

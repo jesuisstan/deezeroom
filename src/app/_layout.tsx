@@ -10,7 +10,7 @@ import { UserProvider } from '@/providers/UserProvider';
 import DeezeroomApp from '@/components/DeezeroomApp';
 import { Platform } from 'react-native';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import { ThemeProvider, useTheme } from '@/providers/ThemeProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -24,8 +24,6 @@ const RootLayout = () => {
     Inter: require('@/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
     'Inter-Italic': require('@/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf')
   });
-
-  const { theme } = useTheme();
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -43,7 +41,7 @@ const RootLayout = () => {
         <UserProvider>
           <DeezeroomApp />
           <StatusBar
-            style={theme === 'dark' ? 'light' : 'dark'}
+            //style={theme === 'dark' ? 'light' : 'dark'}
             backgroundColor="transparent"
             translucent={true}
           />
@@ -66,7 +64,6 @@ const RootLayout = () => {
         closeOnOverlayTap: true,
         autoClose: false
       }}
-      //theme={theme === 'dark' ? 'dark' : 'light'} // todo
       colors={[
         {
           label: themeColors.light.text,

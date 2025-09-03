@@ -30,29 +30,27 @@ const ThemeToggle = () => {
   return (
     <Pressable
       onPress={toggleTheme}
-      className="w-24 h-12 p-1 bg-background-secondary relative flex-row rounded-full items-center justify-between"
+      className="w-24 h-12 p-1 relative flex-row rounded-full items-center justify-between"
+      style={
+        theme === 'dark'
+          ? { backgroundColor: themeColors.dark.primary }
+          : { backgroundColor: themeColors.light.primary }
+      }
     >
       <Icon icon="sun" />
       <Icon icon="moon" />
       <Animated.View
         style={[animatedStyle]}
-        className="w-10 h-10 bg-background rounded-full items-center justify-center flex flex-row absolute"
+        className="w-10 h-10 bg-accent rounded-full items-center justify-center flex flex-row absolute"
       />
     </Pressable>
   );
 };
 
 const Icon = (props: any) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   return (
     <View className="w-10 h-10 relative z-50 rounded-full items-center justify-center flex flex-row">
-      <Feather
-        name={props.icon}
-        size={18}
-        color={`${isDark ? themeColors.light.background : themeColors.dark.background}`}
-      />
+      <Feather name={props.icon} size={18} color={themeColors.light.white} />
     </View>
   );
 };

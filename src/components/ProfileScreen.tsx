@@ -8,7 +8,7 @@ import {
   Alert
 } from 'react-native';
 import { useUser } from '@/providers/UserProvider';
-import { ThemedText } from '@/components/ui/ThemedText';
+import { TextCustom } from '@/components/ui/TextCustom';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 
 const ProfileScreen: FC = () => {
@@ -83,7 +83,7 @@ const ProfileScreen: FC = () => {
   if (!user) {
     return (
       <View className="flex-1 bg-bg-main px-4">
-        <ThemedText type="title">User not authorized</ThemedText>
+        <TextCustom type="title">User not authorized</TextCustom>
       </View>
     );
   }
@@ -96,24 +96,24 @@ const ProfileScreen: FC = () => {
           className="w-20 h-20 rounded-full mr-4"
         />
         <View className="flex-1">
-          <ThemedText type="title">{user.displayName || 'User'}</ThemedText>
-          <ThemedText type="subtitle">{user.email}</ThemedText>
+          <TextCustom type="title">{user.displayName || 'User'}</TextCustom>
+          <TextCustom type="subtitle">{user.email}</TextCustom>
         </View>
       </View>
 
       <View className="mb-6">
         <View className="flex-row justify-between items-center mb-4">
-          <ThemedText type="subtitle">Basic information</ThemedText>
+          <TextCustom type="subtitle">Basic information</TextCustom>
           <TouchableOpacity
             onPress={() => setEditing(!editing)}
             className="p-2 bg-accent-main rounded-lg"
           >
-            <ThemedText>{editing ? 'Cancel' : 'Edit'}</ThemedText>
+            <TextCustom>{editing ? 'Cancel' : 'Edit'}</TextCustom>
           </TouchableOpacity>
         </View>
 
         <View className="mb-4">
-          <ThemedText>Name</ThemedText>
+          <TextCustom>Name</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.displayName}
@@ -126,7 +126,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="mb-4">
-          <ThemedText>About me</ThemedText>
+          <TextCustom>About me</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.bio}
@@ -139,7 +139,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="mb-4">
-          <ThemedText>Location</ThemedText>
+          <TextCustom>Location</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.location}
@@ -153,10 +153,10 @@ const ProfileScreen: FC = () => {
       </View>
 
       <View className="mb-6">
-        <ThemedText type="subtitle">Private information</ThemedText>
+        <TextCustom type="subtitle">Private information</TextCustom>
 
         <View className="mb-4">
-          <ThemedText>Phone</ThemedText>
+          <TextCustom>Phone</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.phone}
@@ -168,7 +168,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="mb-4">
-          <ThemedText>Birth date</ThemedText>
+          <TextCustom>Birth date</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.birthDate}
@@ -182,10 +182,10 @@ const ProfileScreen: FC = () => {
       </View>
 
       <View className="mb-6">
-        <ThemedText type="subtitle">Music preferences</ThemedText>
+        <TextCustom type="subtitle">Music preferences</TextCustom>
 
         <View className="mb-4">
-          <ThemedText>Favorite genres</ThemedText>
+          <TextCustom>Favorite genres</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.favoriteGenres}
@@ -200,7 +200,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="mb-4">
-          <ThemedText>Favorite artists</ThemedText>
+          <TextCustom>Favorite artists</TextCustom>
           <TextInput
             className={`border border-accent-main rounded-lg p-3 mt-1 bg-bg-main text-text-main h-20 ${!editing ? 'bg-accent-main text-accent-main' : ''}`}
             value={formData.favoriteArtists}
@@ -220,7 +220,7 @@ const ProfileScreen: FC = () => {
           className="bg-accent-main p-4 rounded-lg items-center mt-4"
           onPress={handleSave}
         >
-          <ThemedText className="text-bg-main font-bold">Save</ThemedText>
+          <TextCustom className="text-bg-main font-bold">Save</TextCustom>
         </TouchableOpacity>
       )}
     </ScrollView>

@@ -24,18 +24,30 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: themeColors.dark.primary,
+        tabBarInactiveTintColor:
+          theme === 'dark' ? themeColors.dark.text : themeColors.light.text,
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
-            position: 'absolute'
+            position: 'absolute',
+            backgroundColor:
+              theme === 'dark'
+                ? themeColors.dark.backgroundSecondary
+                : themeColors.light.backgroundSecondary
           },
-          default: {}
+          default: {
+            backgroundColor:
+              theme === 'dark'
+                ? themeColors.dark.backgroundSecondary
+                : themeColors.light.backgroundSecondary
+          }
         }),
         headerTitleStyle: {
           fontFamily: 'LeagueGothic',
+          letterSpacing: 4,
           fontSize: 30,
           color:
             theme === 'dark' ? themeColors.dark.text : themeColors.light.text
@@ -43,8 +55,8 @@ export default function TabLayout() {
         headerStyle: {
           backgroundColor:
             theme === 'dark'
-              ? themeColors.dark.background
-              : themeColors.light.background
+              ? themeColors.dark.backgroundSecondary
+              : themeColors.light.backgroundSecondary
         }
       }}
     >

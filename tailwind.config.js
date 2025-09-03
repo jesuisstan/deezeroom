@@ -11,11 +11,14 @@ module.exports = {
         'league-gothic': ['LeagueGothic', 'Arial Black', 'sans-serif']
       },
       colors: {
+        black: 'var(--color-black)',
+        white: 'var(--color-white)',
         primary: 'var(--color-primary)',
         accent: 'var(--color-accent)',
         secondary: 'var(--color-secondary)',
         background: 'var(--color-background)',
         'background-secondary': 'var(--color-background-secondary)',
+        'background-tertiary': 'var(--color-background-tertiary)',
         text: 'var(--color-text)',
         disabled: 'var(--color-disabled)',
         border: 'var(--color-border)',

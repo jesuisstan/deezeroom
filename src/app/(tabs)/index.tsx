@@ -1,9 +1,14 @@
-import { Pressable, TextInput, Image } from 'react-native';
+import {
+  Pressable,
+  TextInput,
+  Image,
+  View,
+  Text,
+  ScrollView
+} from 'react-native';
 import { useState } from 'react';
-
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
-import { ThemedText } from '@/components/ui/ThemedText';
-import { ThemedView } from '@/components/ui/ThemedView';
+import { TextCustom } from '@/components/ui/TextCustom';
 import shootAlert from '@/utils/shoot-alert';
 import { HelloWave } from '@/components/HelloWave';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -43,32 +48,34 @@ export default function HomeScreen() {
   };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{
-        light: themeColors.light.backgroundSecondary,
-        dark: themeColors.dark.backgroundSecondary
+    <ScrollView
+      //className="flex-1 bg-background"
+      showsVerticalScrollIndicator={true}
+      contentContainerStyle={{
+        paddingBottom: 16,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        gap: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        backgroundColor:
+          theme === 'dark'
+            ? themeColors.dark.background
+            : themeColors.light.background,
+        flexDirection: 'column',
+        alignSelf: 'center'
       }}
-      headerImage={
-        <Image
-          source={
-            theme === 'dark'
-              ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
-              : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
-          }
-          className="absolute w-3/4 bottom-2.5 left-2.5"
-          resizeMode="contain"
-        />
-      }
     >
-      <ThemedView className="flex-row items-center gap-2 bg">
-        <ThemedText type="title">deezeroom app</ThemedText>
-      </ThemedView>
-      <ThemedView className="gap-2 mb-2">
-        <ThemedText type="subtitle">Open an API route</ThemedText>
+      <View className="flex-row items-center gap-2">
+        <TextCustom type="title">DEEZEROOM APP</TextCustom>
+      </View>
+      <View className="gap-2 mb-2">
+        <TextCustom type="subtitle">Open an API route</TextCustom>
         <Pressable onPress={fetchGreeting}>
-          <ThemedText className="underline">GET /api/greeting</ThemedText>
+          <TextCustom type="link">GET /api/greeting</TextCustom>
         </Pressable>
-        <ThemedView className="flex-row items-center gap-2">
+        <View className="flex-row items-center gap-2 w-full">
           <TextInput
             className="border border-accent text-intent-warning rounded p-2 flex-1"
             placeholder="Enter your name"
@@ -77,17 +84,34 @@ export default function HomeScreen() {
             placeholderTextColor={themeColors.light.accent}
           />
           <Pressable onPress={postGreeting}>
-            <ThemedText className="underline">POST /api/greeting</ThemedText>
+            <TextCustom type="link">POST /api/greeting</TextCustom>
           </Pressable>
-        </ThemedView>
+        </View>
         <Pressable onPress={postGraphql}>
-          <ThemedText className="underline">POST /api/graphql</ThemedText>
+          <TextCustom type="link">POST /api/graphql</TextCustom>
         </Pressable>
-        <ThemedText>
-          Whereas disregard and contempt for human rights have resulted
-        </ThemedText>
-      </ThemedView>
+      </View>
       <HelloWave />
-    </ParallaxScrollView>
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+      <TextCustom>{'\n'}</TextCustom>
+      <HelloWave />
+    </ScrollView>
   );
 }

@@ -14,17 +14,17 @@ type ThemeContextType = {
 };
 
 export const ThemeContext = createContext<ThemeContextType>({
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => {}
 });
 
 export const ThemeProvider = ({ children }: ThemeProviderProps) => {
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('dark');
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
 
   console.log('ThemeProvider - currentTheme:', currentTheme);
 
   const toggleTheme = () => {
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     setCurrentTheme(newTheme);
     colorScheme.set(newTheme);
   };
@@ -38,7 +38,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   return (
     <ThemeContext.Provider value={{ theme: currentTheme, toggleTheme }}>
-      <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={currentTheme === 'light' ? 'light' : 'dark'} />
       <View style={themes[currentTheme]} className="flex-1">
         {children}
       </View>

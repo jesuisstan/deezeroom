@@ -57,7 +57,14 @@ module.exports = () => ({
           backgroundColor: '#0f0d13'
         }
       ],
-      ['expo-audio']
+      ['expo-audio'],
+      [
+        'expo-video',
+        {
+          supportsBackgroundPlayback: true,
+          supportsPictureInPicture: true
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true

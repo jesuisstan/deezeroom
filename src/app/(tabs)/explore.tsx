@@ -1,9 +1,10 @@
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
-import { ThemedText } from '@/components/ui/ThemedText';
-import { ThemedView } from '@/components/ui/ThemedView';
+import { TextCustom } from '@/components/ui/TextCustom';
+
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import shootAlert from '@/utils/shoot-alert';
 import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
+import { View } from 'react-native';
 
 export default function TabTwoScreen() {
   return (
@@ -18,18 +19,18 @@ export default function TabTwoScreen() {
         />
       }
     >
-      <ThemedView className="flex-row gap-2">
-        <ThemedText
+      <View className="flex-row gap-2">
+        <TextCustom
           type="title"
           onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
           className="text-primary-main"
         >
           THIS APP gonna BE AWESOME
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>
+        </TextCustom>
+      </View>
+      <TextCustom>
         <DeezerPreviewPlayer />
-      </ThemedText>
+      </TextCustom>
     </ParallaxScrollView>
   );
 }

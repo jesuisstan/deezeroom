@@ -21,12 +21,15 @@ import { vars } from 'nativewind';
 // Base tokens by theme. Update these values to change the palette globally.
 const BASE = {
   light: {
+    black: '#0f0d13',
+    white: '#fdfcfe',
     primary: '#a238ff',
     accent: '#7328b5',
     text: '#0f0d13',
     secondary: '#1b191f',
     background: '#fdfcfe',
-    backgroundSecondary: '#a9a6aa',
+    backgroundSecondary: '#eae8ec',
+    backgroundTertiary: '#e1dde4',
     disabled: '#555257',
     border: '#c2c0c4',
     borderHovered: '#b4b1b6',
@@ -36,12 +39,15 @@ const BASE = {
     intentSuccess: '#00babc'
   },
   dark: {
+    black: '#0f0d13',
+    white: '#fdfcfe',
     primary: '#a238ff',
     accent: '#7328b5',
     text: '#fdfcfe',
-    secondary: '#a9a6aa',
+    secondary: '#eae8ec',
     background: '#0f0d13',
     backgroundSecondary: '#29282d',
+    backgroundTertiary: '#464549',
     disabled: '#555257',
     border: '#c2c0c4',
     borderHovered: '#b4b1b6',
@@ -63,10 +69,13 @@ export const themeColors = {
 // CSS/style variables for NativeWind. Apply with <View style={themes[currentTheme]}> at app root
 export const themes = {
   light: vars({
+    '--color-black': BASE.light.black,
+    '--color-white': BASE.light.white,
     '--color-primary': BASE.light.primary,
     '--color-secondary': BASE.light.secondary,
     '--color-background': BASE.light.background,
     '--color-background-secondary': BASE.light.backgroundSecondary,
+    '--color-background-tertiary': BASE.light.backgroundTertiary,
     '--color-text': BASE.light.text,
     '--color-accent': BASE.light.accent,
     '--color-disabled': BASE.light.disabled,
@@ -78,10 +87,13 @@ export const themes = {
     '--color-intent-success': BASE.light.intentSuccess
   }),
   dark: vars({
+    '--color-black': BASE.dark.black,
+    '--color-white': BASE.dark.white,
     '--color-primary': BASE.dark.primary,
     '--color-secondary': BASE.dark.secondary,
     '--color-background': BASE.dark.background,
     '--color-background-secondary': BASE.dark.backgroundSecondary,
+    '--color-background-tertiary': BASE.dark.backgroundTertiary,
     '--color-text': BASE.dark.text,
     '--color-accent': BASE.dark.accent,
     '--color-disabled': BASE.dark.disabled,
