@@ -26,6 +26,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState<boolean>(true);
   //const previousConnectionState = useRef<boolean>(true);
   const lastNotificationTime = useRef<number>(0);
+  const connectionStateRef = useRef<boolean>(true);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +42,8 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           'onLine' in navigator
         ) {
           const newConnectionState = navigator.onLine;
-          if (newConnectionState !== isConnected) {
+          if (newConnectionState !== connectionStateRef.current) {
+            connectionStateRef.current = newConnectionState;
             setIsConnected(newConnectionState);
             showNetworkNotification(newConnectionState);
           }
@@ -60,14 +62,16 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
         if (!mounted) return;
 
         const newConnectionState = res.ok;
-        if (newConnectionState !== isConnected) {
+        if (newConnectionState !== connectionStateRef.current) {
+          connectionStateRef.current = newConnectionState;
           setIsConnected(newConnectionState);
           showNetworkNotification(newConnectionState);
         }
       } catch {
         if (!mounted) return;
         const newConnectionState = false;
-        if (newConnectionState !== isConnected) {
+        if (newConnectionState !== connectionStateRef.current) {
+          connectionStateRef.current = newConnectionState;
           setIsConnected(newConnectionState);
           showNetworkNotification(newConnectionState);
         }
@@ -116,12 +120,18 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
       typeof window.addEventListener === 'function'
     ) {
       onlineListener = () => {
-        setIsConnected(true);
-        showNetworkNotification(true);
+        if (connectionStateRef.current !== true) {
+          connectionStateRef.current = true;
+          setIsConnected(true);
+          showNetworkNotification(true);
+        }
       };
       offlineListener = () => {
-        setIsConnected(false);
-        showNetworkNotification(false);
+        if (connectionStateRef.current !== false) {
+          connectionStateRef.current = false;
+          setIsConnected(false);
+          showNetworkNotification(false);
+        }
       };
       window.addEventListener('online', onlineListener);
       window.addEventListener('offline', offlineListener);
@@ -144,7 +154,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           window.removeEventListener('offline', offlineListener);
       }
     };
-  }, [isConnected]);
+  }, []);
 
   return (
     <NetworkContext.Provider value={{ isConnected }}>
