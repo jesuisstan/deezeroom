@@ -10,7 +10,10 @@ const ProfileButton = () => {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push('/profile')}
+      onPress={() => {
+        console.log('Route to Profile screen'); // debug
+        router.push('/profile');
+      }}
       style={{ marginRight: 16 }}
     >
       <Image

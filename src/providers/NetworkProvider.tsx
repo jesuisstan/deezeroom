@@ -68,6 +68,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           setIsConnected(newConnectionState);
           showNetworkNotification(newConnectionState);
         }
+        console.log('Network status:', isConnected ? 'online' : 'offline');
       } catch {
         if (!mounted) return;
         const newConnectionState = false;
@@ -137,8 +138,6 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
       window.addEventListener('online', onlineListener);
       window.addEventListener('offline', offlineListener);
     }
-
-    console.log('Network status:', isConnected ? 'online' : 'offline');
 
     return () => {
       mounted = false;

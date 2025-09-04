@@ -1,17 +1,18 @@
 import { FC } from 'react';
-import { Platform, TouchableOpacity, View } from 'react-native';
-import { Text } from 'react-native';
+import { Image, Platform, TouchableOpacity, View } from 'react-native';
 
 import {
   GoogleSignin,
   isErrorWithCode,
   statusCodes
 } from '@react-native-google-signin/google-signin';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ThemeToggle from '@/components/ThemeToggle';
+import Button from '@/components/ui/Button';
 import { TextCustom } from '@/components/ui/TextCustom';
 import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -19,7 +20,7 @@ import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
 
 const LoginScreen: FC = () => {
-  // Google Sign-In is already configured in UserContext in UserProvider.tsx
+  // Google Sign-In is configured in UserContext in UserProvider.tsx
 
   const handleGoogleSignIn = async () => {
     try {
@@ -96,32 +97,71 @@ const LoginScreen: FC = () => {
     }
   };
   const { theme } = useTheme();
+  const router = useRouter();
+
+  const handleEmailContinue = () => {
+    console.log('handleEmailContinue pressed'); // debug
+    router.push('/auth/email');
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-black" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-black" edges={['top', 'bottom']}>
       <StatusBar
         style={theme === 'dark' ? 'light' : 'dark'}
         backgroundColor="transparent"
         hidden={true}
       />
-      <VideoBanner
-        videoSource={require('@/assets/videos/welcome-screen-construction.mp4')}
-        className="bg-black"
-      />
+      {/* Top half: banner/cover */}
+      <View className="flex-1 bg-black">
+        <VideoBanner
+          videoSource={require('@/assets/videos/welcome-screen-construction.mp4')}
+          className="bg-black"
+        />
+      </View>
 
-      <View className="flex-1 bg-background items-center justify-center p-5 gap-6">
-        <Text className="text-intent-success text-2xl font-semibold">
-          Sign in
-        </Text>
-        <TouchableOpacity
-          className="bg-secondary px-8 py-4 rounded-full min-w-50 items-center shadow-lg"
-          onPress={handleGoogleSignIn}
-        >
-          <TextCustom className="text-intent-warning text-2xl font-semibold">
-            Sign in with Google
+      {/* Bottom half: authentication block in Deezer style */}
+      <View className="flex-1 bg-background p-4 justify-between">
+        <View className="gap-3">
+          <TextCustom className="text-secondary opacity-70 text-lg">
+            Sign up for free or log in
           </TextCustom>
-        </TouchableOpacity>
-        <ThemeToggle />
+
+          {/* Continue with email */}
+          <Button
+            title="Continue with email"
+            onPress={handleEmailContinue}
+            size="md"
+            variant="primary"
+            fullWidth
+            textClassName="tracking-wider"
+          />
+
+          {/* Divider */}
+          <View className="items-center">
+            <TextCustom className="text-secondary opacity-70 text-lg">
+              or
+            </TextCustom>
+          </View>
+
+          {/* Google button */}
+          <View className="flex-row items-center justify-center">
+            <TouchableOpacity
+              className="w-14 h-14 rounded-full items-center justify-center border border-border bg-backgroundSecondary"
+              onPress={handleGoogleSignIn}
+            >
+              <Image
+                source={{
+                  uri: 'https://img.icons8.com/color/48/google-logo.png'
+                }}
+                style={{ width: 26, height: 26 }}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View className="items-center m-4">
+          <ThemeToggle />
+        </View>
       </View>
     </SafeAreaView>
   );

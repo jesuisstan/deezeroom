@@ -5,7 +5,7 @@ import 'react-native-reanimated';
 import clsx from 'clsx';
 import { Stack } from 'expo-router';
 
-import LoginScreen from '@/components/LoginScreen';
+import LoginScreen from '@/components/auth/LoginScreen';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
