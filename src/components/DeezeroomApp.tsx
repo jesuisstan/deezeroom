@@ -2,14 +2,17 @@ import { View } from 'react-native';
 
 import 'react-native-reanimated';
 
+import clsx from 'clsx';
 import { Stack } from 'expo-router';
 
 import LoginScreen from '@/components/LoginScreen';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 
 const DeezeroomApp = () => {
   const { user, loading } = useUser();
+  const { theme } = useTheme();
 
   // Show loading while checking authentication state
   if (loading) {
@@ -17,7 +20,9 @@ const DeezeroomApp = () => {
   }
 
   return (
-    <View className="flex-1 bg-bg-main">
+    <View
+      className={clsx('flex-1', theme === 'dark' ? 'bg-black' : 'bg-white')}
+    >
       {!user ? (
         <LoginScreen />
       ) : (

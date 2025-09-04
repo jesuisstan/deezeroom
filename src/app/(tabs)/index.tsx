@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
+import clsx from 'clsx';
+
 import { HelloWave } from '@/components/HelloWave';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -63,7 +65,12 @@ export default function HomeScreen() {
       <View className="flex-row items-center gap-2">
         <TextCustom type="title">DEEZEROOM APP</TextCustom>
       </View>
-      <View className="gap-2 mb-2">
+      <View
+        className={clsx(
+          'flex-1 p-4 gap-4',
+          theme === 'dark' ? 'bg-intent-warning' : 'bg-intent-success'
+        )}
+      >
         <TextCustom type="subtitle">Open an API route</TextCustom>
         <Pressable onPress={fetchGreeting}>
           <TextCustom type="link">GET /api/greeting</TextCustom>
