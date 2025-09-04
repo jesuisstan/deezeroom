@@ -1,18 +1,11 @@
-import {
-  Pressable,
-  TextInput,
-  Image,
-  View,
-  Text,
-  ScrollView
-} from 'react-native';
 import { useState } from 'react';
-import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
-import { TextCustom } from '@/components/ui/TextCustom';
-import shootAlert from '@/utils/shoot-alert';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+
 import { HelloWave } from '@/components/HelloWave';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
+import shootAlert from '@/utils/shoot-alert';
 
 export default function HomeScreen() {
   const [name, setName] = useState('');

@@ -11,21 +11,22 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "clean": "npx rimraf node_modules && npx rimraf package-lock.json && npx rimraf .expo && npx rimraf android && npx rimraf ios && npx rimraf web",
     "c:i": "npm run clean && npm install",
     "verify:deps": "npx expo install --check",
     "verify:lockfile": "npm ci --ignore-scripts --dry-run",
-    "build:dev:android": "eas build --profile development --platform android",
-    "build:dev:ios": "eas build --profile development --platform ios",
-    "build:dev:web": "eas build --profile development --platform web",
-    "build:prod:android": "eas build --profile production --platform android"
+    "build:dev:android": "npm run lint:fix && eas build --profile development --platform android",
+    "build:dev:ios": "npm run lint:fix && eas build --profile development --platform ios",
+    "build:dev:web": "npm run lint:fix && eas build --profile development --platform web",
+    "build:prod:android": "npm run lint:fix && eas build --profile production --platform android"
   },
   "jest": {
     "preset": "jest-expo"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^15.0.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
@@ -67,13 +68,17 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
-    "eslint": "^8.57.0",
+    "eslint": "^9.34.0",
     "eslint-config-expo": "~9.2.0",
-    "eslint-config-prettier": "^9.1.0",
+    "eslint-config-prettier": "^9.1.2",
     "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-prettier": "^5.2.1",
-    "prettier": "^3.4.2",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "prettier": "^3.6.2",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "@react-native-async-storage/async-storage": "2.2.0"
   },
   "private": true
 }

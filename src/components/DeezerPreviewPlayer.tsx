@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useAudioPlayer } from 'expo-audio';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+
 import { FontAwesome } from '@expo/vector-icons';
+import { useAudioPlayer } from 'expo-audio';
 
 const DeezerPreviewPlayer = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

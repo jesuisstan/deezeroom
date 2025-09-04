@@ -1,5 +1,6 @@
-import clsx from 'clsx';
 import { Text, type TextProps } from 'react-native';
+
+import clsx from 'clsx';
 
 export type TextCustomProps = TextProps & {
   type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';

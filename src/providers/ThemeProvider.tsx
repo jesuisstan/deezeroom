@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+
 import { StatusBar } from 'expo-status-bar';
 import { colorScheme } from 'nativewind';
+
 import { themes } from '@/utils/color-theme';
 
 interface ThemeProviderProps {

@@ -1,20 +1,22 @@
 import {
-  FC,
   createContext,
+  FC,
   ReactNode,
   useContext,
-  useState,
-  useEffect
+  useEffect,
+  useState
 } from 'react';
-import {
-  User,
-  onAuthStateChanged,
-  signOut as firebaseSignOut
-} from 'firebase/auth';
-import { auth } from '@/utils/firebase-init';
-import { UserService, UserProfile } from '@/utils/firebase-services';
-import shootAlert from '@/utils/shoot-alert';
+
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import {
+  onAuthStateChanged,
+  signOut as firebaseSignOut,
+  User
+} from 'firebase/auth';
+
+import { auth } from '@/utils/firebase-init';
+import { UserProfile, UserService } from '@/utils/firebase-services';
+import shootAlert from '@/utils/shoot-alert';
 
 type TUserContextType = {
   user: User | null;

@@ -1,10 +1,10 @@
+import { View } from 'react-native';
+
+import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
-
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import shootAlert from '@/utils/shoot-alert';
-import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
-import { View } from 'react-native';
 
 export default function TabTwoScreen() {
   return (

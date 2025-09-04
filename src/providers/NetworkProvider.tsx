@@ -1,13 +1,14 @@
 import {
-  FC,
   createContext,
+  FC,
+  ReactNode,
   useContext,
   useEffect,
-  useState,
-  ReactNode,
-  useRef
+  useRef,
+  useState
 } from 'react';
 import { AppState, Platform } from 'react-native';
+
 import shootAlert from '@/utils/shoot-alert';
 
 type TNetworkContextState = {
@@ -154,6 +155,7 @@ export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
           window.removeEventListener('offline', offlineListener);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

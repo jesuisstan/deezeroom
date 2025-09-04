@@ -1,11 +1,13 @@
-import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
+
+import { Tabs } from 'expo-router';
+
+import ProfileButton from '@/components/ProfileButton';
+import ThemeToggle from '@/components/ThemeToggle';
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import ThemeToggle from '@/components/ThemeToggle';
 import { useTheme } from '@/providers/ThemeProvider';
-import ProfileButton from '@/components/ProfileButton';
 import { themeColors } from '@/utils/color-theme';
 
 const HeaderRight = () => {

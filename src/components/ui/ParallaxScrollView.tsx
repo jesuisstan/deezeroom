@@ -1,5 +1,6 @@
-import type { PropsWithChildren, ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
+
+import type { PropsWithChildren, ReactElement } from 'react';
 import Animated, {
   interpolate,
   useAnimatedRef,

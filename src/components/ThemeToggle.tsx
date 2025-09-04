@@ -1,12 +1,14 @@
+import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
-import { useTheme } from '@/providers/ThemeProvider';
+
 import Feather from '@expo/vector-icons/Feather';
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withSpring
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
+
+import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
 const ThemeToggle = () => {
@@ -19,6 +21,7 @@ const ThemeToggle = () => {
       damping: 15,
       stiffness: 150
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDark]);
 
   const animatedStyle = useAnimatedStyle(() => {

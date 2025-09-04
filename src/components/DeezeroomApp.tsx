@@ -1,9 +1,12 @@
-import 'react-native-reanimated';
 import { View } from 'react-native';
+
+import 'react-native-reanimated';
+
 import { Stack } from 'expo-router';
-import { useUser } from '@/providers/UserProvider';
+
 import LoginScreen from '@/components/LoginScreen';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import { useUser } from '@/providers/UserProvider';
 
 const DeezeroomApp = () => {
   const { user, loading } = useUser();

@@ -1,15 +1,16 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import {
-  View,
+  Alert,
+  Image,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
-  Alert
+  View
 } from 'react-native';
-import { useUser } from '@/providers/UserProvider';
-import { TextCustom } from '@/components/ui/TextCustom';
+
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import { TextCustom } from '@/components/ui/TextCustom';
+import { useUser } from '@/providers/UserProvider';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();

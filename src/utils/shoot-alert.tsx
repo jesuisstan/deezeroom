@@ -1,5 +1,6 @@
-import { ALERT_TYPE, Dialog, Toast } from 'react-native-alert-notification';
 import { Platform } from 'react-native';
+
+import { ALERT_TYPE, Dialog, Toast } from 'react-native-alert-notification';
 
 type AlertType = 'success' | 'error' | 'warning';
 type NotificationType = 'toast' | 'dialog';

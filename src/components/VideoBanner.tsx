@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
+
+import clsx from 'clsx';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoSource, VideoView } from 'expo-video';
-import { View } from 'react-native';
-import clsx from 'clsx';
 
 type VideoBannerProps = {
   videoSource: VideoSource;

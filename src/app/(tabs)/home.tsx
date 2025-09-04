@@ -1,9 +1,9 @@
-import { Platform, View, Text } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export default function HomeScreen() {
   return (

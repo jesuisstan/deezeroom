@@ -1,7 +1,8 @@
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { TextCustom } from '@/components/ui/TextCustom';
+
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 

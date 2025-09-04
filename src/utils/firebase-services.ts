@@ -1,21 +1,22 @@
+import { User } from 'firebase/auth';
 import {
+  addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
-  addDoc,
-  updateDoc,
-  setDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
   limit,
   onSnapshot,
-  serverTimestamp
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where
 } from 'firebase/firestore';
+
 import { db } from '@/utils/firebase-init';
-import { User } from 'firebase/auth';
 
 export interface UserProfile {
   uid: string;

@@ -1,10 +1,12 @@
-import { View, TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
+
 import { Stack } from 'expo-router';
-import ProfileScreen from '@/components/ProfileScreen';
-import { useUser } from '@/providers/UserProvider';
-import { TextCustom } from '@/components/ui/TextCustom';
 import { StatusBar } from 'expo-status-bar';
+
+import ProfileScreen from '@/components/ProfileScreen';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/utils/color-theme';
 
 const SignOutButton = () => {

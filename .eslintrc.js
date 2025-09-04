@@ -3,10 +3,37 @@
 module.exports = {
   extends: ['expo', 'prettier'],
   ignorePatterns: ['/dist/*'],
-  plugins: ['prettier'],
+  plugins: ['prettier', 'simple-import-sort'],
   rules: {
-    'prettier/prettier': 'error',
-    'import/no-unresolved': 'off'
+    'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    'import/no-unresolved': 'off',
+    'simple-import-sort/imports': [
+      'error',
+      {
+        groups: [
+          // React and react-native first
+          ['^react$', '^react-native$'],
+          // Side effect imports
+          ['^\u0000'],
+          // Packages
+          ['^@?\w'],
+          // Absolute imports with @ alias
+          ['^@/'],
+          // Relative imports
+          [
+            '^\./(?=.*/)(?!/?$)',
+            '^\.(?!/?$)',
+            '^\./?$',
+            '^\.\.(?!/?$)',
+            '^\.\./?$',
+            '^\.\./\..*'
+          ],
+          // Style imports
+          ['^.+\.s?css$']
+        ]
+      }
+    ],
+    'simple-import-sort/exports': 'error'
   },
   settings: {
     'import/resolver': {

@@ -1,20 +1,22 @@
 import { FC } from 'react';
-import { View, Platform, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { auth } from '@/utils/firebase-init';
-import shootAlert from '@/utils/shoot-alert';
-import { TextCustom } from '@/components/ui/TextCustom';
+import { Platform, TouchableOpacity, View } from 'react-native';
+import { Text } from 'react-native';
+
 import {
   GoogleSignin,
-  statusCodes,
-  isErrorWithCode
+  isErrorWithCode,
+  statusCodes
 } from '@react-native-google-signin/google-signin';
-import ThemeToggle from '@/components/ThemeToggle';
-import { Text } from 'react-native';
-import VideoBanner from '@/components/VideoBanner';
 import { StatusBar } from 'expo-status-bar';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import ThemeToggle from '@/components/ThemeToggle';
+import { TextCustom } from '@/components/ui/TextCustom';
+import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
+import { auth } from '@/utils/firebase-init';
+import shootAlert from '@/utils/shoot-alert';
 
 const LoginScreen: FC = () => {
   // Google Sign-In is already configured in UserContext in UserProvider.tsx
