@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.expo/
+dist/
+build/
+android/
+ios/
+web/
+
+# Generated files
+package-lock.json
+yarn.lock
+
+# Git
+.git/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.test
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary files
+.tmp/
+.cache/

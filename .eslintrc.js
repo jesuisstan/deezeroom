@@ -5,7 +5,18 @@ module.exports = {
   ignorePatterns: ['/dist/*'],
   plugins: ['prettier', 'simple-import-sort'],
   rules: {
-    'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    'prettier/prettier': [
+      'error',
+      {
+        endOfLine: 'lf',
+        semi: true,
+        trailingComma: 'none',
+        singleQuote: true,
+        printWidth: 80,
+        tabWidth: 2,
+        useTabs: false
+      }
+    ],
     'import/no-unresolved': 'off',
     'simple-import-sort/imports': [
       'error',
@@ -33,7 +44,8 @@ module.exports = {
         ]
       }
     ],
-    'simple-import-sort/exports': 'error'
+    'simple-import-sort/exports': 'error',
+    'linebreak-style': ['error', 'unix']
   },
   settings: {
     'import/resolver': {

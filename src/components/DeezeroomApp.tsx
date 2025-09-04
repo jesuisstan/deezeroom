@@ -5,28 +5,42 @@ import 'react-native-reanimated';
 import clsx from 'clsx';
 import { Stack } from 'expo-router';
 
-import LoginScreen from '@/components/auth/LoginScreen';
-import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import AuthGuard from '@/components/AuthGuard';
 import { useTheme } from '@/providers/ThemeProvider';
-import { useUser } from '@/providers/UserProvider';
 
 const DeezeroomApp = () => {
-  const { user, loading } = useUser();
   const { theme } = useTheme();
 
-  // Show loading while checking authentication state
-  if (loading) {
-    return <ActivityIndicatorScreen />;
-  }
-
   return (
-    <View
-      className={clsx('flex-1', theme === 'dark' ? 'bg-black' : 'bg-white')}
-    >
-      {!user ? (
-        <LoginScreen />
-      ) : (
+    <AuthGuard>
+      <View
+        className={clsx('flex-1', theme === 'dark' ? 'bg-black' : 'bg-white')}
+      >
         <Stack>
+          <Stack.Screen
+            name="index"
+            options={{
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="auth/index"
+            options={{
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="auth/email"
+            options={{
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
+            name="auth/help"
+            options={{
+              headerShown: false
+            }}
+          />
           <Stack.Screen
             name="(tabs)"
             options={{
@@ -44,8 +58,8 @@ const DeezeroomApp = () => {
           />
           <Stack.Screen name="+not-found" />
         </Stack>
-      )}
-    </View>
+      </View>
+    </AuthGuard>
   );
 };
 

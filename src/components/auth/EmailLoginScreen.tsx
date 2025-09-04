@@ -1,9 +1,11 @@
 import { FC, useState } from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import Input from '@/components/ui/Input';
 import { TextCustom } from '@/components/ui/TextCustom';
 
@@ -11,6 +13,7 @@ const EmailLoginScreen: FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -18,10 +21,23 @@ const EmailLoginScreen: FC = () => {
     setTimeout(() => setLoading(false), 800);
   };
 
+  const handleBackPress = () => {
+    router.back();
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <View className="flex-1 px-6 py-6 gap-4">
-        <TextCustom type="title">Sign in</TextCustom>
+        {/* Header with back button */}
+        <View className="flex-row items-center gap-4 mb-4">
+          <TouchableOpacity
+            onPress={handleBackPress}
+            className="w-10 h-10 rounded-full items-center justify-center bg-backgroundSecondary"
+          >
+            <IconSymbol size={20} name="chevron.left" color="#ffffff" />
+          </TouchableOpacity>
+          <TextCustom type="title">Sign in</TextCustom>
+        </View>
         <Input
           label="Email"
           placeholder="you@example.com"
