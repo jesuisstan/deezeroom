@@ -3,7 +3,7 @@ import { Platform, View } from 'react-native';
 import { Tabs } from 'expo-router';
 
 import ProfileButton from '@/components/ProfileButton';
-import ThemeToggle from '@/components/ThemeToggle';
+import ThemeToggler from '@/components/ThemeToggler';
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
@@ -13,7 +13,7 @@ import { themeColors } from '@/utils/color-theme';
 const HeaderRight = () => {
   return (
     <View className="flex-row items-center gap-4">
-      <ThemeToggle />
+      <ThemeToggler />
       <ProfileButton />
     </View>
   );

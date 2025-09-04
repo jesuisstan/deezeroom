@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AuthGoogleButton from '@/components/auth/AuthGoogleButton';
-import ThemeToggle from '@/components/ThemeToggle';
+import ThemeToggler from '@/components/ThemeToggler';
 import Button from '@/components/ui/Button';
 import { TextCustom } from '@/components/ui/TextCustom';
 import VideoBanner from '@/components/VideoBanner';
@@ -73,7 +73,7 @@ const LoginScreen: FC = () => {
         </View>
 
         <View className="m-4 items-center">
-          <ThemeToggle />
+          <ThemeToggler />
         </View>
       </LinearGradient>
     </SafeAreaView>
