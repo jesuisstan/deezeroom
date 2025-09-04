@@ -30,7 +30,7 @@ export function Collapsible({
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 
-        <TextCustom type="defaultSemiBold">{title}</TextCustom>
+        <TextCustom type="bold">{title}</TextCustom>
       </TouchableOpacity>
       {isOpen && <View style={styles.content}>{children}</View>}
     </View>

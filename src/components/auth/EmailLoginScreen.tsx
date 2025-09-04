@@ -27,12 +27,12 @@ const EmailLoginScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-      <View className="flex-1 px-6 py-6 gap-4">
+      <View className="flex-1 gap-4 px-6 py-6">
         {/* Header with back button */}
-        <View className="flex-row items-center gap-4 mb-4">
+        <View className="mb-4 flex-row items-center gap-4">
           <TouchableOpacity
             onPress={handleBackPress}
-            className="w-10 h-10 rounded-full items-center justify-center bg-backgroundSecondary"
+            className="bg-backgroundSecondary h-10 w-10 items-center justify-center rounded-full"
           >
             <IconSymbol size={20} name="chevron.left" color="#ffffff" />
           </TouchableOpacity>

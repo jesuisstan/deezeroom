@@ -30,11 +30,11 @@ const DeezerPreviewPlayer = () => {
   if (isLoading) return <ActivityIndicator size="large" className="mt-20" />;
 
   return (
-    <View className="flex-row justify-around items-center w-3/5 self-center mt-20">
+    <View className="mt-20 w-3/5 flex-row items-center justify-around self-center">
       {/* Play */}
       <TouchableOpacity
         onPress={() => player.play()}
-        className="p-4 bg-green-500 rounded-full"
+        className="rounded-full bg-green-500 p-4"
       >
         <FontAwesome name="play" size={32} color="#fff" />
       </TouchableOpacity>
@@ -42,7 +42,7 @@ const DeezerPreviewPlayer = () => {
       {/* Pause */}
       <TouchableOpacity
         onPress={() => player.pause()}
-        className="p-4 bg-yellow-500 rounded-full"
+        className="rounded-full bg-yellow-500 p-4"
       >
         <FontAwesome name="pause" size={32} color="#fff" />
       </TouchableOpacity>
@@ -53,7 +53,7 @@ const DeezerPreviewPlayer = () => {
           player.pause();
           player.seekTo(0);
         }}
-        className="p-4 bg-red-500 rounded-full"
+        className="rounded-full bg-red-500 p-4"
       >
         <FontAwesome name="stop" size={32} color="#fff" />
       </TouchableOpacity>

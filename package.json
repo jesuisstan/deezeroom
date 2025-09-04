@@ -63,7 +63,8 @@
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "tailwindcss": "^3.4.17",
-    "expo-font": "~13.3.2"
+    "expo-font": "~13.3.2",
+    "react-native-svg": "15.11.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

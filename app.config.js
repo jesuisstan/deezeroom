@@ -54,7 +54,7 @@ module.exports = () => ({
         {
           image: './src/assets/images/splash-icon.png',
           backgroundColor: '#0f0d13',
-          imageWidth: 100
+          imageWidth: 150
         }
       ],
       ['expo-audio'],

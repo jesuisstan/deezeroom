@@ -67,7 +67,7 @@ export default function HomeScreen() {
       </View>
       <View
         className={clsx(
-          'flex-1 p-4 gap-4',
+          'flex-1 gap-4 p-4',
           theme === 'dark' ? 'bg-intent-warning' : 'bg-intent-success'
         )}
       >
@@ -75,9 +75,9 @@ export default function HomeScreen() {
         <Pressable onPress={fetchGreeting}>
           <TextCustom type="link">GET /api/greeting</TextCustom>
         </Pressable>
-        <View className="flex-row items-center gap-2 w-full">
+        <View className="w-full flex-row items-center gap-2">
           <TextInput
-            className="border border-accent text-intent-warning rounded p-2 flex-1"
+            className="flex-1 rounded border border-accent p-2 text-intent-warning"
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}

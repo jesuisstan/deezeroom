@@ -18,7 +18,7 @@ const ProfileButton = () => {
     >
       <Image
         source={{ uri: user?.photoURL || 'https://via.placeholder.com/32' }}
-        className="w-12 h-12 rounded-full border-2 border-accent"
+        className="h-12 w-12 rounded-full border-2 border-accent"
       />
     </TouchableOpacity>
   );

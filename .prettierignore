@@ -34,3 +34,23 @@ coverage/
 # Temporary files
 .tmp/
 .cache/
+
+# Node modules
+/node_modules
+/dist
+
+# Expo
+.expo/
+dist/
+web/
+
+# Native
+android/
+ios/
+
+# Build outputs
+build/
+
+# Generated files
+package-lock.json
+yarn.lock

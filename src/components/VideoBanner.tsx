@@ -42,7 +42,7 @@ const VideoBanner = ({
 
   return (
     <View
-      className={clsx(`flex-1 w-full items-center justify-center`, className)}
+      className={clsx(`w-full flex-1 items-center justify-center`, className)}
     >
       <VideoView
         style={{ width: '100%', height: '100%' }}

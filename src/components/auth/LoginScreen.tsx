@@ -120,9 +120,9 @@ const LoginScreen: FC = () => {
       </View>
 
       {/* Bottom half: authentication block in Deezer style */}
-      <View className="flex-1 bg-background p-4 justify-between">
+      <View className="flex-1 justify-between bg-background p-4">
         <View className="gap-3">
-          <TextCustom className="text-secondary opacity-70 text-lg">
+          <TextCustom className="text-lg text-secondary opacity-70">
             Sign up for free or log in
           </TextCustom>
 
@@ -138,7 +138,7 @@ const LoginScreen: FC = () => {
 
           {/* Divider */}
           <View className="items-center">
-            <TextCustom className="text-secondary opacity-70 text-lg">
+            <TextCustom className="text-lg text-secondary opacity-70">
               or
             </TextCustom>
           </View>
@@ -146,7 +146,7 @@ const LoginScreen: FC = () => {
           {/* Google button */}
           <View className="flex-row items-center justify-center">
             <TouchableOpacity
-              className="w-14 h-14 rounded-full items-center justify-center border border-border bg-backgroundSecondary"
+              className="bg-backgroundSecondary h-14 w-14 items-center justify-center rounded-full border border-border"
               onPress={handleGoogleSignIn}
             >
               <Image
@@ -159,7 +159,7 @@ const LoginScreen: FC = () => {
           </View>
         </View>
 
-        <View className="items-center m-4">
+        <View className="m-4 items-center">
           <ThemeToggle />
         </View>
       </View>

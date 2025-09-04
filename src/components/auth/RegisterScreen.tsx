@@ -21,7 +21,7 @@ const RegisterScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
-      <View className="flex-1 px-6 py-6 gap-4">
+      <View className="flex-1 gap-4 px-6 py-6">
         <TextCustom type="title">Create account</TextCustom>
         <Input
           label="Email"
