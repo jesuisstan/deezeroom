@@ -1,6 +1,8 @@
 import { TouchableOpacity } from 'react-native';
+
+import { type Href, router } from 'expo-router';
+
 import { TextCustom } from '@/components/ui/TextCustom';
-import { router, type Href } from 'expo-router';
 
 type LinkParams = Record<string, string | number | boolean>;
 

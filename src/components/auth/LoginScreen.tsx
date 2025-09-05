@@ -9,12 +9,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
 import InputCustom from '@/components/ui/InputCustom';
+import LinkCustom from '@/components/ui/LinkCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
-import LinkCustom from '@/components/ui/LinkCustom';
 
 const LoginScreen: FC = () => {
   const params = useLocalSearchParams<{ email?: string }>();

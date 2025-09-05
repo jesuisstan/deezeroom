@@ -9,6 +9,7 @@ import {
 
 import { FontAwesome6, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
@@ -16,10 +17,10 @@ import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/utils/firebase-init';
 import { UserService } from '@/utils/firebase-services';
 import shootAlert from '@/utils/shoot-alert';
+
 import LinkCustom from '../ui/LinkCustom';
 
 const RegisterScreen: FC = () => {
