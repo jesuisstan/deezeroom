@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import 'react-native-reanimated';
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel
+} from 'react-native-reanimated';
 
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,6 +23,12 @@ import '@/global.css';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+// Turn off strict mode for Reanimated warnings globally
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false
+});
 
 const RootLayout = () => {
   const [fontsLoaded] = useFonts({

@@ -61,11 +61,14 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   const { theme } = useTheme();
   const colors = themeColors[theme];
 
+  // Нормализуем входящее значение, чтобы гарантировать строковый тип для TextInput
+  const stringValue = typeof value === 'string' ? value : undefined;
+
   const showPasswordToggle = secureTextEntry && !rightIconName;
   const showClear =
     showClearButton &&
-    value &&
-    value.length > 0 &&
+    typeof stringValue === 'string' &&
+    stringValue.length > 0 &&
     !secureTextEntry &&
     !rightIconName;
 
@@ -107,7 +110,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
         <TextInput
           ref={ref}
-          value={value}
+          value={stringValue}
           placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
           secureTextEntry={secureTextEntry && !isPasswordVisible}

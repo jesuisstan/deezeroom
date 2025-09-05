@@ -37,7 +37,7 @@ const WelcomeScreen: FC = () => {
       <LinearGradient
         colors={[themeColors[theme].black, themeColors[theme]['bg-secondary']]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        end={{ x: -1, y: 2 }}
         className="flex-1 justify-between p-4"
       >
         <View className="gap-3">
