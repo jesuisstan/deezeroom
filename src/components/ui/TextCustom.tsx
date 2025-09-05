@@ -20,7 +20,7 @@ export function TextCustom({ type = 'default', ...rest }: TextCustomProps) {
       case 'italic':
         return 'text-base leading-6 font-cursive';
       case 'default':
-        return 'text-base leading-6';
+        return 'text-base leading-6 text-primary';
       default:
         return 'text-base leading-6';
     }

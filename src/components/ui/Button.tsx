@@ -49,13 +49,6 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
 };
 
-const textColorByVariant: Record<ButtonVariant, string> = {
-  primary: 'text-white font-bold',
-  secondary: 'text-text-main font-bold',
-  outline: 'text-text-main',
-  ghost: 'text-text-main'
-};
-
 const Button = ({
   title,
   onPress,
@@ -78,6 +71,13 @@ const Button = ({
     disabled ? 'opacity-60' : 'opacity-100',
     className
   );
+
+  const textColorByVariant: Record<ButtonVariant, string> = {
+    primary: clsx(' font-bold', disabled ? 'text-black' : 'text-white'),
+    secondary: 'text-text-main font-bold',
+    outline: 'text-text-main',
+    ghost: 'text-text-main'
+  };
 
   const labelClasses = clsx(
     textColorByVariant[variant],

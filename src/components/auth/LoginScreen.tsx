@@ -3,20 +3,22 @@ import { TouchableOpacity, View } from 'react-native';
 
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
+import LinkCustom from '@/components/ui/LinkCustom';
 
 const LoginScreen: FC = () => {
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState((params?.email || '').toString());
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -58,7 +60,7 @@ const LoginScreen: FC = () => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, normalized, password);
-      // AuthGuard перенаправит в /(tabs)
+      // AuthGuard redirect to /(tabs)
     } catch (err: any) {
       const code = err?.code || '';
       if (code === 'auth/user-not-found') {
@@ -119,7 +121,7 @@ const LoginScreen: FC = () => {
           Log in
         </TextCustom>
 
-        <Input
+        <InputCustom
           placeholder="Email address"
           keyboardType="email-address"
           textContentType="emailAddress"
@@ -138,7 +140,7 @@ const LoginScreen: FC = () => {
           leftIconName="mail"
         />
 
-        <Input
+        <InputCustom
           placeholder="Your password"
           value={password}
           onChangeText={handlePasswordChange}
@@ -156,14 +158,13 @@ const LoginScreen: FC = () => {
           disabled={loading || email.length === 0 || password.length === 0}
         />
 
-        <TouchableOpacity
-          onPress={() =>
-            router.push({ pathname: '/auth/register', params: { email } })
-          }
-          className="mt-2 self-center"
-        >
-          <TextCustom type="link">Create account</TextCustom>
-        </TouchableOpacity>
+        <View className="self-center">
+          <LinkCustom
+            href="/auth/register"
+            params={{ email }}
+            text="Create account"
+          />
+        </View>
       </View>
     </SafeAreaView>
   );

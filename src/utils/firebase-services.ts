@@ -10,6 +10,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  Timestamp,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -17,6 +18,35 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/utils/firebase-init';
+
+// Remove all undefined values recursively to satisfy Firestore constraints
+// Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
+const removeUndefinedDeep = (obj: any): any => {
+  if (obj === undefined || obj === null) return obj;
+  // Preserve FieldValue (has _methodName) and Timestamp
+  if (
+    (typeof obj === 'object' && obj !== null && (obj as any)._methodName) ||
+    obj instanceof Timestamp ||
+    (typeof obj?.toDate === 'function' && typeof obj?.toMillis === 'function')
+  ) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((v) => v !== undefined)
+      .map((v) => removeUndefinedDeep(v));
+  }
+  if (typeof obj === 'object') {
+    const result: Record<string, any> = {};
+    Object.entries(obj).forEach(([key, value]) => {
+      if (value !== undefined) {
+        result[key] = removeUndefinedDeep(value);
+      }
+    });
+    return result;
+  }
+  return obj;
+};
 
 export interface UserProfile {
   uid: string;
@@ -80,15 +110,23 @@ export class UserService {
   ): Promise<void> {
     try {
       const userRef = doc(db, this.collection, user.uid);
-      const userData: Partial<UserProfile> = {
+      const existingSnap = await getDoc(userRef);
+
+      // createdAt только при первом создании
+      const baseData: Partial<UserProfile> = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || '',
-        photoURL: user.photoURL || undefined,
-        createdAt: serverTimestamp(),
+        ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         updatedAt: serverTimestamp(),
         ...additionalData
       };
+
+      const dataToWrite = existingSnap.exists()
+        ? baseData
+        : { ...baseData, createdAt: Timestamp.now() };
+
+      const userData = removeUndefinedDeep(dataToWrite) as Partial<UserProfile>;
 
       await setDoc(userRef, userData, { merge: true });
       console.log('User profile created/updated successfully');
@@ -113,14 +151,11 @@ export class UserService {
     data: Partial<UserProfile>
   ): Promise<void> {
     const userRef = doc(db, this.collection, uid);
-    await setDoc(
-      userRef,
-      {
-        ...data,
-        updatedAt: serverTimestamp()
-      },
-      { merge: true }
-    );
+    const cleaned = removeUndefinedDeep({
+      ...data,
+      updatedAt: serverTimestamp()
+    });
+    await setDoc(userRef, cleaned, { merge: true });
   }
 
   // Subscribe to user profile changes

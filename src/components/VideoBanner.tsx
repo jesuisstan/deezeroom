@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 
 import clsx from 'clsx';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoSource, VideoView } from 'expo-video';
+import { useFocusEffect } from '@react-navigation/native';
 
 type VideoBannerProps = {
   videoSource: VideoSource;
@@ -39,7 +40,24 @@ const VideoBanner = ({
       } catch {}
     }
   }, [status, player]);
-  console.log('status', status); // debug не проигрывается видео при статусе idle когда я возвращаюсь на WelcomeScreen после перехода на экраны с регистрацией\email\password
+
+  // Ensure playback on screen focus (e.g., when navigating back)
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        player.muted = true;
+        if (player.status === 'idle') {
+          player.replace(videoSource);
+        }
+        player.play();
+      } catch {}
+      return () => {
+        try {
+          player.pause();
+        } catch {}
+      };
+    }, [player, videoSource])
+  );
 
   return (
     <View

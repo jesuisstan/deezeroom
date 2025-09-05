@@ -37,7 +37,7 @@ const variantStyles: Record<InputVariant, string> = {
   outline: 'bg-transparent rounded-xl'
 };
 
-const Input = forwardRef<TextInput, InputProps>(function Input(
+const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   {
     label,
     helperText,
@@ -57,11 +57,11 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   ref
 ) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isFocused, setIsFocused] = useState(autoFocus); // Инициализируем состояние фокуса
+  const [isFocused, setIsFocused] = useState(autoFocus); // Initialize the focus state
   const { theme } = useTheme();
   const colors = themeColors[theme];
 
-  // Нормализуем входящее значение, чтобы гарантировать строковый тип для TextInput
+  // Normalize the incoming value to ensure a string type for TextInput
   const stringValue = typeof value === 'string' ? value : undefined;
 
   const showPasswordToggle = secureTextEntry && !rightIconName;
@@ -92,9 +92,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   return (
     <View className={clsx(containerBase, className)}>
       {label ? (
-        <TextCustom type="bold" className="mb-2 opacity-80">
-          {label}
-        </TextCustom>
+        <TextCustom className="mb-2 text-text-main">{label}</TextCustom>
       ) : null}
       <View
         className={clsx('flex-row items-center', variantStyles[variant])}
@@ -117,6 +115,23 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           autoFocus={autoFocus}
+          // Enforce better defaults for password fields across platforms
+          autoCapitalize={
+            props.autoCapitalize ??
+            (secureTextEntry ? ('none' as any) : undefined)
+          }
+          autoCorrect={
+            props.autoCorrect ?? (secureTextEntry ? false : undefined)
+          }
+          textContentType={
+            (props.textContentType as any) ??
+            (secureTextEntry ? ('password' as any) : undefined)
+          }
+          autoComplete={
+            // types vary across platforms; cast to any for compatibility
+            ((props as any).autoComplete as any) ??
+            (secureTextEntry ? ('password' as any) : undefined)
+          }
           {...props}
         />
         {showPasswordToggle ? (
@@ -133,7 +148,14 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
         ) : showClear ? (
           <TouchableOpacity
             className="py-1 pr-3"
-            onPress={() => onClear && onClear()}
+            onPress={() => {
+              if (onClear) {
+                onClear();
+              } else if (props.onChangeText) {
+                // Fallback: if onClear is not provided, clear through onChangeText
+                (props.onChangeText as (text: string) => void)('');
+              }
+            }}
           >
             <Feather name="x-circle" size={18} color={getIconColor()} />
           </TouchableOpacity>
@@ -152,4 +174,4 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
   );
 });
 
-export default Input;
+export default InputCustom;

@@ -20,6 +20,8 @@ module.exports = () => ({
         foregroundImage: './src/assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
       },
+      windowSoftInputMode: 'adjustResize',
+      softwareKeyboardLayoutMode: 'pan',
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
         './credentials/android/google-services.json'
