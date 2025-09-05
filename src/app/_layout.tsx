@@ -2,15 +2,15 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import 'react-native-reanimated';
-import {
-  configureReanimatedLogger,
-  ReanimatedLogLevel
-} from 'react-native-reanimated';
 
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { AlertNotificationRoot } from 'react-native-alert-notification';
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel
+} from 'react-native-reanimated';
 
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';

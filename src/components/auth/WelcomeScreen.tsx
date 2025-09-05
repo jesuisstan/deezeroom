@@ -54,7 +54,7 @@ const WelcomeScreen: FC = () => {
           {/* Continue with email */}
           <Button
             title="Continue with email"
-            onPress={() => router.push('/auth/email')}
+            onPress={() => router.push('/auth/login')}
             size="lg"
             variant="primary"
             fullWidth

@@ -98,7 +98,7 @@ const AuthGoogleButton: FC = () => {
 
   return (
     <TouchableOpacity
-      className="bg-bg-main h-14 w-14 items-center justify-center rounded-full border border-border"
+      className="h-14 w-14 items-center justify-center rounded-full border border-border bg-bg-main"
       onPress={handleGoogleSignIn}
       disabled={isGoogleLoading}
     >

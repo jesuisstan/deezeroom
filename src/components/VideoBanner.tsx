@@ -39,6 +39,7 @@ const VideoBanner = ({
       } catch {}
     }
   }, [status, player]);
+  console.log('status', status); // debug не проигрывается видео при статусе idle когда я возвращаюсь на WelcomeScreen после перехода на экраны с регистрацией\email\password
 
   return (
     <View

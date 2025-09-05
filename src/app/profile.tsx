@@ -16,7 +16,7 @@ const SignOutButton = () => {
       className="bg-accent-main min-w-50 items-center rounded-full px-4 py-2 shadow-lg"
       onPress={signOut}
     >
-      <TextCustom className="text-bg-main text-base">Sign Out</TextCustom>
+      <TextCustom className="text-base text-bg-main">Sign Out</TextCustom>
     </TouchableOpacity>
   );
 };
@@ -31,7 +31,7 @@ const ProfilePage = () => {
         backgroundColor="transparent"
         hidden={true}
       />
-      <View className="bg-bg-main flex-1">
+      <View className="flex-1 bg-bg-main">
         <Stack.Screen
           options={{
             title: 'Profile',

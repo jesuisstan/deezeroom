@@ -83,14 +83,14 @@ const ProfileScreen: FC = () => {
 
   if (!user) {
     return (
-      <View className="bg-bg-main flex-1 px-4">
+      <View className="flex-1 bg-bg-main px-4">
         <TextCustom type="title">User not authorized</TextCustom>
       </View>
     );
   }
 
   return (
-    <ScrollView className="bg-bg-main flex-1 px-4 py-4">
+    <ScrollView className="flex-1 bg-bg-main px-4 py-4">
       <View className="mb-6 flex-row items-center border-b border-border pb-4">
         <Image
           source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
@@ -107,7 +107,7 @@ const ProfileScreen: FC = () => {
           <TextCustom type="subtitle">Basic information</TextCustom>
           <TouchableOpacity
             onPress={() => setEditing(!editing)}
-            className="bg-bg-secondary rounded-lg p-2"
+            className="rounded-lg bg-bg-secondary p-2"
           >
             <TextCustom>{editing ? 'Cancel' : 'Edit'}</TextCustom>
           </TouchableOpacity>
@@ -116,7 +116,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Name</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.displayName}
             onChangeText={(text) =>
               setFormData({ ...formData, displayName: text })
@@ -129,7 +129,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>About me</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 h-20 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 h-20 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.bio}
             onChangeText={(text) => setFormData({ ...formData, bio: text })}
             editable={editing}
@@ -142,7 +142,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Location</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.location}
             onChangeText={(text) =>
               setFormData({ ...formData, location: text })
@@ -159,7 +159,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Phone</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.phone}
             onChangeText={(text) => setFormData({ ...formData, phone: text })}
             editable={editing}
@@ -171,7 +171,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Birth date</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.birthDate}
             onChangeText={(text) =>
               setFormData({ ...formData, birthDate: text })
@@ -188,7 +188,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Favorite genres</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 h-20 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 h-20 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.favoriteGenres}
             onChangeText={(text) =>
               setFormData({ ...formData, favoriteGenres: text })
@@ -203,7 +203,7 @@ const ProfileScreen: FC = () => {
         <View className="mb-4">
           <TextCustom>Favorite artists</TextCustom>
           <TextInput
-            className={`bg-bg-main text-text-main mt-1 h-20 rounded-lg border border-border p-3 ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
+            className={`mt-1 h-20 rounded-lg border border-border bg-bg-main p-3 text-text-main ${!editing ? 'bg-bg-secondary text-accent' : ''}`}
             value={formData.favoriteArtists}
             onChangeText={(text) =>
               setFormData({ ...formData, favoriteArtists: text })
@@ -218,10 +218,10 @@ const ProfileScreen: FC = () => {
 
       {editing && (
         <TouchableOpacity
-          className="bg-bg-secondary mt-4 items-center rounded-lg p-4"
+          className="mt-4 items-center rounded-lg bg-bg-secondary p-4"
           onPress={handleSave}
         >
-          <TextCustom className="text-bg-main font-bold">Save</TextCustom>
+          <TextCustom className="font-bold text-bg-main">Save</TextCustom>
         </TouchableOpacity>
       )}
     </ScrollView>

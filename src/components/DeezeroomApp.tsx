@@ -31,13 +31,13 @@ const DeezeroomApp = () => {
             }}
           />
           <Stack.Screen
-            name="auth/email"
+            name="auth/login"
             options={{
               headerShown: false
             }}
           />
           <Stack.Screen
-            name="auth/password"
+            name="auth/register"
             options={{
               headerShown: false
             }}

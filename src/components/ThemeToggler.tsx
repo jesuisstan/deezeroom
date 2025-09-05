@@ -39,7 +39,7 @@ const ThemeToggler = () => {
     <BlurView
       intensity={8}
       style={styles.container}
-      className="bg-bg-secondary border-border"
+      className="border-border bg-bg-secondary"
     >
       <View style={styles.innerContainer}>
         <TouchableOpacity
@@ -60,7 +60,7 @@ const ThemeToggler = () => {
         {/* Animated background indicator */}
         <Animated.View
           style={[styles.activeIndicator, animatedStyle]}
-          className="bg-bg-main border-border"
+          className="border-border bg-bg-main"
         />
       </View>
     </BlurView>
