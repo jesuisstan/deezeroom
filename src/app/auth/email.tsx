@@ -1,2 +1,2 @@
-import EmailLoginScreen from '@/components/auth/EmailLoginScreen';
-export default EmailLoginScreen;
+import EmailScreen from '@/components/auth/EmailScreen';
+export default EmailScreen;

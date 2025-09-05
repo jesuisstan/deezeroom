@@ -14,7 +14,8 @@ const MAPPING = {
   'shippingbox.fill': 'rocket',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right'
+  'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left'
 } as Partial<
   Record<
     import('expo-symbols').SymbolViewProps['name'],

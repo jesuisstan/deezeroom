@@ -38,7 +38,8 @@ const BASE = {
     border: '#c2c0c4',
     'intent-error': '#df3c3c',
     'intent-warning': '#ec7f11',
-    'intent-success': '#00babc'
+    'intent-success': '#00babc',
+    transparent: '#ffffff80'
   },
   dark: {
     black: '#0f0d13',
@@ -58,7 +59,8 @@ const BASE = {
     border: '#555257',
     'intent-error': '#df3c3c',
     'intent-warning': '#ec7f11',
-    'intent-success': '#00babc'
+    'intent-success': '#00babc',
+    transparent: '#0000004d'
   }
 } as const;
 
@@ -90,7 +92,8 @@ export const themes = {
     '--color-border': BASE.light.border,
     '--color-intent-error': BASE.light['intent-error'],
     '--color-intent-warning': BASE.light['intent-warning'],
-    '--color-intent-success': BASE.light['intent-success']
+    '--color-intent-success': BASE.light['intent-success'],
+    '--color-transparent': BASE.light.transparent
   }),
   dark: vars({
     '--color-black': BASE.dark.black,
@@ -110,6 +113,7 @@ export const themes = {
     '--color-border': BASE.dark.border,
     '--color-intent-error': BASE.dark['intent-error'],
     '--color-intent-warning': BASE.dark['intent-warning'],
-    '--color-intent-success': BASE.dark['intent-success']
+    '--color-intent-success': BASE.dark['intent-success'],
+    '--color-transparent': BASE.dark.transparent
   })
 } as const;

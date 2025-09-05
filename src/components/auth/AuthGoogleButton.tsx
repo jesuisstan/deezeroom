@@ -56,12 +56,6 @@ const AuthGoogleButton: FC = () => {
       console.log('Firebase sign-in successful');
 
       // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
-      shootAlert(
-        'toast',
-        'Success',
-        'You have successfully signed in!',
-        'success'
-      );
     } catch (error) {
       console.error('Google sign-in error:', error);
 

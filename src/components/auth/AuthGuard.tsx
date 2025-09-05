@@ -18,14 +18,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     const inAuthGroup = segments[0] === 'auth';
 
-    console.log(
-      'AuthGuard - User:',
-      !!user,
-      'InAuthGroup:',
-      inAuthGroup,
-      'Segments:',
-      segments
-    );
+    //console.log(
+    //  'AuthGuard - User:',
+    //  !!user,
+    //  'InAuthGroup:',
+    //  inAuthGroup,
+    //  'Segments:',
+    //  segments
+    //);
 
     if (!user && !inAuthGroup) {
       // User is not signed in and not in auth group

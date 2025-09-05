@@ -7,6 +7,7 @@ import { Stack } from 'expo-router';
 
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 const DeezeroomApp = () => {
   const { theme } = useTheme();
@@ -36,6 +37,12 @@ const DeezeroomApp = () => {
             }}
           />
           <Stack.Screen
+            name="auth/password"
+            options={{
+              headerShown: false
+            }}
+          />
+          <Stack.Screen
             name="auth/help"
             options={{
               headerShown: false
@@ -52,7 +59,7 @@ const DeezeroomApp = () => {
             options={{
               headerShown: false,
               headerStyle: {
-                backgroundColor: '#0f0d13'
+                backgroundColor: themeColors[theme]['bg-main']
               }
             }}
           />

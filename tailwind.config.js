@@ -28,7 +28,8 @@ module.exports = {
         border: 'var(--color-border)',
         'intent-error': 'var(--color-intent-error)',
         'intent-warning': 'var(--color-intent-warning)',
-        'intent-success': 'var(--color-intent-success)'
+        'intent-success': 'var(--color-intent-success)',
+        transparent: 'var(--color-transparent)'
       },
 
       // Font sizes (Deezer scale)

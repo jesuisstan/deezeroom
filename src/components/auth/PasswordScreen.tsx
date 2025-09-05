@@ -9,8 +9,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import Input from '@/components/ui/Input';
 import { TextCustom } from '@/components/ui/TextCustom';
 
-const EmailLoginScreen: FC = () => {
-  const [email, setEmail] = useState('');
+const PasswordScreen: FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,15 +38,6 @@ const EmailLoginScreen: FC = () => {
           <TextCustom type="title">Sign in</TextCustom>
         </View>
         <Input
-          label="Email"
-          placeholder="you@example.com"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          leftIconName="mail"
-        />
-        <Input
           label="Password"
           placeholder="Your password"
           value={password}
@@ -66,4 +56,4 @@ const EmailLoginScreen: FC = () => {
   );
 };
 
-export default EmailLoginScreen;
+export default PasswordScreen;

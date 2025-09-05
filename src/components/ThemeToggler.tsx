@@ -60,7 +60,7 @@ const ThemeToggler = () => {
         {/* Animated background indicator */}
         <Animated.View
           style={[styles.activeIndicator, animatedStyle]}
-          className="bg-bg-main"
+          className="bg-bg-main border-border"
         />
       </View>
     </BlurView>
@@ -109,6 +109,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 9999,
+    borderWidth: 1,
     //backgroundColor: '#E6E6E6',
     zIndex: 1
   }

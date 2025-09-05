@@ -39,12 +39,14 @@ const sizeClasses: Record<ButtonSize, string> = {
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary active:bg-primary/90 hover:bg-primary/95',
+  primary:
+    'bg-primary active:bg-primary/90 hover:bg-primary/95 disabled:bg-disabled',
   secondary:
-    'bg-bg-secondary active:bg-bg-secondary/90 hover:bg-bg-secondary/95',
+    'bg-bg-secondary active:bg-bg-secondary/90 hover:bg-bg-secondary/95 disabled:bg-disabled',
   outline:
-    'bg-transparent border border-border active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5',
-  ghost: 'bg-transparent active:bg-border/10 hover:bg-border/5'
+    'bg-transparent border border-border active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5 disabled:bg-disabled',
+  ghost:
+    'bg-transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
 };
 
 const textColorByVariant: Record<ButtonVariant, string> = {
@@ -54,7 +56,7 @@ const textColorByVariant: Record<ButtonVariant, string> = {
   ghost: 'text-text-main'
 };
 
-export default function Button({
+const Button = ({
   title,
   onPress,
   disabled = false,
@@ -66,7 +68,7 @@ export default function Button({
   className,
   textClassName,
   fullWidth = false
-}: ButtonProps) {
+}: ButtonProps) => {
   const { theme } = useTheme();
   const containerClasses = clsx(
     baseClasses,
@@ -108,4 +110,6 @@ export default function Button({
       {rightIcon ? <View className="ml-1.5">{rightIcon}</View> : null}
     </Pressable>
   );
-}
+};
+
+export default Button;

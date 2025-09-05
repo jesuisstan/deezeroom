@@ -1,10 +1,17 @@
 import { forwardRef, useState } from 'react';
-import { TextInput, TextInputProps, View } from 'react-native';
+import {
+  TextInput,
+  TextInputProps,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 import clsx from 'clsx';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 export type InputVariant = 'default' | 'filled' | 'outline';
 
@@ -17,17 +24,18 @@ type InputProps = TextInputProps & {
   variant?: InputVariant;
   className?: string;
   inputClassName?: string;
+  showClearButton?: boolean;
+  onClear?: () => void;
+  autoFocus?: boolean;
 };
 
 const containerBase = 'w-full';
-const inputBase = 'text-base text-text px-4 py-3 rounded-xl';
+const inputBase = 'text-base text-text-main px-4 py-3 rounded-xl';
 const variantStyles: Record<InputVariant, string> = {
-  default: 'bg-backgroundSecondary',
-  filled: 'bg-secondary',
-  outline: 'bg-transparent border border-border'
+  default: 'bg-bg-secondary rounded-xl',
+  filled: 'bg-bg-secondary rounded-xl',
+  outline: 'bg-transparent rounded-xl'
 };
-
-const iconColor = '#ffffff';
 
 const Input = forwardRef<TextInput, InputProps>(function Input(
   {
@@ -40,12 +48,43 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
     className,
     inputClassName,
     secureTextEntry,
+    showClearButton = true,
+    onClear,
+    value,
+    autoFocus = false,
     ...props
   },
   ref
 ) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isFocused, setIsFocused] = useState(autoFocus); // Инициализируем состояние фокуса
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
+
   const showPasswordToggle = secureTextEntry && !rightIconName;
+  const showClear =
+    showClearButton &&
+    value &&
+    value.length > 0 &&
+    !secureTextEntry &&
+    !rightIconName;
+
+  const getIconColor = () => {
+    if (errorText) return colors['intent-error'];
+    if (isFocused) return colors.primary;
+    return colors['text-secondary'];
+  };
+
+  const getBorderColor = () => {
+    if (errorText) return colors['intent-error'];
+    if (isFocused) return colors.primary;
+    return colors.border; // Ordinary state - gray border
+  };
+
+  const getBorderWidth = () => {
+    if (errorText || isFocused) return 2;
+    return 1;
+  };
 
   return (
     <View className={clsx(containerBase, className)}>
@@ -55,37 +94,49 @@ const Input = forwardRef<TextInput, InputProps>(function Input(
         </TextCustom>
       ) : null}
       <View
-        className={clsx(
-          'flex-row items-center rounded-xl',
-          variantStyles[variant]
-        )}
+        className={clsx('flex-row items-center', variantStyles[variant])}
+        style={{
+          borderColor: getBorderColor(),
+          borderWidth: getBorderWidth()
+        }}
       >
         {leftIconName ? (
           <View className="pl-3">
-            <Feather name={leftIconName} size={18} color={iconColor} />
+            <Feather name={leftIconName} size={18} color={getIconColor()} />
           </View>
         ) : null}
         <TextInput
           ref={ref}
-          placeholderTextColor={'#999999'}
+          value={value}
+          placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          autoFocus={autoFocus}
           {...props}
         />
         {showPasswordToggle ? (
-          <View
-            className="pr-3"
-            onTouchEnd={() => setIsPasswordVisible((v) => !v)}
+          <TouchableOpacity
+            className="py-1 pr-3"
+            onPress={() => setIsPasswordVisible((v) => !v)}
           >
             <Feather
               name={isPasswordVisible ? 'eye-off' : 'eye'}
               size={18}
-              color={iconColor}
+              color={getIconColor()}
             />
-          </View>
+          </TouchableOpacity>
+        ) : showClear ? (
+          <TouchableOpacity
+            className="py-1 pr-3"
+            onPress={() => onClear && onClear()}
+          >
+            <Feather name="x-circle" size={18} color={getIconColor()} />
+          </TouchableOpacity>
         ) : rightIconName ? (
           <View className="pr-3">
-            <Feather name={rightIconName} size={18} color={iconColor} />
+            <Feather name={rightIconName} size={18} color={getIconColor()} />
           </View>
         ) : null}
       </View>

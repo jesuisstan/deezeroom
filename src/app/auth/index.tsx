@@ -1,2 +1,2 @@
-import LoginScreen from '@/components/auth/LoginScreen';
-export default LoginScreen;
+import WelcomeScreen from '@/components/auth/WelcomeScreen';
+export default WelcomeScreen;

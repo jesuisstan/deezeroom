@@ -14,14 +14,9 @@ import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
-const LoginScreen: FC = () => {
+const WelcomeScreen: FC = () => {
   const { theme } = useTheme();
   const router = useRouter();
-
-  const handleEmailContinue = () => {
-    console.log('handleEmailContinue pressed'); // debug
-    router.push('/auth/email');
-  };
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={['top', 'bottom']}>
@@ -59,8 +54,8 @@ const LoginScreen: FC = () => {
           {/* Continue with email */}
           <Button
             title="Continue with email"
-            onPress={handleEmailContinue}
-            size="md"
+            onPress={() => router.push('/auth/email')}
+            size="lg"
             variant="primary"
             fullWidth
             textClassName="tracking-wider"
@@ -87,4 +82,4 @@ const LoginScreen: FC = () => {
   );
 };
 
-export default LoginScreen;
+export default WelcomeScreen;
