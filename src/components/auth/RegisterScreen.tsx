@@ -30,8 +30,11 @@ const RegisterScreen: FC = () => {
     [params]
   );
   const [email, setEmail] = useState(initialEmail);
+  const [emailError, setEmailError] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { theme } = useTheme();
@@ -45,13 +48,16 @@ const RegisterScreen: FC = () => {
   const passwordHasAllowedSpecial = /[!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/.test(
     password
   );
+  const passwordHasForbidden =
+    /[^A-Za-z0-9!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/.test(password);
   const passwordHasLetterAndUppercase =
     passwordHasLetter && passwordHasUppercase;
   const isPasswordValid =
     passwordHasMinLength &&
     passwordHasLetterAndUppercase &&
     passwordHasNumber &&
-    passwordHasAllowedSpecial;
+    passwordHasAllowedSpecial &&
+    !passwordHasForbidden;
   const isConfirmValid = confirm.length > 0 && confirm === password;
 
   useEffect(() => {
@@ -62,9 +68,15 @@ const RegisterScreen: FC = () => {
   }, [initialEmail]);
 
   const handleSubmit = async () => {
-    if (!validateEmail(email)) return;
-    if (!isPasswordValid) return;
-    if (!isConfirmValid) return;
+    if (!validateEmail(email)) {
+      setEmailError('The format of your email address is not valid');
+      return;
+    }
+    if (!isPasswordValid || passwordError) return;
+    if (!isConfirmValid) {
+      setConfirmError('Passwords do not match');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -171,32 +183,63 @@ const RegisterScreen: FC = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
-              onChangeText={setEmail}
-              onClear={() => setEmail('')}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (emailError) setEmailError('');
+              }}
+              onClear={() => {
+                setEmail('');
+                setEmailError('');
+              }}
               leftIconName="mail"
+              errorText={emailError}
             />
 
             {/* Password */}
             <InputCustom
               placeholder="Your password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(text) => {
+                setPassword(text);
+                const invalid = text.match(
+                  /[^A-Za-z0-9!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/
+                );
+                setPasswordError(
+                  invalid ? `Unsupported character: ${invalid[0]}` : ''
+                );
+              }}
               onClear={() => setPassword('')}
               secureTextEntry
               leftIconName="lock"
+              errorText={passwordError}
             />
 
             {/* Repeat password */}
             <InputCustom
               placeholder="Repeat password"
               value={confirm}
-              onChangeText={setConfirm}
-              onClear={() => setConfirm('')}
+              onChangeText={(text) => {
+                setConfirm(text);
+                setConfirmError(
+                  text.length === 0 || text === password
+                    ? ''
+                    : 'Passwords do not match'
+                );
+              }}
+              onClear={() => {
+                setConfirm('');
+                setConfirmError('');
+              }}
               secureTextEntry
               returnKeyType="done"
-              blurOnSubmit
               onSubmitEditing={handleSubmit}
               leftIconName="lock"
+              onBlur={() => {
+                if (confirm.length > 0 && confirm !== password) {
+                  setConfirmError('Passwords do not match');
+                }
+              }}
+              errorText={confirmError}
             />
 
             {/* Password requirements */}
@@ -268,20 +311,6 @@ const RegisterScreen: FC = () => {
                     {} : ; , .
                   </TextCustom>
                 </View>
-                <View className="flex-row items-center gap-3">
-                  <MaterialIcons
-                    name={'check-circle'}
-                    size={20}
-                    color={
-                      themeColors[theme][
-                        isConfirmValid ? 'intent-success' : 'text-disabled'
-                      ]
-                    }
-                  />
-                  <TextCustom className="flex-1 text-sm text-text-main">
-                    Passwords must match
-                  </TextCustom>
-                </View>
               </View>
             </View>
 
@@ -292,12 +321,7 @@ const RegisterScreen: FC = () => {
               loading={loading}
               onPress={handleSubmit}
               fullWidth
-              disabled={
-                loading ||
-                !validateEmail(email) ||
-                !isPasswordValid ||
-                !isConfirmValid
-              }
+              disabled={loading || !isPasswordValid || !isConfirmValid}
             />
             <View className="self-center">
               <LinkCustom

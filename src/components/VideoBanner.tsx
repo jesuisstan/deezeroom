@@ -40,7 +40,7 @@ const VideoBanner = ({
       } catch {}
     }
   }, [status, player]);
-
+console.log("status", status)
   // Ensure playback on screen focus (e.g., when navigating back)
   useFocusEffect(
     useCallback(() => {

@@ -165,9 +165,13 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
       </View>
       {errorText ? (
-        <TextCustom className="mt-1 text-intent-error">{errorText}</TextCustom>
+        <TextCustom className="mt-1 text-sm text-intent-error">
+          {errorText}
+        </TextCustom>
       ) : helperText ? (
-        <TextCustom className="mt-1 opacity-70">{helperText}</TextCustom>
+        <TextCustom className="mt-1 text-sm opacity-70">
+          {helperText}
+        </TextCustom>
       ) : null}
     </View>
   );
