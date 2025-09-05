@@ -85,8 +85,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   };
 
   const getBorderWidth = () => {
-    if (errorText || isFocused) return 2;
-    return 1;
+    return 2; // Constant width to prevent layout shifts when focused
   };
 
   return (

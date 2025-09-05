@@ -200,16 +200,14 @@ const RegisterScreen: FC = () => {
             />
 
             {/* Password requirements */}
-            <View className="gap-4 rounded-xl bg-bg-secondary p-4">
-              <TextCustom type="bold">Your password must include</TextCustom>
-              <View className="gap-4">
+            <View className="gap-2 rounded-xl bg-bg-secondary p-4">
+              <TextCustom className="text-sm font-bold text-text-main">
+                Your password must include
+              </TextCustom>
+              <View className="gap-2">
                 <View className="flex-row items-center gap-3">
                   <MaterialIcons
-                    name={
-                      passwordHasMinLength
-                        ? 'check-circle'
-                        : 'radio-button-unchecked'
-                    }
+                    name={'check-circle'}
                     size={20}
                     color={
                       themeColors[theme][
@@ -219,15 +217,13 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom>At least 8 characters</TextCustom>
+                  <TextCustom className="flex-1 text-sm text-text-main">
+                    At least 8 characters
+                  </TextCustom>
                 </View>
                 <View className="flex-row items-center gap-3">
                   <MaterialIcons
-                    name={
-                      passwordHasLetterAndUppercase
-                        ? 'check-circle'
-                        : 'radio-button-unchecked'
-                    }
+                    name={'check-circle'}
                     size={20}
                     color={
                       themeColors[theme][
@@ -237,33 +233,27 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom>
+                  <TextCustom className="flex-1 text-sm text-text-main">
                     At least 1 letter (including 1 uppercase)
                   </TextCustom>
                 </View>
                 <View className="flex-row items-center gap-3">
                   <MaterialIcons
-                    name={
-                      passwordHasNumber
-                        ? 'check-circle'
-                        : 'radio-button-unchecked'
-                    }
+                    name={'check-circle'}
                     size={20}
                     color={
-                      themeColors[theme][
-                        passwordHasNumber ? 'intent-success' : 'text-disabled'
-                      ]
+                      passwordHasNumber
+                        ? themeColors[theme]['intent-success']
+                        : themeColors[theme]['text-disabled']
                     }
                   />
-                  <TextCustom>At least 1 number</TextCustom>
+                  <TextCustom className="flex-1 text-sm text-text-main">
+                    At least 1 number
+                  </TextCustom>
                 </View>
                 <View className="flex-row items-center gap-3">
                   <MaterialIcons
-                    name={
-                      passwordHasAllowedSpecial
-                        ? 'check-circle'
-                        : 'radio-button-unchecked'
-                    }
+                    name={'check-circle'}
                     size={20}
                     color={
                       themeColors[theme][
@@ -273,16 +263,14 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom>
-                    At least 1 special character (not allowed: # & ? / \ &lt;
-                    &gt; " ' ` | ~)
+                  <TextCustom className="flex-1 text-sm text-text-main">
+                    At least 1 of special characters ! @ $ % ^ * ( ) _ + - = [ ]{' '}
+                    {} : ; , .
                   </TextCustom>
                 </View>
                 <View className="flex-row items-center gap-3">
                   <MaterialIcons
-                    name={
-                      isConfirmValid ? 'check-circle' : 'radio-button-unchecked'
-                    }
+                    name={'check-circle'}
                     size={20}
                     color={
                       themeColors[theme][
@@ -290,7 +278,9 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom>Passwords must match</TextCustom>
+                  <TextCustom className="flex-1 text-sm text-text-main">
+                    Passwords must match
+                  </TextCustom>
                 </View>
               </View>
             </View>
