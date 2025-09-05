@@ -12,6 +12,7 @@ import Button from '@/components/ui/Button';
 import { TextCustom } from '@/components/ui/TextCustom';
 import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 const LoginScreen: FC = () => {
   const { theme } = useTheme();
@@ -39,13 +40,19 @@ const LoginScreen: FC = () => {
 
       {/* Bottom half: authentication block in Deezer style */}
       <LinearGradient
-        colors={['#000000', '#ffffff']}
+        colors={[themeColors[theme].black, themeColors[theme]['bg-secondary']]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         className="flex-1 justify-between p-4"
       >
         <View className="gap-3">
-          <TextCustom className="text-lg text-secondary opacity-70">
+          <TextCustom
+            type="title"
+            className="text-3xl leading-10 tracking-widest text-white"
+          >
+            {`WELCOME TO${'\n'}THE PARTY`}
+          </TextCustom>
+          <TextCustom className="text-lg text-white opacity-60">
             Sign up for free or log in
           </TextCustom>
 
@@ -61,7 +68,7 @@ const LoginScreen: FC = () => {
 
           {/* Divider */}
           <View className="items-center">
-            <TextCustom className="text-lg text-secondary opacity-70">
+            <TextCustom className="text-lg text-white opacity-60">
               or
             </TextCustom>
           </View>

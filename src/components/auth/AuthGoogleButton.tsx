@@ -104,7 +104,7 @@ const AuthGoogleButton: FC = () => {
 
   return (
     <TouchableOpacity
-      className="bg-backgroundSecondary h-14 w-14 items-center justify-center rounded-full border border-border"
+      className="bg-bg-main h-14 w-14 items-center justify-center rounded-full border border-border"
       onPress={handleGoogleSignIn}
       disabled={isGoogleLoading}
     >
@@ -112,9 +112,7 @@ const AuthGoogleButton: FC = () => {
         <ActivityIndicator size="small" color={themeColors[theme].primary} />
       ) : (
         <Image
-          source={{
-            uri: require('@/assets/images/others/logo-google.png')
-          }}
+          source={require('@/assets/images/others/logo-google.png')}
           style={{ width: 26, height: 26 }}
         />
       )}

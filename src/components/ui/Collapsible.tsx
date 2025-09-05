@@ -25,7 +25,9 @@ export function Collapsible({
           size={18}
           weight="medium"
           color={
-            theme === 'light' ? themeColors.light.text : themeColors.dark.text
+            theme === 'light'
+              ? themeColors.light['text-main']
+              : themeColors.dark['text-main']
           }
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />

@@ -35,7 +35,7 @@ export function TextCustom({ type = 'default', ...rest }: TextCustomProps) {
   };
 
   // Base text color from tailwind (can be overridden via className)
-  const defaultTextColorClass = 'text-text';
+  const defaultTextColorClass = 'text-text-main';
 
   return (
     <Text

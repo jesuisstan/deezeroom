@@ -5,7 +5,7 @@ import 'react-native-reanimated';
 import clsx from 'clsx';
 import { Stack } from 'expo-router';
 
-import AuthGuard from '@/components/AuthGuard';
+import AuthGuard from '@/components/auth/AuthGuard';
 import { useTheme } from '@/providers/ThemeProvider';
 
 const DeezeroomApp = () => {

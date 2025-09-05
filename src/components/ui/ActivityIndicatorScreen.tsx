@@ -13,8 +13,8 @@ const ActivityIndicatorScreen = () => {
         justifyContent: 'center',
         backgroundColor:
           theme === 'dark'
-            ? themeColors.dark.background
-            : themeColors.light.background
+            ? themeColors.dark['bg-main']
+            : themeColors.light['bg-main']
       }}
     >
       <ActivityIndicator size="large" color={themeColors.light.accent} />

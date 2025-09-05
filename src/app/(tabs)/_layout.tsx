@@ -27,7 +27,9 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: themeColors.dark.primary,
         tabBarInactiveTintColor:
-          theme === 'dark' ? themeColors.dark.text : themeColors.light.text,
+          theme === 'dark'
+            ? themeColors.dark['text-main']
+            : themeColors.light['text-main'],
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -37,14 +39,14 @@ export default function TabLayout() {
             position: 'absolute',
             backgroundColor:
               theme === 'dark'
-                ? themeColors.dark.backgroundSecondary
-                : themeColors.light.backgroundSecondary
+                ? themeColors.dark['bg-secondary']
+                : themeColors.light['bg-secondary']
           },
           default: {
             backgroundColor:
               theme === 'dark'
-                ? themeColors.dark.backgroundSecondary
-                : themeColors.light.backgroundSecondary
+                ? themeColors.dark['bg-secondary']
+                : themeColors.light['bg-secondary']
           }
         }),
         headerTitleStyle: {
@@ -52,13 +54,15 @@ export default function TabLayout() {
           letterSpacing: 4,
           fontSize: 30,
           color:
-            theme === 'dark' ? themeColors.dark.text : themeColors.light.text
+            theme === 'dark'
+              ? themeColors.dark['text-main']
+              : themeColors.light['text-main']
         },
         headerStyle: {
           backgroundColor:
             theme === 'dark'
-              ? themeColors.dark.backgroundSecondary
-              : themeColors.light.backgroundSecondary
+              ? themeColors.dark['bg-secondary']
+              : themeColors.light['bg-secondary']
         }
       }}
     >

@@ -70,21 +70,21 @@ const RootLayout = () => {
       }}
       colors={[
         {
-          label: themeColors.light.text,
-          card: themeColors.light.backgroundSecondary,
-          overlay: themeColors.light.background,
+          label: themeColors.light['text-main'],
+          card: themeColors.light['bg-secondary'],
+          overlay: themeColors.light['bg-main'],
           success: themeColors.light.primary,
-          danger: themeColors.light.intentError,
-          warning: themeColors.light.intentWarning,
+          danger: themeColors.light['intent-error'],
+          warning: themeColors.light['intent-warning'],
           info: themeColors.light.primary
         },
         {
-          label: themeColors.dark.text,
-          card: themeColors.dark.backgroundSecondary,
-          overlay: themeColors.dark.background,
+          label: themeColors.dark['text-main'],
+          card: themeColors.dark['bg-secondary'],
+          overlay: themeColors.dark['bg-main'],
           success: themeColors.dark.accent,
-          danger: themeColors.dark.intentError,
-          warning: themeColors.dark.intentWarning,
+          danger: themeColors.dark['intent-error'],
+          warning: themeColors.dark['intent-warning'],
           info: themeColors.dark.accent
         }
       ]}

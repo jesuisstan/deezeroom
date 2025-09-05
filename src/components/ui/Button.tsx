@@ -40,17 +40,18 @@ const sizeClasses: Record<ButtonSize, string> = {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-primary active:bg-primary/90 hover:bg-primary/95',
-  secondary: 'bg-secondary active:bg-secondary/90 hover:bg-secondary/95',
+  secondary:
+    'bg-bg-secondary active:bg-bg-secondary/90 hover:bg-bg-secondary/95',
   outline:
-    'bg-transparent border border-border active:bg-border/10 hover:bg-border/5',
+    'bg-transparent border border-border active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5',
   ghost: 'bg-transparent active:bg-border/10 hover:bg-border/5'
 };
 
 const textColorByVariant: Record<ButtonVariant, string> = {
   primary: 'text-white font-bold',
-  secondary: 'text-text font-bold',
-  outline: 'text-text',
-  ghost: 'text-text'
+  secondary: 'text-text-main font-bold',
+  outline: 'text-text-main',
+  ghost: 'text-text-main'
 };
 
 export default function Button({
@@ -98,7 +99,7 @@ export default function Button({
           color={
             variant === 'primary'
               ? themeColors[theme].white
-              : themeColors[theme].text
+              : themeColors[theme]['text-main']
           }
         />
       ) : (

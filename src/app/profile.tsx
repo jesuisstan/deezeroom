@@ -40,7 +40,7 @@ const ProfilePage = () => {
             headerStyle: {
               backgroundColor: themeColors.light.accent
             },
-            headerTintColor: themeColors.light.background,
+            headerTintColor: themeColors.light['bg-main'],
             headerTitleStyle: {
               fontFamily: 'LeagueGothic',
               fontSize: 30

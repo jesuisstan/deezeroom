@@ -20,7 +20,6 @@ const Icon = (props: any) => {
 
 const ThemeToggler = () => {
   const { theme, toggleTheme } = useTheme();
-  //const isDark = theme === 'dark'; // todo
   const translateX = useSharedValue(theme === 'dark' ? 46.5 : 0);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ const ThemeToggler = () => {
     <BlurView
       intensity={8}
       style={styles.container}
-      className="border-border bg-background-secondary"
+      className="bg-bg-secondary border-border"
     >
       <View style={styles.innerContainer}>
         <TouchableOpacity
@@ -61,7 +60,7 @@ const ThemeToggler = () => {
         {/* Animated background indicator */}
         <Animated.View
           style={[styles.activeIndicator, animatedStyle]}
-          className="bg-background"
+          className="bg-bg-main"
         />
       </View>
     </BlurView>

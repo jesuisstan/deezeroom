@@ -44,7 +44,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView
-      //className="flex-1 bg-background"
+      //className="flex-1 bg-bg-main"
       showsVerticalScrollIndicator={true}
       contentContainerStyle={{
         paddingBottom: 16,
@@ -56,8 +56,8 @@ export default function HomeScreen() {
         width: '100%',
         backgroundColor:
           theme === 'dark'
-            ? themeColors.dark.background
-            : themeColors.light.background,
+            ? themeColors.dark['bg-main']
+            : themeColors.light['bg-main'],
         flexDirection: 'column',
         alignSelf: 'center'
       }}
