@@ -1,18 +1,31 @@
 import { FC, useState } from 'react';
 import { TouchableOpacity, View } from 'react-native';
 
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import Input from '@/components/ui/Input';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 const PasswordScreen: FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const router = useRouter();
+  const { theme } = useTheme();
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    // Clear error when text changes
+    if (passwordError) {
+      setPasswordError('');
+    }
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -28,28 +41,45 @@ const PasswordScreen: FC = () => {
     <SafeAreaView className="bg-bg-main flex-1" edges={['top', 'bottom']}>
       <View className="flex-1 gap-4 px-6 py-6">
         {/* Header with back button */}
-        <View className="mb-4 flex-row items-center gap-4">
+        <View className="flex-row items-center justify-between">
           <TouchableOpacity
             onPress={handleBackPress}
-            className="bg-backgroundSecondary h-10 w-10 items-center justify-center rounded-full"
+            className="items-center justify-center rounded-full bg-transparent"
           >
-            <IconSymbol size={20} name="chevron.left" color="#ffffff" />
+            <MaterialIcons
+              name="chevron-left"
+              size={42}
+              color={themeColors[theme]['text-main']}
+            />
           </TouchableOpacity>
-          <TextCustom type="title">Sign in</TextCustom>
+          <FontAwesome6
+            name="circle-question"
+            size={24}
+            color={themeColors[theme]['text-main']}
+          />
         </View>
+
+        <TextCustom
+          type="title"
+          className="text-text-main text-center text-3xl font-bold leading-10 tracking-widest"
+        >
+          Your password
+        </TextCustom>
+
         <Input
-          label="Password"
           placeholder="Your password"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          leftIconName="lock"
         />
+
         <Button
           title="Continue"
+          size="lg"
           loading={loading}
           onPress={handleSubmit}
           fullWidth
+          disabled={loading || password.length === 0}
         />
       </View>
     </SafeAreaView>

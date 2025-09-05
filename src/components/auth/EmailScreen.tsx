@@ -14,14 +14,34 @@ import { themeColors } from '@/utils/color-theme';
 
 const EmailScreen: FC = () => {
   const [email, setEmail] = useState('');
-  const [test, setTest] = useState(''); // debug
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
   const router = useRouter();
   const { theme } = useTheme();
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    // Clear error when text changes
+    if (emailError) {
+      setEmailError('');
+    }
+  };
+
   const handleSubmit = async () => {
+    // Final validation before submission
+    if (!validateEmail(email)) {
+      setEmailError('The format of your email address is not valid');
+      return;
+    }
+
     setLoading(true);
     // TODO: email/password auth integration
+    router.push('/auth/password'); // TODO
     setTimeout(() => setLoading(false), 800);
   };
 
@@ -61,23 +81,21 @@ const EmailScreen: FC = () => {
         <Input
           placeholder="Email address"
           keyboardType="email-address"
+          textContentType="emailAddress"
+          inputMode="email"
           autoCapitalize="none"
+          autoCorrect={false}
           value={email}
-          onChangeText={setEmail}
-          onClear={() => setEmail('')}
+          onChangeText={handleEmailChange}
+          onClear={() => {
+            setEmail('');
+            setEmailError('');
+          }}
           showClearButton={true}
           autoFocus={true}
+          errorText={emailError}
         />
 
-        <Input
-          placeholder="test"
-          autoCapitalize="none"
-          value={test}
-          onChangeText={setTest}
-          onClear={() => setTest('')}
-          showClearButton={true}
-          variant="outline"
-        />
         <Button
           title="Continue"
           size="lg"

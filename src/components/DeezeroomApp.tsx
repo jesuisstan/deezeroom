@@ -43,12 +43,6 @@ const DeezeroomApp = () => {
             }}
           />
           <Stack.Screen
-            name="auth/help"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
             name="(tabs)"
             options={{
               headerShown: false

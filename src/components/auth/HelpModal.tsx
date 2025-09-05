@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 
-const HelpScreen: FC = () => {
+const HelpModal: FC = () => {
   return (
     <SafeAreaView className="bg-bg-main flex-1" edges={['top', 'bottom']}>
       <View className="flex-1 items-center justify-center px-6">
@@ -19,4 +19,4 @@ const HelpScreen: FC = () => {
   );
 };
 
-export default HelpScreen;
+export default HelpModal;
