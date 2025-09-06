@@ -91,7 +91,9 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   return (
     <View className={clsx(containerBase, className)}>
       {label ? (
-        <TextCustom className="mb-2 text-text-main">{label}</TextCustom>
+        <TextCustom className="mb-2" color={colors['text-secondary']}>
+          {label}
+        </TextCustom>
       ) : null}
       <View
         className={clsx('flex-row items-center', variantStyles[variant])}
@@ -165,11 +167,14 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
       </View>
       {errorText ? (
-        <TextCustom className="mt-1 text-sm text-intent-error">
+        <TextCustom className="mt-1 text-sm" color={colors['intent-error']}>
           {errorText}
         </TextCustom>
       ) : helperText ? (
-        <TextCustom className="mt-1 text-sm opacity-70">
+        <TextCustom
+          className="mt-1 text-sm opacity-70"
+          color={colors['accent']}
+        >
           {helperText}
         </TextCustom>
       ) : null}

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
@@ -91,18 +92,30 @@ const ProfileScreen: FC = () => {
 
   return (
     <ScrollView className="flex-1 bg-bg-main px-4 py-4">
-      <View className="mb-6 flex-row items-center border-b border-border pb-4">
-        <Image
-          source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
-          className="mr-4 h-20 w-20 rounded-full"
-        />
+      <View className="mb-6 flex-row items-center pb-4">
+        {user?.photoURL ? (
+          <Image
+            source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
+            className="mr-4 h-20 w-20 rounded-full"
+          />
+        ) : (
+          <View className="mr-4 h-20 w-20 rounded-full border-2 border-border bg-primary">
+            <TextCustom type="title">
+              {(user?.displayName || user?.email || '?')
+                .trim()
+                .charAt(0)
+                .toUpperCase()}
+            </TextCustom>
+          </View>
+        )}
         <View className="flex-1">
           <TextCustom type="title">{user.displayName || 'User'}</TextCustom>
           <TextCustom type="subtitle">{user.email}</TextCustom>
         </View>
       </View>
+      <Divider inset />
 
-      <View className="mb-6">
+      <View className="mb-4 mt-4">
         <View className="mb-4 flex-row items-center justify-between">
           <TextCustom type="subtitle">Basic information</TextCustom>
           <TouchableOpacity

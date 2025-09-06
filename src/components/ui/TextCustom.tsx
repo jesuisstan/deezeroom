@@ -2,11 +2,21 @@ import { Text, type TextProps } from 'react-native';
 
 import clsx from 'clsx';
 
+import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
+
 export type TextCustomProps = TextProps & {
   type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';
+  color?: string;
 };
 
-export function TextCustom({ type = 'default', ...rest }: TextCustomProps) {
+export function TextCustom({
+  type = 'default',
+  color,
+  ...rest
+}: TextCustomProps) {
+  const { theme } = useTheme();
+
   const getTypeClasses = () => {
     switch (type) {
       case 'title':
@@ -36,12 +46,15 @@ export function TextCustom({ type = 'default', ...rest }: TextCustomProps) {
 
   // Base text color from tailwind (can be overridden via className)
   const defaultTextColorClass =
-    type === 'link' ? 'text-primary' : 'text-text-main';
+    type === 'link'
+      ? themeColors[theme]['primary']
+      : themeColors[theme]['text-main'];
+  const customColor = color || defaultTextColorClass;
 
   return (
     <Text
-      style={[getFontStyle()]}
-      className={clsx(`${getTypeClasses()}`, `${defaultTextColorClass}`)}
+      style={[getFontStyle(), { color: customColor }]}
+      className={clsx(`${getTypeClasses()}`)}
       {...rest}
     />
   );

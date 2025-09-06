@@ -1,18 +1,18 @@
 import { FC, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpModal from '@/components/auth/HelpModal';
+import HelpModalButton from '@/components/auth/HelpModalButton';
+import RouterBackButton from '@/components/RouterBackButton';
 import Button from '@/components/ui/Button';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
 import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
 
@@ -23,8 +23,6 @@ const LoginScreen: FC = () => {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
-  const router = useRouter();
   const { theme } = useTheme();
 
   const validateEmail = (emailToCheck: string): boolean => {
@@ -40,10 +38,6 @@ const LoginScreen: FC = () => {
   const handlePasswordChange = (text: string) => {
     setPassword(text);
     if (passwordError) setPasswordError('');
-  };
-
-  const handleBackPress = () => {
-    router.back();
   };
 
   const handleSubmit = async () => {
@@ -100,25 +94,21 @@ const LoginScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
+      <StatusBar
+        style={theme === 'dark' ? 'light' : 'dark'}
+        backgroundColor="transparent"
+        hidden={false}
+      />
       <View className="flex-1 gap-4 px-6 py-6">
-        {/* Header with back button */}
+        {/* Header with back and help buttons */}
         <View className="flex-row items-center justify-between">
-          <Pressable
-            onPress={handleBackPress}
-            className="items-center justify-center align-middle"
-          >
-            <MaterialIcons
-              name="chevron-left"
-              size={42}
-              color={themeColors[theme]['text-main']}
-            />
-          </Pressable>
-          <HelpModal />
+          <RouterBackButton />
+          <HelpModalButton />
         </View>
 
         <TextCustom
           type="title"
-          className="text-center text-3xl font-bold leading-10 tracking-widest text-text-main"
+          className="text-center text-3xl font-bold leading-10 tracking-widest"
         >
           Log in
         </TextCustom>

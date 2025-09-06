@@ -1,18 +1,13 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  View
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpModal from '@/components/auth/HelpModal';
+import HelpModalButton from '@/components/auth/HelpModalButton';
+import RouterBackButton from '@/components/RouterBackButton';
 import Button from '@/components/ui/Button';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
@@ -36,7 +31,6 @@ const RegisterScreen: FC = () => {
   const [confirm, setConfirm] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const { theme } = useTheme();
 
   const validateEmail = (val: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(val);
@@ -133,10 +127,6 @@ const RegisterScreen: FC = () => {
     }
   };
 
-  const handleBackPress = () => {
-    router.back();
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -151,30 +141,22 @@ const RegisterScreen: FC = () => {
           automaticallyAdjustKeyboardInsets
         >
           <View className="flex-1 gap-4 px-6 py-6">
-            {/* Header with back button */}
+            {/* Header with back and help buttons */}
             <View className="flex-row items-center justify-between">
-              <Pressable
-                onPress={handleBackPress}
-                className="items-center justify-center align-middle"
-              >
-                <MaterialIcons
-                  name="chevron-left"
-                  size={42}
-                  color={themeColors[theme]['text-main']}
-                />
-              </Pressable>
-              <HelpModal />
+              <RouterBackButton />
+              <HelpModalButton />
             </View>
 
             <TextCustom
               type="title"
-              className="text-center text-3xl font-bold leading-10 tracking-widest text-text-main"
+              className="text-center text-3xl font-bold leading-10 tracking-widest"
             >
               Create account
             </TextCustom>
 
             {/* Email */}
             <InputCustom
+              label="Email address"
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -240,7 +222,7 @@ const RegisterScreen: FC = () => {
 
             {/* Password requirements */}
             <View className="gap-2 rounded-xl bg-bg-secondary p-4">
-              <TextCustom className="text-sm font-bold text-text-main">
+              <TextCustom className="text-sm font-bold">
                 Your password must include
               </TextCustom>
               <View className="gap-2">
@@ -256,7 +238,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm text-text-main">
+                  <TextCustom className="flex-1 text-sm">
                     At least 8 characters
                   </TextCustom>
                 </View>
@@ -272,7 +254,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm text-text-main">
+                  <TextCustom className="flex-1 text-sm">
                     At least 1 letter (including 1 uppercase)
                   </TextCustom>
                 </View>
@@ -286,7 +268,7 @@ const RegisterScreen: FC = () => {
                         : themeColors[theme]['text-disabled']
                     }
                   />
-                  <TextCustom className="flex-1 text-sm text-text-main">
+                  <TextCustom className="flex-1 text-sm">
                     At least 1 number
                   </TextCustom>
                 </View>
@@ -302,7 +284,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm text-text-main">
+                  <TextCustom className="flex-1 text-sm">
                     At least 1 of special characters ! @ $ % ^ * ( ) _ + - = [ ]{' '}
                     {} : ; , .
                   </TextCustom>

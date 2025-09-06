@@ -32,7 +32,6 @@ import React, {
   useMemo,
   useRef
 } from 'react';
-import { Platform } from 'react-native';
 
 import { NetworkState, NetworkStateType, useNetworkState } from 'expo-network';
 
@@ -81,16 +80,20 @@ export const NetworkProvider = ({ children }: NetworkProviderProps) => {
   const currentType: ConnectionType = mapType(state?.type);
 
   const isOnline = useMemo(() => {
-    const connected = state?.isConnected ?? false;
-    // If reachability is known, require it; otherwise rely on isConnected
-    const reachable = state?.isInternetReachable;
-    return (
-      connected &&
-      (reachable === null || reachable === undefined ? true : !!reachable)
-    );
+    const isConnected = state?.isConnected;
+    const isReachable = state?.isInternetReachable;
+
+    // Optimistic initial: if both are unknown (initial mount), assume online to avoid
+    // showing a misleading "connection restored" toast on app start.
+    if (isConnected === undefined && isReachable === undefined) {
+      return true;
+    }
+
+    const connected = isConnected ?? false;
+    return connected && (isReachable == null ? true : !!isReachable);
   }, [state?.isConnected, state?.isInternetReachable]);
 
-  const previousOnlineRef = useRef<boolean | null>(null);
+  const previousOnlineRef = useRef<boolean | null>(true);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -101,22 +104,15 @@ export const NetworkProvider = ({ children }: NetworkProviderProps) => {
       return;
     }
 
+    console.log('NetworkProvider - current online status:', isOnline);
+
     const prev = previousOnlineRef.current;
     if (prev !== isOnline) {
       if (isOnline) {
         shootAlert('toast', 'Online', 'Connection restored', 'success');
       } else {
         // Inform about being offline; on web we still use shootAlert which falls back to alert/console
-        const typeLabel =
-          currentType === 'UNKNOWN' && Platform.OS === 'web'
-            ? 'UNKNOWN (web)'
-            : currentType;
-        shootAlert(
-          'toast',
-          'Offline',
-          `No internet connection (${typeLabel})`,
-          'error'
-        );
+        shootAlert('toast', 'Offline', `No internet connection`, 'error', true);
       }
       previousOnlineRef.current = isOnline;
     }

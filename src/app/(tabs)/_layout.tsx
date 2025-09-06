@@ -2,7 +2,7 @@ import { Platform, View } from 'react-native';
 
 import { Tabs } from 'expo-router';
 
-import ProfileButton from '@/components/ProfileButton';
+import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';

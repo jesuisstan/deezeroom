@@ -40,15 +40,24 @@ const WelcomeScreen: FC = () => {
         end={{ x: 0, y: 5 }}
         className="flex-1 justify-between p-4"
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'space-between'
+          }}
+        >
           <View className="gap-3">
             <TextCustom
               type="title"
-              className="text-3xl leading-10 tracking-widest text-white"
+              className="text-3xl leading-10 tracking-widest"
+              color={themeColors[theme]['white']}
             >
               {`WELCOME TO${'\n'}THE PARTY`}
             </TextCustom>
-            <TextCustom className="text-lg text-white opacity-60">
+            <TextCustom
+              className="text-lg opacity-60"
+              color={themeColors[theme]['white']}
+            >
               Sign up for free or log in
             </TextCustom>
 
@@ -64,7 +73,10 @@ const WelcomeScreen: FC = () => {
 
             {/* Divider */}
             <View className="items-center">
-              <TextCustom className="text-lg text-white opacity-60">
+              <TextCustom
+                className="text-lg opacity-60"
+                color={themeColors[theme]['white']}
+              >
                 or
               </TextCustom>
             </View>
