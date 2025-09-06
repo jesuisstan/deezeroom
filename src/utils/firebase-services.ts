@@ -116,7 +116,8 @@ export class UserService {
       const baseData: Partial<UserProfile> = {
         uid: user.uid,
         email: user.email || '',
-        displayName: user.displayName || '',
+        displayName:
+          user.displayName || (user.email ? user.email.split('@')[0] : ''),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         updatedAt: serverTimestamp(),
         ...additionalData

@@ -14,14 +14,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Button from '@/components/ui/Button';
 import InputCustom from '@/components/ui/InputCustom';
+import LinkCustom from '@/components/ui/LinkCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 import { auth } from '@/utils/firebase-init';
 import { UserService } from '@/utils/firebase-services';
 import shootAlert from '@/utils/shoot-alert';
-
-import LinkCustom from '../ui/LinkCustom';
 
 const RegisterScreen: FC = () => {
   const params = useLocalSearchParams<{ email?: string }>();
@@ -321,7 +320,9 @@ const RegisterScreen: FC = () => {
               loading={loading}
               onPress={handleSubmit}
               fullWidth
-              disabled={loading || !isPasswordValid || !isConfirmValid}
+              disabled={
+                loading || !isPasswordValid || !isConfirmValid || !email
+              }
             />
             <View className="self-center">
               <LinkCustom
