@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
-import { View } from 'react-native';
+import { useCallback, useEffect } from 'react';
+import { AppState, View } from 'react-native';
 
 import { useFocusEffect } from '@react-navigation/native';
 import clsx from 'clsx';
@@ -40,7 +40,23 @@ const VideoBanner = ({
       } catch {}
     }
   }, [status, player]);
-console.log("status", status)
+
+  // Ensure playback on app state change (e.g., when app is brought back to foreground)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      try {
+        if (state === 'active') {
+          player.muted = true;
+          if (player.status === 'idle') player.replace(videoSource);
+          player.play();
+        } else if (state === 'background' || state === 'inactive') {
+          player.pause();
+        }
+      } catch {}
+    });
+    return () => sub.remove();
+  }, [player, videoSource]);
+
   // Ensure playback on screen focus (e.g., when navigating back)
   useFocusEffect(
     useCallback(() => {

@@ -63,6 +63,7 @@ const LoginScreen: FC = () => {
       // AuthGuard redirect to /(tabs)
     } catch (err: any) {
       const code = err?.code || '';
+      console.log('Error code on login:', code); //debug
       if (code === 'auth/user-not-found') {
         shootAlert(
           'toast',
@@ -70,8 +71,13 @@ const LoginScreen: FC = () => {
           'You can create a new account.',
           'warning'
         );
-      } else if (code === 'auth/wrong-password') {
-        setPasswordError('Incorrect email or password');
+      } else if (code === 'auth/invalid-credential') {
+        shootAlert(
+          'toast',
+          'Invalid credentials',
+          'Please check your email and password.',
+          'warning'
+        );
       } else if (code === 'auth/too-many-requests') {
         shootAlert(
           'toast',
