@@ -75,7 +75,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   const getIconColor = () => {
     if (errorText) return colors['intent-error'];
     if (isFocused) return colors.primary;
-    return colors['text-secondary'];
+    return colors['border'];
   };
 
   const getBorderColor = () => {

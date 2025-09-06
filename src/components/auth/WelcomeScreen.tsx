@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -36,47 +36,49 @@ const WelcomeScreen: FC = () => {
       {/* Bottom half: authentication block in Deezer style */}
       <LinearGradient
         colors={[themeColors[theme].black, themeColors[theme]['bg-secondary']]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: -1, y: 2 }}
+        start={{ x: 0, y: 0.1 }}
+        end={{ x: 0, y: 5 }}
         className="flex-1 justify-between p-4"
       >
-        <View className="gap-3">
-          <TextCustom
-            type="title"
-            className="text-3xl leading-10 tracking-widest text-white"
-          >
-            {`WELCOME TO${'\n'}THE PARTY`}
-          </TextCustom>
-          <TextCustom className="text-lg text-white opacity-60">
-            Sign up for free or log in
-          </TextCustom>
-
-          {/* Continue with email */}
-          <Button
-            title="Continue with email"
-            onPress={() => router.push('/auth/login')}
-            size="lg"
-            variant="primary"
-            fullWidth
-            textClassName="tracking-wider"
-          />
-
-          {/* Divider */}
-          <View className="items-center">
-            <TextCustom className="text-lg text-white opacity-60">
-              or
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View className="gap-3">
+            <TextCustom
+              type="title"
+              className="text-3xl leading-10 tracking-widest text-white"
+            >
+              {`WELCOME TO${'\n'}THE PARTY`}
             </TextCustom>
+            <TextCustom className="text-lg text-white opacity-60">
+              Sign up for free or log in
+            </TextCustom>
+
+            {/* Continue with email */}
+            <Button
+              title="Continue with email"
+              onPress={() => router.push('/auth/login')}
+              size="lg"
+              variant="primary"
+              fullWidth
+              textClassName="tracking-wider"
+            />
+
+            {/* Divider */}
+            <View className="items-center">
+              <TextCustom className="text-lg text-white opacity-60">
+                or
+              </TextCustom>
+            </View>
+
+            {/* Google button */}
+            <View className="flex-row items-center justify-center">
+              <AuthGoogleButton />
+            </View>
           </View>
 
-          {/* Google button */}
-          <View className="flex-row items-center justify-center">
-            <AuthGoogleButton />
+          <View className="m-4 items-center">
+            <ThemeToggler />
           </View>
-        </View>
-
-        <View className="m-4 items-center">
-          <ThemeToggler />
-        </View>
+        </ScrollView>
       </LinearGradient>
     </SafeAreaView>
   );

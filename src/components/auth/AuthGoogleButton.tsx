@@ -3,7 +3,8 @@ import {
   ActivityIndicator,
   Image,
   Platform,
-  TouchableOpacity
+  Pressable,
+  View
 } from 'react-native';
 
 import {
@@ -97,20 +98,28 @@ const AuthGoogleButton: FC = () => {
   };
 
   return (
-    <TouchableOpacity
-      className="h-14 w-14 items-center justify-center rounded-full border border-border bg-bg-main"
-      onPress={handleGoogleSignIn}
-      disabled={isGoogleLoading}
-    >
-      {isGoogleLoading ? (
-        <ActivityIndicator size="small" color={themeColors[theme].primary} />
-      ) : (
-        <Image
-          source={require('@/assets/images/others/logo-google.png')}
-          style={{ width: 26, height: 26 }}
-        />
-      )}
-    </TouchableOpacity>
+    <View className="h-14 w-14 overflow-hidden rounded-full border border-border bg-bg-main">
+      <Pressable
+        android_ripple={{
+          color: themeColors[theme]['accent'],
+          borderless: false
+        }}
+        accessibilityRole="button"
+        hitSlop={8}
+        className="flex-1 items-center justify-center"
+        onPress={handleGoogleSignIn}
+        disabled={isGoogleLoading}
+      >
+        {isGoogleLoading ? (
+          <ActivityIndicator size="small" color={themeColors[theme].primary} />
+        ) : (
+          <Image
+            source={require('@/assets/images/others/logo-google.png')}
+            style={{ width: 26, height: 26 }}
+          />
+        )}
+      </Pressable>
+    </View>
   );
 };
 

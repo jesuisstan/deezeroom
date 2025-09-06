@@ -30,7 +30,7 @@ type ButtonProps = {
 };
 
 const baseClasses =
-  'flex-row items-center justify-center rounded-xl transition-all duration-200';
+  'flex-row items-center justify-center transition-all duration-200';
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: 'px-6 py-1.5 gap-2 min-h-[36px]',
@@ -89,26 +89,39 @@ const Button = ({
   );
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled || loading}
-      className={containerClasses}
-    >
-      {leftIcon ? <View className="mr-1.5">{leftIcon}</View> : null}
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={
-            variant === 'primary'
-              ? themeColors[theme].white
-              : themeColors[theme]['text-main']
-          }
-        />
-      ) : (
-        <TextCustom className={labelClasses}>{title}</TextCustom>
+    <View
+      className={clsx(
+        'overflow-hidden rounded-xl',
+        fullWidth ? 'w-full' : undefined
       )}
-      {rightIcon ? <View className="ml-1.5">{rightIcon}</View> : null}
-    </Pressable>
+    >
+      <Pressable
+        accessibilityRole="button"
+        android_ripple={{
+          color: themeColors[theme]['accent'],
+          borderless: false
+        }}
+        hitSlop={8}
+        onPress={onPress}
+        disabled={disabled || loading}
+        className={containerClasses}
+      >
+        {leftIcon ? <View className="mr-1.5">{leftIcon}</View> : null}
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={
+              variant === 'primary'
+                ? themeColors[theme].white
+                : themeColors[theme]['text-main']
+            }
+          />
+        ) : (
+          <TextCustom className={labelClasses}>{title}</TextCustom>
+        )}
+        {rightIcon ? <View className="ml-1.5">{rightIcon}</View> : null}
+      </Pressable>
+    </View>
   );
 };
 

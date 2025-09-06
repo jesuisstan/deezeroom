@@ -47,8 +47,14 @@ const VideoBanner = ({
       try {
         if (state === 'active') {
           player.muted = true;
-          if (player.status === 'idle') player.replace(videoSource);
-          player.play();
+          (async () => {
+            try {
+              if (player.status === 'idle') {
+                await player.replaceAsync(videoSource);
+              }
+              player.play();
+            } catch {}
+          })();
         } else if (state === 'background' || state === 'inactive') {
           player.pause();
         }
@@ -62,10 +68,14 @@ const VideoBanner = ({
     useCallback(() => {
       try {
         player.muted = true;
-        if (player.status === 'idle') {
-          player.replace(videoSource);
-        }
-        player.play();
+        (async () => {
+          try {
+            if (player.status === 'idle') {
+              await player.replaceAsync(videoSource);
+            }
+            player.play();
+          } catch {}
+        })();
       } catch {}
       return () => {
         try {

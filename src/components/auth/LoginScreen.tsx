@@ -1,12 +1,12 @@
 import { FC, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import HelpModal from '@/components/auth/HelpModal';
 import Button from '@/components/ui/Button';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
@@ -103,21 +103,17 @@ const LoginScreen: FC = () => {
       <View className="flex-1 gap-4 px-6 py-6">
         {/* Header with back button */}
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity
+          <Pressable
             onPress={handleBackPress}
-            className="items-center justify-center rounded-full bg-transparent"
+            className="items-center justify-center align-middle"
           >
             <MaterialIcons
               name="chevron-left"
               size={42}
               color={themeColors[theme]['text-main']}
             />
-          </TouchableOpacity>
-          <FontAwesome6
-            name="circle-question"
-            size={24}
-            color={themeColors[theme]['text-main']}
-          />
+          </Pressable>
+          <HelpModal />
         </View>
 
         <TextCustom
