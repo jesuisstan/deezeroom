@@ -1,173 +1,140 @@
-import {
+/**
+ * NetworkProvider
+ *
+ * Purpose:
+ * - Provides a global network connectivity context powered by Expo Network (useNetworkState).
+ * - Emits user-facing notifications (via shootAlert) on connectivity loss and restoration.
+ * - Normalizes connection type to one of: "WIFI" | "CELLULAR" | "UNKNOWN" | "NONE".
+ * - Works on Android, iOS, and Web.
+ *
+ * Exports:
+ * - NetworkProvider: React provider that should wrap the app once at the root.
+ * - useNetwork: Hook to read current connectivity (isOnline, type, etc.) when a component needs it.
+ *
+ * Usage:
+ * 1) Wrap the app once (already done in src/app/_layout.tsx):
+ *    <NetworkProvider>
+ *      <App />
+ *    </NetworkProvider>
+ *
+ * 2) Read network state only where needed:
+ *    import { useNetwork } from '@/providers/NetworkProvider';
+ *    const { isOnline, type } = useNetwork();
+ *    // Example: disable actions if offline.
+ *
+ * Notes:
+ * - Global toasts for going offline/online are handled here; individual screens usually don't need to re-implement them.
+ */
+import React, {
   createContext,
-  FC,
-  ReactNode,
   useContext,
   useEffect,
-  useRef,
-  useState
+  useMemo,
+  useRef
 } from 'react';
-import { AppState, Platform } from 'react-native';
+import { Platform } from 'react-native';
+
+import { NetworkState, NetworkStateType, useNetworkState } from 'expo-network';
 
 import shootAlert from '@/utils/shoot-alert';
 
-type TNetworkContextState = {
-  isConnected: boolean;
+type ConnectionType = 'WIFI' | 'CELLULAR' | 'UNKNOWN' | 'NONE';
+
+type NetworkContextValue = {
+  isConnected: boolean | null;
+  isInternetReachable: boolean | null;
+  isOnline: boolean; // derived convenience flag
+  type: ConnectionType;
+  rawState: NetworkState | null;
 };
 
-type TNetworkProviderProps = {
-  children: ReactNode;
+const initialContext: NetworkContextValue = {
+  isConnected: null,
+  isInternetReachable: null,
+  isOnline: false,
+  type: 'UNKNOWN',
+  rawState: null
 };
 
-const NetworkContext = createContext<TNetworkContextState | undefined>(
-  undefined
-);
+const NetworkContext = createContext<NetworkContextValue>(initialContext);
 
-export const NetworkProvider: FC<TNetworkProviderProps> = ({ children }) => {
-  const [isConnected, setIsConnected] = useState<boolean>(true);
-  //const previousConnectionState = useRef<boolean>(true);
-  const lastNotificationTime = useRef<number>(0);
-  const connectionStateRef = useRef<boolean>(true);
+interface NetworkProviderProps {
+  children: React.ReactNode;
+}
+
+const mapType = (type: NetworkStateType | undefined): ConnectionType => {
+  switch (type) {
+    case NetworkStateType.WIFI:
+      return 'WIFI';
+    case NetworkStateType.CELLULAR:
+      return 'CELLULAR';
+    case NetworkStateType.NONE:
+      return 'NONE';
+    default:
+      return 'UNKNOWN';
+  }
+};
+
+export const NetworkProvider = ({ children }: NetworkProviderProps) => {
+  const state = useNetworkState();
+
+  const currentType: ConnectionType = mapType(state?.type);
+
+  const isOnline = useMemo(() => {
+    const connected = state?.isConnected ?? false;
+    // If reachability is known, require it; otherwise rely on isConnected
+    const reachable = state?.isInternetReachable;
+    return (
+      connected &&
+      (reachable === null || reachable === undefined ? true : !!reachable)
+    );
+  }, [state?.isConnected, state?.isInternetReachable]);
+
+  const previousOnlineRef = useRef<boolean | null>(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
-    let interval: ReturnType<typeof setInterval> | undefined;
-
-    const checkOnline = async () => {
-      if (!mounted) return;
-      try {
-        // Use a CORS-friendly endpoint or check navigator.onLine (web only)
-        if (
-          Platform.OS === 'web' &&
-          typeof navigator !== 'undefined' &&
-          'onLine' in navigator
-        ) {
-          const newConnectionState = navigator.onLine;
-          if (newConnectionState !== connectionStateRef.current) {
-            connectionStateRef.current = newConnectionState;
-            setIsConnected(newConnectionState);
-            showNetworkNotification(newConnectionState);
-          }
-          return;
-        }
-
-        // Fallback to a simple fetch to a CORS-friendly endpoint
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const res = await fetch('https://httpbin.org/status/200', {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller.signal
-        } as RequestInit);
-        clearTimeout(timeout);
-        if (!mounted) return;
-
-        const newConnectionState = res.ok;
-        if (newConnectionState !== connectionStateRef.current) {
-          connectionStateRef.current = newConnectionState;
-          setIsConnected(newConnectionState);
-          showNetworkNotification(newConnectionState);
-        }
-        console.log('Network status:', isConnected ? 'online' : 'offline');
-      } catch {
-        if (!mounted) return;
-        const newConnectionState = false;
-        if (newConnectionState !== connectionStateRef.current) {
-          connectionStateRef.current = newConnectionState;
-          setIsConnected(newConnectionState);
-          showNetworkNotification(newConnectionState);
-        }
-      }
-    };
-
-    const showNetworkNotification = (connected: boolean) => {
-      const now = Date.now();
-      // Show notification not more often than every 20 seconds
-      if (now - lastNotificationTime.current > 20000) {
-        if (connected) {
-          shootAlert(
-            'toast',
-            'Connection Restored!',
-            'Internet connection is back online.',
-            'success'
-          );
-        } else {
-          shootAlert(
-            'toast',
-            'Network Error!',
-            'Please check your internet connection.',
-            'error',
-            true
-          );
-        }
-        lastNotificationTime.current = now;
-      }
-    };
-
-    // Initial check and then poll every 10 seconds
-    checkOnline();
-    interval = setInterval(checkOnline, 10000);
-
-    // Re-check when app comes to foreground
-    const appStateSub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') checkOnline();
-    });
-
-    // Listen for online/offline events on web only
-    let onlineListener: (() => void) | undefined;
-    let offlineListener: (() => void) | undefined;
-    if (
-      Platform.OS === 'web' &&
-      typeof window !== 'undefined' &&
-      typeof window.addEventListener === 'function'
-    ) {
-      onlineListener = () => {
-        if (connectionStateRef.current !== true) {
-          connectionStateRef.current = true;
-          setIsConnected(true);
-          showNetworkNotification(true);
-        }
-      };
-      offlineListener = () => {
-        if (connectionStateRef.current !== false) {
-          connectionStateRef.current = false;
-          setIsConnected(false);
-          showNetworkNotification(false);
-        }
-      };
-      window.addEventListener('online', onlineListener);
-      window.addEventListener('offline', offlineListener);
+    if (!initializedRef.current) {
+      // Skip notifications on the very first render to avoid noisy startup toasts
+      initializedRef.current = true;
+      previousOnlineRef.current = isOnline;
+      return;
     }
 
-    return () => {
-      mounted = false;
-      if (interval) clearInterval(interval);
-      appStateSub.remove();
-      if (
-        Platform.OS === 'web' &&
-        typeof window !== 'undefined' &&
-        typeof window.removeEventListener === 'function'
-      ) {
-        if (onlineListener)
-          window.removeEventListener('online', onlineListener);
-        if (offlineListener)
-          window.removeEventListener('offline', offlineListener);
+    const prev = previousOnlineRef.current;
+    if (prev !== isOnline) {
+      if (isOnline) {
+        shootAlert('toast', 'Online', 'Connection restored', 'success');
+      } else {
+        // Inform about being offline; on web we still use shootAlert which falls back to alert/console
+        const typeLabel =
+          currentType === 'UNKNOWN' && Platform.OS === 'web'
+            ? 'UNKNOWN (web)'
+            : currentType;
+        shootAlert(
+          'toast',
+          'Offline',
+          `No internet connection (${typeLabel})`,
+          'error'
+        );
       }
+      previousOnlineRef.current = isOnline;
+    }
+  }, [isOnline, currentType]);
+
+  const value = useMemo<NetworkContextValue>(() => {
+    return {
+      isConnected: state?.isConnected ?? null,
+      isInternetReachable: state?.isInternetReachable ?? null,
+      isOnline,
+      type: currentType,
+      rawState: state ?? null
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [state, isOnline, currentType]);
 
   return (
-    <NetworkContext.Provider value={{ isConnected }}>
-      {children}
-    </NetworkContext.Provider>
+    <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>
   );
 };
 
-export const useNetwork = (): TNetworkContextState => {
-  const context = useContext(NetworkContext);
-  if (!context) {
-    throw new Error('useNetwork must be used within a NetworkProvider');
-  }
-  return context;
-};
+export const useNetwork = () => useContext(NetworkContext);
