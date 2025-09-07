@@ -95,12 +95,15 @@ graph TD
     G -->|No| H["router.replace('/auth')"]
     G -->|Yes| I["router.replace('/(tabs)')"]
 
-    H --> J["auth/index.tsx<br/>(LoginScreen)"]
+    H --> J["auth/index.tsx<br/>(WelcomeScreen)"]
     J --> K["Continue with Email<br/>Button"]
-    K --> L["router.push('/auth/email')"]
-    L --> M["auth/email.tsx<br/>(EmailLoginScreen)"]
+    K --> L["router.push('/auth/login')"]
+    L --> M["auth/login.tsx<br/>(LoginScreen)"]
+    M --> X["Link: Create account"]
+    X --> Y["router.push('/auth/register')"]
+    Y --> Z["auth/register.tsx<br/>(RegisterScreen)"]
     M --> N["Back Button<br/>router.back()"]
-    N --> J
+    Z --> N
 
     J --> O["Google Sign In<br/>Button"]
     O --> P["Firebase Auth<br/>+ UserProvider"]
@@ -108,6 +111,9 @@ graph TD
     Q --> I
 
     I --> R["(tabs)/_layout.tsx<br/>(Main App)"]
+    R --> R1["(tabs)/index.tsx"]
+    R --> R2["(tabs)/home.tsx"]
+    R --> R3["(tabs)/explore.tsx"]
     R --> S["Profile Button"]
     S --> T["router.push('/profile')"]
     T --> U["profile.tsx"]
@@ -118,6 +124,7 @@ graph TD
     style D fill:#ffeaa7
     style J fill:#fff3e0
     style M fill:#fff3e0
+    style Z fill:#fff3e0
     style R fill:#e8f5e8
     style U fill:#e8f5e8
     style P fill:#fab1a0
@@ -128,8 +135,9 @@ graph TD
 - **AuthGuard**: Centralized authentication logic that monitors user state and handles navigation
 - **UserProvider**: Manages Firebase authentication state and user profile data
 - **Stack Navigator**: Handles all screen transitions and routing
-- **LoginScreen**: Main authentication screen with Google Sign-In and email options
-- **EmailLoginScreen**: Email/password authentication form (TODO: implementation)
+- **WelcomeScreen**: Entry screen with Google Sign-In and "Continue with email"
+- **LoginScreen**: Email/password login form (`/auth/login`)
+- **RegisterScreen**: Email/password registration form (`/auth/register`)
 
 ### Authentication States
 
