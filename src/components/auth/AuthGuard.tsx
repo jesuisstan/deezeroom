@@ -17,6 +17,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     if (loading) return; // Don't navigate while loading
 
     const inAuthGroup = segments[0] === 'auth';
+    const onVerifyScreen = inAuthGroup && segments[1] === 'verify-email';
 
     //console.log(
     //  'AuthGuard - User:',
@@ -30,9 +31,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     if (!user && !inAuthGroup) {
       // User is not signed in and not in auth group
       router.replace('/auth');
-    } else if (user && inAuthGroup) {
-      // User is signed in but still in auth group
-      router.replace('/(tabs)');
+    } else if (user) {
+      // User signed in
+      if (!user.emailVerified && !onVerifyScreen) {
+        router.replace('/auth/verify-email');
+      } else if (user.emailVerified && inAuthGroup) {
+        router.replace('/(tabs)');
+      }
     }
   }, [user, loading, segments, router]);
 

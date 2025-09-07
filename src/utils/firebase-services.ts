@@ -67,6 +67,7 @@ export interface UserProfile {
   };
   createdAt: any;
   updatedAt: any;
+  emailVerified: boolean;
 }
 
 export interface MusicTrack {
@@ -112,13 +113,14 @@ export class UserService {
       const userRef = doc(db, this.collection, user.uid);
       const existingSnap = await getDoc(userRef);
 
-      // createdAt только при первом создании
+      // "createdAt" only when first created
       const baseData: Partial<UserProfile> = {
         uid: user.uid,
         email: user.email || '',
         displayName:
           user.displayName || (user.email ? user.email.split('@')[0] : ''),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
+        //emailVerified: !!user.emailVerified, //. debug
         updatedAt: serverTimestamp(),
         ...additionalData
       };

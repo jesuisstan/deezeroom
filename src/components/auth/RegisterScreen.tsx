@@ -3,7 +3,10 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification
+} from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpModalButton from '@/components/auth/HelpModalButton';
@@ -83,7 +86,13 @@ const RegisterScreen: FC = () => {
       await UserService.createOrUpdateUser(credential.user, {
         musicPreferences: { favoriteGenres: [], favoriteArtists: [] }
       });
-      // AuthGuard will redirect to /(tabs)
+      // Send verification email (AuthGuard will navigate to verify screen)
+      try {
+        await sendEmailVerification(credential.user);
+        console.log('sendEmailVerification to user: ', credential.user); // debug
+      } catch (e) {
+        console.log('sendEmailVerification error (non-critical):', e);
+      }
     } catch (err: any) {
       const code = err?.code || '';
       if (code === 'auth/email-already-in-use') {

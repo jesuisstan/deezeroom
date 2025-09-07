@@ -19,6 +19,7 @@
     "c:i": "npm run clean && npm install",
     "verify:deps": "npx expo install --check",
     "verify:lockfile": "npm ci --ignore-scripts --dry-run",
+    "env:list": "eas env:list",
     "build:dev:android": "npm run lint:fix && eas build --profile development --platform android",
     "build:dev:ios": "npm run lint:fix && eas build --profile development --platform ios",
     "build:dev:web": "npm run lint:fix && eas build --profile development --platform web",

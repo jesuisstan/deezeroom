@@ -83,11 +83,7 @@ const ProfileScreen: FC = () => {
   }
 
   if (!user) {
-    return (
-      <View className="flex-1 bg-bg-main px-4">
-        <TextCustom type="title">User not authorized</TextCustom>
-      </View>
-    );
+    return <ActivityIndicatorScreen />; // todo
   }
 
   return (
@@ -99,7 +95,7 @@ const ProfileScreen: FC = () => {
             className="mr-4 h-20 w-20 rounded-full"
           />
         ) : (
-          <View className="mr-4 h-20 w-20 rounded-full border-2 border-border bg-primary">
+          <View className="mr-4 h-20 w-20 items-center justify-center rounded-full border border-border bg-primary">
             <TextCustom type="title">
               {(user?.displayName || user?.email || '?')
                 .trim()

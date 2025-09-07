@@ -7,7 +7,7 @@ type NotificationType = 'toast' | 'dialog';
 
 /**
  * shootAlert is used to show alerts to the user in the app.
- * @param notificationType - type of notification (toast or dialog)
+ * @param notificationType - type of notification (toast or dialog, default is toast)
  * @param headerText - text to show in the header of the alert
  * @param messageText - text to show in the body of the alert
  * @param type - type of alert (success, error, warning)
@@ -15,7 +15,7 @@ type NotificationType = 'toast' | 'dialog';
  * @returns void
  */
 const shootAlert = (
-  notificationType: NotificationType,
+  notificationType: NotificationType = 'toast',
   headerText: string,
   messageText: string,
   type: AlertType = 'success',
@@ -27,7 +27,7 @@ const shootAlert = (
       alert(`${headerText}\n\n${messageText}`);
     } else {
       // For toast on web use console.log
-      console.log(`${headerText}: ${messageText}`);
+      console.log(`${headerText}: ${messageText}`); // todo add WEB modal/toast or smth like that
     }
     return;
   }

@@ -61,7 +61,18 @@ export const UserProvider: FC<TUserProviderProps> = ({
       const userProfile = await UserService.getUserProfile(currentUser.uid);
 
       if (userProfile) {
-        setProfile(userProfile);
+        // Keep emailVerified in sync with Firebase user state
+        const merged = {
+          ...userProfile,
+          emailVerified: !!currentUser.emailVerified
+        } as UserProfile;
+        setProfile(merged);
+        // Persist to Firestore if changed
+        if (userProfile.emailVerified !== merged.emailVerified) {
+          await UserService.updateUserProfile(currentUser.uid, {
+            emailVerified: merged.emailVerified
+          });
+        }
       } else {
         // If profile does not exist, create it
         console.log('Creating new user profile...');
@@ -73,7 +84,11 @@ export const UserProvider: FC<TUserProviderProps> = ({
         });
         // Load created profile
         const newProfile = await UserService.getUserProfile(currentUser.uid);
-        setProfile(newProfile);
+        setProfile(
+          newProfile
+            ? { ...newProfile, emailVerified: !!currentUser.emailVerified }
+            : null
+        );
       }
     } catch (error) {
       console.error('Error loading user profile:', error);

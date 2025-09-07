@@ -6,12 +6,20 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
-const RouterBackButton = () => {
+type RouterBackButtonProps = {
+  onPress?: () => void;
+};
+
+const RouterBackButton = ({ onPress }: RouterBackButtonProps) => {
   const router = useRouter();
   const { theme } = useTheme();
 
   const handleBackPress = () => {
-    router.back();
+    if (onPress) {
+      onPress();
+    } else {
+      router.back();
+    }
   };
 
   return (
