@@ -4,6 +4,8 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import clsx from 'clsx';
 
 import { HelloWave } from '@/components/HelloWave';
+import ButtonCustom from '@/components/ui/ButtonCustom';
+import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
@@ -65,12 +67,7 @@ export default function HomeScreen() {
       <View className="flex-row items-center gap-2">
         <TextCustom type="title">DEEZEROOM APP</TextCustom>
       </View>
-      <View
-        className={clsx(
-          'flex-1 gap-4 p-4',
-          theme === 'dark' ? 'bg-intent-warning' : 'bg-intent-success'
-        )}
-      >
+      <View className={clsx('flex-1 gap-4 p-4', 'bg-bg-secondary')}>
         <TextCustom type="subtitle">Open an API route</TextCustom>
         <Pressable onPress={fetchGreeting}>
           <TextCustom type="link">GET /api/greeting</TextCustom>
@@ -91,6 +88,37 @@ export default function HomeScreen() {
           <TextCustom type="link">POST /api/graphql</TextCustom>
         </Pressable>
       </View>
+
+      <Divider />
+
+      <ButtonCustom
+        title="PRIMARY"
+        size="lg"
+        variant="primary"
+        fullWidth
+        textClassName="tracking-wider"
+      />
+      <ButtonCustom
+        title="OUTLINE"
+        size="lg"
+        variant="outline"
+        fullWidth
+        textClassName="tracking-wider"
+      />
+      <ButtonCustom
+        title="SECONDARY"
+        size="lg"
+        variant="secondary"
+        fullWidth
+        textClassName="tracking-wider"
+      />
+      <ButtonCustom
+        title="GHOST"
+        size="lg"
+        variant="ghost"
+        fullWidth
+        textClassName="tracking-wider"
+      />
       <HelloWave />
       <TextCustom>{'\n'}</TextCustom>
       <HelloWave />

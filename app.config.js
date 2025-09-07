@@ -11,8 +11,10 @@ module.exports = () => ({
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'com.krivtsoff.deezeroom'
-      //googleServicesFile: './credentials/ios/GoogleService-Info.plist'
+      bundleIdentifier: 'com.krivtsoff.deezeroom',
+      googleServicesFile:
+        process.env.GOOGLE_SERVICE_INFO_PLIST ||
+        './credentials/ios/GoogleService-Info.plist'
     },
     android: {
       package: 'com.krivtsoff.deezeroom',

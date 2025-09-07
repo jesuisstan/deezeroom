@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpModalButton from '@/components/auth/HelpModalButton';
 import RouterBackButton from '@/components/RouterBackButton';
-import Button from '@/components/ui/Button';
+import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -141,7 +141,7 @@ const LoginScreen: FC = () => {
           leftIconName="lock"
         />
 
-        <Button
+        <ButtonCustom
           title="Continue"
           size="lg"
           loading={loading}

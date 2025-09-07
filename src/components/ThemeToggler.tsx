@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 import { BlurView } from 'expo-blur';
@@ -20,12 +20,12 @@ const Icon = (props: any) => {
 
 const ThemeToggler = () => {
   const { theme, toggleTheme } = useTheme();
-  const translateX = useSharedValue(theme === 'dark' ? 46.5 : 0);
+  const translateX = useSharedValue(theme === 'dark' ? 32 : 0);
 
   useEffect(() => {
-    translateX.value = withSpring(theme === 'dark' ? 46.5 : 0, {
+    translateX.value = withSpring(theme === 'dark' ? 32 : 0, {
       damping: 15,
-      stiffness: 150
+      stiffness: 200
     });
   }, [theme, translateX]);
 
@@ -42,20 +42,26 @@ const ThemeToggler = () => {
       className="border-border bg-bg-secondary"
     >
       <View style={styles.innerContainer}>
-        <TouchableOpacity
+        <Pressable
           style={[styles.button, styles.buttonLeft]}
           onPress={toggleTheme}
           aria-label="light"
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="light"
         >
           <Icon icon="sun" />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={[styles.button, styles.buttonRight]}
           onPress={toggleTheme}
           aria-label="dark"
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel="dark"
         >
           <Icon icon="moon" />
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Animated background indicator */}
         <Animated.View
@@ -78,8 +84,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
     overflow: 'hidden',
     position: 'relative',
-    height: 48,
-    width: 96
+    height: 36,
+    width: 72
   },
   innerContainer: {
     flexDirection: 'row',
@@ -89,8 +95,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   button: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
@@ -106,8 +112,8 @@ const styles = StyleSheet.create({
   },
   activeIndicator: {
     position: 'absolute',
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 9999,
     borderWidth: 1,
     //backgroundColor: '#E6E6E6',

@@ -44,12 +44,12 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     'bg-bg-secondary active:bg-bg-secondary/90 hover:bg-bg-secondary/95 disabled:bg-disabled',
   outline:
-    'bg-transparent border border-border active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5 disabled:bg-disabled',
+    'bg-transparent active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5 disabled:bg-disabled',
   ghost:
-    'bg-transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
+    'bg-transparent transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
 };
 
-const Button = ({
+const ButtonCustom = ({
   title,
   onPress,
   disabled = false,
@@ -63,6 +63,7 @@ const Button = ({
   fullWidth = false
 }: ButtonProps) => {
   const { theme } = useTheme();
+
   const containerClasses = clsx(
     baseClasses,
     sizeClasses[size],
@@ -73,14 +74,15 @@ const Button = ({
   );
 
   const textColorByVariant: Record<ButtonVariant, string> = {
-    primary: clsx(' font-bold', disabled ? 'text-black' : 'text-white'),
-    secondary: 'text-text-main font-bold',
-    outline: 'text-text-main',
-    ghost: 'text-text-main'
+    primary: disabled
+      ? themeColors[theme]['black']
+      : themeColors[theme]['white'],
+    secondary: themeColors[theme]['text-main'],
+    outline: themeColors[theme]['text-main'],
+    ghost: themeColors[theme]['text-main']
   };
 
   const labelClasses = clsx(
-    textColorByVariant[variant],
     size === 'sm' && 'text-xs',
     size === 'md' && 'text-s',
     size === 'lg' && 'text-m',
@@ -92,13 +94,14 @@ const Button = ({
     <View
       className={clsx(
         'overflow-hidden rounded-xl',
-        fullWidth ? 'w-full' : undefined
+        fullWidth ? 'w-full' : undefined,
+        variant === 'outline' && 'border border-border'
       )}
     >
       <Pressable
         accessibilityRole="button"
         android_ripple={{
-          color: themeColors[theme]['accent'],
+          color: themeColors[theme]['border'],
           borderless: false
         }}
         hitSlop={8}
@@ -117,7 +120,16 @@ const Button = ({
             }
           />
         ) : (
-          <TextCustom className={labelClasses}>{title}</TextCustom>
+          <TextCustom
+            className={labelClasses}
+            color={
+              disabled
+                ? themeColors[theme]['text-main']
+                : textColorByVariant[variant]
+            }
+          >
+            {title}
+          </TextCustom>
         )}
         {rightIcon ? <View className="ml-1.5">{rightIcon}</View> : null}
       </Pressable>
@@ -125,4 +137,4 @@ const Button = ({
   );
 };
 
-export default Button;
+export default ButtonCustom;

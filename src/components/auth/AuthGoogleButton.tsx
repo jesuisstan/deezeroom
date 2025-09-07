@@ -58,7 +58,7 @@ const AuthGoogleButton: FC = () => {
 
       // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      console.log('Google sign-in error:', error);
 
       if (isErrorWithCode(error)) {
         switch (error.code) {
@@ -101,7 +101,7 @@ const AuthGoogleButton: FC = () => {
     <View className="h-14 w-14 overflow-hidden rounded-full border border-border bg-bg-main">
       <Pressable
         android_ripple={{
-          color: themeColors[theme]['accent'],
+          color: themeColors[theme]['border'],
           borderless: false
         }}
         accessibilityRole="button"

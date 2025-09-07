@@ -39,7 +39,7 @@ const BASE = {
     'intent-error': '#df3c3c',
     'intent-warning': '#ec7f11',
     'intent-success': '#00babc',
-    transparent: '#ffffff80'
+    transparent: '#00000000'
   },
   dark: {
     black: '#0f0d13',
@@ -60,7 +60,7 @@ const BASE = {
     'intent-error': '#df3c3c',
     'intent-warning': '#ec7f11',
     'intent-success': '#00babc',
-    transparent: '#0000004d'
+    transparent: '#00000000'
   }
 } as const;
 

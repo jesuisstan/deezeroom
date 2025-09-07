@@ -29,11 +29,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     if (!user && !inAuthGroup) {
       // User is not signed in and not in auth group
-      console.log('Redirecting to /auth - user not signed in');
       router.replace('/auth');
     } else if (user && inAuthGroup) {
       // User is signed in but still in auth group
-      console.log('Redirecting to /(tabs) - user signed in');
       router.replace('/(tabs)');
     }
   }, [user, loading, segments, router]);
