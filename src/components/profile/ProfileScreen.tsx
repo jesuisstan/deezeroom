@@ -13,6 +13,8 @@ import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
+import ConnectedAccountsSection from './ConnectedAccountsSection';
+
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
   const [editing, setEditing] = useState(false);
@@ -161,6 +163,8 @@ const ProfileScreen: FC = () => {
           />
         </View>
       </View>
+
+      {profile && <ConnectedAccountsSection profile={profile} />}
 
       <View className="mb-6">
         <TextCustom type="subtitle">Private information</TextCustom>

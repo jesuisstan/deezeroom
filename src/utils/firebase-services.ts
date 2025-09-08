@@ -65,6 +65,18 @@ export interface UserProfile {
     favoriteGenres: string[];
     favoriteArtists: string[];
   };
+  authProviders?: {
+    google?: {
+      linked: boolean;
+      linkedAt?: any;
+      providerId: string;
+    };
+    emailPassword?: {
+      linked: boolean;
+      linkedAt?: any;
+      providerId: string;
+    };
+  };
   createdAt: any;
   updatedAt: any;
   emailVerified: boolean;
@@ -105,6 +117,31 @@ export interface Vote {
 export class UserService {
   private static collection = 'users';
 
+  // Helper function to detect auth providers from Firebase user
+  private static getAuthProvidersInfo(user: User) {
+    const providers: UserProfile['authProviders'] = {};
+
+    if (user.providerData && user.providerData.length > 0) {
+      user.providerData.forEach((provider) => {
+        if (provider.providerId === 'google.com') {
+          providers.google = {
+            linked: true,
+            linkedAt: serverTimestamp(),
+            providerId: provider.providerId
+          };
+        } else if (provider.providerId === 'password') {
+          providers.emailPassword = {
+            linked: true,
+            linkedAt: serverTimestamp(),
+            providerId: provider.providerId
+          };
+        }
+      });
+    }
+
+    return providers;
+  }
+
   static async createOrUpdateUser(
     user: User,
     additionalData?: Partial<UserProfile>
@@ -112,6 +149,18 @@ export class UserService {
     try {
       const userRef = doc(db, this.collection, user.uid);
       const existingSnap = await getDoc(userRef);
+      const existingData = existingSnap.exists()
+        ? (existingSnap.data() as UserProfile)
+        : null;
+
+      // Get current auth providers
+      const currentProviders = this.getAuthProvidersInfo(user);
+
+      // Merge existing auth providers with current ones to preserve linking history
+      const mergedProviders: UserProfile['authProviders'] = {
+        ...existingData?.authProviders,
+        ...currentProviders
+      };
 
       // "createdAt" only when first created
       const baseData: Partial<UserProfile> = {
@@ -120,6 +169,7 @@ export class UserService {
         displayName:
           user.displayName || (user.email ? user.email.split('@')[0] : ''),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
+        authProviders: mergedProviders,
         //emailVerified: !!user.emailVerified, //. debug
         updatedAt: serverTimestamp(),
         ...additionalData
@@ -133,6 +183,7 @@ export class UserService {
 
       await setDoc(userRef, userData, { merge: true });
       console.log('User profile created/updated successfully');
+      console.log('Auth providers updated:', mergedProviders);
     } catch (error) {
       console.error('Error in createOrUpdateUser:', error);
       throw error;
@@ -159,6 +210,110 @@ export class UserService {
       updatedAt: serverTimestamp()
     });
     await setDoc(userRef, cleaned, { merge: true });
+  }
+
+  // Update auth providers information for existing user
+  static async updateAuthProviders(user: User): Promise<void> {
+    try {
+      const userRef = doc(db, this.collection, user.uid);
+      const existingSnap = await getDoc(userRef);
+
+      if (existingSnap.exists()) {
+        const existingData = existingSnap.data() as UserProfile;
+        const currentProviders = this.getAuthProvidersInfo(user);
+
+        // Merge existing auth providers with current ones to preserve linking history
+        const mergedProviders: UserProfile['authProviders'] = {
+          ...existingData.authProviders,
+          ...currentProviders
+        };
+
+        await updateDoc(userRef, {
+          authProviders: mergedProviders,
+          updatedAt: serverTimestamp()
+        });
+
+        console.log(
+          'Auth providers updated for user:',
+          user.uid,
+          mergedProviders
+        );
+      }
+    } catch (error) {
+      console.error('Error updating auth providers:', error);
+      throw error;
+    }
+  }
+
+  // Manual linking with Google account
+  static async linkWithGoogle(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { GoogleSignin } = await import(
+        '@react-native-google-signin/google-signin'
+      );
+      const { GoogleAuthProvider, linkWithCredential } = await import(
+        'firebase/auth'
+      );
+      const { auth } = await import('@/utils/firebase-init');
+
+      // Check if user is authenticated
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return { success: false, error: 'No authenticated user' };
+      }
+
+      // Check if Google is already linked
+      const isGoogleLinked = currentUser.providerData.some(
+        (provider) => provider.providerId === 'google.com'
+      );
+
+      if (isGoogleLinked) {
+        return { success: false, error: 'Google account is already linked' };
+      }
+
+      // Get Google credentials
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const { idToken } = await GoogleSignin.getTokens();
+
+      if (!idToken) {
+        return { success: false, error: 'Failed to get Google ID token' };
+      }
+
+      // Create Google credential
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      // Link with current user
+      await linkWithCredential(currentUser, credential);
+
+      // Update auth providers in database
+      await this.updateAuthProviders(currentUser);
+
+      console.log('Successfully linked Google account');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error linking Google account:', error);
+
+      // Handle specific Firebase errors
+      if (error.code === 'auth/provider-already-linked') {
+        return { success: false, error: 'Google account is already linked' };
+      } else if (error.code === 'auth/credential-already-in-use') {
+        return {
+          success: false,
+          error: 'This Google account is already used by another user'
+        };
+      } else if (error.code === 'auth/email-already-in-use') {
+        return {
+          success: false,
+          error: 'Email address is already in use by another account'
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Failed to link Google account'
+      };
+    }
   }
 
   // Subscribe to user profile changes

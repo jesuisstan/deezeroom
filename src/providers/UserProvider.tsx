@@ -26,6 +26,7 @@ type TUserContextType = {
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  linkWithGoogle: () => Promise<{ success: boolean; error?: string }>;
 };
 
 type TUserProviderProps = {
@@ -39,7 +40,8 @@ const initialUserContext: TUserContextType = {
   profileLoading: false,
   signOut: async () => {},
   updateProfile: async () => {},
-  refreshProfile: async () => {}
+  refreshProfile: async () => {},
+  linkWithGoogle: async () => ({ success: false })
 };
 
 const UserContext = createContext<TUserContextType>(initialUserContext);
@@ -120,6 +122,35 @@ export const UserProvider: FC<TUserProviderProps> = ({
     await loadUserProfile(user);
   };
 
+  // Link current user with Google account
+  const linkWithGoogle = async () => {
+    try {
+      const result = await UserService.linkWithGoogle();
+      if (result.success) {
+        // Refresh profile to show updated providers
+        await refreshProfile();
+        shootAlert(
+          'toast',
+          'Success',
+          'Google account linked successfully',
+          'success'
+        );
+      } else {
+        shootAlert(
+          'toast',
+          'Error',
+          result.error || 'Failed to link Google account',
+          'error'
+        );
+      }
+      return result;
+    } catch (error) {
+      console.error('Error in linkWithGoogle:', error);
+      shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
+      return { success: false, error: 'Failed to link Google account' };
+    }
+  };
+
   useEffect(() => {
     // Configure Google Sign-In when app loads
     GoogleSignin.configure({
@@ -135,6 +166,12 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
       // Load user profile when user is signed in
       if (currentUser) {
+        // Update auth providers info on each auth state change
+        try {
+          await UserService.updateAuthProviders(currentUser);
+        } catch (error) {
+          console.log('Failed to update auth providers (non-critical):', error);
+        }
         await loadUserProfile(currentUser);
       } else {
         setProfile(null);
@@ -177,7 +214,8 @@ export const UserProvider: FC<TUserProviderProps> = ({
         profileLoading,
         signOut,
         updateProfile,
-        refreshProfile
+        refreshProfile,
+        linkWithGoogle
       }}
     >
       {children}

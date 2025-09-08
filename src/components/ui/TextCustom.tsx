@@ -6,7 +6,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
 export type TextCustomProps = TextProps & {
-  type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';
+  type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic' | 'xs';
   color?: string;
 };
 
@@ -29,6 +29,8 @@ export function TextCustom({
         return 'text-base leading-8 underline';
       case 'italic':
         return 'text-base leading-6 font-cursive';
+      case 'xs':
+        return 'text-xs leading-4';
       case 'default':
         return 'text-base leading-6 text-primary';
       default:
