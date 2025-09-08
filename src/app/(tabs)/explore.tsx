@@ -23,7 +23,6 @@ export default function TabTwoScreen() {
         <TextCustom
           type="title"
           onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
-          className="text-text-main"
         >
           THIS APP gonna BE AWESOME
         </TextCustom>

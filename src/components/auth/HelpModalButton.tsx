@@ -4,6 +4,7 @@ import { Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
+import ButtonIcon from '@/components/ui/ButtonIcon';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
@@ -25,27 +26,16 @@ const HelpModalButton = () => {
   return (
     <>
       {/* Help Modal Trigger Button */}
-      <View className="h-12 w-12 overflow-hidden rounded-full bg-bg-main">
-        <Pressable
-          onPress={() => {
-            setModalVisible(true);
-          }}
-          className="flex-1 items-center justify-center"
-          hitSlop={16}
-          accessibilityRole="button"
-          accessibilityLabel="Help"
-          android_ripple={{
-            color: themeColors[theme]['border'],
-            borderless: false
-          }}
-        >
-          <FontAwesome6
-            name="circle-question"
-            size={24}
-            color={themeColors[theme]['text-main']}
-          />
-        </Pressable>
-      </View>
+      <ButtonIcon
+        accessibilityLabel="Help"
+        onPress={() => setModalVisible(true)}
+      >
+        <FontAwesome6
+          name="circle-question"
+          size={24}
+          color={themeColors[theme]['text-main']}
+        />
+      </ButtonIcon>
 
       {/* Help Modal */}
       <Modal
@@ -64,19 +54,18 @@ const HelpModalButton = () => {
             ]}
           >
             {/* Close Icon */}
-            <Pressable
-              onPress={() => setModalVisible(false)}
-              style={styles.closeIcon}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-            >
-              <MaterialIcons
-                name="close"
-                size={42}
-                color={themeColors[theme]['text-main']}
-              />
-            </Pressable>
+            <View style={styles.closeIcon}>
+              <ButtonIcon
+                accessibilityLabel="Close"
+                onPress={() => setModalVisible(false)}
+              >
+                <MaterialIcons
+                  name="close"
+                  size={35}
+                  color={themeColors[theme]['text-main']}
+                />
+              </ButtonIcon>
+            </View>
 
             {/* Title */}
             <TextCustom type="bold">Need help?</TextCustom>

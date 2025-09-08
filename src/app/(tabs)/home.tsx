@@ -1,6 +1,5 @@
 import { Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -20,7 +19,6 @@ export default function HomeScreen() {
     >
       <View className="flex-row items-center gap-2">
         <TextCustom type="title">Hello TextCustom Title G g!</TextCustom>
-        <HelloWave />
       </View>
       <View>
         <TextCustom type="subtitle">

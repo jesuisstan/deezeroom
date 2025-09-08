@@ -36,8 +36,12 @@ const AuthGoogleButton: FC = () => {
       }
 
       // Perform sign in
-      const userInfo = await GoogleSignin.signIn();
-      console.log('Google sign-in successful:', userInfo);
+      const result = await GoogleSignin.signIn();
+      if (result.type === 'success') {
+        console.log('Google sign-in successful');
+      } else {
+        console.log('Google sign-in failed');
+      }
 
       // Get ID token from Google for Firebase
       const { idToken } = await GoogleSignin.getTokens();

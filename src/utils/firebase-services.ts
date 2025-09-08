@@ -170,7 +170,6 @@ export class UserService {
           user.displayName || (user.email ? user.email.split('@')[0] : ''),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         authProviders: mergedProviders,
-        //emailVerified: !!user.emailVerified, //. debug
         updatedAt: serverTimestamp(),
         ...additionalData
       };
@@ -183,7 +182,6 @@ export class UserService {
 
       await setDoc(userRef, userData, { merge: true });
       console.log('User profile created/updated successfully');
-      console.log('Auth providers updated:', mergedProviders);
     } catch (error) {
       console.error('Error in createOrUpdateUser:', error);
       throw error;
@@ -232,12 +230,6 @@ export class UserService {
           authProviders: mergedProviders,
           updatedAt: serverTimestamp()
         });
-
-        console.log(
-          'Auth providers updated for user:',
-          user.uid,
-          mergedProviders
-        );
       }
     } catch (error) {
       console.error('Error updating auth providers:', error);
@@ -273,7 +265,7 @@ export class UserService {
 
       // Get Google credentials
       await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
+      await GoogleSignin.signIn();
       const { idToken } = await GoogleSignin.getTokens();
 
       if (!idToken) {
@@ -286,13 +278,16 @@ export class UserService {
       // Link with current user
       await linkWithCredential(currentUser, credential);
 
+      // Reload user to get updated info
+      await currentUser.reload();
+
       // Update auth providers in database
       await this.updateAuthProviders(currentUser);
 
       console.log('Successfully linked Google account');
       return { success: true };
     } catch (error: any) {
-      console.error('Error linking Google account:', error);
+      console.log('Error linking Google account:', error);
 
       // Handle specific Firebase errors
       if (error.code === 'auth/provider-already-linked') {
@@ -312,6 +307,112 @@ export class UserService {
       return {
         success: false,
         error: error.message || 'Failed to link Google account'
+      };
+    }
+  }
+
+  // Manual linking with email+password
+  static async linkWithEmailPassword(
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { EmailAuthProvider, linkWithCredential, sendEmailVerification } =
+        await import('firebase/auth');
+      const { auth } = await import('@/utils/firebase-init');
+
+      // Check if user is authenticated
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return { success: false, error: 'No authenticated user' };
+      }
+
+      // Check if email+password is already linked
+      const isEmailPasswordLinked = currentUser.providerData.some(
+        (provider) => provider.providerId === 'password'
+      );
+
+      if (isEmailPasswordLinked) {
+        return { success: false, error: 'Email/Password is already linked' };
+      }
+
+      // Validate input
+      if (!email || !password) {
+        return { success: false, error: 'Email and password are required' };
+      }
+
+      if (password.length < 6) {
+        return {
+          success: false,
+          error: 'Password must be at least 6 characters'
+        };
+      }
+
+      // Check if email matches current user's email
+      if (
+        currentUser.email &&
+        currentUser.email !== email.trim().toLowerCase()
+      ) {
+        return {
+          success: false,
+          error: 'Email must match your current account email'
+        };
+      }
+
+      // Create email credential
+      const credential = EmailAuthProvider.credential(
+        email.trim().toLowerCase(),
+        password
+      );
+
+      // Link with current user
+      await linkWithCredential(currentUser, credential);
+      await currentUser.reload();
+
+      if (!currentUser.emailVerified) {
+        await sendEmailVerification(currentUser);
+      }
+
+      // Update auth providers in database
+      await this.updateAuthProviders(currentUser);
+
+      // Update profile data to let it trigger AuthGuard redirect to verify-email screen
+      await this.updateUserProfile(currentUser.uid, {
+        emailVerified: currentUser.emailVerified
+      });
+      console.log('Successfully linked email/password');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error linking email/password:', error);
+
+      // Handle specific Firebase errors
+      if (error.code === 'auth/provider-already-linked') {
+        return { success: false, error: 'Email/Password is already linked' };
+      } else if (error.code === 'auth/credential-already-in-use') {
+        return {
+          success: false,
+          error: 'This email is already used by another user'
+        };
+      } else if (error.code === 'auth/email-already-in-use') {
+        return {
+          success: false,
+          error: 'Email address is already in use by another account'
+        };
+      } else if (error.code === 'auth/weak-password') {
+        return {
+          success: false,
+          error: 'Password is too weak. Use at least 6 characters'
+        };
+      } else if (error.code === 'auth/invalid-email') {
+        return {
+          success: false,
+          error: 'Invalid email address'
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Failed to link email/password'
       };
     }
   }

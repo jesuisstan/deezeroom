@@ -27,6 +27,10 @@ type TUserContextType = {
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
   linkWithGoogle: () => Promise<{ success: boolean; error?: string }>;
+  linkWithEmailPassword: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
 };
 
 type TUserProviderProps = {
@@ -41,7 +45,8 @@ const initialUserContext: TUserContextType = {
   signOut: async () => {},
   updateProfile: async () => {},
   refreshProfile: async () => {},
-  linkWithGoogle: async () => ({ success: false })
+  linkWithGoogle: async () => ({ success: false }),
+  linkWithEmailPassword: async () => ({ success: false })
 };
 
 const UserContext = createContext<TUserContextType>(initialUserContext);
@@ -79,6 +84,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         // If profile does not exist, create it
         console.log('Creating new user profile...');
         await UserService.createOrUpdateUser(currentUser, {
+          emailVerified: !!currentUser.emailVerified,
           musicPreferences: {
             favoriteGenres: [],
             favoriteArtists: []
@@ -136,18 +142,36 @@ export const UserProvider: FC<TUserProviderProps> = ({
           'success'
         );
       } else {
+        shootAlert('toast', 'Oops', 'Google account was not linked', 'warning');
+      }
+      return result;
+    } catch (error) {
+      console.log('Error in linkWithGoogle:', error);
+      shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
+      return { success: false, error: 'Failed to link Google account' };
+    }
+  };
+
+  // Link current user with email+password
+  const linkWithEmailPassword = async (email: string, password: string) => {
+    try {
+      const result = await UserService.linkWithEmailPassword(email, password);
+      if (result.success) {
+        // Refresh profile to show updated providers and emailVerified status
+        await refreshProfile();
+      } else {
         shootAlert(
           'toast',
           'Error',
-          result.error || 'Failed to link Google account',
+          result.error || 'Failed to link email/password',
           'error'
         );
       }
       return result;
     } catch (error) {
-      console.error('Error in linkWithGoogle:', error);
-      shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
-      return { success: false, error: 'Failed to link Google account' };
+      console.error('Error in linkWithEmailPassword:', error);
+      shootAlert('toast', 'Error', 'Failed to link email/password', 'error');
+      return { success: false, error: 'Failed to link email/password' };
     }
   };
 
@@ -215,7 +239,8 @@ export const UserProvider: FC<TUserProviderProps> = ({
         signOut,
         updateProfile,
         refreshProfile,
-        linkWithGoogle
+        linkWithGoogle,
+        linkWithEmailPassword
       }}
     >
       {children}

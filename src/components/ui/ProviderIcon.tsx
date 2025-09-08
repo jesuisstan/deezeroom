@@ -1,14 +1,25 @@
 import { FC } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { AntDesign } from '@expo/vector-icons';
+
+import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/utils/color-theme';
 
 interface ProviderIconProps {
   provider: 'google' | 'emailPassword';
   size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
 }
 
-const ProviderIcon: FC<ProviderIconProps> = ({ provider, size = 'md' }) => {
+const ProviderIcon: FC<ProviderIconProps> = ({
+  provider,
+  size = 'md',
+  loading = false
+}) => {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
+
   const iconSizes = {
     sm: 16,
     md: 20,
@@ -24,9 +35,17 @@ const ProviderIcon: FC<ProviderIconProps> = ({ provider, size = 'md' }) => {
   if (provider === 'google') {
     return (
       <View
-        className={`${containerSizes[size]} items-center justify-center rounded-full bg-red-500`}
+        className={`${containerSizes[size]} items-center justify-center rounded-full bg-intent-error`}
       >
-        <AntDesign name="google" size={iconSizes[size]} color="white" />
+        {loading ? (
+          <ActivityIndicator size="small" color={colors['text-inverse']} />
+        ) : (
+          <AntDesign
+            name="google"
+            size={iconSizes[size]}
+            color={colors['text-inverse']}
+          />
+        )}
       </View>
     );
   }
@@ -34,9 +53,13 @@ const ProviderIcon: FC<ProviderIconProps> = ({ provider, size = 'md' }) => {
   if (provider === 'emailPassword') {
     return (
       <View
-        className={`${containerSizes[size]} items-center justify-center rounded-full bg-blue-500`}
+        className={`${containerSizes[size]} items-center justify-center rounded-full bg-primary`}
       >
-        <AntDesign name="mail" size={iconSizes[size]} color="white" />
+        <AntDesign
+          name="mail"
+          size={iconSizes[size]}
+          color={colors['text-inverse']}
+        />
       </View>
     );
   }

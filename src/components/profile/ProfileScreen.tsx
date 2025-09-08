@@ -8,12 +8,11 @@ import {
   View
 } from 'react-native';
 
+import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
-
-import ConnectedAccountsSection from './ConnectedAccountsSection';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
@@ -113,6 +112,12 @@ const ProfileScreen: FC = () => {
       </View>
       <Divider inset />
 
+      {profile && (
+        <View className="mt-4">
+          <ConnectedAccountsSection profile={profile} />
+        </View>
+      )}
+
       <View className="mb-4 mt-4">
         <View className="mb-4 flex-row items-center justify-between">
           <TextCustom type="subtitle">Basic information</TextCustom>
@@ -163,8 +168,6 @@ const ProfileScreen: FC = () => {
           />
         </View>
       </View>
-
-      {profile && <ConnectedAccountsSection profile={profile} />}
 
       <View className="mb-6">
         <TextCustom type="subtitle">Private information</TextCustom>

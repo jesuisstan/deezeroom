@@ -3,7 +3,6 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import clsx from 'clsx';
 
-import { HelloWave } from '@/components/HelloWave';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -119,27 +118,6 @@ export default function HomeScreen() {
         fullWidth
         textClassName="tracking-wider"
       />
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
-      <TextCustom>{'\n'}</TextCustom>
-      <HelloWave />
     </ScrollView>
   );
 }

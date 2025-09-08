@@ -1,9 +1,14 @@
 import { FC, useState } from 'react';
-import { ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+import SetupPasswordModal from '@/components/profile/SetupPasswordModal';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
+import { themeColors } from '@/utils/color-theme';
 import { UserProfile } from '@/utils/firebase-services';
 
 interface ConnectedAccountsSectionProps {
@@ -13,8 +18,10 @@ interface ConnectedAccountsSectionProps {
 const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
   profile
 }) => {
-  const { linkWithGoogle } = useUser();
+  const { theme } = useTheme();
+  const { linkWithGoogle, user } = useUser();
   const [isLinking, setIsLinking] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'recently';
@@ -60,103 +67,109 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
     });
   }
 
-  return (
-    <View className="mb-6">
-      <TextCustom type="subtitle">Account Information</TextCustom>
+  return linkedProviders?.length > 0 ? (
+    <View className="gap-4 rounded-lg bg-bg-secondary p-4">
+      <TextCustom>Connected Accounts</TextCustom>
 
-      <View className="mb-4 rounded-lg bg-bg-secondary p-4">
-        <TextCustom className="mb-2">Connected Accounts</TextCustom>
-
-        {linkedProviders.length > 0 ? (
-          <>
-            {linkedProviders.map((provider, index) => (
-              <View key={provider.type} className="mb-2 flex-row items-center">
-                <View className="mr-3">
-                  <ProviderIcon provider={provider.type} />
-                </View>
-                <View className="flex-1">
-                  <TextCustom>
-                    {getProviderDisplayName(provider.providerId)}
-                  </TextCustom>
-                  <TextCustom type="xs">
-                    Connected {formatDate(provider.linkedAt)}
-                  </TextCustom>
-                </View>
-                <View className="rounded-full bg-intent-success px-2 py-1">
-                  <TextCustom type="xs">Active</TextCustom>
-                </View>
-              </View>
-            ))}
-
-            {linkedProviders.length > 1 && (
-              <View className="mt-2 rounded-lg bg-bg-tertiary p-2">
-                <TextCustom type="xs">
-                  ℹ️ Your accounts are linked - you can sign in using any of
-                  these methods
-                </TextCustom>
-              </View>
-            )}
-
-            {/* Show link Google button if not linked */}
-            {!profile.authProviders?.google?.linked && (
-              <TouchableOpacity
-                onPress={handleLinkGoogle}
-                disabled={isLinking}
-                className="mt-2 flex-row items-center rounded-lg border border-dashed border-gray-300 p-3"
+      <>
+        {linkedProviders.map((provider, index) => (
+          <View key={provider.type} className="flex-row items-center">
+            <View className="mr-3">
+              <ProviderIcon provider={provider.type} />
+            </View>
+            <View className="flex-1">
+              <TextCustom>
+                {getProviderDisplayName(provider.providerId)}
+              </TextCustom>
+              <TextCustom
+                type="xs"
+                color={themeColors[theme]['text-secondary']}
               >
-                <View className="mr-3">
-                  {isLinking ? (
-                    <ActivityIndicator size="small" color="#ef4444" />
-                  ) : (
-                    <ProviderIcon provider="google" />
-                  )}
-                </View>
-                <View className="flex-1">
-                  <TextCustom className="text-accent">
-                    {isLinking ? 'Linking...' : 'Link Google Account'}
-                  </TextCustom>
-                  <TextCustom className="text-xs text-accent">
-                    Connect your Google account for easier sign-in
-                  </TextCustom>
-                </View>
-                <TextCustom className="text-xs text-accent">+</TextCustom>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <View>
-            <TextCustom className="mb-3 text-accent">
-              No connected accounts found
-            </TextCustom>
+                Connected {formatDate(provider.linkedAt)}
+              </TextCustom>
+            </View>
+            <View className="rounded-full bg-intent-success px-2 py-1">
+              <TextCustom type="xs">Active</TextCustom>
+            </View>
+          </View>
+        ))}
 
-            {/* Show link Google button when no accounts are connected */}
-            <TouchableOpacity
-              onPress={handleLinkGoogle}
-              disabled={isLinking}
-              className="flex-row items-center rounded-lg border border-dashed border-gray-300 p-3"
-            >
-              <View className="mr-3">
-                {isLinking ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
-                ) : (
-                  <ProviderIcon provider="google" />
-                )}
-              </View>
-              <View className="flex-1">
-                <TextCustom className="text-accent">
-                  {isLinking ? 'Linking...' : 'Link Google Account'}
-                </TextCustom>
-                <TextCustom className="text-xs text-accent">
-                  Connect your Google account for easier sign-in
-                </TextCustom>
-              </View>
-              <TextCustom className="text-xs text-accent">+</TextCustom>
-            </TouchableOpacity>
+        {linkedProviders.length > 1 && (
+          <View className="flex-row items-center gap-2 overflow-hidden rounded-lg bg-bg-tertiary p-3">
+            <MaterialIcons
+              name="info"
+              size={20}
+              color={themeColors[theme]['intent-warning']}
+            />
+            <View className="flex-1">
+              <TextCustom type="xs">
+                Your accounts are linked - you can sign in using any of these
+                methods
+              </TextCustom>
+            </View>
           </View>
         )}
-      </View>
+
+        {/* Show link Google button if not linked */}
+        {!profile.authProviders?.google?.linked && (
+          <TouchableOpacity
+            onPress={handleLinkGoogle}
+            disabled={isLinking}
+            className="flex-row items-center rounded-lg border border-dashed border-border p-3"
+          >
+            <View className="mr-3">
+              <ProviderIcon provider="google" loading={isLinking} />
+            </View>
+            <View className="flex-1">
+              <TextCustom>
+                {isLinking ? 'Linking...' : 'Link Google Account'}
+              </TextCustom>
+              <TextCustom type="xs" color={themeColors[theme]['primary']}>
+                Connect your Google account
+              </TextCustom>
+            </View>
+            <MaterialIcons
+              name="add"
+              size={20}
+              color={themeColors[theme]['text-main']}
+            />
+          </TouchableOpacity>
+        )}
+
+        {/* Show link Email/Password button if not linked */}
+        {!profile.authProviders?.emailPassword?.linked && (
+          <TouchableOpacity
+            onPress={() => setShowPasswordModal(true)}
+            className="flex-row items-center rounded-lg border border-dashed border-border p-3"
+          >
+            <View className="mr-3">
+              <ProviderIcon provider="emailPassword" loading={isLinking} />
+            </View>
+            <View className="flex-1">
+              <TextCustom>Setup Password</TextCustom>
+              <TextCustom type="xs" color={themeColors[theme]['primary']}>
+                Enable email/password sign-in
+              </TextCustom>
+            </View>
+            <MaterialIcons
+              name="add"
+              size={20}
+              color={themeColors[theme]['text-main']}
+            />
+          </TouchableOpacity>
+        )}
+      </>
+
+      {/* Password Setup Modal */}
+      {user?.email && (
+        <SetupPasswordModal
+          visible={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          userEmail={user.email}
+        />
+      )}
     </View>
-  );
+  ) : null;
 };
 
 export default ConnectedAccountsSection;

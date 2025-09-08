@@ -9,37 +9,32 @@ interface AuthGuardProps {
 }
 
 export default function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useUser();
+  const { user, profile, loading, profileLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return; // Don't navigate while loading
+    if (loading || profileLoading) return; // Don't navigate while loading
 
     const inAuthGroup = segments[0] === 'auth';
     const onVerifyScreen = inAuthGroup && segments[1] === 'verify-email';
 
-    //console.log(
-    //  'AuthGuard - User:',
-    //  !!user,
-    //  'InAuthGroup:',
-    //  inAuthGroup,
-    //  'Segments:',
-    //  segments
-    //);
+    // Use profile.emailVerified from Firestore instead of user.emailVerified from Firebase Auth
+    const isEmailVerified =
+      profile?.emailVerified ?? user?.emailVerified ?? false;
 
     if (!user && !inAuthGroup) {
       // User is not signed in and not in auth group
       router.replace('/auth');
     } else if (user) {
       // User signed in
-      if (!user.emailVerified && !onVerifyScreen) {
+      if (!isEmailVerified && !onVerifyScreen) {
         router.replace('/auth/verify-email');
-      } else if (user.emailVerified && inAuthGroup) {
+      } else if (isEmailVerified && inAuthGroup) {
         router.replace('/(tabs)');
       }
     }
-  }, [user, loading, segments, router]);
+  }, [user, profile, loading, profileLoading, segments, router]);
 
   return <>{children}</>;
 }

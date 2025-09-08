@@ -28,7 +28,7 @@ export function TextCustom({
       case 'link':
         return 'text-base leading-8 underline';
       case 'italic':
-        return 'text-base leading-6 font-cursive';
+        return 'text-base leading-6 italic';
       case 'xs':
         return 'text-xs leading-4';
       case 'default':
