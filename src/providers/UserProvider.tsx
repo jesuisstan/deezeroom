@@ -148,7 +148,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
   const signOut = async () => {
     try {
-      // Sign out from Firebase
+      // Sign out from Firebase (invalidate auth token, remove user from auth state)
       await firebaseSignOut(auth);
 
       // Sign out from Google (if possible)

@@ -89,7 +89,7 @@ const RegisterScreen: FC = () => {
       // Send verification email (AuthGuard will navigate to verify screen)
       try {
         await sendEmailVerification(credential.user);
-        console.log('sendEmailVerification to user: ', credential.user); // debug
+        console.log('Verification email sent to user: ', credential.user.email);
       } catch (e) {
         console.log('sendEmailVerification error (non-critical):', e);
       }

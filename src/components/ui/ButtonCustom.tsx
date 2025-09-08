@@ -55,7 +55,7 @@ const ButtonCustom = ({
   disabled = false,
   loading = false,
   variant = 'primary',
-  size = 'md',
+  size = 'lg',
   leftIcon,
   rightIcon,
   className,

@@ -33,7 +33,7 @@ const VerifyEmailScreen: FC = () => {
         'success'
       );
     } catch (e) {
-      console.error('sendEmailVerification error', e);
+      console.log('sendEmailVerification error', e);
       shootAlert(
         'toast',
         'Error',
@@ -65,7 +65,7 @@ const VerifyEmailScreen: FC = () => {
         );
       }
     } catch (e) {
-      console.error('reload error', e);
+      console.log('reload error', e);
       shootAlert(
         'toast',
         'Error',
@@ -92,19 +92,15 @@ const VerifyEmailScreen: FC = () => {
         backgroundColor="transparent"
         hidden={false}
       />
-      <View className="flex-1 gap-6 px-6 py-6">
+      <View className="flex-1 gap-4 px-6 py-6">
         <View className="flex-row items-center justify-between">
           <RouterBackButton onPress={handleBack} />
         </View>
 
-        <TextCustom
-          type="title"
-          className="text-center text-3xl font-bold leading-10 tracking-widest"
-        >
-          Verify your email
-        </TextCustom>
-
-        <View className="gap-2">
+        <View className="items-center">
+          <TextCustom type="title">Verify your email</TextCustom>
+        </View>
+        <View className="gap-4">
           <TextCustom>We sent a verification link to:</TextCustom>
           <TextCustom type="bold">{user?.email}</TextCustom>
           <TextCustom>
@@ -112,7 +108,7 @@ const VerifyEmailScreen: FC = () => {
           </TextCustom>
         </View>
 
-        <View className="gap-3">
+        <View className="gap-4">
           <ButtonCustom
             title="Resend verification email"
             size="lg"
