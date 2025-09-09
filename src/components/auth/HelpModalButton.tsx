@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Modal, PanResponder, Pressable, View } from 'react-native';
+import { Modal, PanResponder, Pressable, View, StatusBar } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
@@ -28,6 +28,14 @@ const HelpModalButton = () => {
 
   return (
     <View {...panResponder.panHandlers}>
+      {/* Default status bar style when modal is not visible */}
+      {!modalVisible && (
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="transparent"
+          translucent={true}
+        />
+      )}
       {/* Help Modal Trigger Button */}
       <ButtonIcon
         accessibilityLabel="Help"
@@ -50,6 +58,17 @@ const HelpModalButton = () => {
         }}
         presentationStyle="fullScreen"
       >
+        {/* Status bar styling when modal is visible */}
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="rgba(0,0,0,0.5)"
+          translucent={true}
+        />
+        {/* Dimming overlay */}
+        <View
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        />
         <View
           className="flex-1 gap-4 rounded-t-[35px] border border-border px-6 py-6"
           style={{
