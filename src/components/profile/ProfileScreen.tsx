@@ -13,6 +13,7 @@ import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
+import ButtonCustom from '../ui/ButtonCustom';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
@@ -93,10 +94,10 @@ const ProfileScreen: FC = () => {
         {user?.photoURL ? (
           <Image
             source={{ uri: user.photoURL || 'https://via.placeholder.com/100' }}
-            className="mr-4 h-20 w-20 rounded-full"
+            className="mr-4 h-24 w-24 rounded-full"
           />
         ) : (
-          <View className="mr-4 h-20 w-20 items-center justify-center rounded-full border border-border bg-primary">
+          <View className="mr-4 h-24 w-24 items-center justify-center rounded-full border border-border bg-primary">
             <TextCustom type="title">
               {(user?.displayName || user?.email || '?')
                 .trim()
@@ -106,10 +107,28 @@ const ProfileScreen: FC = () => {
           </View>
         )}
         <View className="flex-1">
-          <TextCustom type="title">{user.displayName || 'User'}</TextCustom>
-          <TextCustom type="subtitle">{user.email}</TextCustom>
+          <TextCustom type="title" size="4xl">
+            {user.displayName || 'User'}
+          </TextCustom>
+          {/*<TextCustom type="italic">{user.email}</TextCustom>*/}
         </View>
       </View>
+
+      <View className="flex-1 flex-row items-center justify-between">
+        <ButtonCustom
+          title="Edit"
+          size="sm"
+          variant="outline"
+          onPress={() => setEditing(!editing)}
+        />
+        <ButtonCustom
+          title="Settings"
+          size="sm"
+          variant="outline"
+          onPress={() => setEditing(!editing)}
+        />
+      </View>
+
       <Divider inset />
 
       {profile && (

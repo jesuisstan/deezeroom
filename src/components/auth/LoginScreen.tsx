@@ -106,10 +106,7 @@ const LoginScreen: FC = () => {
           <HelpModalButton />
         </View>
 
-        <TextCustom
-          type="title"
-          className="text-center text-3xl font-bold leading-10 tracking-widest"
-        >
+        <TextCustom type="title" size="4xl" className="text-center">
           Log in
         </TextCustom>
 

@@ -167,12 +167,13 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
         ) : null}
       </View>
       {errorText ? (
-        <TextCustom className="mt-1 text-sm" color={colors['intent-error']}>
+        <TextCustom className="mt-1" size="xs" color={colors['intent-error']}>
           {errorText}
         </TextCustom>
       ) : helperText ? (
         <TextCustom
-          className="mt-1 text-sm opacity-70"
+          className="mt-1"
+          size="xs"
           color={colors['accent']}
         >
           {helperText}

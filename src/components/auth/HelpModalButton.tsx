@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, PanResponder, Pressable, View } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
@@ -8,10 +8,13 @@ import ButtonIcon from '@/components/ui/ButtonIcon';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
+import Divider from '@/components/ui/Divider';
 
 const HelpModalButton = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const { theme } = useTheme();
+
+  // to allow closing the modal by dragging down (USAGE: add {...panResponder.panHandlers} to the parent View)
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 12,
@@ -24,7 +27,7 @@ const HelpModalButton = () => {
   ).current;
 
   return (
-    <>
+    <View {...panResponder.panHandlers}>
       {/* Help Modal Trigger Button */}
       <ButtonIcon
         accessibilityLabel="Help"
@@ -40,43 +43,50 @@ const HelpModalButton = () => {
       {/* Help Modal */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={true} // important for rounded corners
         visible={modalVisible}
         onRequestClose={() => {
           setModalVisible(!modalVisible);
         }}
+        presentationStyle="fullScreen"
       >
-        <View style={styles.centeredView} {...panResponder.panHandlers}>
-          <View
-            style={[
-              styles.modalView,
-              { backgroundColor: themeColors[theme]['bg-main'] }
-            ]}
-          >
-            {/* Close Icon */}
-            <View style={styles.closeIcon}>
-              <ButtonIcon
-                accessibilityLabel="Close"
-                onPress={() => setModalVisible(false)}
-              >
-                <MaterialIcons
-                  name="close"
-                  size={35}
-                  color={themeColors[theme]['text-main']}
-                />
-              </ButtonIcon>
-            </View>
+        <View
+          className="flex-1 gap-4 rounded-t-[35px] border border-border px-6 py-6"
+          style={{
+            backgroundColor: themeColors[theme]['bg-main'],
+            shadowColor: themeColors[theme]['bg-inverse']
+          }}
+        >
+          {/* Close Icon */}
+          <View className="absolute right-4 top-4 p-1.5">
+            <ButtonIcon
+              accessibilityLabel="Close"
+              onPress={() => setModalVisible(false)}
+            >
+              <MaterialIcons
+                name="close"
+                size={35}
+                color={themeColors[theme]['text-main']}
+              />
+            </ButtonIcon>
+          </View>
 
-            {/* Title */}
-            <TextCustom type="bold">Need help?</TextCustom>
+          {/* Title */}
+          <TextCustom type="bold" size="l" className="mb-4 text-center">
+            Need help?
+          </TextCustom>
 
-            {/* Password issues */}
-            <View className="mt-6 px-4">
-              <TextCustom>Password issues</TextCustom>
+          {/* Password issues */}
+          {/* TODO СОДЕРЖАТЕЛЬНО ГРУППА Password issues ГОТОВАЮ НУ УДАЛЯТЬ, НЕ ДОБАВЛЯТЬ НОВЫХ */}
+          <View className="flex-1 gap-4">
+            <View className="gap-2">
+              <TextCustom color={themeColors[theme]['text-secondary']}>
+                Password issues
+              </TextCustom>
               <View className="overflow-hidden rounded-2xl bg-bg-secondary">
-                <Pressable className="flex-row items-center justify-between px-6 py-5">
-                  <TextCustom className="text-lg font-semibold text-text-main">
-                    No login email received?
+                <Pressable className="flex-row items-center justify-between px-5 py-5">
+                  <TextCustom type="bold" size="l">
+                    Forgot password?
                   </TextCustom>
                   <MaterialIcons
                     name="chevron-right"
@@ -84,10 +94,10 @@ const HelpModalButton = () => {
                     color={themeColors[theme]['text-secondary']}
                   />
                 </Pressable>
-                <View className="mx-4 h-px bg-border" />
-                <Pressable className="flex-row items-center justify-between px-6 py-5">
-                  <TextCustom className="text-lg font-semibold text-text-main">
-                    Link not working?
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-5">
+                  <TextCustom type="bold" size="l">
+                    Change your password
                   </TextCustom>
                   <MaterialIcons
                     name="chevron-right"
@@ -96,12 +106,16 @@ const HelpModalButton = () => {
                   />
                 </Pressable>
               </View>
+            </View>
 
-              {/* Email issues */}
-              <TextCustom>Email issues</TextCustom>
+            {/* Email issues */}
+            <View className="gap-2">
+              <TextCustom color={themeColors[theme]['text-secondary']}>
+                Email issues
+              </TextCustom>
               <View className="overflow-hidden rounded-2xl bg-bg-secondary">
-                <Pressable className="flex-row items-center justify-between px-6 py-5">
-                  <TextCustom className="text-lg font-semibold text-text-main">
+                <Pressable className="flex-row items-center justify-between px-5 py-5">
+                  <TextCustom type="bold" size="l">
                     Can't access email?
                   </TextCustom>
                   <MaterialIcons
@@ -110,9 +124,9 @@ const HelpModalButton = () => {
                     color={themeColors[theme]['text-secondary']}
                   />
                 </Pressable>
-                <View className="mx-4 h-px bg-border" />
-                <Pressable className="flex-row items-center justify-between px-6 py-5">
-                  <TextCustom className="text-lg font-semibold text-text-main">
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-5">
+                  <TextCustom type="bold" size="l">
                     Incorrect email?
                   </TextCustom>
                   <MaterialIcons
@@ -121,9 +135,9 @@ const HelpModalButton = () => {
                     color={themeColors[theme]['text-secondary']}
                   />
                 </Pressable>
-                <View className="mx-4 h-px bg-border" />
-                <Pressable className="flex-row items-center justify-between px-6 py-5">
-                  <TextCustom className="text-lg font-semibold text-text-main">
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-5">
+                  <TextCustom type="bold" size="l">
                     Account compromised?
                   </TextCustom>
                   <MaterialIcons
@@ -137,54 +151,8 @@ const HelpModalButton = () => {
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 };
-
-const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 15,
-    width: '100%',
-    height: '100%'
-  },
-  closeIcon: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 6
-  },
-  button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2
-  },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center'
-  },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center'
-  }
-});
 
 export default HelpModalButton;

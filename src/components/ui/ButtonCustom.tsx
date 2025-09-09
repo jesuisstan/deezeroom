@@ -82,13 +82,7 @@ const ButtonCustom = ({
     ghost: themeColors[theme]['text-main']
   };
 
-  const labelClasses = clsx(
-    size === 'sm' && 'text-xs',
-    size === 'md' && 'text-s',
-    size === 'lg' && 'text-m',
-    'font-bold',
-    textClassName
-  );
+  const labelClasses = clsx('font-bold', textClassName);
 
   return (
     <View
@@ -122,6 +116,7 @@ const ButtonCustom = ({
         ) : (
           <TextCustom
             className={labelClasses}
+            size={size === 'sm' ? 'xs' : size === 'md' ? 's' : 'm'}
             color={
               disabled
                 ? themeColors[theme]['text-main']

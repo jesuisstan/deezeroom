@@ -82,14 +82,14 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 {getProviderDisplayName(provider.providerId)}
               </TextCustom>
               <TextCustom
-                type="xs"
+                size="xs"
                 color={themeColors[theme]['text-secondary']}
               >
                 Connected {formatDate(provider.linkedAt)}
               </TextCustom>
             </View>
             <View className="rounded-full bg-intent-success px-2 py-1">
-              <TextCustom type="xs">Active</TextCustom>
+              <TextCustom size="xs">Active</TextCustom>
             </View>
           </View>
         ))}
@@ -102,7 +102,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               color={themeColors[theme]['intent-warning']}
             />
             <View className="flex-1">
-              <TextCustom type="xs">
+              <TextCustom size="xs">
                 Your accounts are linked - you can sign in using any of these
                 methods
               </TextCustom>
@@ -124,7 +124,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               <TextCustom>
                 {isLinking ? 'Linking...' : 'Link Google Account'}
               </TextCustom>
-              <TextCustom type="xs" color={themeColors[theme]['primary']}>
+              <TextCustom size="xs" color={themeColors[theme]['primary']}>
                 Connect your Google account
               </TextCustom>
             </View>
@@ -147,7 +147,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             </View>
             <View className="flex-1">
               <TextCustom>Setup Password</TextCustom>
-              <TextCustom type="xs" color={themeColors[theme]['primary']}>
+              <TextCustom size="xs" color={themeColors[theme]['primary']}>
                 Enable email/password sign-in
               </TextCustom>
             </View>

@@ -55,6 +55,9 @@ export default function HomeScreen() {
         </View>
         <TextCustom>{'\n'}</TextCustom>
         <View>
+          <TextCustom type="bold" size="xs" className="mb-2">
+            test classname
+          </TextCustom>
           <TextCustom>
             Some ordinary TextCustom, default,{' '}
             <TextCustom className="font-bold">bold</TextCustom>,{' '}

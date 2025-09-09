@@ -6,13 +6,17 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
 
 export type TextCustomProps = TextProps & {
-  type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic' | 'xs';
+  type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';
   color?: string;
+  size?: 'xs' | 's' | 'm' | 'l' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
+  className?: string;
 };
 
 export function TextCustom({
   type = 'default',
   color,
+  size,
+  className,
   ...rest
 }: TextCustomProps) {
   const { theme } = useTheme();
@@ -20,21 +24,19 @@ export function TextCustom({
   const getTypeClasses = () => {
     switch (type) {
       case 'title':
-        return 'text-3xl leading-10 tracking-widest';
+        return 'leading-10 tracking-widest';
       case 'subtitle':
-        return 'text-xl leading-6';
+        return 'leading-6 tracking-wide';
       case 'bold':
-        return 'text-base leading-6 font-bold';
+        return 'leading-6 font-bold';
       case 'link':
-        return 'text-base leading-8 underline';
+        return 'leading-8 underline';
       case 'italic':
-        return 'text-base leading-6 italic';
-      case 'xs':
-        return 'text-xs leading-4';
+        return 'leading-6 italic';
       case 'default':
-        return 'text-base leading-6 text-primary';
+        return 'leading-6';
       default:
-        return 'text-base leading-6';
+        return 'leading-6';
     }
   };
 
@@ -46,17 +48,51 @@ export function TextCustom({
     }
   };
 
-  // Base text color from tailwind (can be overridden via className)
+  // Define text color
   const defaultTextColorClass =
     type === 'link'
       ? themeColors[theme]['primary']
       : themeColors[theme]['text-main'];
   const customColor = color || defaultTextColorClass;
 
+  // Define font size
+  const getFontSize = () => {
+    if (size)
+      switch (size) {
+        case 'xs':
+          return 'text-xs';
+        case 's':
+          return 'text-s';
+        case 'm':
+          return 'text-m';
+        case 'l':
+          return 'text-l';
+        case 'xl':
+          return 'text-xl';
+        case '2xl':
+          return 'text-2xl';
+        case '3xl':
+          return 'text-3xl';
+        case '4xl':
+          return 'text-4xl';
+        case '5xl':
+          return 'text-5xl';
+        case '6xl':
+          return 'text-6xl';
+      }
+    if (type === 'title') {
+      return 'text-3xl';
+    } else if (type === 'subtitle') {
+      return 'text-xl';
+    } else {
+      return 'text-base';
+    }
+  };
+
   return (
     <Text
       style={[getFontStyle(), { color: customColor }]}
-      className={clsx(`${getTypeClasses()}`)}
+      className={clsx(`${getTypeClasses()}`, getFontSize(), className)}
       {...rest}
     />
   );

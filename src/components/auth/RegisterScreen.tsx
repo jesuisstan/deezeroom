@@ -156,16 +156,12 @@ const RegisterScreen: FC = () => {
               <HelpModalButton />
             </View>
 
-            <TextCustom
-              type="title"
-              className="text-center text-3xl font-bold leading-10 tracking-widest"
-            >
+            <TextCustom type="title" size="4xl" className="text-center">
               Create account
             </TextCustom>
 
             {/* Email */}
             <InputCustom
-              label="Email address"
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -231,7 +227,7 @@ const RegisterScreen: FC = () => {
 
             {/* Password requirements */}
             <View className="gap-2 rounded-xl bg-bg-secondary p-4">
-              <TextCustom className="text-sm font-bold">
+              <TextCustom type="bold" size="s">
                 Your password must include
               </TextCustom>
               <View className="gap-2">
@@ -247,7 +243,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm">
+                  <TextCustom className="flex-1" size="s">
                     At least 8 characters
                   </TextCustom>
                 </View>
@@ -263,7 +259,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm">
+                  <TextCustom className="flex-1" size="s">
                     At least 1 letter (including 1 uppercase)
                   </TextCustom>
                 </View>
@@ -277,7 +273,7 @@ const RegisterScreen: FC = () => {
                         : themeColors[theme]['text-disabled']
                     }
                   />
-                  <TextCustom className="flex-1 text-sm">
+                  <TextCustom className="flex-1" size="s">
                     At least 1 number
                   </TextCustom>
                 </View>
@@ -293,7 +289,7 @@ const RegisterScreen: FC = () => {
                       ]
                     }
                   />
-                  <TextCustom className="flex-1 text-sm">
+                  <TextCustom className="flex-1" size="s">
                     At least 1 of special characters ! @ $ % ^ * ( ) _ + - = [ ]{' '}
                     {} : ; , .
                   </TextCustom>
