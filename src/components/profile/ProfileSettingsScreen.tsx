@@ -1,15 +1,17 @@
+import { FC } from 'react';
 import { View } from 'react-native';
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import ProfileScreen from '@/components/profile/ProfileScreen';
-import SignOutButton from '@/components/profile/SignOutButton';
+import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/utils/color-theme';
 
-const ProfilePage = () => {
+const ProfileSettingsScreen: FC = () => {
   const { theme } = useTheme();
+  const { profile } = useUser();
 
   return (
     <>
@@ -21,9 +23,8 @@ const ProfilePage = () => {
       <View className="flex-1 bg-bg-main">
         <Stack.Screen
           options={{
-            title: 'Profile',
+            title: 'Profile Settings',
             headerShown: true,
-            headerRight: () => <SignOutButton />,
             headerStyle: {
               backgroundColor: themeColors[theme]['bg-main']
             },
@@ -34,10 +35,14 @@ const ProfilePage = () => {
             }
           }}
         />
-        <ProfileScreen />
+        <View className="flex-1 p-4">
+          <View className="mt-4">
+            {profile ? <ConnectedAccountsSection profile={profile} /> : null}
+          </View>
+        </View>
       </View>
     </>
   );
 };
 
-export default ProfilePage;
+export default ProfileSettingsScreen;

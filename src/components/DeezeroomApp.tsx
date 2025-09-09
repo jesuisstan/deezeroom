@@ -1,8 +1,5 @@
-import { View } from 'react-native';
-
 import 'react-native-reanimated';
 
-import clsx from 'clsx';
 import { Stack } from 'expo-router';
 
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -14,58 +11,59 @@ const DeezeroomApp = () => {
 
   return (
     <AuthGuard>
-      <View
-        className={clsx('flex-1', theme === 'dark' ? 'bg-black' : 'bg-white')}
+      <Stack
+        screenOptions={{
+          contentStyle: {
+            backgroundColor: themeColors[theme]['bg-main']
+          },
+          headerStyle: {
+            backgroundColor: themeColors[theme]['bg-main']
+          }
+        }}
       >
-        <Stack>
-          <Stack.Screen
-            name="index"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="auth/index"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="auth/login"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="auth/register"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="auth/verify-email"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="(tabs)"
-            options={{
-              headerShown: false
-            }}
-          />
-          <Stack.Screen
-            name="profile"
-            options={{
-              headerShown: false,
-              headerStyle: {
-                backgroundColor: themeColors[theme]['bg-main']
-              }
-            }}
-          />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </View>
+        <Stack.Screen
+          name="index"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="auth/index"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="auth/login"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="auth/register"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="auth/verify-email"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            headerShown: false
+          }}
+        />
+        <Stack.Screen name="profile/index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="profile/settings"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+      </Stack>
     </AuthGuard>
   );
 };

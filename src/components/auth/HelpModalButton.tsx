@@ -5,10 +5,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 import ButtonIcon from '@/components/ui/ButtonIcon';
+import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
-import Divider from '@/components/ui/Divider';
 
 const HelpModalButton = () => {
   const [modalVisible, setModalVisible] = useState(false);

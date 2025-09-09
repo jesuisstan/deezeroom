@@ -30,11 +30,11 @@ type InputProps = TextInputProps & {
 };
 
 const containerBase = 'w-full';
-const inputBase = 'text-base text-text-main px-4 py-3 rounded-xl';
+const inputBase = 'text-base text-text-main px-4 py-3 rounded-lg';
 const variantStyles: Record<InputVariant, string> = {
-  default: 'bg-bg-secondary rounded-xl',
-  filled: 'bg-bg-secondary rounded-xl',
-  outline: 'bg-transparent rounded-xl'
+  default: 'bg-bg-secondary rounded-lg',
+  filled: 'bg-bg-secondary rounded-lg',
+  outline: 'bg-transparent rounded-lg'
 };
 
 const InputCustom = forwardRef<TextInput, InputProps>(function Input(
@@ -171,11 +171,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           {errorText}
         </TextCustom>
       ) : helperText ? (
-        <TextCustom
-          className="mt-1"
-          size="xs"
-          color={colors['accent']}
-        >
+        <TextCustom className="mt-1" size="xs" color={colors['accent']}>
           {helperText}
         </TextCustom>
       ) : null}

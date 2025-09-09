@@ -226,7 +226,7 @@ const RegisterScreen: FC = () => {
             />
 
             {/* Password requirements */}
-            <View className="gap-2 rounded-xl bg-bg-secondary p-4">
+            <View className="gap-2 rounded-lg bg-bg-secondary p-4">
               <TextCustom type="bold" size="s">
                 Your password must include
               </TextCustom>

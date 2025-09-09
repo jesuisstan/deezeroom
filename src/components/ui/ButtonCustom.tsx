@@ -33,8 +33,8 @@ const baseClasses =
   'flex-row items-center justify-center transition-all duration-200';
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-6 py-1.5 gap-2 min-h-[36px]',
-  md: 'px-8 py-2 gap-2.5 min-h-[42px]',
+  sm: 'px-6 py-1 gap-2 min-h-[24px]',
+  md: 'px-8 py-2 gap-2.5 min-h-[40px]',
   lg: 'px-10 py-3 gap-3 min-h-[48px]'
 };
 
@@ -87,7 +87,7 @@ const ButtonCustom = ({
   return (
     <View
       className={clsx(
-        'overflow-hidden rounded-xl',
+        'overflow-hidden rounded-lg',
         fullWidth ? 'w-full' : undefined,
         variant === 'outline' && 'border border-border'
       )}
@@ -116,7 +116,7 @@ const ButtonCustom = ({
         ) : (
           <TextCustom
             className={labelClasses}
-            size={size === 'sm' ? 'xs' : size === 'md' ? 's' : 'm'}
+            size={size === 'sm' ? 's' : 'm'}
             color={
               disabled
                 ? themeColors[theme]['text-main']
