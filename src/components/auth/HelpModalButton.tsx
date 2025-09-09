@@ -102,120 +102,118 @@ const HelpModalButton = () => {
           />
 
           {/* Content wrapped in GestureHandlerRootView */}
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            {/* Dimming overlay */}
-            <View
-              className="absolute inset-0"
-              style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-            />
+          {/* Dimming overlay */}
+          <View
+            className="absolute inset-0"
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          />
 
-            {/* Modal content with gesture detection */}
-            <GestureDetector gesture={gesture}>
-              <Animated.View
-                className="flex-1 gap-4 rounded-t-[35px] border border-border px-6 py-6"
-                style={[
-                  {
-                    backgroundColor: themeColors[theme]['bg-main'],
-                    shadowColor: themeColors[theme]['bg-inverse']
-                  },
-                  animatedStyle
-                ]}
-              >
-                {/* Close Icon */}
-                <View className="absolute right-4 top-4 p-1.5">
-                  <ButtonIcon
-                    accessibilityLabel="Close"
-                    onPress={() => setModalVisible(false)}
-                  >
-                    <MaterialIcons
-                      name="close"
-                      size={35}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </ButtonIcon>
-                </View>
+          {/* Modal content with gesture detection */}
+          <GestureDetector gesture={gesture}>
+            <Animated.View
+              className="flex-1 gap-4 rounded-t-[35px] border border-border px-6 py-6"
+              style={[
+                {
+                  backgroundColor: themeColors[theme]['bg-main'],
+                  shadowColor: themeColors[theme]['bg-inverse']
+                },
+                animatedStyle
+              ]}
+            >
+              {/* Close Icon */}
+              <View className="absolute right-4 top-4 p-1.5">
+                <ButtonIcon
+                  accessibilityLabel="Close"
+                  onPress={() => setModalVisible(false)}
+                >
+                  <MaterialIcons
+                    name="close"
+                    size={35}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </ButtonIcon>
+              </View>
 
-                {/* Title */}
-                <TextCustom type="bold" size="l" className="mb-4 text-center">
-                  Need help?
-                </TextCustom>
+              {/* Title */}
+              <TextCustom type="bold" size="l" className="mb-4 text-center">
+                Need help?
+              </TextCustom>
 
-                {/* Password issues */}
-                {/* TODO СОДЕРЖАТЕЛЬНО ГРУППА Password issues ГОТОВАЮ НУ УДАЛЯТЬ, НЕ ДОБАВЛЯТЬ НОВЫХ */}
-                <View className="flex-1 gap-4">
-                  <View className="gap-2">
-                    <TextCustom color={themeColors[theme]['text-secondary']}>
-                      Password issues
-                    </TextCustom>
-                    <View className="overflow-hidden rounded-2xl bg-bg-secondary">
-                      <Pressable className="flex-row items-center justify-between px-5 py-5">
-                        <TextCustom type="bold" size="l">
-                          Forgot password?
-                        </TextCustom>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={24}
-                          color={themeColors[theme]['text-secondary']}
-                        />
-                      </Pressable>
-                      <Divider inset />
-                      <Pressable className="flex-row items-center justify-between px-5 py-5">
-                        <TextCustom type="bold" size="l">
-                          Change your password
-                        </TextCustom>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={24}
-                          color={themeColors[theme]['text-secondary']}
-                        />
-                      </Pressable>
-                    </View>
-                  </View>
-
-                  {/* Email issues */}
-                  <View className="gap-2">
-                    <TextCustom color={themeColors[theme]['text-secondary']}>
-                      Email issues
-                    </TextCustom>
-                    <View className="overflow-hidden rounded-2xl bg-bg-secondary">
-                      <Pressable className="flex-row items-center justify-between px-5 py-5">
-                        <TextCustom type="bold" size="l">
-                          Can't access email?
-                        </TextCustom>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={24}
-                          color={themeColors[theme]['text-secondary']}
-                        />
-                      </Pressable>
-                      <Divider inset />
-                      <Pressable className="flex-row items-center justify-between px-5 py-5">
-                        <TextCustom type="bold" size="l">
-                          Incorrect email?
-                        </TextCustom>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={24}
-                          color={themeColors[theme]['text-secondary']}
-                        />
-                      </Pressable>
-                      <Divider inset />
-                      <Pressable className="flex-row items-center justify-between px-5 py-5">
-                        <TextCustom type="bold" size="l">
-                          Account compromised?
-                        </TextCustom>
-                        <MaterialIcons
-                          name="chevron-right"
-                          size={24}
-                          color={themeColors[theme]['text-secondary']}
-                        />
-                      </Pressable>
-                    </View>
+              {/* Password issues */}
+              {/* TODO СОДЕРЖАТЕЛЬНО ГРУППА Password issues ГОТОВАЮ НУ УДАЛЯТЬ, НЕ ДОБАВЛЯТЬ НОВЫХ */}
+              <View className="flex-1 gap-4">
+                <View className="gap-2">
+                  <TextCustom color={themeColors[theme]['text-secondary']}>
+                    Password issues
+                  </TextCustom>
+                  <View className="overflow-hidden rounded-2xl bg-bg-secondary">
+                    <Pressable className="flex-row items-center justify-between px-5 py-5">
+                      <TextCustom type="bold" size="l">
+                        Forgot password?
+                      </TextCustom>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={24}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                    </Pressable>
+                    <Divider inset />
+                    <Pressable className="flex-row items-center justify-between px-5 py-5">
+                      <TextCustom type="bold" size="l">
+                        Change your password
+                      </TextCustom>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={24}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                    </Pressable>
                   </View>
                 </View>
-              </Animated.View>
-            </GestureDetector>
-          </GestureHandlerRootView>
+
+                {/* Email issues */}
+                <View className="gap-2">
+                  <TextCustom color={themeColors[theme]['text-secondary']}>
+                    Email issues
+                  </TextCustom>
+                  <View className="overflow-hidden rounded-2xl bg-bg-secondary">
+                    <Pressable className="flex-row items-center justify-between px-5 py-5">
+                      <TextCustom type="bold" size="l">
+                        Can't access email?
+                      </TextCustom>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={24}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                    </Pressable>
+                    <Divider inset />
+                    <Pressable className="flex-row items-center justify-between px-5 py-5">
+                      <TextCustom type="bold" size="l">
+                        Incorrect email?
+                      </TextCustom>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={24}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                    </Pressable>
+                    <Divider inset />
+                    <Pressable className="flex-row items-center justify-between px-5 py-5">
+                      <TextCustom type="bold" size="l">
+                        Account compromised?
+                      </TextCustom>
+                      <MaterialIcons
+                        name="chevron-right"
+                        size={24}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+          </GestureDetector>
         </Modal>
       )}
     </View>

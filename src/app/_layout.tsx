@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { AlertNotificationRoot } from 'react-native-alert-notification';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   configureReanimatedLogger,
   ReanimatedLogLevel
@@ -53,12 +54,14 @@ const RootLayout = () => {
     <ThemeProvider>
       <NetworkProvider>
         <UserProvider>
-          <DeezeroomApp />
-          <StatusBar
-            //style={theme === 'dark' ? 'light' : 'dark'}
-            backgroundColor="transparent"
-            translucent={true}
-          />
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <DeezeroomApp />
+            <StatusBar
+              //style={theme === 'dark' ? 'light' : 'dark'}
+              backgroundColor="transparent"
+              translucent={true}
+            />
+          </GestureHandlerRootView>
         </UserProvider>
       </NetworkProvider>
     </ThemeProvider>
