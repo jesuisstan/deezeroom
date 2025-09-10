@@ -3,9 +3,10 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-import SetupPasswordModal from '@/components/profile/SetupPasswordModal';
+import SetupPassword from '@/components/profile/SetupPassword';
 import ButtonIcon from '@/components/ui/ButtonIcon';
 import ProviderIcon from '@/components/ui/ProviderIcon';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -198,10 +199,12 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
 
       {/* Password Setup Modal */}
       {user?.email && (
-        <SetupPasswordModal
-          visible={showPasswordModal}
+        <SwipeModal
+          title="Setup Password"
+          modalVisible={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
-          userEmail={user.email}
+          content={<SetupPassword userEmail={user.email} />}
+          fade={true}
         />
       )}
     </View>
