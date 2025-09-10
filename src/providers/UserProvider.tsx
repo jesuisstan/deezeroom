@@ -31,6 +31,7 @@ type TUserContextType = {
     email: string,
     password: string
   ) => Promise<{ success: boolean; error?: string }>;
+  unlinkWithGoogle: () => Promise<{ success: boolean; error?: string }>;
 };
 
 type TUserProviderProps = {
@@ -46,7 +47,8 @@ const initialUserContext: TUserContextType = {
   updateProfile: async () => {},
   refreshProfile: async () => {},
   linkWithGoogle: async () => ({ success: false }),
-  linkWithEmailPassword: async () => ({ success: false })
+  linkWithEmailPassword: async () => ({ success: false }),
+  unlinkWithGoogle: async () => ({ success: false })
 };
 
 const UserContext = createContext<TUserContextType>(initialUserContext);
@@ -142,13 +144,36 @@ export const UserProvider: FC<TUserProviderProps> = ({
           'success'
         );
       } else {
-        shootAlert('toast', 'Oops', 'Google account was not linked', 'warning');
+        shootAlert(
+          'toast',
+          'Oops!',
+          result.error || 'Google account was not linked',
+          'warning'
+        );
       }
       return result;
     } catch (error) {
       console.log('Error in linkWithGoogle:', error);
       shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
       return { success: false, error: 'Failed to link Google account' };
+    }
+  };
+
+  // Unlink current user from Google account
+  const unlinkWithGoogle = async () => {
+    try {
+      const result = await UserService.unlinkGoogle();
+      if (result.success) {
+        await refreshProfile();
+        shootAlert('toast', 'Success', 'Google account unlinked', 'success');
+      } else if (result.error) {
+        shootAlert('toast', 'Error', result.error, 'error');
+      }
+      return result;
+    } catch (error) {
+      console.log('Error in unlinkWithGoogle:', error);
+      shootAlert('toast', 'Error', 'Failed to unlink Google account', 'error');
+      return { success: false, error: 'Failed to unlink Google account' };
     }
   };
 
@@ -190,12 +215,6 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
       // Load user profile when user is signed in
       if (currentUser) {
-        // Update auth providers info on each auth state change
-        try {
-          await UserService.updateAuthProviders(currentUser);
-        } catch (error) {
-          console.log('Failed to update auth providers (non-critical):', error);
-        }
         await loadUserProfile(currentUser);
       } else {
         setProfile(null);
@@ -240,7 +259,8 @@ export const UserProvider: FC<TUserProviderProps> = ({
         updateProfile,
         refreshProfile,
         linkWithGoogle,
-        linkWithEmailPassword
+        linkWithEmailPassword,
+        unlinkWithGoogle
       }}
     >
       {children}

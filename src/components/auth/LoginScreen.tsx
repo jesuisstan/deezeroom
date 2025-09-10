@@ -69,7 +69,7 @@ const LoginScreen: FC = () => {
         shootAlert(
           'toast',
           'Invalid credentials',
-          'Please check your email and password.',
+          'Please check entered email and password.',
           'warning'
         );
       } else if (code === 'auth/too-many-requests') {

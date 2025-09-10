@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -70,11 +71,13 @@ export interface UserProfile {
       linked: boolean;
       linkedAt?: any;
       providerId: string;
+      email: string;
     };
     emailPassword?: {
       linked: boolean;
       linkedAt?: any;
       providerId: string;
+      email: string;
     };
   };
   createdAt: any;
@@ -127,13 +130,15 @@ export class UserService {
           providers.google = {
             linked: true,
             linkedAt: serverTimestamp(),
-            providerId: provider.providerId
+            providerId: provider.providerId,
+            email: provider.email || ''
           };
         } else if (provider.providerId === 'password') {
           providers.emailPassword = {
             linked: true,
             linkedAt: serverTimestamp(),
-            providerId: provider.providerId
+            providerId: provider.providerId,
+            email: provider.email || ''
           };
         }
       });
@@ -149,18 +154,9 @@ export class UserService {
     try {
       const userRef = doc(db, this.collection, user.uid);
       const existingSnap = await getDoc(userRef);
-      const existingData = existingSnap.exists()
-        ? (existingSnap.data() as UserProfile)
-        : null;
 
-      // Get current auth providers
+      // Get current auth providers (source of truth)
       const currentProviders = this.getAuthProvidersInfo(user);
-
-      // Merge existing auth providers with current ones to preserve linking history
-      const mergedProviders: UserProfile['authProviders'] = {
-        ...existingData?.authProviders,
-        ...currentProviders
-      };
 
       // "createdAt" only when first created
       const baseData: Partial<UserProfile> = {
@@ -169,7 +165,7 @@ export class UserService {
         displayName:
           user.displayName || (user.email ? user.email.split('@')[0] : ''),
         ...(user.photoURL ? { photoURL: user.photoURL } : {}),
-        authProviders: mergedProviders,
+        authProviders: currentProviders,
         updatedAt: serverTimestamp(),
         ...additionalData
       };
@@ -220,14 +216,24 @@ export class UserService {
         const existingData = existingSnap.data() as UserProfile;
         const currentProviders = this.getAuthProvidersInfo(user);
 
-        // Merge existing auth providers with current ones to preserve linking history
-        const mergedProviders: UserProfile['authProviders'] = {
-          ...existingData.authProviders,
-          ...currentProviders
-        };
+        // Merge: keep only CURRENT providers, but preserve old linkedAt if existed
+        const merged: UserProfile['authProviders'] = {};
+        (
+          Object.keys(currentProviders) as (keyof NonNullable<
+            UserProfile['authProviders']
+          >)[]
+        ).forEach((key) => {
+          const current = (currentProviders as any)[key];
+          const previous = (existingData.authProviders as any)?.[key];
+          (merged as any)[key] = {
+            ...(previous || {}),
+            ...current,
+            linkedAt: previous?.linkedAt ?? current?.linkedAt
+          };
+        });
 
         await updateDoc(userRef, {
-          authProviders: mergedProviders,
+          authProviders: merged,
           updatedAt: serverTimestamp()
         });
       }
@@ -307,6 +313,48 @@ export class UserService {
       return {
         success: false,
         error: error.message || 'Failed to link Google account'
+      };
+    }
+  }
+
+  // Unlink Google account from current user
+  static async unlinkGoogle(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { unlink } = await import('firebase/auth');
+      const { auth } = await import('@/utils/firebase-init');
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return { success: false, error: 'No authenticated user' };
+      }
+
+      // Ensure there is at least one other sign-in method left
+      if (currentUser.providerData.length <= 1) {
+        return {
+          success: false,
+          error: 'Cannot unlink the only sign-in method'
+        };
+      }
+
+      await unlink(currentUser, 'google.com');
+      await currentUser.reload();
+
+      // Explicitly remove google subfield from Firestore profile
+      const userRef = doc(db, this.collection, currentUser.uid);
+      await updateDoc(userRef, {
+        'authProviders.google': deleteField(),
+        updatedAt: serverTimestamp()
+      });
+
+      // Then overwrite with the CURRENT providers set
+      await this.updateAuthProviders(currentUser);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error unlinking Google account:', error);
+      return {
+        success: false,
+        error: error?.message || 'Failed to unlink Google account'
       };
     }
   }

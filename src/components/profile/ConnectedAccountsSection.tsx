@@ -1,9 +1,10 @@
 import { FC, useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import SetupPasswordModal from '@/components/profile/SetupPasswordModal';
+import ButtonIcon from '@/components/ui/ButtonIcon';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -19,7 +20,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
   profile
 }) => {
   const { theme } = useTheme();
-  const { linkWithGoogle, user } = useUser();
+  const { linkWithGoogle, unlinkWithGoogle, user } = useUser();
   const [isLinking, setIsLinking] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
@@ -35,6 +36,15 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
     setIsLinking(true);
     try {
       await linkWithGoogle();
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleUnlinkGoogle = async () => {
+    setIsLinking(true);
+    try {
+      await unlinkWithGoogle();
     } finally {
       setIsLinking(false);
     }
@@ -81,6 +91,15 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               <TextCustom>
                 {getProviderDisplayName(provider.providerId)}
               </TextCustom>
+              {provider.email && (
+                <TextCustom
+                  size="xs"
+                  type="bold"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  {provider.email}
+                </TextCustom>
+              )}
               <TextCustom
                 size="xs"
                 color={themeColors[theme]['text-secondary']}
@@ -88,9 +107,26 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Connected {formatDate(provider.linkedAt)}
               </TextCustom>
             </View>
-            <View className="rounded-full bg-intent-success px-2 py-1">
-              <TextCustom size="xs">Active</TextCustom>
-            </View>
+            {provider.type === 'google' && linkedProviders.length > 1 && (
+              <ButtonIcon
+                accessibilityLabel="Unlink Google Account"
+                onPress={handleUnlinkGoogle}
+                className="bg-transparent"
+              >
+                {isLinking ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={themeColors[theme]['intent-error']}
+                  />
+                ) : (
+                  <MaterialIcons
+                    name={'close'}
+                    size={24}
+                    color={themeColors[theme]['intent-error']}
+                  />
+                )}
+              </ButtonIcon>
+            )}
           </View>
         ))}
 
@@ -112,7 +148,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
 
         {/* Show link Google button if not linked */}
         {!profile.authProviders?.google?.linked && (
-          <TouchableOpacity
+          <Pressable
             onPress={handleLinkGoogle}
             disabled={isLinking}
             className="flex-row items-center rounded-lg border border-dashed border-border p-3"
@@ -133,12 +169,12 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               size={20}
               color={themeColors[theme]['text-main']}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {/* Show link Email/Password button if not linked */}
         {!profile.authProviders?.emailPassword?.linked && (
-          <TouchableOpacity
+          <Pressable
             onPress={() => setShowPasswordModal(true)}
             className="flex-row items-center rounded-lg border border-dashed border-border p-3"
           >
@@ -156,7 +192,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               size={20}
               color={themeColors[theme]['text-main']}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </>
 
