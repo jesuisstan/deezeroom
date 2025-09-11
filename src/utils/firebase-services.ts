@@ -18,6 +18,7 @@ import {
   where
 } from 'firebase/firestore';
 
+import { getFirebaseErrorMessage } from '@/utils/firebase-error-handler';
 import { db } from '@/utils/firebase-init';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
@@ -244,7 +245,10 @@ export class UserService {
   }
 
   // Manual linking with Google account
-  static async linkWithGoogle(): Promise<{ success: boolean; error?: string }> {
+  static async linkWithGoogle(): Promise<{
+    success: boolean;
+    message?: string;
+  }> {
     try {
       const { GoogleSignin } = await import(
         '@react-native-google-signin/google-signin'
@@ -257,7 +261,14 @@ export class UserService {
       // Check if user is authenticated
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        return { success: false, error: 'No authenticated user' };
+        return { success: false, message: 'No authenticated user' };
+      }
+
+      // Ensure a user profile document exists in Firestore
+      const userRef = doc(db, this.collection, currentUser.uid);
+      const profileSnap = await getDoc(userRef);
+      if (!profileSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
       }
 
       // Check if Google is already linked
@@ -266,7 +277,7 @@ export class UserService {
       );
 
       if (isGoogleLinked) {
-        return { success: false, error: 'Google account is already linked' };
+        return { success: false, message: 'Google account is already linked' };
       }
 
       // Get Google credentials
@@ -275,7 +286,7 @@ export class UserService {
       const { idToken } = await GoogleSignin.getTokens();
 
       if (!idToken) {
-        return { success: false, error: 'Failed to get Google ID token' };
+        return { success: false, message: 'Failed to get Google ID token' };
       }
 
       // Create Google credential
@@ -291,53 +302,33 @@ export class UserService {
       await this.updateAuthProviders(currentUser);
 
       console.log('Successfully linked Google account');
-      return { success: true };
+      return { success: true, message: 'Google account linked successfully' };
     } catch (error: any) {
       console.log('Error linking Google account:', error);
-
-      // Handle specific Firebase errors
-      if (error.code === 'auth/provider-already-linked') {
-        return { success: false, error: 'Google account is already linked' };
-      } else if (error.code === 'auth/credential-already-in-use') {
-        return {
-          success: false,
-          error: 'This Google account is already used by another user'
-        };
-      } else if (error.code === 'auth/email-already-in-use') {
-        return {
-          success: false,
-          error: 'Email address is already in use by another account'
-        };
-      } else if (error.code === 'auth/user-token-expired') {
-        return {
-          success: false,
-          error: 'Google account token expired'
-        };
-      }
-
       return {
         success: false,
-        error: error.message || 'Failed to link Google account'
+        message:
+          getFirebaseErrorMessage(error) || 'Failed to link Google account'
       };
     }
   }
 
   // Unlink Google account from current user
-  static async unlinkGoogle(): Promise<{ success: boolean; error?: string }> {
+  static async unlinkGoogle(): Promise<{ success: boolean; message?: string }> {
     try {
       const { unlink } = await import('firebase/auth');
       const { auth } = await import('@/utils/firebase-init');
 
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        return { success: false, error: 'No authenticated user' };
+        return { success: false, message: 'No authenticated user' };
       }
 
       // Ensure there is at least one other sign-in method left
       if (currentUser.providerData.length <= 1) {
         return {
           success: false,
-          error: 'Cannot unlink the only sign-in method'
+          message: 'Cannot unlink the only sign-in method'
         };
       }
 
@@ -354,12 +345,13 @@ export class UserService {
       // Then overwrite with the CURRENT providers set
       await this.updateAuthProviders(currentUser);
 
-      return { success: true };
+      return { success: true, message: 'Google account unlinked successfully' };
     } catch (error: any) {
       console.error('Error unlinking Google account:', error);
       return {
         success: false,
-        error: error?.message || 'Failed to unlink Google account'
+        message:
+          getFirebaseErrorMessage(error) || 'Failed to unlink Google account'
       };
     }
   }
@@ -368,7 +360,7 @@ export class UserService {
   static async linkWithEmailPassword(
     email: string,
     password: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; message?: string }> {
     try {
       const { EmailAuthProvider, linkWithCredential, sendEmailVerification } =
         await import('firebase/auth');
@@ -377,7 +369,14 @@ export class UserService {
       // Check if user is authenticated
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        return { success: false, error: 'No authenticated user' };
+        return { success: false, message: 'No authenticated user' };
+      }
+
+      // Ensure a user profile document exists BEFORE linking
+      const userRef = doc(db, this.collection, currentUser.uid);
+      const profileSnap = await getDoc(userRef);
+      if (!profileSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
       }
 
       // Check if email+password is already linked
@@ -386,18 +385,18 @@ export class UserService {
       );
 
       if (isEmailPasswordLinked) {
-        return { success: false, error: 'Email/Password is already linked' };
+        return { success: false, message: 'Email/Password is already linked' };
       }
 
       // Validate input
       if (!email || !password) {
-        return { success: false, error: 'Email and password are required' };
+        return { success: false, message: 'Email and password are required' };
       }
 
       if (password.length < 6) {
         return {
           success: false,
-          error: 'Password must be at least 6 characters'
+          message: 'Password must be at least 6 characters'
         };
       }
 
@@ -408,7 +407,7 @@ export class UserService {
       ) {
         return {
           success: false,
-          error: 'Email must match your current account email'
+          message: 'Email must match your current account email'
         };
       }
 
@@ -434,38 +433,13 @@ export class UserService {
         emailVerified: currentUser.emailVerified
       });
       console.log('Successfully linked email/password');
-      return { success: true };
+      return { success: true, message: 'Email/Password linked successfully' };
     } catch (error: any) {
-      console.error('Error linking email/password:', error);
-
-      // Handle specific Firebase errors
-      if (error.code === 'auth/provider-already-linked') {
-        return { success: false, error: 'Email/Password is already linked' };
-      } else if (error.code === 'auth/credential-already-in-use') {
-        return {
-          success: false,
-          error: 'This email is already used by another user'
-        };
-      } else if (error.code === 'auth/email-already-in-use') {
-        return {
-          success: false,
-          error: 'Email address is already in use by another account'
-        };
-      } else if (error.code === 'auth/weak-password') {
-        return {
-          success: false,
-          error: 'Password is too weak. Use at least 6 characters'
-        };
-      } else if (error.code === 'auth/invalid-email') {
-        return {
-          success: false,
-          error: 'Invalid email address'
-        };
-      }
-
+      console.log('Error linking email/password:', error);
       return {
         success: false,
-        error: error.message || 'Failed to link email/password'
+        message:
+          getFirebaseErrorMessage(error) || 'Failed to link email/password'
       };
     }
   }

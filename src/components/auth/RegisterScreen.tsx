@@ -15,6 +15,7 @@ import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { getFirebaseErrorMessage } from '@/utils/firebase-error-handler';
 import { auth } from '@/utils/firebase-init';
 import { UserService } from '@/utils/firebase-services';
 import shootAlert from '@/utils/shoot-alert';
@@ -81,43 +82,14 @@ const RegisterScreen: FC = () => {
         console.log('sendEmailVerification error (non-critical):', e);
       }
     } catch (err: any) {
-      const code = err?.code || '';
-      if (code === 'auth/email-already-in-use') {
-        shootAlert(
-          'toast',
-          'Email already in use',
-          'Try logging in instead.',
-          'warning'
-        );
-      } else if (code === 'auth/weak-password') {
-        shootAlert(
-          'toast',
-          'Weak password',
-          'Please meet the password requirements.',
-          'warning'
-        );
-      } else if (code === 'auth/invalid-email') {
-        shootAlert(
-          'toast',
-          'Invalid email',
-          'Please check your email.',
-          'error'
-        );
-      } else if (code === 'auth/operation-not-allowed') {
-        shootAlert(
-          'toast',
-          'Registration disabled',
-          'Email/password sign-up is not enabled.',
-          'error'
-        );
-      } else {
-        shootAlert(
-          'toast',
-          'Registration error',
-          'Failed to create account. Please try again.',
-          'error'
-        );
-      }
+      const errorMessage = getFirebaseErrorMessage(err);
+      console.log('Error on register:', errorMessage);
+      shootAlert(
+        'toast',
+        'Registration error',
+        errorMessage || 'Failed to create account. Please try again.',
+        'error'
+      );
     } finally {
       setLoading(false);
     }

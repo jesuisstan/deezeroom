@@ -8,20 +8,15 @@ import {
   View
 } from 'react-native';
 
-import { Stack, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-import SignOutButton from '@/components/profile/SignOutButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { themeColors } from '@/utils/color-theme';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
-  const { theme } = useTheme();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -96,22 +91,6 @@ const ProfileScreen: FC = () => {
 
   return (
     <View className="flex-1 bg-bg-main">
-      {/*<Stack.Screen
-        options={{
-          title: 'Profile',
-          headerShown: true,
-          statusBarTranslucent: true,
-          headerRight: () => <SignOutButton />,
-          headerStyle: {
-            backgroundColor: themeColors[theme]['bg-main']
-          },
-          headerTintColor: themeColors[theme]['text-main'],
-          headerTitleStyle: {
-            fontFamily: 'LeagueGothic',
-            fontSize: 30
-          }
-        }}
-      />*/}
       <ScrollView className="flex-1 bg-bg-main px-4 py-4">
         <View className="gap-4">
           <View className="flex-row items-center gap-4">

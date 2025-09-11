@@ -2,20 +2,18 @@ import { FC, useState } from 'react';
 import { View } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
+import { getFirebaseErrorMessage } from '@/utils/firebase-error-handler';
 import { auth } from '@/utils/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
 
 const VerifyEmailScreen: FC = () => {
-  const { theme } = useTheme();
   const router = useRouter();
   const { user, signOut, refreshProfile } = useUser();
   const [sending, setSending] = useState(false);
@@ -32,12 +30,13 @@ const VerifyEmailScreen: FC = () => {
         'Please check your inbox.',
         'success'
       );
-    } catch (e) {
-      console.log('sendEmailVerification error', e);
+    } catch (error: any) {
+      console.log('sendEmailVerification error:', error);
+      const errorMessage = getFirebaseErrorMessage(error);
       shootAlert(
         'toast',
         'Error',
-        'Failed to send verification email',
+        errorMessage || 'Failed to send verification email',
         'error'
       );
     } finally {
@@ -66,10 +65,12 @@ const VerifyEmailScreen: FC = () => {
       }
     } catch (e) {
       console.log('reload error', e);
+      console.log(JSON.stringify(e));
+      const errorMessage = getFirebaseErrorMessage(e);
       shootAlert(
         'toast',
         'Error',
-        'Failed to check verification status',
+        errorMessage || 'Failed to check verification status',
         'error'
       );
     } finally {
@@ -87,11 +88,6 @@ const VerifyEmailScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
-      {/*<StatusBar
-        style={theme === 'dark' ? 'light' : 'dark'}
-        backgroundColor="transparent"
-        hidden={false}
-      />*/}
       <View className="flex-1 gap-4 px-6 py-6">
         <View className="flex-row items-center justify-between">
           <RouterBackButton onPress={handleBack} />

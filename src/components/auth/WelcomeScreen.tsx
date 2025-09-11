@@ -3,7 +3,6 @@ import { ScrollView, View } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AuthGoogleButton from '@/components/auth/AuthGoogleButton';
@@ -20,11 +19,6 @@ const WelcomeScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={['top', 'bottom']}>
-      {/*<StatusBar
-        style={theme === 'dark' ? 'light' : 'dark'}
-        backgroundColor="transparent"
-        hidden={true}
-      />*/}
       {/* Top half: banner/cover */}
       <View className="flex-1 bg-black">
         <VideoBanner

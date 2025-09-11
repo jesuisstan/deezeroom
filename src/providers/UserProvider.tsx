@@ -147,7 +147,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         shootAlert(
           'toast',
           'Oops!',
-          result.error || 'Google account was not linked',
+          result.message || 'Google account was not linked',
           'warning'
         );
       }
@@ -155,7 +155,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
     } catch (error) {
       console.log('Error in linkWithGoogle:', error);
       shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
-      return { success: false, error: 'Failed to link Google account' };
+      return { success: false, message: 'Failed to link Google account' };
     }
   };
 
@@ -166,14 +166,19 @@ export const UserProvider: FC<TUserProviderProps> = ({
       if (result.success) {
         await refreshProfile();
         shootAlert('toast', 'Success', 'Google account unlinked', 'success');
-      } else if (result.error) {
-        shootAlert('toast', 'Error', result.error, 'error');
+      } else if (result.message) {
+        shootAlert(
+          'toast',
+          'Error',
+          result.message || 'Failed to unlink Google account',
+          'error'
+        );
       }
       return result;
     } catch (error) {
       console.log('Error in unlinkWithGoogle:', error);
       shootAlert('toast', 'Error', 'Failed to unlink Google account', 'error');
-      return { success: false, error: 'Failed to unlink Google account' };
+      return { success: false, message: 'Failed to unlink Google account' };
     }
   };
 
@@ -184,13 +189,6 @@ export const UserProvider: FC<TUserProviderProps> = ({
       if (result.success) {
         // Refresh profile to show updated providers and emailVerified status
         await refreshProfile();
-      } else {
-        shootAlert(
-          'toast',
-          'Error',
-          result.error || 'Failed to link email/password',
-          'error'
-        );
       }
       return result;
     } catch (error) {

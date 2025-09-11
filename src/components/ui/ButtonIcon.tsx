@@ -9,6 +9,7 @@ type ButtonIconProps = {
   accessibilityLabel: string;
   onPress?: () => void;
   className?: string;
+  backgroundColor?: string;
   children: React.ReactNode;
 };
 
@@ -16,16 +17,17 @@ const ButtonIcon = ({
   onPress,
   accessibilityLabel,
   className,
+  backgroundColor,
   children
 }: ButtonIconProps) => {
   const { theme } = useTheme();
 
   return (
     <View
-      className={clsx(
-        'h-12 w-12 overflow-hidden rounded-full bg-bg-main',
-        className
-      )}
+      className={clsx('h-12 w-12 overflow-hidden rounded-full', className)}
+      style={{
+        backgroundColor: backgroundColor || themeColors[theme]['transparent']
+      }}
     >
       <Pressable
         className="flex-1 items-center justify-center"
