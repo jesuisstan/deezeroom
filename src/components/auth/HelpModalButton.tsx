@@ -42,7 +42,12 @@ const HelpModalButton = () => {
                 Password issues
               </TextCustom>
               <View className="overflow-hidden rounded-lg bg-bg-secondary">
-                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                <Pressable
+                  className="flex-row items-center justify-between px-5 py-4"
+                  onPress={() =>
+                    console.log('TODO: push(/auth/forgot-password)')
+                  }
+                >
                   <TextCustom type="bold">Forgot password?</TextCustom>
                   <Entypo
                     name="chevron-thin-right"

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 
 import EvilIcons from '@expo/vector-icons/EvilIcons';
-import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/utils/color-theme';
@@ -33,9 +33,10 @@ interface SwipeModalProps {
 const SwipeModal = (props: SwipeModalProps) => {
   const { theme } = useTheme();
   const { height } = Dimensions.get('window');
+  const insets = useSafeAreaInsets();
 
   const TIMING_CONFIG = {
-    duration: props.duration ? props.duration : 250,
+    duration: props.duration ? props.duration : 242,
     easing: Easing.inOut(Easing.ease)
   };
 
@@ -66,7 +67,35 @@ const SwipeModal = (props: SwipeModalProps) => {
   const panResponder = useRef(
     PanResponder.create({
       // Ask to be the responder:
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponder: (evt) => {
+        // Check if the close button was pressed
+        const { pageX, pageY } = evt.nativeEvent;
+        const { width, height } = Dimensions.get('window');
+
+        const closeButtonRight = width - 20;
+        const closeButtonLeft = closeButtonRight - 50;
+        const closeButtonTop = 16;
+        const closeButtonBottom = closeButtonTop + 50;
+
+        // If the close button was pressed, don't intercept
+        if (
+          pageX >= closeButtonLeft &&
+          pageX <= closeButtonRight &&
+          pageY >= closeButtonTop &&
+          pageY <= closeButtonBottom
+        ) {
+          return false;
+        }
+
+        // If the content area (bottom part of the screen) was pressed, don't intercept
+        // Use a more accurate definition of the content area
+        const contentAreaTop = height * 0.15; // Approximately 15% from the top of the screen
+        if (pageY > contentAreaTop) {
+          return false;
+        }
+
+        return true; // Intercept only background events for swipe
+      },
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         if (isAnimating) {
@@ -82,7 +111,7 @@ const SwipeModal = (props: SwipeModalProps) => {
           x: animatedValueX.current,
           y: animatedValueY.current
         });
-        pan.setValue({ x: 0, y: 0 }); // Initial value
+        pan.setValue({ x: 0, y: 0 }); // Initial value for x and y coordinates
       },
       onPanResponderMove: (evt, gestureState) => {
         if (gestureState.dy > 0) {
@@ -102,7 +131,7 @@ const SwipeModal = (props: SwipeModalProps) => {
               useNativeDriver: false
             }).start(() => {
               setIsAnimating(false);
-              // Close modal only after animation is complete
+              // Close modal only after the animation is complete
               setTimeout(() => {
                 props.onClose?.();
               }, 100);
@@ -199,68 +228,63 @@ const SwipeModal = (props: SwipeModalProps) => {
   if (!props.modalVisible) return null;
 
   return (
-    <>
-      {/*<StatusBar
-        style={theme === 'dark' ? 'light' : 'dark'}
-        backgroundColor={`rgba(0, 0, 0, 0.5)`}
-        hidden={false}
-      />*/}
-      <Modal
-        animationType="none"
-        transparent={true}
-        visible={props.modalVisible}
-        onShow={() => {
-          setIsAnimating(true);
-          Animated.timing(pan, {
-            ...TIMING_CONFIG,
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: false
-          }).start(() => {
-            setIsAnimating(false);
-          });
+    <Modal
+      animationType="none"
+      transparent={true}
+      visible={props.modalVisible}
+      statusBarTranslucent // Android: lets the modal go under the status bar
+      presentationStyle="overFullScreen" // iOS: lets the modal go under the status bar
+      onShow={() => {
+        setIsAnimating(true);
+        Animated.timing(pan, {
+          ...TIMING_CONFIG,
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: false
+        }).start(() => {
+          setIsAnimating(false);
+        });
+      }}
+      onRequestClose={closeModal}
+    >
+      <Animated.View
+        id="modal-background"
+        style={{
+          backgroundColor: interpolateBackgroundColor,
+          flex: 1,
+          justifyContent: 'flex-end',
+          opacity: interpolateBackgroundOpacity,
+          paddingTop: insets.top
         }}
-        onRequestClose={closeModal}
+        {...panResponder.panHandlers}
       >
         <Animated.View
-          id="modal-background"
-          style={{
-            backgroundColor: interpolateBackgroundColor,
-            flex: 1,
-            justifyContent: 'flex-end',
-            opacity: interpolateBackgroundOpacity
-          }}
+          id="modal-content"
+          style={handleGetStyleBody(interpolateBackgroundOpacity)}
         >
-          <Animated.View
-            id="modal-content"
-            style={handleGetStyleBody(interpolateBackgroundOpacity)}
-            {...panResponder.panHandlers}
-          >
-            {/* Close Button */}
-            <View className="absolute right-5 top-2 z-[1000]">
-              <EvilIcons
-                name="close"
-                size={42}
-                color={themeColors[theme]['text-main']}
-                onPress={() => {
-                  console.log('closeModal');
-                  closeModal();
-                }}
-              />
-            </View>
+          {/* Close Button */}
+          <View className="absolute right-5 top-2 z-[1000]">
+            <EvilIcons
+              name="close"
+              size={42}
+              color={themeColors[theme]['text-main']}
+              onPress={closeModal}
+            />
+          </View>
 
-            <TextCustom type="bold" size="l" className="mb-8 text-center">
-              {props.title}
-            </TextCustom>
+          <TextCustom type="bold" size="l" className="mb-8 text-center">
+            {props.title}
+          </TextCustom>
 
-            <ScrollView style={{ flex: 1 }}>
-              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-                <View style={{ flex: 1 }}>{props.content}</View>
-              </TouchableWithoutFeedback>
-            </ScrollView>
-          </Animated.View>
+          <ScrollView style={{ flex: 1 }}>
+            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+              <View style={{ flex: 1, minHeight: '100%' }}>
+                {props.content}
+              </View>
+            </TouchableWithoutFeedback>
+          </ScrollView>
         </Animated.View>
-      </Modal>
-    </>
+      </Animated.View>
+    </Modal>
   );
 };
 

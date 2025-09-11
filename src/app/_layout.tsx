@@ -15,7 +15,7 @@ import {
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import { NetworkProvider } from '@/providers/NetworkProvider';
-import { ThemeProvider } from '@/providers/ThemeProvider';
+import { ThemeProvider, useTheme } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
 import { themeColors } from '@/utils/color-theme';
 
@@ -31,6 +31,7 @@ configureReanimatedLogger({
 });
 
 const RootLayout = () => {
+  const { theme } = useTheme();
   const [fontsLoaded] = useFonts({
     // League Gothic Variable Font (width variations)
     LeagueGothic: require('@/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf'),
@@ -53,12 +54,12 @@ const RootLayout = () => {
     <ThemeProvider>
       <NetworkProvider>
         <UserProvider>
-          <DeezeroomApp />
           <StatusBar
-            //style={theme === 'dark' ? 'light' : 'dark'}
+            style={theme === 'dark' ? 'light' : 'dark'}
             backgroundColor="transparent"
             translucent={true}
           />
+          <DeezeroomApp />
         </UserProvider>
       </NetworkProvider>
     </ThemeProvider>

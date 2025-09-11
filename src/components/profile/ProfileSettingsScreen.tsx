@@ -15,11 +15,11 @@ const ProfileSettingsScreen: FC = () => {
 
   return (
     <>
-      <StatusBar
+      {/*<StatusBar
         style={theme === 'dark' ? 'light' : 'dark'}
         backgroundColor="transparent"
         hidden={true}
-      />
+      />*/}
       <View className="flex-1 bg-bg-main">
         <Stack.Screen
           options={{
