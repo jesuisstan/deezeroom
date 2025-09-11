@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { View } from 'react-native';
 
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -14,34 +14,28 @@ const ProfileSettingsScreen: FC = () => {
   const { profile } = useUser();
 
   return (
-    <>
-      {/*<StatusBar
-        style={theme === 'dark' ? 'light' : 'dark'}
-        backgroundColor="transparent"
-        hidden={true}
+    <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
+      {/*<Stack.Screen
+        options={{
+          title: 'Profile Settings',
+          headerShown: true,
+          statusBarTranslucent: true,
+          headerStyle: {
+            backgroundColor: themeColors[theme]['bg-main']
+          },
+          headerTintColor: themeColors[theme]['text-main'],
+          headerTitleStyle: {
+            fontFamily: 'LeagueGothic',
+            fontSize: 30
+          }
+        }}
       />*/}
-      <View className="flex-1 bg-bg-main">
-        <Stack.Screen
-          options={{
-            title: 'Profile Settings',
-            headerShown: true,
-            headerStyle: {
-              backgroundColor: themeColors[theme]['bg-main']
-            },
-            headerTintColor: themeColors[theme]['text-main'],
-            headerTitleStyle: {
-              fontFamily: 'LeagueGothic',
-              fontSize: 30
-            }
-          }}
-        />
-        <View className="flex-1 p-4">
-          <View className="mt-4">
-            {profile ? <ConnectedAccountsSection profile={profile} /> : null}
-          </View>
+      <View className="flex-1 p-4">
+        <View className="mt-4">
+          {profile ? <ConnectedAccountsSection profile={profile} /> : null}
         </View>
       </View>
-    </>
+    </SafeAreaView>
   );
 };
 

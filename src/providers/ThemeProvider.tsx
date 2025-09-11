@@ -60,7 +60,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
 
   return (
     <ThemeContext.Provider value={{ theme: currentTheme, toggleTheme }}>
-      <StatusBar style={currentTheme === 'light' ? 'light' : 'dark'} />
+      {/*<StatusBar style={currentTheme === 'light' ? 'light' : 'dark'} />*/}
       <View style={themes[currentTheme]} className="flex-1">
         {children}
       </View>

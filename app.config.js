@@ -22,6 +22,7 @@ module.exports = () => ({
         foregroundImage: './src/assets/images/adaptive-icon.png',
         backgroundColor: '#0f0d13'
       },
+      edgeToEdgeEnabled: true,
       windowSoftInputMode: 'adjustResize',
       softwareKeyboardLayoutMode: 'pan',
       googleServicesFile:

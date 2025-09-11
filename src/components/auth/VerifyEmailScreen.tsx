@@ -87,11 +87,11 @@ const VerifyEmailScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
-      <StatusBar
+      {/*<StatusBar
         style={theme === 'dark' ? 'light' : 'dark'}
         backgroundColor="transparent"
         hidden={false}
-      />
+      />*/}
       <View className="flex-1 gap-4 px-6 py-6">
         <View className="flex-row items-center justify-between">
           <RouterBackButton onPress={handleBack} />

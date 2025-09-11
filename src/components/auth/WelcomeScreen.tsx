@@ -20,11 +20,11 @@ const WelcomeScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-black" edges={['top', 'bottom']}>
-      <StatusBar
+      {/*<StatusBar
         style={theme === 'dark' ? 'light' : 'dark'}
         backgroundColor="transparent"
         hidden={true}
-      />
+      />*/}
       {/* Top half: banner/cover */}
       <View className="flex-1 bg-black">
         <VideoBanner
