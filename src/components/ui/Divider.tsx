@@ -31,7 +31,7 @@ const Divider: FC<DividerProps> = ({
         isHorizontal
           ? { alignSelf: 'stretch', height: thickness ?? 1 }
           : { alignSelf: 'stretch', width: thickness ?? 1 },
-        { backgroundColor: themeColors[theme]['border'] },
+        { backgroundColor: themeColors[theme]['border'], opacity: 0.5 },
         style
       ]}
       {...rest}

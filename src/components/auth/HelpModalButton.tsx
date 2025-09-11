@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { MaterialIcons } from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 import ButtonIcon from '@/components/ui/ButtonIcon';
@@ -35,67 +35,65 @@ const HelpModalButton = () => {
         modalVisible={modalVisible}
         onClose={() => setModalVisible(false)}
         content={
-          <View className="flex-1">
+          <View className="flex-1 gap-4">
             {/* Password issues */}
-            <View className="flex-1 gap-4">
-              <View className="gap-2">
-                <TextCustom color={themeColors[theme]['text-secondary']}>
-                  Password issues
-                </TextCustom>
-                <View className="overflow-hidden rounded-lg bg-bg-secondary">
-                  <Pressable className="flex-row items-center justify-between px-5 py-4">
-                    <TextCustom type="bold">Forgot password?</TextCustom>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={themeColors[theme]['text-secondary']}
-                    />
-                  </Pressable>
-                  <Divider inset />
-                  <Pressable className="flex-row items-center justify-between px-5 py-4">
-                    <TextCustom type="bold">Change your password</TextCustom>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={themeColors[theme]['text-secondary']}
-                    />
-                  </Pressable>
-                </View>
+            <View className="gap-2">
+              <TextCustom color={themeColors[theme]['text-secondary']}>
+                Password issues
+              </TextCustom>
+              <View className="overflow-hidden rounded-lg bg-bg-secondary">
+                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Forgot password?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </Pressable>
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Change your password</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </Pressable>
               </View>
+            </View>
 
-              {/* Email issues */}
-              <View className="gap-2">
-                <TextCustom color={themeColors[theme]['text-secondary']}>
-                  Email issues
-                </TextCustom>
-                <View className="overflow-hidden rounded-lg bg-bg-secondary">
-                  <Pressable className="flex-row items-center justify-between px-5 py-4">
-                    <TextCustom type="bold">Can't access email?</TextCustom>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={themeColors[theme]['text-secondary']}
-                    />
-                  </Pressable>
-                  <Divider inset />
-                  <Pressable className="flex-row items-center justify-between px-5 py-4">
-                    <TextCustom type="bold">Incorrect email?</TextCustom>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={themeColors[theme]['text-secondary']}
-                    />
-                  </Pressable>
-                  <Divider inset />
-                  <Pressable className="flex-row items-center justify-between px-5 py-4">
-                    <TextCustom type="bold">Account compromised?</TextCustom>
-                    <MaterialIcons
-                      name="chevron-right"
-                      size={24}
-                      color={themeColors[theme]['text-secondary']}
-                    />
-                  </Pressable>
-                </View>
+            {/* Email issues */}
+            <View className="gap-2">
+              <TextCustom color={themeColors[theme]['text-secondary']}>
+                Email issues
+              </TextCustom>
+              <View className="overflow-hidden rounded-lg bg-bg-secondary">
+                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Can't access email?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </Pressable>
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Incorrect email?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </Pressable>
+                <Divider inset />
+                <Pressable className="flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Account compromised?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </Pressable>
               </View>
             </View>
           </View>

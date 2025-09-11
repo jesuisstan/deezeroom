@@ -7,10 +7,10 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpModalButton from '@/components/auth/HelpModalButton';
-import RouterBackButton from '@/components/RouterBackButton';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
+import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { auth } from '@/utils/firebase-init';

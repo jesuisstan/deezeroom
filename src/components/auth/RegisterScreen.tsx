@@ -1,7 +1,6 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import {
   createUserWithEmailAndPassword,
@@ -10,13 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpModalButton from '@/components/auth/HelpModalButton';
-import RouterBackButton from '@/components/RouterBackButton';
+import PasswordRequirements from '@/components/auth/PasswordRequirements';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
+import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
 import { auth } from '@/utils/firebase-init';
 import { UserService } from '@/utils/firebase-services';
 import shootAlert from '@/utils/shoot-alert';
@@ -34,27 +32,9 @@ const RegisterScreen: FC = () => {
   const [confirm, setConfirm] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { theme } = useTheme();
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
 
   const validateEmail = (val: string) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(val);
-  const passwordHasMinLength = password.length >= 8;
-  const passwordHasLetter = /[A-Za-z]/.test(password);
-  const passwordHasUppercase = /[A-Z]/.test(password);
-  const passwordHasNumber = /\d/.test(password);
-  // Allowed special characters (safe for routing contexts): ! @ $ % ^ * ( ) _ + - = [ ] { } : ; , .
-  const passwordHasAllowedSpecial = /[!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/.test(
-    password
-  );
-  const passwordHasForbidden =
-    /[^A-Za-z0-9!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/.test(password);
-  const passwordHasLetterAndUppercase =
-    passwordHasLetter && passwordHasUppercase;
-  const isPasswordValid =
-    passwordHasMinLength &&
-    passwordHasLetterAndUppercase &&
-    passwordHasNumber &&
-    passwordHasAllowedSpecial &&
-    !passwordHasForbidden;
   const isConfirmValid = confirm.length > 0 && confirm === password;
 
   useEffect(() => {
@@ -63,6 +43,13 @@ const RegisterScreen: FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialEmail]);
+
+  // Update confirm error when password changes
+  useEffect(() => {
+    if (confirm.length > 0) {
+      setConfirmError(confirm === password ? '' : 'Passwords do not match');
+    }
+  }, [password, confirm]);
 
   const handleSubmit = async () => {
     if (!validateEmail(email)) {
@@ -226,76 +213,10 @@ const RegisterScreen: FC = () => {
             />
 
             {/* Password requirements */}
-            <View className="gap-2 rounded-lg bg-bg-secondary p-4">
-              <TextCustom type="bold" size="s">
-                Your password must include
-              </TextCustom>
-              <View className="gap-2">
-                <View className="flex-row items-center gap-3">
-                  <MaterialIcons
-                    name={'check-circle'}
-                    size={20}
-                    color={
-                      themeColors[theme][
-                        passwordHasMinLength
-                          ? 'intent-success'
-                          : 'text-disabled'
-                      ]
-                    }
-                  />
-                  <TextCustom className="flex-1" size="s">
-                    At least 8 characters
-                  </TextCustom>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <MaterialIcons
-                    name={'check-circle'}
-                    size={20}
-                    color={
-                      themeColors[theme][
-                        passwordHasLetterAndUppercase
-                          ? 'intent-success'
-                          : 'text-disabled'
-                      ]
-                    }
-                  />
-                  <TextCustom className="flex-1" size="s">
-                    At least 1 letter (including 1 uppercase)
-                  </TextCustom>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <MaterialIcons
-                    name={'check-circle'}
-                    size={20}
-                    color={
-                      passwordHasNumber
-                        ? themeColors[theme]['intent-success']
-                        : themeColors[theme]['text-disabled']
-                    }
-                  />
-                  <TextCustom className="flex-1" size="s">
-                    At least 1 number
-                  </TextCustom>
-                </View>
-                <View className="flex-row items-center gap-3">
-                  <MaterialIcons
-                    name={'check-circle'}
-                    size={20}
-                    color={
-                      themeColors[theme][
-                        passwordHasAllowedSpecial
-                          ? 'intent-success'
-                          : 'text-disabled'
-                      ]
-                    }
-                  />
-                  <TextCustom className="flex-1" size="s">
-                    At least 1 of special characters ! @ $ % ^ * ( ) _ + - = [ ]{' '}
-                    {} : ; , .
-                  </TextCustom>
-                </View>
-              </View>
-            </View>
+            <PasswordRequirements
+              password={password}
+              onValidationChange={setIsPasswordValid}
+            />
 
             {/* Submit Button */}
             <ButtonCustom

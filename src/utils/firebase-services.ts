@@ -308,6 +308,11 @@ export class UserService {
           success: false,
           error: 'Email address is already in use by another account'
         };
+      } else if (error.code === 'auth/user-token-expired') {
+        return {
+          success: false,
+          error: 'Google account token expired'
+        };
       }
 
       return {

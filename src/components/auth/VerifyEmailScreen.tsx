@@ -6,8 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import RouterBackButton from '@/components/RouterBackButton';
 import ButtonCustom from '@/components/ui/ButtonCustom';
+import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';

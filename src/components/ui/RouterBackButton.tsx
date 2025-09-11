@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import ButtonIcon from '@/components/ui/ButtonIcon';
@@ -23,9 +23,9 @@ const RouterBackButton = ({ onPress }: RouterBackButtonProps) => {
 
   return (
     <ButtonIcon accessibilityLabel="Back" onPress={handleBackPress}>
-      <MaterialIcons
-        name="chevron-left"
-        size={42}
+      <Entypo
+        name="chevron-thin-left"
+        size={25}
         color={themeColors[theme]['text-main']}
       />
     </ButtonIcon>

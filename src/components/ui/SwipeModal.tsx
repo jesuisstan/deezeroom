@@ -7,6 +7,7 @@ import {
   Keyboard,
   Modal,
   PanResponder,
+  ScrollView,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
@@ -164,6 +165,7 @@ const SwipeModal = (props: SwipeModalProps) => {
     );
 
     return () => backHandler.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modalVisible]);
 
   let handleGetStyleBody = (opacity: any) => {
@@ -171,8 +173,8 @@ const SwipeModal = (props: SwipeModalProps) => {
       {
         flex: 1,
         backgroundColor: themeColors[theme]['bg-main'],
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
         paddingTop: 16,
         paddingHorizontal: 20,
         paddingBottom: 40
@@ -250,11 +252,11 @@ const SwipeModal = (props: SwipeModalProps) => {
               {props.title}
             </TextCustom>
 
-            <View style={{ flex: 1 }}>
+            <ScrollView style={{ flex: 1 }}>
               <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
                 <View style={{ flex: 1 }}>{props.content}</View>
               </TouchableWithoutFeedback>
-            </View>
+            </ScrollView>
           </Animated.View>
         </Animated.View>
       </Modal>
