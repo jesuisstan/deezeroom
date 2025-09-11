@@ -1,0 +1,12 @@
+name: Deploy web Deezeroom
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy_web:
+    name: Deploy web Deezeroom
+    type: deploy
+    params:
+      prod: true

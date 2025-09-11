@@ -23,7 +23,9 @@
     "build:dev:android": "npm run lint:fix && eas build --profile development --platform android",
     "build:dev:ios": "npm run lint:fix && eas build --profile development --platform ios",
     "build:dev:web": "npm run lint:fix && eas build --profile development --platform web",
-    "build:prod:android": "npm run lint:fix && eas build --profile production --platform android"
+    "build:prod:android": "npm run lint:fix && eas build --profile production --platform android",
+    "deploy:web:export": "npx expo export --platform web",
+    "deploy:web": "eas deploy --pro"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
