@@ -8,7 +8,7 @@ module.exports = () => ({
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: false,
+    newArchEnabled: true,
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.krivtsoff.deezeroom',
