@@ -96,7 +96,7 @@ const VerifyEmailScreen: FC = () => {
         <View className="items-center">
           <TextCustom type="title">Verify your email</TextCustom>
         </View>
-        <View className="gap-4">
+        <View>
           <TextCustom>We sent a verification link to:</TextCustom>
           <TextCustom type="bold">{user?.email}</TextCustom>
           <TextCustom>

@@ -24,7 +24,7 @@ import { TextCustom } from './TextCustom';
 interface SwipeModalProps {
   modalVisible: boolean; // Whether the modal is visible
   setVisible: (visible: boolean) => void; // Function to set the visibility of the modal
-  content: ReactNode; // Content of the modal
+  children: ReactNode; // Content of the modal passed as children
   onClose?: () => void; // Side effect function, should be used to reset state or perform other side effects
   duration?: number; // Duration of the animation
   disableSwipe?: boolean; // Disable the swipe gesture
@@ -286,7 +286,7 @@ const SwipeModal = (props: SwipeModalProps) => {
           <ScrollView style={{ flex: 1 }}>
             <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
               <View style={{ flex: 1, minHeight: '100%' }}>
-                {props.content}
+                {props.children}
               </View>
             </TouchableWithoutFeedback>
           </ScrollView>

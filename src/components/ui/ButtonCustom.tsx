@@ -27,6 +27,7 @@ type ButtonProps = {
   className?: string;
   textClassName?: string;
   fullWidth?: boolean;
+  color?: string;
 };
 
 const baseClasses =
@@ -36,17 +37,6 @@ const sizeClasses: Record<ButtonSize, string> = {
   sm: 'px-6 py-1 gap-2 min-h-[30px]',
   md: 'px-8 py-2 gap-2.5 min-h-[40px]',
   lg: 'px-10 py-3 gap-3 min-h-[48px]'
-};
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    'bg-primary active:bg-primary/90 hover:bg-primary/95 disabled:bg-disabled',
-  secondary:
-    'bg-bg-secondary active:bg-bg-secondary/90 hover:bg-bg-secondary/95 disabled:bg-disabled',
-  outline:
-    'bg-transparent active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5 disabled:bg-disabled',
-  ghost:
-    'bg-transparent transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
 };
 
 const ButtonCustom = ({
@@ -60,9 +50,19 @@ const ButtonCustom = ({
   rightIcon,
   className,
   textClassName,
-  fullWidth = false
+  fullWidth = false,
+  color
 }: ButtonProps) => {
   const { theme } = useTheme();
+
+  const variantClasses: Record<ButtonVariant, string> = {
+    primary: 'disabled:bg-disabled',
+    secondary: 'disabled:bg-disabled',
+    outline:
+      'bg-transparent active:bg-bg-tertiary-hover/10 hover:bg-bg-tertiary-hover/5 disabled:bg-disabled',
+    ghost:
+      'bg-transparent transparent active:bg-border/10 hover:bg-border/5 disabled:bg-disabled'
+  };
 
   const containerClasses = clsx(
     baseClasses,
@@ -84,6 +84,16 @@ const ButtonCustom = ({
 
   const labelClasses = clsx('font-bold', textClassName);
 
+  const backgroundColor = (() => {
+    if (variant === 'primary') {
+      return color || themeColors[theme]['primary'];
+    }
+    if (variant === 'secondary') {
+      return color || themeColors[theme]['bg-secondary'];
+    }
+    return 'transparent';
+  })();
+
   return (
     <View
       className={clsx(
@@ -102,6 +112,7 @@ const ButtonCustom = ({
         onPress={onPress}
         disabled={disabled || loading}
         className={containerClasses}
+        style={{ backgroundColor }}
       >
         {leftIcon ? <View className="mr-1.5">{leftIcon}</View> : null}
         {loading ? (

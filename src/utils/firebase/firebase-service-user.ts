@@ -1,13 +1,18 @@
 import { User } from 'firebase/auth';
 import {
+  collection,
+  deleteDoc,
   deleteField,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore';
 
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
@@ -417,5 +422,76 @@ export class UserService {
         callback(null);
       }
     });
+  }
+
+  // Securely delete current user's account and related data
+  static async deleteAccountWithPassword(
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const { EmailAuthProvider, reauthenticateWithCredential, deleteUser } =
+        await import('firebase/auth');
+      const { auth } = await import('@/utils/firebase/firebase-init');
+
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        return { success: false, message: 'No authenticated user' };
+      }
+
+      const normalizedInputEmail = email.trim().toLowerCase();
+      const normalizedUserEmail = (currentUser.email || '')
+        .trim()
+        .toLowerCase();
+      if (normalizedUserEmail !== normalizedInputEmail) {
+        return {
+          success: false,
+          message: 'Entered email does not match your profile email'
+        };
+      }
+
+      if (!password || password.length === 0) {
+        return { success: false, message: 'Please enter your password' };
+      }
+
+      // Reauthenticate with email/password
+      const credential = EmailAuthProvider.credential(
+        normalizedInputEmail,
+        password
+      );
+      await reauthenticateWithCredential(currentUser, credential);
+
+      // Capture uid before any auth changes
+      const uid = currentUser.uid;
+
+      // 1) Delete user-generated content from Firestore first (to keep permissions)
+      // Delete votes
+      const votesQ = query(collection(db, 'votes'), where('userId', '==', uid));
+      const votesSnap = await getDocs(votesQ);
+      await Promise.all(votesSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete playlists created by the user
+      const playlistsQ = query(
+        collection(db, 'playlists'),
+        where('createdBy', '==', uid)
+      );
+      const playlistsSnap = await getDocs(playlistsQ);
+      await Promise.all(playlistsSnap.docs.map((d) => deleteDoc(d.ref)));
+
+      // Delete user profile document
+      const userRef = doc(db, this.collection, uid);
+      await deleteDoc(userRef);
+
+      // 2) Delete the auth user
+      await deleteUser(currentUser);
+
+      return { success: true, message: 'Account deleted successfully' };
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      return {
+        success: false,
+        message: getFirebaseErrorMessage(error) || 'Failed to delete account'
+      };
+    }
   }
 }

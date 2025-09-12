@@ -212,9 +212,10 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
           title="Setup Password"
           modalVisible={showPasswordModal}
           setVisible={setShowPasswordModal}
-          content={<SetupPassword userEmail={user.email} />}
           fade={true}
-        />
+        >
+          <SetupPassword userEmail={user.email} />
+        </SwipeModal>
       )}
     </View>
   ) : null;
