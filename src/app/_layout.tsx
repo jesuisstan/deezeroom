@@ -1,7 +1,7 @@
-import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useFonts } from 'expo-font';
