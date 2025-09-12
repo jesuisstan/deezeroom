@@ -1,7 +1,7 @@
 {
   "name": "deezeroom",
   "main": "expo-router/entry",
-  "version": "1.1.54",
+  "version": "1.54.0",
   "scripts": {
     "start": "expo start",
     "start:clear": "npx expo start --clear",
