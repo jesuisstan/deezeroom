@@ -6,7 +6,7 @@ import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
 import shootAlert from '@/utils/shoot-alert';
 
-export default function TabTwoScreen() {
+const TabTwoScreen = () => {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
@@ -32,4 +32,6 @@ export default function TabTwoScreen() {
       </TextCustom>
     </ParallaxScrollView>
   );
-}
+};
+
+export default TabTwoScreen;

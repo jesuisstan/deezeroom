@@ -10,7 +10,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import shootAlert from '@/utils/shoot-alert';
 
-export default function HomeScreen() {
+const HomeScreen = () => {
   const [name, setName] = useState('');
   const { theme } = useTheme();
 
@@ -120,4 +120,6 @@ export default function HomeScreen() {
       />
     </ScrollView>
   );
-}
+};
+
+export default HomeScreen;

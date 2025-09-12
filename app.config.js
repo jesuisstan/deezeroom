@@ -18,11 +18,12 @@ module.exports = () => ({
     },
     android: {
       package: 'com.krivtsoff.deezeroom',
-      adaptiveIcon: {
-        foregroundImage: './src/assets/images/adaptive-icon.png',
-        backgroundColor: '#0f0d13'
-      },
       edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      adaptiveIcon: {
+        backgroundColor: '#0f0d13',
+        foregroundImage: './src/assets/images/adaptive-icon.png'
+      },
       windowSoftInputMode: 'adjustResize',
       softwareKeyboardLayoutMode: 'pan',
       googleServicesFile:
@@ -58,8 +59,11 @@ module.exports = () => ({
         'expo-splash-screen',
         {
           image: './src/assets/images/splash-icon.png',
-          backgroundColor: '#0f0d13',
-          imageWidth: 150
+          imageWidth: 150,
+          backgroundColor: '#fdfcfe',
+          dark: {
+            backgroundColor: '#0f0d13'
+          }
         }
       ],
       ['expo-audio'],
@@ -72,7 +76,8 @@ module.exports = () => ({
       ]
     ],
     experiments: {
-      typedRoutes: true
+      typedRoutes: true,
+      reactCompiler: true
     },
     extra: {
       eas: {

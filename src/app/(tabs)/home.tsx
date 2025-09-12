@@ -4,7 +4,7 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
 
-export default function HomeScreen() {
+const HomeScreen = () => {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -71,4 +71,6 @@ export default function HomeScreen() {
       </View>
     </ParallaxScrollView>
   );
-}
+};
+
+export default HomeScreen;

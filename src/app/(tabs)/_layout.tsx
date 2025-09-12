@@ -19,7 +19,7 @@ const HeaderRight = () => {
   );
 };
 
-export default function TabLayout() {
+const TabLayout = () => {
   const { theme } = useTheme();
 
   return (
@@ -98,4 +98,6 @@ export default function TabLayout() {
       />
     </Tabs>
   );
-}
+};
+
+export default TabLayout;
