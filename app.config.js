@@ -8,7 +8,7 @@ module.exports = () => ({
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
+    newArchEnabled: false,
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.krivtsoff.deezeroom',
@@ -80,7 +80,7 @@ module.exports = () => ({
     ],
     experiments: {
       typedRoutes: true,
-      reactCompiler: true
+      reactCompiler: false
     },
     extra: {
       eas: {
