@@ -8,7 +8,7 @@ import { HapticTab } from '@/components/ui/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 const HeaderRight = () => {
   return (

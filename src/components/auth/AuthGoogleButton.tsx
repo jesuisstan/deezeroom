@@ -15,8 +15,8 @@ import {
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
-import { auth } from '@/utils/firebase-init';
+import { themeColors } from '@/style/color-theme';
+import { auth } from '@/utils/firebase/firebase-init';
 import shootAlert from '@/utils/shoot-alert';
 
 const AuthGoogleButton: FC = () => {

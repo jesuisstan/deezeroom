@@ -11,7 +11,7 @@ import clsx from 'clsx';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 export type InputVariant = 'default' | 'filled' | 'outline';
 
@@ -30,11 +30,11 @@ type InputProps = TextInputProps & {
 };
 
 const containerBase = 'w-full';
-const inputBase = 'text-base text-text-main px-4 py-3 rounded-lg';
+const inputBase = 'text-base text-text-main px-4 py-3 rounded-xl';
 const variantStyles: Record<InputVariant, string> = {
-  default: 'bg-bg-secondary rounded-lg',
-  filled: 'bg-bg-secondary rounded-lg',
-  outline: 'bg-transparent rounded-lg'
+  default: 'bg-bg-secondary rounded-xl',
+  filled: 'bg-bg-secondary rounded-xl',
+  outline: 'bg-transparent rounded-xl'
 };
 
 const InputCustom = forwardRef<TextInput, InputProps>(function Input(

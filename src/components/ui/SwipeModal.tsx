@@ -4,6 +4,7 @@ import {
   BackHandler,
   Dimensions,
   Easing,
+  InteractionManager,
   Keyboard,
   Modal,
   PanResponder,
@@ -16,18 +17,19 @@ import EvilIcons from '@expo/vector-icons/EvilIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 import { TextCustom } from './TextCustom';
 
 interface SwipeModalProps {
-  modalVisible: boolean;
-  onClose?: () => void;
-  content: ReactNode;
-  duration?: number;
-  disableSwipe?: boolean;
-  fade?: boolean;
-  title?: string;
+  modalVisible: boolean; // Whether the modal is visible
+  setVisible: (visible: boolean) => void; // Function to set the visibility of the modal
+  content: ReactNode; // Content of the modal
+  onClose?: () => void; // Side effect function, should be used to reset state or perform other side effects
+  duration?: number; // Duration of the animation
+  disableSwipe?: boolean; // Disable the swipe gesture
+  fade?: boolean; // Fade the background
+  title?: string; // Title of the modal
 }
 
 const SwipeModal = (props: SwipeModalProps) => {
@@ -36,7 +38,7 @@ const SwipeModal = (props: SwipeModalProps) => {
   const insets = useSafeAreaInsets();
 
   const TIMING_CONFIG = {
-    duration: props.duration ? props.duration : 242,
+    duration: props.duration ? props.duration : 250,
     easing: Easing.inOut(Easing.ease)
   };
 
@@ -56,7 +58,10 @@ const SwipeModal = (props: SwipeModalProps) => {
       setIsAnimating(false);
       // Close modal only after animation is complete
       setTimeout(() => {
-        props.onClose?.();
+        InteractionManager.runAfterInteractions(() => {
+          props.setVisible(false);
+          props.onClose?.();
+        });
       }, 100);
     });
   };
@@ -133,7 +138,10 @@ const SwipeModal = (props: SwipeModalProps) => {
               setIsAnimating(false);
               // Close modal only after the animation is complete
               setTimeout(() => {
-                props.onClose?.();
+                InteractionManager.runAfterInteractions(() => {
+                  props.setVisible(false);
+                  props.onClose?.();
+                });
               }, 100);
             });
           } else if (gestureState.vy >= 0.5 || gestureState.dy >= 100) {

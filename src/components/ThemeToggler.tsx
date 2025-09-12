@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 const Icon = (props: any) => {
   return (

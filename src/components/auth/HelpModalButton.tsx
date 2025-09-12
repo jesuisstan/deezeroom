@@ -9,7 +9,7 @@ import Divider from '@/components/ui/Divider';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 const HelpModalButton = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -20,7 +20,11 @@ const HelpModalButton = () => {
       {/* Help Modal Trigger Button */}
       <ButtonIcon
         accessibilityLabel="Help"
-        onPress={() => setModalVisible(true)}
+        onPress={() => {
+          if (!modalVisible) {
+            setModalVisible(true);
+          }
+        }}
       >
         <FontAwesome6
           name="circle-question"
@@ -33,7 +37,7 @@ const HelpModalButton = () => {
       <SwipeModal
         title="Need help?"
         modalVisible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        setVisible={setModalVisible}
         content={
           <View className="flex-1 gap-4">
             {/* Password issues */}
@@ -41,7 +45,7 @@ const HelpModalButton = () => {
               <TextCustom color={themeColors[theme]['text-secondary']}>
                 Password issues
               </TextCustom>
-              <View className="overflow-hidden rounded-lg bg-bg-secondary">
+              <View className="overflow-hidden rounded-xl bg-bg-secondary">
                 <Pressable
                   className="flex-row items-center justify-between px-5 py-4"
                   onPress={() =>
@@ -72,7 +76,7 @@ const HelpModalButton = () => {
               <TextCustom color={themeColors[theme]['text-secondary']}>
                 Email issues
               </TextCustom>
-              <View className="overflow-hidden rounded-lg bg-bg-secondary">
+              <View className="overflow-hidden rounded-xl bg-bg-secondary">
                 <Pressable className="flex-row items-center justify-between px-5 py-4">
                   <TextCustom type="bold">Can't access email?</TextCustom>
                   <Entypo

@@ -10,7 +10,7 @@ import clsx from 'clsx';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -33,7 +33,7 @@ const baseClasses =
   'flex-row items-center justify-center transition-all duration-200';
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-6 py-1 gap-2 min-h-[24px]',
+  sm: 'px-6 py-1 gap-2 min-h-[30px]',
   md: 'px-8 py-2 gap-2.5 min-h-[40px]',
   lg: 'px-10 py-3 gap-3 min-h-[48px]'
 };
@@ -87,7 +87,7 @@ const ButtonCustom = ({
   return (
     <View
       className={clsx(
-        'overflow-hidden rounded-lg',
+        'overflow-hidden rounded-xl',
         fullWidth ? 'w-full' : undefined,
         variant === 'outline' && 'border border-border'
       )}
@@ -116,7 +116,7 @@ const ButtonCustom = ({
         ) : (
           <TextCustom
             className={labelClasses}
-            size={size === 'sm' ? 's' : 'm'}
+            size={size === 'lg' ? 'l' : 'm'}
             color={
               disabled
                 ? themeColors[theme]['text-main']

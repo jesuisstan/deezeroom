@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { AntDesign } from '@expo/vector-icons';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 interface ProviderIconProps {
   provider: 'google' | 'emailPassword';

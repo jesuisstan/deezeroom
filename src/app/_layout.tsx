@@ -16,7 +16,7 @@ import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 import '@/global.css';
 

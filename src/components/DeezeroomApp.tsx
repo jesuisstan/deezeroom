@@ -4,10 +4,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import AuthGuard from '@/components/auth/AuthGuard';
-import SignOutButton from '@/components/profile/SignOutButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 const DeezeroomApp = () => {
   const { theme } = useTheme();
@@ -38,48 +37,17 @@ const DeezeroomApp = () => {
               headerShown: false
             }}
           />
+
           <Stack.Screen
-            name="profile/index"
-            options={{
-              title: 'Profile',
-              headerShown: true,
-              statusBarTranslucent: true,
-              headerRight: () => <SignOutButton />,
-              headerStyle: {
-                backgroundColor: themeColors[theme]['primary']
-              },
-              headerTintColor: themeColors[theme]['text-main'],
-              headerTitleStyle: {
-                fontFamily: 'LeagueGothic',
-                fontSize: 30
-              }
-            }}
-          />
-          <Stack.Screen
-            name="profile/settings"
-            options={{
-              title: 'Profile Settings',
-              headerShown: true,
-              statusBarTranslucent: true,
-              headerStyle: {
-                backgroundColor: themeColors[theme]['primary']
-              },
-              headerTintColor: themeColors[theme]['text-main'],
-              headerTitleStyle: {
-                fontFamily: 'LeagueGothic',
-                fontSize: 30
-              }
-            }}
-          />
-          {/* Do not delete! Basic home screen, not used, shows ActivityIndicatorScreen */}
-          <Stack.Screen
-            name="index"
+            name="profile"
             options={{
               headerShown: false
             }}
           />
         </Stack.Protected>
-        <Stack.Protected guard={user === null}>
+
+        {/* Protected screens available to unauthenticated users */}
+        <Stack.Protected guard={user === null || user === undefined}>
           <Stack.Screen
             name="auth/index"
             options={{

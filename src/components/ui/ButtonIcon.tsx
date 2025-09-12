@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import clsx from 'clsx';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 type ButtonIconProps = {
   accessibilityLabel: string;

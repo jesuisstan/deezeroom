@@ -4,7 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colorScheme } from 'nativewind';
 
-import { themes } from '@/utils/color-theme';
+import { themes } from '@/style/color-theme';
 
 interface ThemeProviderProps {
   children: React.ReactNode;

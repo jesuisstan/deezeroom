@@ -7,7 +7,7 @@ import ButtonCustom from '@/components/ui/ButtonCustom';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 import shootAlert from '@/utils/shoot-alert';
 
 export default function HomeScreen() {
@@ -91,28 +91,28 @@ export default function HomeScreen() {
       <Divider />
 
       <ButtonCustom
-        title="PRIMARY"
+        title="Primary"
         size="lg"
         variant="primary"
         fullWidth
         textClassName="tracking-wider"
       />
       <ButtonCustom
-        title="OUTLINE"
+        title="Outline"
         size="lg"
         variant="outline"
         fullWidth
         textClassName="tracking-wider"
       />
       <ButtonCustom
-        title="SECONDARY"
+        title="Secondary"
         size="lg"
         variant="secondary"
         fullWidth
         textClassName="tracking-wider"
       />
       <ButtonCustom
-        title="GHOST"
+        title="Ghost"
         size="lg"
         variant="ghost"
         fullWidth

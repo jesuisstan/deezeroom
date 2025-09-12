@@ -3,7 +3,7 @@ import { Text, type TextProps } from 'react-native';
 import clsx from 'clsx';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 export type TextCustomProps = TextProps & {
   type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';

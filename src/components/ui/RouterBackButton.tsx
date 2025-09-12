@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 
 import ButtonIcon from '@/components/ui/ButtonIcon';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 type RouterBackButtonProps = {
   onPress?: () => void;

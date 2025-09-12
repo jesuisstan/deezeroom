@@ -14,8 +14,11 @@ import {
   User
 } from 'firebase/auth';
 
-import { auth } from '@/utils/firebase-init';
-import { UserProfile, UserService } from '@/utils/firebase-services';
+import { auth } from '@/utils/firebase/firebase-init';
+import {
+  UserProfile,
+  UserService
+} from '@/utils/firebase/firebase-service-user';
 import shootAlert from '@/utils/shoot-alert';
 
 type TUserContextType = {

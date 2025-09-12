@@ -5,13 +5,14 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import SetupPassword from '@/components/profile/SetupPassword';
 import ButtonIcon from '@/components/ui/ButtonIcon';
+import Divider from '@/components/ui/Divider';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { themeColors } from '@/utils/color-theme';
-import { UserProfile } from '@/utils/firebase-services';
+import { themeColors } from '@/style/color-theme';
+import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
 interface ConnectedAccountsSectionProps {
   profile: UserProfile;
@@ -79,8 +80,9 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
   }
 
   return linkedProviders?.length > 0 ? (
-    <View className="gap-4 rounded-lg bg-bg-secondary p-4">
-      <TextCustom>Connected Accounts</TextCustom>
+    <View className="gap-4">
+      <TextCustom type="subtitle">Log in</TextCustom>
+      <Divider />
 
       <>
         {linkedProviders.map((provider, index) => (
@@ -132,7 +134,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
         ))}
 
         {linkedProviders.length > 1 && (
-          <View className="flex-row items-center gap-2 overflow-hidden rounded-lg bg-bg-tertiary p-3">
+          <View className="flex-row items-center gap-2 overflow-hidden rounded-xl bg-bg-tertiary p-3">
             <MaterialIcons
               name="info"
               size={20}
@@ -152,7 +154,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
           <Pressable
             onPress={handleLinkGoogle}
             disabled={isLinking}
-            className="flex-row items-center rounded-lg border border-dashed border-border p-3"
+            className="flex-row items-center rounded-xl border border-dashed border-border p-3"
           >
             <View className="mr-3">
               <ProviderIcon provider="google" loading={isLinking} />
@@ -165,11 +167,13 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Connect your Google account
               </TextCustom>
             </View>
-            <MaterialIcons
-              name="add"
-              size={20}
-              color={themeColors[theme]['text-main']}
-            />
+            <ButtonIcon accessibilityLabel="Link Google Account">
+              <MaterialIcons
+                name="add"
+                size={21}
+                color={themeColors[theme]['text-main']}
+              />
+            </ButtonIcon>
           </Pressable>
         )}
 
@@ -177,7 +181,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
         {!profile.authProviders?.emailPassword?.linked && (
           <Pressable
             onPress={() => setShowPasswordModal(true)}
-            className="flex-row items-center rounded-lg border border-dashed border-border p-3"
+            className="flex-row items-center rounded-xl border border-dashed border-border p-3"
           >
             <View className="mr-3">
               <ProviderIcon provider="emailPassword" loading={isLinking} />
@@ -188,11 +192,16 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Enable email/password sign-in
               </TextCustom>
             </View>
-            <MaterialIcons
-              name="add"
-              size={20}
-              color={themeColors[theme]['text-main']}
-            />
+            <ButtonIcon
+              accessibilityLabel="Setup Password"
+              onPress={() => setShowPasswordModal(true)}
+            >
+              <MaterialIcons
+                name="add"
+                size={21}
+                color={themeColors[theme]['text-main']}
+              />
+            </ButtonIcon>
           </Pressable>
         )}
       </>
@@ -202,7 +211,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
         <SwipeModal
           title="Setup Password"
           modalVisible={showPasswordModal}
-          onClose={() => setShowPasswordModal(false)}
+          setVisible={setShowPasswordModal}
           content={<SetupPassword userEmail={user.email} />}
           fade={true}
         />

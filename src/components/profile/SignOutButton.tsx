@@ -3,7 +3,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import ButtonIcon from '@/components/ui/ButtonIcon';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 const SignOutButton = () => {
   const { signOut } = useUser();

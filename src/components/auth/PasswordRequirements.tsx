@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 interface PasswordRequirementsProps {
   password: string;
@@ -43,7 +43,7 @@ const PasswordRequirements: FC<PasswordRequirementsProps> = ({
   }, [isPasswordValid, onValidationChange]);
 
   return (
-    <View className="gap-2 rounded-lg bg-bg-secondary p-4">
+    <View className="gap-2 rounded-xl bg-bg-secondary p-4">
       <TextCustom type="bold" size="s">
         Your password must include
       </TextCustom>

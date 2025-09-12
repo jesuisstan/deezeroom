@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { View, ViewProps } from 'react-native';
 
 import { useTheme } from '@/providers/ThemeProvider';
-import { themeColors } from '@/utils/color-theme';
+import { themeColors } from '@/style/color-theme';
 
 type DividerProps = ViewProps & {
   orientation?: 'horizontal' | 'vertical';
