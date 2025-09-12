@@ -35,6 +35,11 @@ const AuthGoogleButton: FC = () => {
         await GoogleSignin.hasPlayServices();
       }
 
+      // Force account chooser by clearing previous Google session
+      try {
+        await GoogleSignin.signOut();
+      } catch {}
+
       // Perform sign in
       const result = await GoogleSignin.signIn();
       if (result.type === 'success') {
