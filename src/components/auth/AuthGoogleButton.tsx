@@ -8,11 +8,11 @@ import {
 } from 'react-native';
 
 import {
-  GoogleSignin,
-  isErrorWithCode,
-  statusCodes
-} from '@react-native-google-signin/google-signin';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithPopup,
+  signInWithRedirect
+} from 'firebase/auth';
 
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -30,77 +30,103 @@ const AuthGoogleButton: FC = () => {
     try {
       console.log('Starting Google sign in');
 
-      // Check Play Services (for Android)
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices();
-      }
-
-      // Force account chooser by clearing previous Google session
-      try {
-        await GoogleSignin.signOut();
-      } catch {}
-
-      // Perform sign in
-      const result = await GoogleSignin.signIn();
-      if (result.type === 'success') {
-        console.log('Google sign-in successful');
+      if (Platform.OS === 'web') {
+        // Web flow: use Firebase Auth popup (fallback to redirect if blocked)
+        const provider = new GoogleAuthProvider();
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (err: any) {
+          const message = String(err?.message || '');
+          if (
+            err?.code === 'auth/popup-blocked' ||
+            err?.code === 'auth/popup-closed-by-user' ||
+            message.includes('Cross-Origin-Opener-Policy')
+          ) {
+            await signInWithRedirect(auth, provider);
+          } else {
+            throw err;
+          }
+        }
+        console.log('Firebase web sign-in initiated');
       } else {
-        console.log('Google sign-in failed');
+        // Native (iOS/Android) flow using Google Sign-In
+        const { GoogleSignin } = await import(
+          '@react-native-google-signin/google-signin'
+        );
+
+        if (Platform.OS === 'android') {
+          await GoogleSignin.hasPlayServices();
+        }
+
+        // Force account chooser by clearing previous Google session
+        try {
+          await GoogleSignin.signOut();
+        } catch {}
+
+        const result = await GoogleSignin.signIn();
+        if (result.type === 'success') {
+          console.log('Google sign-in successful');
+        } else {
+          console.log('Google sign-in failed');
+        }
+
+        const { idToken } = await GoogleSignin.getTokens();
+        if (!idToken) {
+          console.error('No idToken received');
+          shootAlert(
+            'toast',
+            'Error',
+            'No token received from Google',
+            'error'
+          );
+          return;
+        }
+
+        // Create Firebase credential from Google ID token with GoogleAuthProvider ("translates" Google ID token to Firebase credential)
+        const credential = GoogleAuthProvider.credential(idToken);
+        // Sign in to Firebase with Google credential
+        await signInWithCredential(auth, credential);
+        console.log('Firebase native sign-in successful');
       }
-
-      // Get ID token from Google for Firebase
-      const { idToken } = await GoogleSignin.getTokens();
-
-      if (!idToken) {
-        console.error('No idToken received');
-        shootAlert('toast', 'Error', 'No token received from Google', 'error');
-        return;
-      }
-
-      // Create Firebase credential from Google ID token with GoogleAuthProvider ("translates" Google ID token to Firebase credential)
-      const credential = GoogleAuthProvider.credential(idToken);
-      console.log('Created Firebase credential');
-
-      // Sign in to Firebase with Google credential
-      await signInWithCredential(auth, credential);
-      console.log('Firebase sign-in successful');
 
       // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
     } catch (error) {
       console.log('Google sign-in error:', error);
-
-      if (isErrorWithCode(error)) {
-        switch (error.code) {
-          case statusCodes.SIGN_IN_CANCELLED:
-            console.log('User cancelled the sign-in flow');
-            break;
-          case statusCodes.IN_PROGRESS:
-            console.log('Sign-in is already in progress');
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            shootAlert(
-              'toast',
-              'Error',
-              'Google Play Services not available',
-              'error'
-            );
-            break;
-          default:
-            shootAlert(
-              'toast',
-              'Sign in error',
-              'Failed to sign in with Google. Please try again.',
-              'error'
-            );
-        }
-      } else {
-        shootAlert(
-          'toast',
-          'Sign in error',
-          'Failed to sign in with Google. Please try again.',
-          'error'
-        );
+      // Try to map common native errors when module is available; otherwise show generic
+      if (Platform.OS !== 'web') {
+        try {
+          const { isErrorWithCode, statusCodes } = await import(
+            '@react-native-google-signin/google-signin'
+          );
+          if (isErrorWithCode(error)) {
+            switch ((error as any).code) {
+              case statusCodes.SIGN_IN_CANCELLED:
+                console.log('User cancelled the sign-in flow');
+                return;
+              case statusCodes.IN_PROGRESS:
+                console.log('Sign-in is already in progress');
+                return;
+              case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+                shootAlert(
+                  'toast',
+                  'Error',
+                  'Google Play Services not available',
+                  'error'
+                );
+                return;
+              default:
+                break;
+            }
+          }
+        } catch {}
       }
+
+      shootAlert(
+        'toast',
+        'Sign in error',
+        'Failed to sign in with Google. Please try again.',
+        'error'
+      );
     } finally {
       setIsGoogleLoading(false);
     }

@@ -229,6 +229,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
   const signOut = async () => {
     try {
+      setLoading(true);
       // Sign out from Firebase (invalidate auth token, remove user from auth state)
       await firebaseSignOut(auth);
 
@@ -246,6 +247,8 @@ export const UserProvider: FC<TUserProviderProps> = ({
     } catch (error) {
       console.error('Sign out error:', error);
       shootAlert('toast', 'Error', 'Failed to sign out', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -167,11 +167,15 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Connect your Google account
               </TextCustom>
             </View>
-            <ButtonIcon accessibilityLabel="Link Google Account">
+            <ButtonIcon
+              accessibilityLabel="Link Google Account"
+              backgroundColor={themeColors[theme]['primary']}
+              className="h-9 w-9"
+            >
               <MaterialIcons
                 name="add"
                 size={21}
-                color={themeColors[theme]['text-main']}
+                color={themeColors[theme]['white']}
               />
             </ButtonIcon>
           </Pressable>
@@ -195,11 +199,13 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             <ButtonIcon
               accessibilityLabel="Setup Password"
               onPress={() => setShowPasswordModal(true)}
+              backgroundColor={themeColors[theme]['primary']}
+              className="h-9 w-9"
             >
               <MaterialIcons
                 name="add"
                 size={21}
-                color={themeColors[theme]['text-main']}
+                color={themeColors[theme]['white']}
               />
             </ButtonIcon>
           </Pressable>
