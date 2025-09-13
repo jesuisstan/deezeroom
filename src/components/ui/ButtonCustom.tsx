@@ -86,7 +86,9 @@ const ButtonCustom = ({
 
   const backgroundColor = (() => {
     if (variant === 'primary') {
-      return color || themeColors[theme]['primary'];
+      return disabled
+        ? themeColors[theme]['disabled']
+        : color || themeColors[theme]['primary'];
     }
     if (variant === 'secondary') {
       return color || themeColors[theme]['bg-secondary'];

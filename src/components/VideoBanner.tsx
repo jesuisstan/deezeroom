@@ -94,8 +94,10 @@ const VideoBanner = ({
         player={player}
         contentFit="contain"
         nativeControls={false}
-        allowsFullscreen={false}
         allowsPictureInPicture={false}
+        fullscreenOptions={{
+          enable: false
+        }}
       />
     </View>
   );
