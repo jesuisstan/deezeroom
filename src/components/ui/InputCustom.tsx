@@ -27,6 +27,7 @@ type InputProps = TextInputProps & {
   showClearButton?: boolean;
   onClear?: () => void;
   autoFocus?: boolean;
+  onFocus?: () => void;
 };
 
 const containerBase = 'w-full';
@@ -52,6 +53,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
     onClear,
     value,
     autoFocus = false,
+    onFocus,
     ...props
   },
   ref
@@ -113,7 +115,10 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
           onBlur={() => setIsFocused(false)}
           autoFocus={autoFocus}
           // Enforce better defaults for password fields across platforms

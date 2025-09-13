@@ -34,6 +34,7 @@ interface SwipeModalProps {
   onClose?: () => void; // Side effect function, should be used to reset state or perform other side effects
   disableSwipe?: boolean; // Disable the swipe gesture
   fade?: boolean; // Fade the background
+  duration?: number; // Duration of the animation
 }
 
 const SwipeModal = (props: SwipeModalProps) => {
@@ -47,14 +48,14 @@ const SwipeModal = (props: SwipeModalProps) => {
   const closeModal = () => {
     setIsAnimating(true);
     translateY.value = withTiming(height - insets.top, {
-      duration: DEFAULT_DURATION
+      duration: props.duration || DEFAULT_DURATION
     });
     // Call functions after animation via setTimeout
     setTimeout(() => {
       setIsAnimating(false);
       props.setVisible(false);
       props.onClose?.();
-    }, DEFAULT_DURATION);
+    }, props.duration || DEFAULT_DURATION);
   };
 
   const panResponder = PanResponder.create({
@@ -73,21 +74,28 @@ const SwipeModal = (props: SwipeModalProps) => {
     onPanResponderMove: (_, gestureState) => {
       if (isAnimating || props.disableSwipe) return;
 
-      // For modal: positive dy means swipe down (close)
+      // Allow modal to follow finger in both directions
+      // positive dy = swipe down, negative dy = swipe up
       translateY.value = Math.max(0, gestureState.dy);
     },
     onPanResponderRelease: (_, gestureState) => {
       if (isAnimating || props.disableSwipe) return;
 
-      // Close if swipe down > 100px or velocity > 0.5
-      if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+      // Close only if:
+      // 1. User swiped down significantly (> 100px) AND is still moving down (positive velocity)
+      // 2. OR user swiped down very fast (velocity > 0.5)
+      const shouldClose =
+        (gestureState.dy > 100 && gestureState.vy > 0) || // Significant down swipe with downward velocity
+        gestureState.vy > 0.5; // Very fast downward swipe
+
+      if (shouldClose) {
         closeModal();
       } else {
+        // Return to original position if user changed their mind
         translateY.value = withSpring(0, {
           damping: 80, // High damping = less bouncing, faster settling
           stiffness: 400 // High stiffness = fast, snappy animation
         });
-        //translateY.value = withTiming(0, { duration: 250 }); // No bouncing, linear animation
       }
     }
   });
@@ -145,15 +153,13 @@ const SwipeModal = (props: SwipeModalProps) => {
       presentationStyle="overFullScreen" // iOS: lets the modal go under the status bar
       onShow={() => {
         setIsAnimating(true);
-        translateY.value = withTiming(0, { duration: 250 }); // No bouncing, linear animation
-        translateY.value = withSpring(0, {
-          damping: 80, // Moderate damping for smooth bounce
-          stiffness: 500 // Good stiffness for responsive animation
-        });
+        translateY.value = withTiming(0, {
+          duration: props.duration || DEFAULT_DURATION
+        }); // No bouncing, linear animation
         // Complete animation via setTimeout
         setTimeout(() => {
           setIsAnimating(false);
-        }, DEFAULT_DURATION);
+        }, props.duration || DEFAULT_DURATION);
       }}
       onRequestClose={closeModal}
     >

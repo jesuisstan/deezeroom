@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpModalButton from '@/components/auth/HelpButton';
+import HelpButton from '@/components/auth/HelpButton';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';
@@ -104,110 +104,112 @@ const RegisterScreen: FC = () => {
       >
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerClassName="flex-1 gap-4 px-6 py-6"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
         >
-          <View className="flex-1 gap-4 px-6 py-6">
-            {/* Header with back and help buttons */}
-            <View className="flex-row items-center justify-between">
-              <RouterBackButton />
-              <HelpModalButton />
-            </View>
+          {/* Header with back and help buttons */}
+          <View className="flex-row items-center justify-between">
+            <RouterBackButton />
+            <HelpButton />
+          </View>
 
-            <TextCustom type="title" size="4xl" className="text-center">
-              Create account
-            </TextCustom>
+          <TextCustom type="title" size="4xl" className="text-center">
+            Create account
+          </TextCustom>
 
-            {/* Email */}
-            <InputCustom
-              placeholder="you@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) setEmailError('');
-              }}
-              onClear={() => {
-                setEmail('');
-                setEmailError('');
-              }}
-              leftIconName="mail"
-              errorText={emailError}
-            />
+          {/* Email */}
+          <InputCustom
+            key="email"
+            placeholder="you@example.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (emailError) setEmailError('');
+            }}
+            onClear={() => {
+              setEmail('');
+              setEmailError('');
+            }}
+            leftIconName="mail"
+            errorText={emailError}
+          />
 
-            {/* Password */}
-            <InputCustom
-              placeholder="Your password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                const invalid = text.match(
-                  /[^A-Za-z0-9!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/
-                );
-                setPasswordError(
-                  invalid ? `Unsupported character: ${invalid[0]}` : ''
-                );
-              }}
-              onClear={() => setPassword('')}
-              secureTextEntry
-              leftIconName="lock"
-              errorText={passwordError}
-            />
+          {/* Password */}
+          <InputCustom
+            key="password"
+            placeholder="Your password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              const invalid = text.match(
+                /[^A-Za-z0-9!@\$%\^\*\(\)_\+\-\=\[\]\{\}:;\.,]/
+              );
+              setPasswordError(
+                invalid ? `Unsupported character: ${invalid[0]}` : ''
+              );
+            }}
+            onClear={() => setPassword('')}
+            secureTextEntry
+            leftIconName="lock"
+            errorText={passwordError}
+          />
 
-            {/* Repeat password */}
-            <InputCustom
-              placeholder="Repeat password"
-              value={confirm}
-              onChangeText={(text) => {
-                setConfirm(text);
-                setConfirmError(
-                  text.length === 0 || text === password
-                    ? ''
-                    : 'Passwords do not match'
-                );
-              }}
-              onClear={() => {
-                setConfirm('');
-                setConfirmError('');
-              }}
-              secureTextEntry
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              leftIconName="lock"
-              onBlur={() => {
-                if (confirm.length > 0 && confirm !== password) {
-                  setConfirmError('Passwords do not match');
-                }
-              }}
-              errorText={confirmError}
-            />
-
-            {/* Password requirements */}
-            <PasswordRequirements
-              password={password}
-              onValidationChange={setIsPasswordValid}
-            />
-
-            {/* Submit Button */}
-            <ButtonCustom
-              title="Create account"
-              size="lg"
-              loading={loading}
-              onPress={handleSubmit}
-              fullWidth
-              disabled={
-                loading || !isPasswordValid || !isConfirmValid || !email
+          {/* Repeat password */}
+          <InputCustom
+            key="confirm-password"
+            placeholder="Repeat password"
+            value={confirm}
+            onChangeText={(text) => {
+              setConfirm(text);
+              setConfirmError(
+                text.length === 0 || text === password
+                  ? ''
+                  : 'Passwords do not match'
+              );
+            }}
+            onClear={() => {
+              setConfirm('');
+              setConfirmError('');
+            }}
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+            leftIconName="lock"
+            onBlur={() => {
+              if (confirm.length > 0 && confirm !== password) {
+                setConfirmError('Passwords do not match');
               }
+            }}
+            errorText={confirmError}
+          />
+
+          {/* Password requirements */}
+          <PasswordRequirements
+            password={password}
+            onValidationChange={setIsPasswordValid}
+          />
+
+          {/* Submit Button */}
+          <ButtonCustom
+            title="Create account"
+            size="lg"
+            loading={loading}
+            onPress={handleSubmit}
+            fullWidth
+            disabled={loading || !isPasswordValid || !isConfirmValid || !email}
+          />
+
+          {/* Login link */}
+          <View className="self-center">
+            <LinkCustom
+              href="/auth/login"
+              params={{ email }}
+              text="Already have an account? Login"
             />
-            <View className="self-center">
-              <LinkCustom
-                href="/auth/login"
-                params={{ email }}
-                text="Already have an account? Login"
-              />
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

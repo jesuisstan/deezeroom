@@ -1,5 +1,12 @@
 import { FC, useState } from 'react';
-import { View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -69,62 +76,79 @@ const LoginScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
-      <View className="flex-1 gap-4 px-6 py-6">
-        {/* Header with back and help buttons */}
-        <View className="flex-row items-center justify-between">
-          <RouterBackButton />
-          <HelpButton />
-        </View>
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          {/* Header with back and help buttons */}
+          <ScrollView
+            className="flex-1"
+            contentContainerClassName="gap-4 px-6 py-6"
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
+          >
+            <View className="flex-row items-center justify-between">
+              <RouterBackButton />
+              <HelpButton />
+            </View>
 
-        <TextCustom type="title" size="4xl" className="text-center">
-          Log in
-        </TextCustom>
+            <TextCustom type="title" size="4xl" className="text-center">
+              Log in
+            </TextCustom>
 
-        <InputCustom
-          placeholder="Email address"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-          inputMode="email"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={handleEmailChange}
-          onClear={() => {
-            setEmail('');
-            setEmailError('');
-          }}
-          showClearButton={true}
-          autoFocus={true}
-          errorText={emailError}
-          leftIconName="mail"
-        />
+            <InputCustom
+              key="email"
+              placeholder="Email address"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={email}
+              onChangeText={handleEmailChange}
+              onClear={() => {
+                setEmail('');
+                setEmailError('');
+              }}
+              showClearButton={true}
+              autoFocus={true}
+              errorText={emailError}
+              leftIconName="mail"
+            />
 
-        <InputCustom
-          placeholder="Your password"
-          value={password}
-          onChangeText={handlePasswordChange}
-          secureTextEntry
-          errorText={passwordError}
-          leftIconName="lock"
-        />
+            <InputCustom
+              key="password"
+              placeholder="Your password"
+              value={password}
+              onChangeText={handlePasswordChange}
+              secureTextEntry
+              errorText={passwordError}
+              leftIconName="lock"
+            />
 
-        <ButtonCustom
-          title="Continue"
-          size="lg"
-          loading={loading}
-          onPress={handleSubmit}
-          fullWidth
-          disabled={loading || email.length === 0 || password.length === 0}
-        />
+            <ButtonCustom
+              title="Continue"
+              size="lg"
+              loading={loading}
+              onPress={handleSubmit}
+              fullWidth
+              disabled={loading || email.length === 0 || password.length === 0}
+            />
 
-        <View className="self-center">
-          <LinkCustom
-            href="/auth/register"
-            params={{ email }}
-            text="Create account"
-          />
-        </View>
-      </View>
+            <View className="self-center">
+              <LinkCustom
+                href="/auth/register"
+                params={{ email }}
+                text="Create account"
+              />
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

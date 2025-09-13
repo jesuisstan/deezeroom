@@ -1,10 +1,11 @@
 import { FC, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import HelpButton from '@/components/auth/HelpButton';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -88,9 +89,16 @@ const VerifyEmailScreen: FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-main" edges={['top', 'bottom']}>
-      <View className="flex-1 gap-4 px-6 py-6">
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="gap-4 px-6 py-6"
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {/* Header with back and help buttons */}
         <View className="flex-row items-center justify-between">
+          {/* Back button additionally sign out user because he is not verified */}
           <RouterBackButton onPress={handleBack} />
+          <HelpButton />
         </View>
 
         <View className="items-center">
@@ -121,7 +129,7 @@ const VerifyEmailScreen: FC = () => {
             variant="secondary"
           />
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
