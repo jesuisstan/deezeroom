@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpModalButton from '@/components/auth/HelpModalButton';
+import HelpButton from '@/components/auth/HelpButton';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
@@ -73,7 +73,7 @@ const LoginScreen: FC = () => {
         {/* Header with back and help buttons */}
         <View className="flex-row items-center justify-between">
           <RouterBackButton />
-          <HelpModalButton />
+          <HelpButton />
         </View>
 
         <TextCustom type="title" size="4xl" className="text-center">

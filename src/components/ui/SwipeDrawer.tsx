@@ -5,67 +5,63 @@ import {
   Keyboard,
   Modal,
   PanResponder,
-  ScrollView,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
 
-import EvilIcons from '@expo/vector-icons/EvilIcons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const DEFAULT_DURATION = 250;
 
-interface SwipeModalProps {
-  modalVisible: boolean; // Whether the modal is visible
-  setVisible: (visible: boolean) => void; // Function to set the visibility of the modal
-  children: ReactNode; // Content of the modal passed as children
-  title?: string; // Title of the modal
+interface SwipeDrawerProps {
+  modalVisible: boolean; // Whether the drawer is visible
+  setVisible: (visible: boolean) => void; // Function to set the visibility of the drawer
+  children: ReactNode; // Content of the drawer passed as children
+  title?: string; // Title of the drawer
+  side?: 'left' | 'right'; // Which side the drawer slides from
   onClose?: () => void; // Side effect function, should be used to reset state or perform other side effects
+  duration?: number; // Duration of the animation
   disableSwipe?: boolean; // Disable the swipe gesture
   fade?: boolean; // Fade the background
 }
 
-const SwipeModal = (props: SwipeModalProps) => {
+const SwipeDrawer = (props: SwipeDrawerProps) => {
   const { theme } = useTheme();
-  const { height } = Dimensions.get('window');
+  const { width, height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
+  const side = props.side || 'right';
 
-  const translateY = useSharedValue(height - insets.top);
+  const translateX = useSharedValue(side === 'right' ? width : -width);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const closeModal = () => {
+  const closeDrawer = () => {
     setIsAnimating(true);
-    translateY.value = withTiming(height - insets.top, {
-      duration: DEFAULT_DURATION
+    translateX.value = withTiming(side === 'right' ? width : -width, {
+      duration: props.duration || DEFAULT_DURATION
     });
     // Call functions after animation via setTimeout
     setTimeout(() => {
       setIsAnimating(false);
       props.setVisible(false);
       props.onClose?.();
-    }, DEFAULT_DURATION);
+    }, props.duration || DEFAULT_DURATION);
   };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => !props.disableSwipe && !isAnimating,
     onMoveShouldSetPanResponder: (_, gestureState) => {
       if (props.disableSwipe || isAnimating) return false;
-      // Activate only on vertical downward movement
-      return (
-        gestureState.dy > 0 &&
-        Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
-      );
+      // Activate only on horizontal movement
+      return Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
     },
     onPanResponderGrant: () => {
       // Optional: Add any logic when gesture begins
@@ -73,28 +69,40 @@ const SwipeModal = (props: SwipeModalProps) => {
     onPanResponderMove: (_, gestureState) => {
       if (isAnimating || props.disableSwipe) return;
 
-      // For modal: positive dy means swipe down (close)
-      translateY.value = Math.max(0, gestureState.dy);
+      if (side === 'right') {
+        // For right drawer: positive dx means swipe right (close)
+        translateX.value = Math.max(0, gestureState.dx);
+      } else {
+        // For left drawer: negative dx means swipe left (close)
+        translateX.value = Math.min(0, gestureState.dx);
+      }
     },
     onPanResponderRelease: (_, gestureState) => {
       if (isAnimating || props.disableSwipe) return;
 
-      // Close if swipe down > 100px or velocity > 0.5
-      if (gestureState.dy > 100 || gestureState.vy > 0.5) {
-        closeModal();
+      if (side === 'right') {
+        // Close if swipe right > 100px or velocity > 0.5
+        if (gestureState.dx > 100 || gestureState.vx > 0.5) {
+          closeDrawer();
+        } else {
+          translateX.value = withTiming(0, {
+            duration: props.duration || DEFAULT_DURATION
+          }); // No bouncing, linear animation
+        }
       } else {
-        translateY.value = withSpring(0, {
-          damping: 80, // High damping = less bouncing, faster settling
-          stiffness: 400 // High stiffness = fast, snappy animation
-        });
-        //translateY.value = withTiming(0, { duration: 250 }); // No bouncing, linear animation
+        // Close if swipe left > 100px or velocity > 0.5
+        if (gestureState.dx < -100 || gestureState.vx < -0.5) {
+          closeDrawer();
+        } else {
+          translateX.value = withTiming(0, { duration: DEFAULT_DURATION }); // No bouncing, linear animation
+        }
       }
     }
   });
 
   useEffect(() => {
     if (props.modalVisible) {
-      translateY.value = height - insets.top;
+      translateX.value = side === 'right' ? width : -width;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modalVisible]);
@@ -105,7 +113,7 @@ const SwipeModal = (props: SwipeModalProps) => {
       'hardwareBackPress',
       () => {
         if (props.modalVisible) {
-          closeModal();
+          closeDrawer();
           return true; // Prevent default behavior
         }
         return false;
@@ -118,16 +126,15 @@ const SwipeModal = (props: SwipeModalProps) => {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: translateY.value }]
+      transform: [{ translateX: translateX.value }]
     };
   });
 
   const backgroundStyle = useAnimatedStyle(() => {
-    const modalHeight = height - insets.top;
     const opacity =
-      translateY.value === 0
+      translateX.value === 0
         ? 1
-        : Math.max(0, 1 - translateY.value / modalHeight);
+        : Math.max(0, 1 - Math.abs(translateX.value) / width);
     return {
       opacity: props.fade ? opacity : 1,
       backgroundColor: `rgba(0, 0, 0, ${opacity * 0.5})`
@@ -145,46 +152,42 @@ const SwipeModal = (props: SwipeModalProps) => {
       presentationStyle="overFullScreen" // iOS: lets the modal go under the status bar
       onShow={() => {
         setIsAnimating(true);
-        translateY.value = withTiming(0, { duration: 250 }); // No bouncing, linear animation
-        translateY.value = withSpring(0, {
-          damping: 80, // Moderate damping for smooth bounce
-          stiffness: 500 // Good stiffness for responsive animation
+        translateX.value = withTiming(0, {
+          duration: props.duration || DEFAULT_DURATION
         });
         // Complete animation via setTimeout
         setTimeout(() => {
           setIsAnimating(false);
-        }, DEFAULT_DURATION);
+        }, props.duration || DEFAULT_DURATION);
       }}
-      onRequestClose={closeModal}
+      onRequestClose={closeDrawer}
     >
       <Animated.View
-        id="modal-background"
+        id="drawer-background"
         style={[
           {
             flex: 1,
-            justifyContent: 'flex-end',
-            paddingTop: insets.top
+            flexDirection: 'row'
           },
           backgroundStyle
         ]}
       >
         {/* Background overlay - clickable to close */}
-        <TouchableWithoutFeedback onPress={closeModal}>
+        <TouchableWithoutFeedback onPress={closeDrawer}>
           <View style={{ flex: 1 }} />
         </TouchableWithoutFeedback>
 
         <Animated.View
-          id="modal-content"
+          id="drawer-content"
           style={[
             {
+              width: width * 0.85, // 85% of screen width
+              height: height, // Full screen height
               backgroundColor: themeColors[theme]['bg-main'],
-              borderTopLeftRadius: 25,
-              borderTopRightRadius: 25,
-              height: height - insets.top, // Screen height minus status bar
               shadowColor: '#000',
               shadowOffset: {
-                width: 0,
-                height: -2
+                width: side === 'right' ? -2 : 2,
+                height: 0
               },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
@@ -194,65 +197,32 @@ const SwipeModal = (props: SwipeModalProps) => {
           ]}
           {...panResponder.panHandlers}
         >
-          {/* Drag handle */}
-          <View
-            style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 4,
-                backgroundColor: themeColors[theme]['border'],
-                borderRadius: 2
-              }}
-            />
-          </View>
-
           {/* Header with close button */}
           <View
             style={{
-              paddingTop: 8,
+              paddingTop: insets.top + 16, // Status bar height + padding
               paddingHorizontal: 20,
               paddingBottom: 16,
               position: 'relative'
             }}
           >
-            {/* Close Button */}
-            <View className="absolute -top-1 right-4 z-[1000]">
-              <ButtonIcon accessibilityLabel="Close" onPress={closeModal}>
-                <EvilIcons
-                  name="close"
-                  size={42}
-                  color={themeColors[theme]['text-main']}
-                />
-              </ButtonIcon>
-            </View>
-
             {props.title && (
-              <TextCustom type="bold" size="xl" className="mb-4 text-center">
+              <TextCustom type="bold" size="l" className="mb-8 text-center">
                 {props.title}
               </TextCustom>
             )}
           </View>
 
           {/* Content area */}
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 20,
-              paddingBottom: 16
-            }}
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={{ flex: 1, paddingHorizontal: 20, paddingBottom: 16 }}>
             <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
               <View style={{ flex: 1 }}>{props.children}</View>
             </TouchableWithoutFeedback>
-          </ScrollView>
+          </View>
         </Animated.View>
       </Animated.View>
     </Modal>
   );
 };
 
-export default SwipeModal;
+export default SwipeDrawer;

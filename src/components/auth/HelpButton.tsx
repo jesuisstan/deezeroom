@@ -11,7 +11,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const HelpModalButton = () => {
+const HelpButton = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const { theme } = useTheme();
 
@@ -109,4 +109,4 @@ const HelpModalButton = () => {
   );
 };
 
-export default HelpModalButton;
+export default HelpButton;

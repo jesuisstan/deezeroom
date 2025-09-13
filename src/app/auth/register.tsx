@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpModalButton from '@/components/auth/HelpModalButton';
+import HelpModalButton from '@/components/auth/HelpButton';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
 import ButtonCustom from '@/components/ui/ButtonCustom';
 import InputCustom from '@/components/ui/InputCustom';

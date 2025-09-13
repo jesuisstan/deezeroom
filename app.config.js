@@ -19,7 +19,7 @@ module.exports = () => ({
     android: {
       package: 'com.krivtsoff.deezeroom',
       edgeToEdgeEnabled: true,
-      predictiveBackGestureEnabled: false,
+      predictiveBackGestureEnabled: true,
       adaptiveIcon: {
         backgroundColor: '#0f0d13',
         foregroundImage: './src/assets/images/adaptive-icon.png'
