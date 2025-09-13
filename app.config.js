@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '1.54.0',
+    version: '1.54.1',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
@@ -21,11 +21,8 @@ module.exports = () => ({
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       adaptiveIcon: {
-        backgroundColor: '#fdfcfe',
-        foregroundImage: './src/assets/images/adaptive-icon.png',
-        dark: {
-          backgroundColor: '#0f0d13'
-        }
+        backgroundColor: '#0f0d13',
+        foregroundImage: './src/assets/images/adaptive-icon.png'
       },
       windowSoftInputMode: 'adjustResize',
       softwareKeyboardLayoutMode: 'pan',
