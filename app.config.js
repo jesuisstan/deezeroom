@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '1.0.0',
+    version: '1.53.9',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
@@ -58,8 +58,11 @@ module.exports = () => ({
         'expo-splash-screen',
         {
           image: './src/assets/images/splash-icon.png',
-          backgroundColor: '#0f0d13',
-          imageWidth: 150
+          imageWidth: 150,
+          backgroundColor: '#fdfcfe',
+          dark: {
+            backgroundColor: '#0f0d13'
+          }
         }
       ],
       ['expo-audio'],
