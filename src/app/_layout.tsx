@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AlertNotificationRoot } from 'react-native-alert-notification';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   configureReanimatedLogger,
   ReanimatedLogLevel
@@ -50,13 +51,15 @@ const RootLayout = () => {
   }
 
   const appContent = (
-    <ThemeProvider>
-      <NetworkProvider>
-        <UserProvider>
-          <DeezeroomApp />
-        </UserProvider>
-      </NetworkProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <NetworkProvider>
+          <UserProvider>
+            <DeezeroomApp />
+          </UserProvider>
+        </NetworkProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 
   // For web we don't use AlertNotificationRoot because of problems with useColorScheme

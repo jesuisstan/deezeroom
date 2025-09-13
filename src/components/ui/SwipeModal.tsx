@@ -1,25 +1,27 @@
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import {
-  Animated,
   BackHandler,
   Dimensions,
-  Easing,
-  InteractionManager,
   Keyboard,
   Modal,
-  PanResponder,
   ScrollView,
   TouchableWithoutFeedback,
   View
 } from 'react-native';
 
 import EvilIcons from '@expo/vector-icons/EvilIcons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-
-import { TextCustom } from './TextCustom';
 
 interface SwipeModalProps {
   modalVisible: boolean; // Whether the modal is visible
@@ -37,153 +39,38 @@ const SwipeModal = (props: SwipeModalProps) => {
   const { height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
 
-  const TIMING_CONFIG = {
-    duration: props.duration ? props.duration : 250,
-    easing: Easing.inOut(Easing.ease)
-  };
-
-  const pan = useRef(new Animated.ValueXY()).current;
-
-  let [isAnimating, setIsAnimating] = useState(
-    props.disableSwipe ? true : false
-  );
+  const translateY = useSharedValue(height);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const closeModal = () => {
     setIsAnimating(true);
-    Animated.timing(pan, {
-      toValue: { x: 0, y: height },
-      ...TIMING_CONFIG,
-      useNativeDriver: false
-    }).start(() => {
+    translateY.value = withTiming(height, { duration: 250 });
+    // Вызываем функции после анимации через setTimeout
+    setTimeout(() => {
       setIsAnimating(false);
-      // Close modal only after animation is complete
-      setTimeout(() => {
-        InteractionManager.runAfterInteractions(() => {
-          props.setVisible(false);
-          props.onClose?.();
-        });
-      }, 100);
-    });
+      props.setVisible(false);
+      props.onClose?.();
+    }, 250);
   };
 
-  const animatedValueX = useRef(0);
-  const animatedValueY = useRef(0);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      // Ask to be the responder:
-      onStartShouldSetPanResponder: (evt) => {
-        // Check if the close button was pressed
-        const { pageX, pageY } = evt.nativeEvent;
-        const { width, height } = Dimensions.get('window');
-
-        const closeButtonRight = width - 20;
-        const closeButtonLeft = closeButtonRight - 50;
-        const closeButtonTop = 16;
-        const closeButtonBottom = closeButtonTop + 50;
-
-        // If the close button was pressed, don't intercept
-        if (
-          pageX >= closeButtonLeft &&
-          pageX <= closeButtonRight &&
-          pageY >= closeButtonTop &&
-          pageY <= closeButtonBottom
-        ) {
-          return false;
-        }
-
-        // If the content area (bottom part of the screen) was pressed, don't intercept
-        // Use a more accurate definition of the content area
-        const contentAreaTop = height * 0.15; // Approximately 15% from the top of the screen
-        if (pageY > contentAreaTop) {
-          return false;
-        }
-
-        return true; // Intercept only background events for swipe
-      },
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        if (isAnimating) {
-          return false;
-        }
-        if (gestureState.dy > 22) {
-          return true;
-        }
-        return false;
-      },
-      onPanResponderGrant: () => {
-        pan.setOffset({
-          x: animatedValueX.current,
-          y: animatedValueY.current
-        });
-        pan.setValue({ x: 0, y: 0 }); // Initial value for x and y coordinates
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dy > 0) {
-          pan.setValue({ x: 0, y: gestureState.dy });
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        // The user has released all touches while this view is the
-        // responder. This typically means a gesture has succeeded
-        // Flatten the offset so it resets the default positioning
-        if (gestureState.dy > 0 && gestureState.vy > 0) {
-          if (gestureState.vy <= -0.7 || gestureState.dy <= -100) {
-            setIsAnimating(true);
-            Animated.timing(pan, {
-              toValue: { x: 0, y: -height },
-              ...TIMING_CONFIG,
-              useNativeDriver: false
-            }).start(() => {
-              setIsAnimating(false);
-              // Close modal only after the animation is complete
-              setTimeout(() => {
-                InteractionManager.runAfterInteractions(() => {
-                  props.setVisible(false);
-                  props.onClose?.();
-                });
-              }, 100);
-            });
-          } else if (gestureState.vy >= 0.5 || gestureState.dy >= 100) {
-            closeModal();
-          } else {
-            setIsAnimating(true);
-            Animated.spring(pan, {
-              toValue: 0,
-              useNativeDriver: false
-            }).start(() => {
-              setIsAnimating(false);
-              // props.onClose();
-            });
-          }
-        } else {
-          setIsAnimating(true);
-          Animated.spring(pan, {
-            toValue: 0,
-            useNativeDriver: false
-          }).start(() => {
-            setIsAnimating(false);
-            // props.onClose();
-          });
-        }
-      }
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      if (isAnimating) return;
+      translateY.value = Math.max(0, event.translationY);
     })
-  ).current;
+    .onEnd((event) => {
+      if (isAnimating) return;
+
+      if (event.translationY > 100 && event.velocityY > 0) {
+        closeModal();
+      } else {
+        translateY.value = withSpring(0);
+      }
+    });
 
   useEffect(() => {
     if (props.modalVisible) {
-      animatedValueX.current = 0;
-      animatedValueY.current = 0;
-      pan.setOffset({
-        x: animatedValueX.current,
-        y: animatedValueY.current
-      });
-      pan.setValue({
-        x: 0,
-        y: height
-      }); // Initial value
-      pan.x.addListener((value) => (animatedValueX.current = value.value));
-      pan.y.addListener((value) => (animatedValueY.current = value.value));
+      translateY.value = height;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modalVisible]);
@@ -205,32 +92,19 @@ const SwipeModal = (props: SwipeModalProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modalVisible]);
 
-  let handleGetStyleBody = (opacity: any) => {
-    return [
-      {
-        flex: 1,
-        backgroundColor: themeColors[theme]['bg-main'],
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-        paddingTop: 16,
-        paddingHorizontal: 20,
-        paddingBottom: 16
-      },
-      {
-        transform: [{ translateX: pan.x }, { translateY: pan.y }],
-        opacity: opacity
-      }
-    ];
-  };
-
-  let interpolateBackgroundOpacity = pan.y.interpolate({
-    inputRange: [-height, 0, height],
-    outputRange: [props.fade ? 0 : 1, 1, props.fade ? 0 : 1]
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }]
+    };
   });
 
-  let interpolateBackgroundColor = pan.y.interpolate({
-    inputRange: [-height, 0, height],
-    outputRange: ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0)']
+  const backgroundStyle = useAnimatedStyle(() => {
+    const opacity =
+      translateY.value === 0 ? 1 : Math.max(0, 1 - translateY.value / height);
+    return {
+      opacity: props.fade ? opacity : 1,
+      backgroundColor: `rgba(0, 0, 0, ${opacity * 0.5})`
+    };
   });
 
   if (!props.modalVisible) return null;
@@ -244,53 +118,64 @@ const SwipeModal = (props: SwipeModalProps) => {
       presentationStyle="overFullScreen" // iOS: lets the modal go under the status bar
       onShow={() => {
         setIsAnimating(true);
-        Animated.timing(pan, {
-          ...TIMING_CONFIG,
-          toValue: { x: 0, y: 0 },
-          useNativeDriver: false
-        }).start(() => {
+        translateY.value = withTiming(0, { duration: 250 });
+        // Завершаем анимацию через setTimeout
+        setTimeout(() => {
           setIsAnimating(false);
-        });
+        }, 250);
       }}
       onRequestClose={closeModal}
     >
       <Animated.View
         id="modal-background"
-        style={{
-          backgroundColor: interpolateBackgroundColor,
-          flex: 1,
-          justifyContent: 'flex-end',
-          opacity: interpolateBackgroundOpacity,
-          paddingTop: insets.top
-        }}
-        {...panResponder.panHandlers}
+        style={[
+          {
+            flex: 1,
+            justifyContent: 'flex-end',
+            paddingTop: insets.top
+          },
+          backgroundStyle
+        ]}
       >
-        <Animated.View
-          id="modal-content"
-          style={handleGetStyleBody(interpolateBackgroundOpacity)}
-        >
-          {/* Close Button */}
-          <View className="absolute right-5 top-2 z-[1000]">
-            <EvilIcons
-              name="close"
-              size={42}
-              color={themeColors[theme]['text-main']}
-              onPress={closeModal}
-            />
-          </View>
+        <GestureDetector gesture={panGesture}>
+          <Animated.View
+            id="modal-content"
+            style={[
+              {
+                flex: 1,
+                backgroundColor: themeColors[theme]['bg-main'],
+                borderTopLeftRadius: 25,
+                borderTopRightRadius: 25,
+                paddingTop: 16,
+                paddingHorizontal: 20,
+                paddingBottom: 16
+              },
+              animatedStyle
+            ]}
+          >
+            {/* Close Button */}
+            <View className="absolute right-5 top-2 z-[1000]">
+              <EvilIcons
+                name="close"
+                size={42}
+                color={themeColors[theme]['text-main']}
+                onPress={closeModal}
+              />
+            </View>
 
-          <TextCustom type="bold" size="l" className="mb-8 text-center">
-            {props.title}
-          </TextCustom>
+            <TextCustom type="bold" size="l" className="mb-8 text-center">
+              {props.title}
+            </TextCustom>
 
-          <ScrollView style={{ flex: 1 }}>
-            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-              <View style={{ flex: 1, minHeight: '100%' }}>
-                {props.children}
-              </View>
-            </TouchableWithoutFeedback>
-          </ScrollView>
-        </Animated.View>
+            <ScrollView style={{ flex: 1 }}>
+              <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+                <View style={{ flex: 1, minHeight: '100%' }}>
+                  {props.children}
+                </View>
+              </TouchableWithoutFeedback>
+            </ScrollView>
+          </Animated.View>
+        </GestureDetector>
       </Animated.View>
     </Modal>
   );
