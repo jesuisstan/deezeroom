@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpButton from '@/components/auth/HelpButton';
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
@@ -194,12 +194,12 @@ const RegisterScreen: FC = () => {
           />
 
           {/* Submit Button */}
-          <ButtonCustom
+          <ButtonRipple
+            fullWidth
             title="Create account"
             size="lg"
             loading={loading}
             onPress={handleSubmit}
-            fullWidth
             disabled={loading || !isPasswordValid || !isConfirmValid || !email}
           />
 

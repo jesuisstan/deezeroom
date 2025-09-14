@@ -13,7 +13,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpButton from '@/components/auth/HelpButton';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import InputCustom from '@/components/ui/InputCustom';
 import LinkCustom from '@/components/ui/LinkCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
@@ -130,12 +130,12 @@ const LoginScreen: FC = () => {
               leftIconName="lock"
             />
 
-            <ButtonCustom
+            <ButtonRipple
+              fullWidth
               title="Continue"
               size="lg"
               loading={loading}
               onPress={handleSubmit}
-              fullWidth
               disabled={loading || email.length === 0 || password.length === 0}
             />
 

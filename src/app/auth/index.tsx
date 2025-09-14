@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AuthGoogleButton from '@/components/auth/AuthGoogleButton';
 import ThemeToggler from '@/components/ThemeToggler';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import { TextCustom } from '@/components/ui/TextCustom';
 import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -56,13 +56,12 @@ const WelcomeScreen: FC = () => {
             </TextCustom>
 
             {/* Continue with email */}
-            <ButtonCustom
+            <ButtonRipple
+              fullWidth
               title="Continue with email"
               onPress={() => router.push('/auth/login')}
               size="lg"
               variant="primary"
-              fullWidth
-              textClassName="tracking-wider"
             />
 
             {/* Divider */}

@@ -26,7 +26,7 @@ export function TextCustom({
       case 'title':
         return 'leading-10 tracking-widest';
       case 'subtitle':
-        return 'leading-6 tracking-wide';
+        return 'leading-8 tracking-wide';
       case 'bold':
         return 'leading-6 font-bold';
       case 'link':
@@ -83,7 +83,7 @@ export function TextCustom({
     if (type === 'title') {
       return 'text-3xl';
     } else if (type === 'subtitle') {
-      return 'text-xl';
+      return 'text-2xl';
     } else {
       return 'text-base';
     }

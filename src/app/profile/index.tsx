@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
@@ -119,20 +119,20 @@ const ProfileScreen: FC = () => {
 
         <View className="flex-1 flex-row items-center gap-2">
           <View className="flex-1">
-            <ButtonCustom
+            <ButtonRipple
+              fullWidth
               title="Edit profile"
               size="sm"
               variant="outline"
-              fullWidth
               onPress={() => setEditing(!editing)}
             />
           </View>
           <View className="flex-1">
-            <ButtonCustom
+            <ButtonRipple
+              fullWidth
               title="Settings"
               size="sm"
               variant="outline"
-              fullWidth
               onPress={() => router.push('/profile/settings')}
             />
           </View>

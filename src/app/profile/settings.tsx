@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native';
 import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import Divider from '@/components/ui/Divider';
 import { useUser } from '@/providers/UserProvider';
 
@@ -18,7 +18,8 @@ const ProfileSettingsScreen: FC = () => {
       <View className="gap-4">
         <ConnectedAccountsSection profile={profile} />
         <Divider />
-        <ButtonCustom
+        <ButtonRipple
+          fullWidth
           variant="primary"
           size="md"
           title="Sign out"

@@ -6,7 +6,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpButton from '@/components/auth/HelpButton';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
@@ -113,19 +113,19 @@ const VerifyEmailScreen: FC = () => {
         </View>
 
         <View className="gap-4">
-          <ButtonCustom
+          <ButtonRipple
+            fullWidth
             title="Resend verification email"
             size="lg"
             onPress={handleResend}
             loading={sending}
-            fullWidth
           />
-          <ButtonCustom
+          <ButtonRipple
+            fullWidth
             title="I have verified"
             size="lg"
             onPress={handleIHaveVerified}
             loading={checking}
-            fullWidth
             variant="secondary"
           />
         </View>

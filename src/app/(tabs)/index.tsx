@@ -3,7 +3,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import clsx from 'clsx';
 
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -89,35 +89,87 @@ const HomeScreen = () => {
       </View>
 
       <Divider />
-
-      <ButtonCustom
-        title="Primary"
-        size="lg"
-        variant="primary"
-        fullWidth
-        textClassName="tracking-wider"
-      />
-      <ButtonCustom
-        title="Outline"
-        size="lg"
-        variant="outline"
-        fullWidth
-        textClassName="tracking-wider"
-      />
-      <ButtonCustom
-        title="Secondary"
-        size="lg"
-        variant="secondary"
-        fullWidth
-        textClassName="tracking-wider"
-      />
-      <ButtonCustom
-        title="Ghost"
-        size="lg"
-        variant="ghost"
-        fullWidth
-        textClassName="tracking-wider"
-      />
+      <View className="w-full flex-1 flex-col items-center gap-4">
+        <TextCustom type="subtitle">ButtonRipple</TextCustom>
+        <ButtonRipple
+          title="Primary"
+          onPress={() => {
+            console.log('Primary');
+          }}
+        />
+        <ButtonRipple
+          title="Disabled"
+          disabled={true}
+          onPress={() => {
+            console.log('Disabled');
+          }}
+        />
+        <ButtonRipple
+          title="Loading"
+          loading={true}
+          onPress={() => {
+            console.log('Loading');
+          }}
+        />
+        <ButtonRipple
+          title="Secondary"
+          variant="secondary"
+          onPress={() => {
+            console.log('Secondary');
+          }}
+        />
+        <ButtonRipple
+          fullWidth
+          title="Outline"
+          variant="outline"
+          onPress={() => {
+            console.log('Outline');
+          }}
+        />
+        <ButtonRipple
+          title="Ghost"
+          variant="ghost"
+          onPress={() => {
+            console.log('Ghost');
+          }}
+        />
+        <ButtonRipple
+          title="Primary Custom Color"
+          onPress={() => {
+            console.log('Primary Custom Color');
+          }}
+          color={themeColors[theme]['intent-success']}
+        />
+      </View>
+      <Divider />
+      <View className="w-full flex-1 flex-col items-center gap-4">
+        <ButtonRipple
+          fullWidth
+          title="Custom width"
+          variant="primary"
+          onPress={() => {
+            console.log('Custom width');
+          }}
+          className="w-72"
+        />
+        <ButtonRipple
+          fullWidth
+          title="Primary MD"
+          size="md"
+          onPress={() => {
+            console.log('Primary');
+          }}
+        />
+        <ButtonRipple
+          fullWidth
+          title="Outline SM"
+          size="sm"
+          variant="outline"
+          onPress={() => {
+            console.log('Outline');
+          }}
+        />
+      </View>
     </ScrollView>
   );
 };

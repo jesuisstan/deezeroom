@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 import SetupPassword from '@/components/profile/SetupPassword';
-import ButtonCustom from '@/components/ui/ButtonCustom';
+import ButtonRipple from '@/components/ui/ButtonRipple';
 import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
@@ -62,7 +62,8 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
 
   return (
     <View>
-      <ButtonCustom
+      <ButtonRipple
+        fullWidth
         title="Delete my account"
         variant="ghost"
         leftIcon={
@@ -86,6 +87,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
           modalVisible={showDeleteAccountModal}
           setVisible={setShowDeleteAccountModal}
           onClose={clearInputs}
+          fade
         >
           <View className="flex-1 gap-4">
             <View className="items-center">
@@ -103,7 +105,8 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   your Google account.
                 </TextCustom>
                 <SetupPassword userEmail={profile.email} />
-                <ButtonCustom
+                <ButtonRipple
+                  fullWidth
                   title="Cancel"
                   variant="outline"
                   onPress={() => {
@@ -128,7 +131,8 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   secureTextEntry
                   autoCapitalize="none"
                 />
-                <ButtonCustom
+                <ButtonRipple
+                  fullWidth
                   title="Delete Account"
                   color={themeColors[theme]['intent-error']}
                   disabled={!emailInput.trim() || !passwordInput.trim()}
@@ -175,7 +179,8 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                     </TextCustom>
                   </View>
                 )}
-                <ButtonCustom
+                <ButtonRipple
+                  fullWidth
                   title="Cancel"
                   variant="outline"
                   onPress={() => {
