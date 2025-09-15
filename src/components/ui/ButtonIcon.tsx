@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   GestureResponderEvent,
   LayoutChangeEvent,
   Pressable,
@@ -25,6 +26,7 @@ type ButtonIconProps = {
   backgroundColor?: string;
   children: React.ReactNode;
   disabled?: boolean;
+  loading?: boolean;
 };
 
 const ButtonIcon = ({
@@ -33,7 +35,8 @@ const ButtonIcon = ({
   className,
   backgroundColor,
   children,
-  disabled = false
+  disabled = false,
+  loading = false
 }: ButtonIconProps) => {
   const { theme } = useTheme();
   const [sizeLayout, setSizeLayout] = useState({ width: 0, height: 0 });
@@ -62,7 +65,7 @@ const ButtonIcon = ({
   };
 
   const startRipple = () => {
-    if (disabled) return;
+    if (disabled || loading) return;
 
     // show overlay quickly when finger pressed
     overlayOpacity.value = withTiming(0.12, {
@@ -113,8 +116,8 @@ const ButtonIcon = ({
         hitSlop={16}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        disabled={disabled}
-        style={{ opacity: disabled ? 0.6 : 1 }}
+        disabled={disabled || loading}
+        style={{ opacity: disabled || loading ? 0.6 : 1 }}
       >
         {/* Overlay to darken the button while pressed.
             Rendered BEFORE ripple so ripple appears on top of overlay. */}
@@ -149,7 +152,15 @@ const ButtonIcon = ({
           ]}
         />
 
-        {children}
+        {/* Content: Loading indicator or children */}
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={themeColors[theme]['primary']}
+          />
+        ) : (
+          children
+        )}
       </Pressable>
     </View>
   );

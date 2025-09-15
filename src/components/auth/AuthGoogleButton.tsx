@@ -1,11 +1,5 @@
 import { FC, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Platform,
-  Pressable,
-  View
-} from 'react-native';
+import { Image, Platform } from 'react-native';
 
 import {
   GoogleAuthProvider,
@@ -14,6 +8,7 @@ import {
   signInWithRedirect
 } from 'firebase/auth';
 
+import ButtonIcon from '@/components/ui/ButtonIcon';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -133,28 +128,18 @@ const AuthGoogleButton: FC = () => {
   };
 
   return (
-    <View className="h-14 w-14 overflow-hidden rounded-full border border-border bg-bg-main">
-      <Pressable
-        android_ripple={{
-          color: themeColors[theme]['border'],
-          borderless: false
-        }}
-        accessibilityRole="button"
-        hitSlop={8}
-        className="flex-1 items-center justify-center"
-        onPress={handleGoogleSignIn}
-        disabled={isGoogleLoading}
-      >
-        {isGoogleLoading ? (
-          <ActivityIndicator size="small" color={themeColors[theme].primary} />
-        ) : (
-          <Image
-            source={require('@/assets/images/others/logo-google.png')}
-            style={{ width: 26, height: 26 }}
-          />
-        )}
-      </Pressable>
-    </View>
+    <ButtonIcon
+      accessibilityLabel="Log in with Google"
+      onPress={handleGoogleSignIn}
+      loading={isGoogleLoading}
+      className="h-14 w-14 border border-border bg-bg-main"
+      backgroundColor={themeColors[theme]['bg-main']}
+    >
+      <Image
+        source={require('@/assets/images/others/logo-google.png')}
+        style={{ width: 26, height: 26 }}
+      />
+    </ButtonIcon>
   );
 };
 
