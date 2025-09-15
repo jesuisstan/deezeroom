@@ -80,74 +80,102 @@ npx eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --val
 
 ### Navigation Flow
 
-The application uses Expo Router with a centralized authentication guard system:
+The application uses Expo Router with **Stack.Protected** screens for route-based authentication:
 
 ```mermaid
 graph TD
     A["App Start"] --> B["RootLayout.tsx"]
     B --> C["DeezeroomApp.tsx"]
-    C --> D["AuthGuard.tsx<br/>(Navigation Logic)"]
-    D --> E["Stack Navigator"]
-    E --> F["index.tsx<br/>(Root Route)"]
+    C --> D["Stack Navigator<br/>with Protected Screens"]
+    D --> E["UserProvider<br/>(Auth State)"]
 
-    D --> G{"User Authenticated?"}
+    E --> F{"User State Check"}
 
-    G -->|No| H["router.replace('/auth')"]
-    G -->|Yes| I["router.replace('/(tabs)')"]
+    F -->|"Not Authenticated"| G["Stack.Protected guard={!isAuthenticated}"]
+    F -->|"Authenticated + Email Verified"| H["Stack.Protected guard={isAuthenticated && isEmailVerified}"]
+    F -->|"Authenticated + Email NOT Verified"| I["Stack.Protected guard={isAuthenticated && !isEmailVerified}"]
 
-    H --> J["auth/index.tsx<br/>(WelcomeScreen)"]
-    J --> K["Continue with Email<br/>Button"]
-    K --> L["router.push('/auth/login')"]
-    L --> M["auth/login.tsx<br/>(LoginScreen)"]
-    M --> X["Link: Create account"]
-    X --> Y["router.push('/auth/register')"]
-    Y --> Z["auth/register.tsx<br/>(RegisterScreen)"]
-    M --> N["Back Button<br/>router.back()"]
-    Z --> N
+    G --> G1["auth/index.tsx<br/>(WelcomeScreen)"]
+    G1 --> G2["Continue with Email"]
+    G2 --> G3["auth/login.tsx<br/>(LoginScreen)"]
+    G3 --> G4["Link: Create account"]
+    G4 --> G5["auth/register.tsx<br/>(RegisterScreen)"]
+    G3 --> G6["Link: Forgot password"]
+    G6 --> G7["auth/reset-password.tsx<br/>(ResetPasswordScreen)"]
+    G3 --> G8["Back Button"]
+    G5 --> G8
+    G7 --> G8
 
-    J --> O["Google Sign In<br/>Button"]
-    O --> P["Firebase Auth<br/>+ UserProvider"]
-    P --> Q["AuthGuard detects<br/>user change"]
-    Q --> I
+    G1 --> G9["Google Sign In"]
+    G9 --> G10["Firebase Auth"]
+    G10 --> E
 
-    I --> R["(tabs)/_layout.tsx<br/>(Main App)"]
-    R --> R1["(tabs)/index.tsx"]
-    R --> R2["(tabs)/home.tsx"]
-    R --> R3["(tabs)/explore.tsx"]
-    R --> S["Profile Button"]
-    S --> T["router.push('/profile')"]
-    T --> U["profile.tsx"]
-    U --> V["Sign Out Button"]
-    V --> W["UserProvider.signOut()"]
-    W --> Q
+    H --> H1["(tabs)/_layout.tsx<br/>(Main App)"]
+    H1 --> H2["(tabs)/index.tsx"]
+    H1 --> H3["(tabs)/home.tsx"]
+    H1 --> H4["(tabs)/explore.tsx"]
+    H1 --> H5["Profile Button"]
+    H5 --> H6["profile/_layout.tsx"]
+    H6 --> H7["profile/index.tsx"]
+    H6 --> H8["profile/settings.tsx"]
+    H7 --> H9["Sign Out Button"]
+    H9 --> H10["UserProvider.signOut()"]
+    H10 --> E
+
+    I --> I1["verify-email.tsx<br/>(EmailVerificationScreen)"]
+    I1 --> I2["Resend verification"]
+    I2 --> I3["Firebase sendEmailVerification"]
+    I1 --> I4["I have verified"]
+    I4 --> I5["Firebase reload + check"]
+    I5 --> E
+    I1 --> I6["Back Button"]
+    I6 --> I7["Sign out + redirect to auth"]
+    I7 --> E
 
     style D fill:#ffeaa7
-    style J fill:#fff3e0
-    style M fill:#fff3e0
-    style Z fill:#fff3e0
-    style R fill:#e8f5e8
-    style U fill:#e8f5e8
-    style P fill:#fab1a0
+    style G1 fill:#fff3e0
+    style G3 fill:#fff3e0
+    style G5 fill:#fff3e0
+    style G7 fill:#fff3e0
+    style H1 fill:#e8f5e8
+    style H7 fill:#e8f5e8
+    style I1 fill:#e1f5fe
+    style E fill:#fab1a0
 ```
 
 ### Key Components
 
-- **AuthGuard**: Centralized authentication logic that monitors user state and handles navigation
+- **DeezeroomApp**: Main navigation component with Stack.Protected screens
 - **UserProvider**: Manages Firebase authentication state and user profile data
-- **Stack Navigator**: Handles all screen transitions and routing
+- **Stack Navigator**: Handles all screen transitions with route-based protection
 - **WelcomeScreen**: Entry screen with Google Sign-In and "Continue with email"
 - **LoginScreen**: Email/password login form (`/auth/login`)
 - **RegisterScreen**: Email/password registration form (`/auth/register`)
+- **ResetPasswordScreen**: Password reset form (`/auth/reset-password`)
+- **VerifyEmailScreen**: Email verification screen (`/verify-email`)
 
-### Authentication States
+### Authentication States & Protected Routes
 
-1. **Loading**: Shows loading indicator while checking auth state
-2. **Unauthenticated**: User sees login screens (`/auth/*`)
-3. **Authenticated**: User sees main app screens (`/(tabs)/*` and `/profile`)
+1. **Loading**: Shows `ActivityIndicatorScreen` while checking auth state
+2. **Unauthenticated**: Protected by `guard={!isAuthenticated}`
+   - `/auth/*` - All authentication screens
+3. **Authenticated + Email Verified**: Protected by `guard={isAuthenticated && isEmailVerified}`
+   - `/(tabs)/*` - Main app with tab navigation
+   - `/profile/*` - Profile screens with stack navigation
+4. **Authenticated + Email NOT Verified**: Protected by `guard={isAuthenticated && !isEmailVerified}`
+   - `/verify-email` - Email verification screen
 
 ### Navigation Rules
 
-- `AuthGuard` automatically redirects based on authentication state
-- Unauthenticated users → `/auth` screens
-- Authenticated users → `/(tabs)` main app
-- All navigation is handled through Expo Router with type-safe routing
+- **Stack.Protected** automatically handles route access based on authentication state
+- **No manual redirects** - routes are protected at the component level
+- **Email verification required** - users must verify email before accessing main app
+- **Type-safe routing** - All navigation through Expo Router with TypeScript support
+- **Fallback handling** - `+not-found` screen for invalid routes
+
+### New Features
+
+- **Password Reset**: Complete reset password flow with email verification
+- **Email Verification**: Mandatory email verification before app access
+- **Profile Settings**: Dedicated settings screen with stack navigation
+- **Help System**: SwipeModal and SwipeDrawer components for help content
