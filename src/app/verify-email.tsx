@@ -102,9 +102,10 @@ const VerifyEmailScreen: FC = () => {
           <HelpButton />
         </View>
 
-        <View className="items-center">
-          <TextCustom type="title">Verify your email</TextCustom>
-        </View>
+        <TextCustom type="title" size="4xl" className="text-center">
+          Verify your email
+        </TextCustom>
+
         <View>
           <TextCustom>We've sent a verification link to:</TextCustom>
           <TextCustom type="bold">{user?.email}</TextCustom>

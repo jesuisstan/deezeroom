@@ -51,12 +51,6 @@ const ResetPasswordScreen: FC = () => {
     try {
       await sendPasswordResetEmail(auth, normalized);
       setIsEmailSent(true);
-      shootAlert(
-        'toast',
-        'Reset email sent',
-        'Please check your inbox and follow the instructions.',
-        'success'
-      );
     } catch (error: any) {
       console.log('Reset password error:', error);
       const errorMessage = getFirebaseErrorMessage(error);
@@ -90,9 +84,9 @@ const ResetPasswordScreen: FC = () => {
             <HelpButton />
           </View>
 
-          <View className="items-center">
-            <TextCustom type="title">Check your email</TextCustom>
-          </View>
+          <TextCustom type="title" size="4xl" className="text-center">
+            Check your email
+          </TextCustom>
 
           <View>
             <TextCustom>We've sent a password reset link to:</TextCustom>
@@ -136,9 +130,9 @@ const ResetPasswordScreen: FC = () => {
               <HelpButton />
             </View>
 
-            <View className="items-center">
-              <TextCustom type="title">Reset password</TextCustom>
-            </View>
+            <TextCustom type="title" size="4xl" className="text-center">
+              Reset password
+            </TextCustom>
 
             <View className="gap-2">
               <TextCustom>

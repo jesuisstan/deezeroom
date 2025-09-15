@@ -3,6 +3,7 @@ import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -11,9 +12,9 @@ const DeezeroomApp = () => {
   const { theme } = useTheme();
   const { user, profile, loading, profileLoading } = useUser();
 
-  // Don't render anything while loading
+  // Show loading indicator while loading
   if (loading || profileLoading) {
-    return null;
+    return <ActivityIndicatorScreen />;
   }
 
   // Determine user state
