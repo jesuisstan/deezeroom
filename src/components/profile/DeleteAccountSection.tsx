@@ -131,6 +131,20 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   secureTextEntry
                   autoCapitalize="none"
                 />
+                {result && (
+                  <View>
+                    <TextCustom
+                      className="text-center"
+                      color={
+                        result.success
+                          ? themeColors[theme]['intent-success']
+                          : themeColors[theme]['intent-error']
+                      }
+                    >
+                      {result.message}
+                    </TextCustom>
+                  </View>
+                )}
                 <ButtonRipple
                   fullWidth
                   title="Delete Account"
@@ -165,20 +179,6 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                     setResult(null);
                   }}
                 />
-                {result && (
-                  <View>
-                    <TextCustom
-                      className="text-center"
-                      color={
-                        result.success
-                          ? themeColors[theme]['intent-success']
-                          : themeColors[theme]['intent-error']
-                      }
-                    >
-                      {result.message}
-                    </TextCustom>
-                  </View>
-                )}
                 <ButtonRipple
                   fullWidth
                   title="Cancel"

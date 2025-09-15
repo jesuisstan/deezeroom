@@ -1,15 +1,15 @@
 import { FC } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import ChangePasswordSection from '@/components/profile/ChangePasswordSection';
 import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
 import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ButtonRipple from '@/components/ui/ButtonRipple';
 import Divider from '@/components/ui/Divider';
 import { useUser } from '@/providers/UserProvider';
 
 const ProfileSettingsScreen: FC = () => {
-  const { profile, signOut, loading } = useUser();
+  const { profile } = useUser();
 
   return !profile ? (
     <ActivityIndicatorScreen />
@@ -18,15 +18,7 @@ const ProfileSettingsScreen: FC = () => {
       <View className="gap-4">
         <ConnectedAccountsSection profile={profile} />
         <Divider />
-        <ButtonRipple
-          fullWidth
-          variant="primary"
-          size="md"
-          title="Sign out"
-          onPress={signOut}
-          loading={loading}
-          disabled={loading}
-        />
+        <ChangePasswordSection profile={profile} />
         <Divider />
         <DeleteAccountSection profile={profile} />
       </View>

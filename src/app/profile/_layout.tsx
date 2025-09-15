@@ -37,6 +37,7 @@ const ProfileLayout = () => {
           title: 'Profile Settings',
           headerShown: true,
           //statusBarTranslucent: true, // UPDATED: value is ignored when using react-native-edge-to-edge
+          headerRight: () => <SignOutButton />,
           headerStyle: {
             backgroundColor: themeColors[theme]['primary']
           },
