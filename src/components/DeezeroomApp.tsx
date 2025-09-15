@@ -75,6 +75,12 @@ const DeezeroomApp = () => {
               headerShown: false
             }}
           />
+          <Stack.Screen
+            name="auth/reset-password"
+            options={{
+              headerShown: false
+            }}
+          />
         </Stack.Protected>
 
         {/* Email verification screen for authenticated users with unverified email */}

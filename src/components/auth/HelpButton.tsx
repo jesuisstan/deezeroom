@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Entypo } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import { useRouter } from 'expo-router';
 
 import ButtonIcon from '@/components/ui/ButtonIcon';
 import Divider from '@/components/ui/Divider';
@@ -14,6 +15,7 @@ import { themeColors } from '@/style/color-theme';
 const HelpButton = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const { theme } = useTheme();
+  const router = useRouter();
 
   return (
     <View>
@@ -48,7 +50,10 @@ const HelpButton = () => {
             <View className="overflow-hidden rounded-xl bg-bg-secondary">
               <Pressable
                 className="flex-row items-center justify-between px-5 py-4"
-                onPress={() => console.log('TODO: push(/auth/forgot-password)')}
+                onPress={() => {
+                  setModalVisible(false);
+                  router.push('/auth/reset-password');
+                }}
               >
                 <TextCustom type="bold">Forgot password?</TextCustom>
                 <Entypo

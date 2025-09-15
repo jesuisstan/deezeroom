@@ -106,7 +106,7 @@ const VerifyEmailScreen: FC = () => {
           <TextCustom type="title">Verify your email</TextCustom>
         </View>
         <View>
-          <TextCustom>We sent a verification link to:</TextCustom>
+          <TextCustom>We've sent a verification link to:</TextCustom>
           <TextCustom type="bold">{user?.email}</TextCustom>
           <TextCustom>
             Open the link from your email to complete verification.

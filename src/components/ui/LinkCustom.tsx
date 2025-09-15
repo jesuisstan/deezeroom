@@ -1,4 +1,4 @@
-import { TouchableOpacity } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { type Href, router } from 'expo-router';
 
@@ -44,9 +44,9 @@ const LinkCustom = ({ href, text, params }: Props) => {
   };
 
   return (
-    <TouchableOpacity onPress={handlePress}>
+    <Pressable onPress={handlePress}>
       <TextCustom type="link">{text}</TextCustom>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
