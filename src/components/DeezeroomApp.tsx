@@ -3,17 +3,26 @@ import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import AuthGuard from '@/components/auth/AuthGuard';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 
 const DeezeroomApp = () => {
   const { theme } = useTheme();
-  const { user } = useUser();
+  const { user, profile, loading, profileLoading } = useUser();
+
+  // Don't render anything while loading
+  if (loading || profileLoading) {
+    return null;
+  }
+
+  // Determine user state
+  const isAuthenticated = !!user;
+  const isEmailVerified =
+    profile?.emailVerified ?? user?.emailVerified ?? false;
 
   return (
-    <AuthGuard>
+    <>
       <StatusBar
         style={theme === 'dark' ? 'light' : 'dark'}
         translucent={true}
@@ -29,8 +38,8 @@ const DeezeroomApp = () => {
           }
         }}
       >
-        {/* Protected screens available to authenticated users */}
-        <Stack.Protected guard={user !== null}>
+        {/* Protected screens for authenticated users with verified email */}
+        <Stack.Protected guard={isAuthenticated && isEmailVerified}>
           <Stack.Screen
             name="(tabs)"
             options={{
@@ -46,8 +55,8 @@ const DeezeroomApp = () => {
           />
         </Stack.Protected>
 
-        {/* Protected screens available to unauthenticated users */}
-        <Stack.Protected guard={user === null || user === undefined}>
+        {/* Protected screens for unauthenticated users */}
+        <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen
             name="auth/index"
             options={{
@@ -68,16 +77,20 @@ const DeezeroomApp = () => {
           />
         </Stack.Protected>
 
-        {/* Other screens available to all users */}
-        <Stack.Screen
-          name="auth/verify-email"
-          options={{
-            headerShown: false
-          }}
-        />
+        {/* Email verification screen for authenticated users with unverified email */}
+        <Stack.Protected guard={isAuthenticated && !isEmailVerified}>
+          <Stack.Screen
+            name="verify-email"
+            options={{
+              headerShown: false
+            }}
+          />
+        </Stack.Protected>
+
+        {/* Fallback screen */}
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>
-    </AuthGuard>
+    </>
   );
 };
 

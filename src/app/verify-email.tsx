@@ -80,6 +80,7 @@ const VerifyEmailScreen: FC = () => {
   };
 
   const handleBack = async () => {
+    // Sign out and return to auth since user is not verified
     try {
       await signOut();
     } finally {
@@ -96,7 +97,7 @@ const VerifyEmailScreen: FC = () => {
       >
         {/* Header with back and help buttons */}
         <View className="flex-row items-center justify-between">
-          {/* Back button additionally sign out user because he is not verified */}
+          {/* Back button signs out user and returns to auth */}
           <RouterBackButton onPress={handleBack} />
           <HelpButton />
         </View>
