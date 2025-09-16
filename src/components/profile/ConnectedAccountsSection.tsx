@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import SetupPassword from '@/components/profile/SetupPassword';
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import Divider from '@/components/ui/Divider';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import SwipeModal from '@/components/ui/SwipeModal';
@@ -111,7 +111,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               </TextCustom>
             </View>
             {provider.type === 'google' && linkedProviders.length > 1 && (
-              <ButtonIcon
+              <IconButton
                 accessibilityLabel="Unlink Google Account"
                 onPress={handleUnlinkGoogle}
                 className="bg-transparent"
@@ -128,7 +128,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                     color={themeColors[theme]['intent-error']}
                   />
                 )}
-              </ButtonIcon>
+              </IconButton>
             )}
           </View>
         ))}
@@ -167,7 +167,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Connect your Google account
               </TextCustom>
             </View>
-            <ButtonIcon
+            <IconButton
               accessibilityLabel="Link Google Account"
               backgroundColor={themeColors[theme]['primary']}
               className="h-9 w-9"
@@ -177,7 +177,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 size={21}
                 color={themeColors[theme]['white']}
               />
-            </ButtonIcon>
+            </IconButton>
           </Pressable>
         )}
 
@@ -196,7 +196,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 Enable email/password sign-in
               </TextCustom>
             </View>
-            <ButtonIcon
+            <IconButton
               accessibilityLabel="Setup Password"
               onPress={() => setShowPasswordModal(true)}
               backgroundColor={themeColors[theme]['primary']}
@@ -207,7 +207,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 size={21}
                 color={themeColors[theme]['white']}
               />
-            </ButtonIcon>
+            </IconButton>
           </Pressable>
         )}
       </>

@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
@@ -119,7 +119,7 @@ const ProfileScreen: FC = () => {
 
         <View className="flex-1 flex-row items-center gap-2">
           <View className="flex-1">
-            <ButtonRipple
+            <RippleButton
               fullWidth
               title="Edit profile"
               size="sm"
@@ -128,7 +128,7 @@ const ProfileScreen: FC = () => {
             />
           </View>
           <View className="flex-1">
-            <ButtonRipple
+            <RippleButton
               fullWidth
               title="Settings"
               size="sm"

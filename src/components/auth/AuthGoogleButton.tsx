@@ -8,7 +8,7 @@ import {
   signInWithRedirect
 } from 'firebase/auth';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -128,7 +128,7 @@ const AuthGoogleButton: FC = () => {
   };
 
   return (
-    <ButtonIcon
+    <IconButton
       accessibilityLabel="Log in with Google"
       onPress={handleGoogleSignIn}
       loading={isGoogleLoading}
@@ -139,7 +139,7 @@ const AuthGoogleButton: FC = () => {
         source={require('@/assets/images/others/logo-google.png')}
         style={{ width: 26, height: 26 }}
       />
-    </ButtonIcon>
+    </IconButton>
   );
 };
 

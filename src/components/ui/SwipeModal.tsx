@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -225,13 +225,13 @@ const SwipeModal = (props: SwipeModalProps) => {
           >
             {/* Close Button */}
             <View className="absolute -top-1 right-4 z-[1000]">
-              <ButtonIcon accessibilityLabel="Close" onPress={closeModal}>
+              <IconButton accessibilityLabel="Close" onPress={closeModal}>
                 <EvilIcons
                   name="close"
                   size={42}
                   color={themeColors[theme]['text-main']}
                 />
-              </ButtonIcon>
+              </IconButton>
             </View>
 
             {props.title && (

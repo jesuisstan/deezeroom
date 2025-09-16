@@ -16,28 +16,49 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-type ButtonIconProps = {
-  accessibilityLabel: string;
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface RippleButtonProps {
+  title: string;
   onPress?: (event: GestureResponderEvent) => void;
-  className?: string;
-  backgroundColor?: string;
-  children: React.ReactNode;
   disabled?: boolean;
   loading?: boolean;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  className?: string;
+  fullWidth?: boolean;
+  color?: string;
+}
+
+const baseClasses =
+  'relative overflow-hidden flex-row items-center justify-center rounded-xl transition-all duration-200';
+
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: 'px-6 py-1 gap-2 min-h-[30px]',
+  md: 'px-8 py-2 gap-2.5 min-h-[40px]',
+  lg: 'px-10 py-3 gap-3 min-h-[48px]'
 };
 
-const ButtonIcon = ({
+const RippleButton: React.FC<RippleButtonProps> = ({
+  title,
   onPress,
-  accessibilityLabel,
-  className,
-  backgroundColor,
-  children,
   disabled = false,
-  loading = false
-}: ButtonIconProps) => {
+  loading = false,
+  variant = 'primary',
+  size = 'lg',
+  leftIcon,
+  rightIcon,
+  className,
+  fullWidth = false,
+  color
+}) => {
   const { theme } = useTheme();
   const [sizeLayout, setSizeLayout] = useState({ width: 0, height: 0 });
 
@@ -100,24 +121,59 @@ const ButtonIcon = ({
     rippleOpacity.value = withTiming(0, { duration: 120 });
   };
 
+  // Variant classes (border/bg)
+  const variantClasses: Record<ButtonVariant, string> = {
+    primary: 'disabled:bg-disabled',
+    secondary: 'disabled:bg-disabled',
+    outline:
+      'bg-transparent border border-border active:bg-bg-tertiary-hover/10',
+    ghost: 'bg-transparent active:bg-border/10'
+  };
+
+  // Container classes
+  const containerClasses = clsx(
+    baseClasses,
+    sizeClasses[size],
+    variantClasses[variant],
+    fullWidth ? 'w-full' : undefined,
+    disabled ? 'opacity-60' : 'opacity-100',
+    className
+  );
+
+  // Text color depending on variant
+  const textColorByVariant: Record<ButtonVariant, string> = {
+    primary: disabled ? themeColors[theme].black : themeColors[theme].white,
+    secondary: themeColors[theme]['text-main'],
+    outline: themeColors[theme]['text-main'],
+    ghost: themeColors[theme]['text-main']
+  };
+
+  // Background color logic
+  const backgroundColor = (() => {
+    if (variant === 'primary') {
+      return disabled
+        ? themeColors[theme].disabled
+        : color || themeColors[theme].primary;
+    }
+    if (variant === 'secondary') {
+      return color || themeColors[theme]['bg-secondary'];
+    }
+    return 'transparent';
+  })();
+
   return (
-    <View
-      className={clsx('h-12 w-12 overflow-hidden rounded-full', className)}
-      style={{
-        backgroundColor: backgroundColor || themeColors[theme]['transparent']
-      }}
-    >
+    <View className={clsx('overflow-hidden rounded-xl', fullWidth && 'w-full')}>
       <Pressable
-        className="flex-1 items-center justify-center"
+        accessibilityRole="button"
+        hitSlop={8}
         onPress={onPress}
         onPressIn={startRipple}
         onPressOut={endPress}
         onLayout={handleLayout}
-        hitSlop={16}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
         disabled={disabled || loading}
-        style={{ opacity: disabled || loading ? 0.6 : 1 }}
+        className={containerClasses}
+        // keep base backgroundColor here so nativewind classes are preserved
+        style={{ backgroundColor }}
       >
         {/* Overlay to darken the button while pressed.
             Rendered BEFORE ripple so ripple appears on top of overlay. */}
@@ -152,18 +208,38 @@ const ButtonIcon = ({
           ]}
         />
 
-        {/* Content: Loading indicator or children */}
+        {/* Left Icon */}
+        {leftIcon && <View className="mr-1.5">{leftIcon}</View>}
+
+        {/* Label or Loader */}
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={themeColors[theme]['primary']}
+            color={
+              variant === 'primary'
+                ? themeColors[theme].white
+                : themeColors[theme]['text-main']
+            }
           />
         ) : (
-          children
+          <TextCustom
+            type="bold"
+            size={size === 'lg' ? 'l' : 'm'}
+            color={
+              disabled
+                ? themeColors[theme]['text-main']
+                : textColorByVariant[variant]
+            }
+          >
+            {title}
+          </TextCustom>
         )}
+
+        {/* Right Icon */}
+        {rightIcon && <View className="ml-1.5">{rightIcon}</View>}
       </Pressable>
     </View>
   );
 };
 
-export default ButtonIcon;
+export default RippleButton;

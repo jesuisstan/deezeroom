@@ -14,14 +14,16 @@ const ProfileSettingsScreen: FC = () => {
   return !profile ? (
     <ActivityIndicatorScreen />
   ) : (
-    <ScrollView className="gap-4 bg-bg-main px-4 py-4">
-      <View className="gap-4">
+    <ScrollView className="bg-bg-main px-4 py-4">
+      <View className="mb-4">
         <ConnectedAccountsSection profile={profile} />
+      </View>
+      <View className="mb-4">
         <Divider />
         <ChangePasswordSection profile={profile} />
         <Divider />
-        <DeleteAccountSection profile={profile} />
       </View>
+      <DeleteAccountSection profile={profile} />
     </ScrollView>
   );
 };

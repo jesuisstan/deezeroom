@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 import SetupPassword from '@/components/profile/SetupPassword';
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
@@ -62,7 +62,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
 
   return (
     <View>
-      <ButtonRipple
+      <RippleButton
         fullWidth
         title="Delete my account"
         variant="ghost"
@@ -105,7 +105,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   your Google account.
                 </TextCustom>
                 <SetupPassword userEmail={profile.email} />
-                <ButtonRipple
+                <RippleButton
                   fullWidth
                   title="Cancel"
                   variant="outline"
@@ -145,7 +145,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                     </TextCustom>
                   </View>
                 )}
-                <ButtonRipple
+                <RippleButton
                   fullWidth
                   title="Delete Account"
                   color={themeColors[theme]['intent-error']}
@@ -179,7 +179,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                     setResult(null);
                   }}
                 />
-                <ButtonRipple
+                <RippleButton
                   fullWidth
                   title="Cancel"
                   variant="outline"

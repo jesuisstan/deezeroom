@@ -1,14 +1,15 @@
 import { FC, useState } from 'react';
 import { View } from 'react-native';
 
-import AntDesign from '@expo/vector-icons/AntDesign';
+import { Entypo } from '@expo/vector-icons';
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword
 } from 'firebase/auth';
 
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import LineButton from '@/components/ui/buttons/LineButton';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -106,22 +107,16 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
 
   return (
     <View>
-      <ButtonRipple
-        fullWidth
-        title="Change password"
-        variant="ghost"
-        leftIcon={
-          <AntDesign
-            name="lock"
-            size={24}
-            color={themeColors[theme]['text-main']}
+      <LineButton onPress={() => setShowChangePasswordModal(true)}>
+        <View className="w-full flex-row items-center justify-between px-5 py-4">
+          <TextCustom size="m">Change password</TextCustom>
+          <Entypo
+            name="chevron-thin-right"
+            size={19}
+            color={themeColors[theme]['text-secondary']}
           />
-        }
-        onPress={() => setShowChangePasswordModal(true)}
-      />
-      <TextCustom className="text-center">
-        Update your account password for better security.
-      </TextCustom>
+        </View>
+      </LineButton>
 
       {/* Change Password Modal */}
       {showChangePasswordModal && (
@@ -176,7 +171,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
               </View>
             )}
 
-            <ButtonRipple
+            <RippleButton
               fullWidth
               title="Change Password"
               onPress={handleChangePassword}
@@ -189,7 +184,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
               }
             />
 
-            <ButtonRipple
+            <RippleButton
               fullWidth
               title="Cancel"
               variant="outline"

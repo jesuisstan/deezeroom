@@ -1,7 +1,7 @@
 import { Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -22,13 +22,13 @@ const RouterBackButton = ({ onPress }: RouterBackButtonProps) => {
   };
 
   return (
-    <ButtonIcon accessibilityLabel="Back" onPress={handleBackPress}>
+    <IconButton accessibilityLabel="Back" onPress={handleBackPress}>
       <Entypo
         name="chevron-thin-left"
         size={25}
         color={themeColors[theme]['text-main']}
       />
-    </ButtonIcon>
+    </IconButton>
   );
 };
 

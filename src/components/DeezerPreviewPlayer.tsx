@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -38,25 +38,25 @@ const DeezerPreviewPlayer = () => {
     <View className="mt-20 w-3/5 flex-row items-center justify-around self-center">
       {/* Play */}
 
-      <ButtonIcon accessibilityLabel="Play" onPress={() => player.play()}>
+      <IconButton accessibilityLabel="Play" onPress={() => player.play()}>
         <FontAwesome
           name="play"
           size={21}
           color={themeColors[theme]['accent']}
         />
-      </ButtonIcon>
+      </IconButton>
 
       {/* Pause */}
-      <ButtonIcon accessibilityLabel="Pause" onPress={() => player.pause()}>
+      <IconButton accessibilityLabel="Pause" onPress={() => player.pause()}>
         <FontAwesome
           name="pause"
           size={21}
           color={themeColors[theme]['intent-warning']}
         />
-      </ButtonIcon>
+      </IconButton>
 
       {/* Stop = pause + seekTo(0) */}
-      <ButtonIcon
+      <IconButton
         accessibilityLabel="Stop"
         onPress={() => {
           player.pause();
@@ -68,7 +68,7 @@ const DeezerPreviewPlayer = () => {
           size={21}
           color={themeColors[theme]['intent-error']}
         />
-      </ButtonIcon>
+      </IconButton>
     </View>
   );
 };

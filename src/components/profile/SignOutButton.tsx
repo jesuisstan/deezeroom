@@ -1,6 +1,6 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -10,13 +10,13 @@ const SignOutButton = () => {
   const { theme } = useTheme();
 
   return (
-    <ButtonIcon accessibilityLabel="Sign out" onPress={signOut}>
+    <IconButton accessibilityLabel="Sign out" onPress={signOut}>
       <AntDesign
         name="logout"
         size={22}
         color={themeColors[theme]['text-main']}
       />
-    </ButtonIcon>
+    </IconButton>
   );
 };
 

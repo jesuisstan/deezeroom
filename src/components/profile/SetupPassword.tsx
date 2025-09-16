@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -125,7 +125,7 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
       />
 
       {/* Submit Button */}
-      <ButtonRipple
+      <RippleButton
         fullWidth
         title="Setup password"
         size="lg"

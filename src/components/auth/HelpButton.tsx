@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Entypo } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 
-import ButtonIcon from '@/components/ui/ButtonIcon';
+import IconButton from '@/components/ui/buttons/IconButton';
+import LineButton from '@/components/ui/buttons/LineButton';
 import Divider from '@/components/ui/Divider';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -20,7 +21,7 @@ const HelpButton = () => {
   return (
     <View>
       {/* Help Modal Trigger Button */}
-      <ButtonIcon
+      <IconButton
         accessibilityLabel="Help"
         onPress={() => {
           if (!modalVisible) {
@@ -33,7 +34,7 @@ const HelpButton = () => {
           size={24}
           color={themeColors[theme]['text-main']}
         />
-      </ButtonIcon>
+      </IconButton>
 
       {/* Help Modal */}
       <SwipeModal
@@ -48,29 +49,32 @@ const HelpButton = () => {
               Password issues
             </TextCustom>
             <View className="overflow-hidden rounded-xl bg-bg-secondary">
-              <Pressable
-                className="flex-row items-center justify-between px-5 py-4"
+              <LineButton
                 onPress={() => {
                   setModalVisible(false);
                   router.push('/auth/reset-password');
                 }}
               >
-                <TextCustom type="bold">Forgot password?</TextCustom>
-                <Entypo
-                  name="chevron-thin-right"
-                  size={19}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </Pressable>
+                <View className="w-full flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Forgot password?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </LineButton>
               <Divider inset />
-              <Pressable className="flex-row items-center justify-between px-5 py-4">
-                <TextCustom type="bold">Change your password</TextCustom>
-                <Entypo
-                  name="chevron-thin-right"
-                  size={19}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </Pressable>
+              <LineButton>
+                <View className="w-full flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Change your password</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </LineButton>
             </View>
           </View>
 
@@ -80,32 +84,38 @@ const HelpButton = () => {
               Email issues
             </TextCustom>
             <View className="overflow-hidden rounded-xl bg-bg-secondary">
-              <Pressable className="flex-row items-center justify-between px-5 py-4">
-                <TextCustom type="bold">Can't access email?</TextCustom>
-                <Entypo
-                  name="chevron-thin-right"
-                  size={19}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </Pressable>
+              <LineButton>
+                <View className="w-full flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Can't access email?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </LineButton>
               <Divider inset />
-              <Pressable className="flex-row items-center justify-between px-5 py-4">
-                <TextCustom type="bold">Incorrect email?</TextCustom>
-                <Entypo
-                  name="chevron-thin-right"
-                  size={19}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </Pressable>
+              <LineButton>
+                <View className="w-full flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Incorrect email?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </LineButton>
               <Divider inset />
-              <Pressable className="flex-row items-center justify-between px-5 py-4">
-                <TextCustom type="bold">Account compromised?</TextCustom>
-                <Entypo
-                  name="chevron-thin-right"
-                  size={19}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </Pressable>
+              <LineButton>
+                <View className="w-full flex-row items-center justify-between px-5 py-4">
+                  <TextCustom type="bold">Account compromised?</TextCustom>
+                  <Entypo
+                    name="chevron-thin-right"
+                    size={19}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </LineButton>
             </View>
           </View>
         </View>

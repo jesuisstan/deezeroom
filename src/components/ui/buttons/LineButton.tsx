@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   GestureResponderEvent,
   LayoutChangeEvent,
   Pressable,
@@ -16,47 +15,25 @@ import Animated, {
   withTiming
 } from 'react-native-reanimated';
 
-import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
-export type ButtonSize = 'sm' | 'md' | 'lg';
-
-interface ButtonRippleProps {
-  title: string;
+interface LineButtonProps {
+  children: React.ReactNode;
   onPress?: (event: GestureResponderEvent) => void;
   disabled?: boolean;
-  loading?: boolean;
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
   className?: string;
-  fullWidth?: boolean;
   color?: string;
 }
 
 const baseClasses =
-  'relative overflow-hidden flex-row items-center justify-center rounded-xl transition-all duration-200';
+  'relative overflow-hidden flex-row items-center justify-between rounded-none transition-all duration-200';
 
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-6 py-1 gap-2 min-h-[30px]',
-  md: 'px-8 py-2 gap-2.5 min-h-[40px]',
-  lg: 'px-10 py-3 gap-3 min-h-[48px]'
-};
-
-const ButtonRipple: React.FC<ButtonRippleProps> = ({
-  title,
+const LineButton: React.FC<LineButtonProps> = ({
+  children,
   onPress,
   disabled = false,
-  loading = false,
-  variant = 'primary',
-  size = 'lg',
-  leftIcon,
-  rightIcon,
   className,
-  fullWidth = false,
   color
 }) => {
   const { theme } = useTheme();
@@ -86,7 +63,7 @@ const ButtonRipple: React.FC<ButtonRippleProps> = ({
   };
 
   const startRipple = () => {
-    if (disabled || loading) return;
+    if (disabled) return;
 
     // show overlay quickly when finger pressed
     overlayOpacity.value = withTiming(0.12, {
@@ -121,48 +98,17 @@ const ButtonRipple: React.FC<ButtonRippleProps> = ({
     rippleOpacity.value = withTiming(0, { duration: 120 });
   };
 
-  // Variant classes (border/bg)
-  const variantClasses: Record<ButtonVariant, string> = {
-    primary: 'disabled:bg-disabled',
-    secondary: 'disabled:bg-disabled',
-    outline:
-      'bg-transparent border border-border active:bg-bg-tertiary-hover/10',
-    ghost: 'bg-transparent active:bg-border/10'
-  };
-
   // Container classes
   const containerClasses = clsx(
     baseClasses,
-    sizeClasses[size],
-    variantClasses[variant],
-    fullWidth ? 'w-full' : undefined,
+    'w-full',
     disabled ? 'opacity-60' : 'opacity-100',
+    'active:bg-border/10',
     className
   );
 
-  // Text color depending on variant
-  const textColorByVariant: Record<ButtonVariant, string> = {
-    primary: disabled ? themeColors[theme].black : themeColors[theme].white,
-    secondary: themeColors[theme]['text-main'],
-    outline: themeColors[theme]['text-main'],
-    ghost: themeColors[theme]['text-main']
-  };
-
-  // Background color logic
-  const backgroundColor = (() => {
-    if (variant === 'primary') {
-      return disabled
-        ? themeColors[theme].disabled
-        : color || themeColors[theme].primary;
-    }
-    if (variant === 'secondary') {
-      return color || themeColors[theme]['bg-secondary'];
-    }
-    return 'transparent';
-  })();
-
   return (
-    <View className={clsx('overflow-hidden rounded-xl', fullWidth && 'w-full')}>
+    <View className="w-full overflow-hidden rounded-none">
       <Pressable
         accessibilityRole="button"
         hitSlop={8}
@@ -170,13 +116,11 @@ const ButtonRipple: React.FC<ButtonRippleProps> = ({
         onPressIn={startRipple}
         onPressOut={endPress}
         onLayout={handleLayout}
-        disabled={disabled || loading}
+        disabled={disabled}
         className={containerClasses}
-        // keep base backgroundColor here so nativewind classes are preserved
-        style={{ backgroundColor }}
+        style={{ backgroundColor: 'transparent' }}
       >
-        {/* Overlay to darken the button while pressed.
-            Rendered BEFORE ripple so ripple appears on top of overlay. */}
+        {/* Overlay to darken the button while pressed */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -208,38 +152,11 @@ const ButtonRipple: React.FC<ButtonRippleProps> = ({
           ]}
         />
 
-        {/* Left Icon */}
-        {leftIcon && <View className="mr-1.5">{leftIcon}</View>}
-
-        {/* Label or Loader */}
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={
-              variant === 'primary'
-                ? themeColors[theme].white
-                : themeColors[theme]['text-main']
-            }
-          />
-        ) : (
-          <TextCustom
-            type="bold"
-            size={size === 'lg' ? 'l' : 'm'}
-            color={
-              disabled
-                ? themeColors[theme]['text-main']
-                : textColorByVariant[variant]
-            }
-          >
-            {title}
-          </TextCustom>
-        )}
-
-        {/* Right Icon */}
-        {rightIcon && <View className="ml-1.5">{rightIcon}</View>}
+        {/* Children content */}
+        {children}
       </Pressable>
     </View>
   );
 };
 
-export default ButtonRipple;
+export default LineButton;

@@ -3,7 +3,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import clsx from 'clsx';
 
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -90,35 +90,35 @@ const HomeScreen = () => {
 
       <Divider />
       <View className="w-full flex-1 flex-col items-center gap-4">
-        <TextCustom type="subtitle">ButtonRipple</TextCustom>
-        <ButtonRipple
+        <TextCustom type="subtitle">RippleButton</TextCustom>
+        <RippleButton
           title="Primary"
           onPress={() => {
             console.log('Primary');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           title="Disabled"
           disabled={true}
           onPress={() => {
             console.log('Disabled');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           title="Loading"
           loading={true}
           onPress={() => {
             console.log('Loading');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           title="Secondary"
           variant="secondary"
           onPress={() => {
             console.log('Secondary');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           fullWidth
           title="Outline"
           variant="outline"
@@ -126,14 +126,14 @@ const HomeScreen = () => {
             console.log('Outline');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           title="Ghost"
           variant="ghost"
           onPress={() => {
             console.log('Ghost');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           title="Primary Custom Color"
           onPress={() => {
             console.log('Primary Custom Color');
@@ -143,7 +143,7 @@ const HomeScreen = () => {
       </View>
       <Divider />
       <View className="w-full flex-1 flex-col items-center gap-4">
-        <ButtonRipple
+        <RippleButton
           fullWidth
           title="Custom width"
           variant="primary"
@@ -152,7 +152,7 @@ const HomeScreen = () => {
           }}
           className="w-72"
         />
-        <ButtonRipple
+        <RippleButton
           fullWidth
           title="Primary MD"
           size="md"
@@ -160,7 +160,7 @@ const HomeScreen = () => {
             console.log('Primary');
           }}
         />
-        <ButtonRipple
+        <RippleButton
           fullWidth
           title="Outline SM"
           size="sm"

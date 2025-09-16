@@ -13,9 +13,9 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpButton from '@/components/auth/HelpButton';
-import ButtonRipple from '@/components/ui/ButtonRipple';
+import LinkCustom from '@/components/ui/buttons/LinkCustom';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
-import LinkCustom from '@/components/ui/LinkCustom';
 import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
@@ -130,7 +130,7 @@ const LoginScreen: FC = () => {
               leftIconName="lock"
             />
 
-            <ButtonRipple
+            <RippleButton
               fullWidth
               title="Continue"
               size="lg"
