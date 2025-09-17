@@ -5,9 +5,9 @@ import { useRouter } from 'expo-router';
 import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpButton from '@/components/auth/HelpButton';
+import HelpButton from '@/components/auth/need-help/NeedHelp';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import RouterBackButton from '@/components/ui/RouterBackButton';
+import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';

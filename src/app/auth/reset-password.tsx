@@ -12,11 +12,11 @@ import { useRouter } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpButton from '@/components/auth/HelpButton';
+import HelpButton from '@/components/auth/need-help/NeedHelp';
 import LinkCustom from '@/components/ui/buttons/LinkCustom';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
-import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';

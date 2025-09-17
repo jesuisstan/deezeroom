@@ -12,11 +12,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import HelpButton from '@/components/auth/HelpButton';
+import NeedHelp from '@/components/auth/need-help/NeedHelp';
 import LinkCustom from '@/components/ui/buttons/LinkCustom';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
-import RouterBackButton from '@/components/ui/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -93,7 +93,7 @@ const LoginScreen: FC = () => {
           >
             <View className="flex-row items-center justify-between">
               <RouterBackButton />
-              <HelpButton />
+              <NeedHelp />
             </View>
 
             <TextCustom type="title" size="4xl" className="text-center">

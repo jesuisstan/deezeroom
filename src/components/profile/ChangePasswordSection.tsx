@@ -125,9 +125,8 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
           modalVisible={showChangePasswordModal}
           setVisible={setShowChangePasswordModal}
           onClose={clearInputs}
-          fade
         >
-          <View className="flex-1 gap-4">
+          <View className="flex-1 gap-4 px-4 pb-4">
             <TextCustom>
               Enter your current password and choose a new one.
             </TextCustom>

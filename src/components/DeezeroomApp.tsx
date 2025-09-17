@@ -94,6 +94,14 @@ const DeezeroomApp = () => {
           />
         </Stack.Protected>
 
+        {/* Get in touch screen for any user */}
+        <Stack.Screen
+          name="get-in-touch"
+          options={{
+            headerShown: false
+          }}
+        />
+
         {/* Fallback screen */}
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>

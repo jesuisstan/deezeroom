@@ -245,9 +245,7 @@ const SwipeModal = (props: SwipeModalProps) => {
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{
-              flexGrow: 1,
-              paddingHorizontal: 20,
-              paddingBottom: 16
+              flexGrow: 1
             }}
             showsVerticalScrollIndicator={false}
           >

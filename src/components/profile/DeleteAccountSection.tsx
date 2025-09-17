@@ -87,9 +87,8 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
           modalVisible={showDeleteAccountModal}
           setVisible={setShowDeleteAccountModal}
           onClose={clearInputs}
-          fade
         >
-          <View className="flex-1 gap-4">
+          <View className="flex-1 gap-4 px-4 pb-4">
             <View className="items-center">
               <TextCustom>We are sad to see you go 😢</TextCustom>
               <TextCustom type="bold">

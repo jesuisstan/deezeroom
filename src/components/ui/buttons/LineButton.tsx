@@ -111,7 +111,7 @@ const LineButton: React.FC<LineButtonProps> = ({
     <View className="w-full overflow-hidden rounded-none">
       <Pressable
         accessibilityRole="button"
-        hitSlop={8}
+        hitSlop={40}
         onPress={onPress}
         onPressIn={startRipple}
         onPressOut={endPress}
