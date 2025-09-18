@@ -19,7 +19,6 @@ module.exports = () => ({
     android: {
       package: 'com.krivtsoff.deezeroom',
       edgeToEdgeEnabled: true,
-      predictiveBackGestureEnabled: true,
       adaptiveIcon: {
         backgroundColor: '#0f0d13',
         foregroundImage: './src/assets/images/adaptive-icon.png'
@@ -42,7 +41,9 @@ module.exports = () => ({
           fonts: [
             './src/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf',
             './src/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf',
-            './src/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf'
+            './src/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf',
+            './src/assets/fonts/Inter/Inter_18pt-Bold.ttf',
+            './src/assets/fonts/Inter/Inter_18pt-SemiBold.ttf'
           ]
         }
       ],
@@ -66,6 +67,7 @@ module.exports = () => ({
           }
         }
       ],
+      ['expo-mail-composer'],
       ['expo-audio'],
       [
         'expo-video',
