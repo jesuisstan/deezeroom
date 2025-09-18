@@ -8,7 +8,10 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'Arial', 'sans-serif'],
         inter: ['Inter', 'Arial', 'sans-serif'],
-        'league-gothic': ['LeagueGothic', 'Arial Black', 'sans-serif']
+        'league-gothic': ['LeagueGothic', 'Arial Black', 'sans-serif'],
+        'inter-bold': ['Inter-Bold', 'Arial', 'sans-serif'],
+        'inter-semibold': ['Inter-SemiBold', 'Arial', 'sans-serif'],
+        'inter-italic': ['Inter-Italic', 'Arial', 'sans-serif']
       },
       colors: {
         black: 'var(--color-black)',

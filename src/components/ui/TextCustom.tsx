@@ -6,7 +6,14 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 export type TextCustomProps = TextProps & {
-  type?: 'default' | 'title' | 'subtitle' | 'bold' | 'link' | 'italic';
+  type?:
+    | 'default'
+    | 'title'
+    | 'subtitle'
+    | 'bold'
+    | 'semibold'
+    | 'link'
+    | 'italic';
   color?: string;
   size?: 'xs' | 's' | 'm' | 'l' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
   className?: string;
@@ -28,11 +35,11 @@ export function TextCustom({
       case 'subtitle':
         return 'leading-8 tracking-wide';
       case 'bold':
-        return 'leading-6 font-bold';
+        return 'leading-6';
+      case 'semibold':
+        return 'leading-6';
       case 'link':
         return 'leading-8 underline';
-      case 'italic':
-        return 'leading-6 italic';
       case 'default':
         return 'leading-6';
       default:
@@ -43,6 +50,12 @@ export function TextCustom({
   const getFontStyle = () => {
     if (type === 'title' || type === 'subtitle') {
       return { fontFamily: 'LeagueGothic', letterSpacing: 4 };
+    } else if (type === 'italic') {
+      return { fontFamily: 'Inter-Italic' };
+    } else if (type === 'bold') {
+      return { fontFamily: 'Inter-Bold' };
+    } else if (type === 'semibold') {
+      return { fontFamily: 'Inter-SemiBold' };
     } else {
       return { fontFamily: 'Inter' };
     }

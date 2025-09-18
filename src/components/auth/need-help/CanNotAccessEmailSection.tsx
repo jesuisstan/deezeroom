@@ -1,61 +1,62 @@
 import { View } from 'react-native';
 
-import Octicons from '@expo/vector-icons/build/Octicons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { router } from 'expo-router';
 
 import StillNeedHelpBlock from '@/components/auth/need-help/StillNeedHelpBlock';
-import BulletList from '@/components/ui/BulletList';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const AccountCompromisedSection = () => {
+const CanNotAccessEmailSection = () => {
   const { theme } = useTheme();
-
-  const signsToLookOutFor = [
-    "Playlists are appearing that weren't created by you",
-    "Tracks are appearing in your Favorites that weren't favorited by you",
-    'You are unable to log into your account due to an unauthorized password change'
-  ];
-
-  const protectAccountSteps = [
-    "Update your password once you've logged in",
-    'If you suspect that your email address may have been compromised, you can change the email linked to your account in your settings'
-  ];
 
   return (
     <View className="flex-1 gap-4">
       <View className="self-center">
         <TextCustom type="bold" size="l">
-          Account compromised?
+          Can't access email?
         </TextCustom>
       </View>
 
       <View className="flex-row items-start gap-4">
-        <FontAwesome6
-          name="user-secret"
+        <MaterialIcons
+          name="refresh"
           size={23}
           color={themeColors[theme]['text-secondary']}
         />
         <View className="flex-1 gap-2">
           <TextCustom type="bold" size="l">
-            Signs to look out for:
+            Regain email access
           </TextCustom>
-          <BulletList items={signsToLookOutFor} size="l" />
+          <TextCustom size="l" color={themeColors[theme]['text-secondary']}>
+            Check with your email provider, they should be able to provide steps
+            to regain access to your email.
+          </TextCustom>
         </View>
       </View>
 
       <View className="flex-row items-start gap-4">
-        <Octicons
-          name="shield-check"
+        <Ionicons
+          name="add"
           size={23}
           color={themeColors[theme]['text-secondary']}
         />
         <View className="flex-1 gap-2">
           <TextCustom type="bold" size="l">
-            Protect your account
+            Create a new account
           </TextCustom>
-          <BulletList items={protectAccountSteps} size="l" />
+          <TextCustom size="l" color={themeColors[theme]['text-secondary']}>
+            If all else fails, you can always{' '}
+            <TextCustom
+              type="link"
+              onPress={() => router.push('/auth/register')}
+            >
+              create a new account
+            </TextCustom>{' '}
+            and start from scratch.
+          </TextCustom>
         </View>
       </View>
 
@@ -64,4 +65,4 @@ const AccountCompromisedSection = () => {
   );
 };
 
-export default AccountCompromisedSection;
+export default CanNotAccessEmailSection;

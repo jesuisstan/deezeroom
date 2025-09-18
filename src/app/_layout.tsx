@@ -37,7 +37,9 @@ const RootLayout = () => {
     LeagueGothic: require('@/assets/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf'),
     // Inter Variable Fonts (weight and optical size variations)
     Inter: require('@/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
-    'Inter-Italic': require('@/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf')
+    'Inter-Italic': require('@/assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf'),
+    'Inter-Bold': require('@/assets/fonts/Inter/Inter_18pt-Bold.ttf'),
+    'Inter-SemiBold': require('@/assets/fonts/Inter/Inter_18pt-SemiBold.ttf')
   });
 
   useEffect(() => {

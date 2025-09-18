@@ -5,30 +5,44 @@ import { Entypo } from '@expo/vector-icons';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from 'expo-router';
 import Animated, {
+  makeMutable,
   useAnimatedStyle,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated';
 
 import AccountCompromisedSection from '@/components/auth/need-help/AccountCompromisedSection';
+import CanNotAccessEmailSection from '@/components/auth/need-help/CanNotAccessEmailSection';
+import IncorrectEmailSection from '@/components/auth/need-help/IncorrectEmailSection';
 import IconButton from '@/components/ui/buttons/IconButton';
 import LineButton from '@/components/ui/buttons/LineButton';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
+type SecondaryContentType =
+  | 'account-compromised'
+  | 'cant-access-email'
+  | 'incorrect-email'
+  | null;
+
 const NeedHelp = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
+  const [secondaryContentType, setSecondaryContentType] =
+    useState<SecondaryContentType>(null);
 
   const { width } = Dimensions.get('window');
   const translateX = useSharedValue(0);
+  const widthMutable = makeMutable(width);
 
-  const slideToAccountCompromised = () => {
-    translateX.value = withTiming(-width, { duration: 300 });
+  const slideToSecondary = (contentType: SecondaryContentType) => {
+    setSecondaryContentType(contentType);
+    translateX.value = withTiming(-widthMutable.value, { duration: 300 });
   };
 
   const slideBackToMain = () => {
@@ -37,6 +51,7 @@ const NeedHelp = () => {
 
   const resetModal = () => {
     translateX.value = 0;
+    setSecondaryContentType(null);
   };
 
   const handleModalClose = () => {
@@ -65,18 +80,9 @@ const NeedHelp = () => {
             }}
           >
             <View className="w-full flex-row items-center justify-between px-5 py-4">
-              <TextCustom type="bold">Forgot password?</TextCustom>
-              <Entypo
-                name="chevron-thin-right"
-                size={19}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </View>
-          </LineButton>
-          <Divider inset />
-          <LineButton>
-            <View className="w-full flex-row items-center justify-between px-5 py-4">
-              <TextCustom type="bold">Change your password</TextCustom>
+              <TextCustom type="semibold" size="l">
+                Forgot password?
+              </TextCustom>
               <Entypo
                 name="chevron-thin-right"
                 size={19}
@@ -90,12 +96,14 @@ const NeedHelp = () => {
       {/* Email issues */}
       <View className="gap-2">
         <TextCustom color={themeColors[theme]['text-secondary']}>
-          Email issues
+          QEmail issues
         </TextCustom>
         <View className="overflow-hidden rounded-xl bg-bg-secondary">
-          <LineButton>
+          <LineButton onPress={() => slideToSecondary('cant-access-email')}>
             <View className="w-full flex-row items-center justify-between px-5 py-4">
-              <TextCustom type="bold">Can't access email?</TextCustom>
+              <TextCustom type="semibold" size="l">
+                Can't access email?
+              </TextCustom>
               <Entypo
                 name="chevron-thin-right"
                 size={19}
@@ -104,9 +112,11 @@ const NeedHelp = () => {
             </View>
           </LineButton>
           <Divider inset />
-          <LineButton>
+          <LineButton onPress={() => slideToSecondary('incorrect-email')}>
             <View className="w-full flex-row items-center justify-between px-5 py-4">
-              <TextCustom type="bold">Incorrect email?</TextCustom>
+              <TextCustom type="semibold" size="l">
+                Incorrect email?
+              </TextCustom>
               <Entypo
                 name="chevron-thin-right"
                 size={19}
@@ -117,9 +127,11 @@ const NeedHelp = () => {
           <Divider inset />
 
           {/* Account compromised */}
-          <LineButton onPress={slideToAccountCompromised}>
+          <LineButton onPress={() => slideToSecondary('account-compromised')}>
             <View className="w-full flex-row items-center justify-between px-5 py-4">
-              <TextCustom type="bold">Account compromised?</TextCustom>
+              <TextCustom type="semibold" size="l">
+                Account compromised?
+              </TextCustom>
               <Entypo
                 name="chevron-thin-right"
                 size={19}
@@ -131,6 +143,45 @@ const NeedHelp = () => {
       </View>
     </View>
   );
+
+  const SecondaryContent = () => {
+    const renderContent = () => {
+      switch (secondaryContentType) {
+        case 'account-compromised':
+          return <AccountCompromisedSection />;
+        case 'cant-access-email':
+          return <CanNotAccessEmailSection />;
+        case 'incorrect-email':
+          return <IncorrectEmailSection />;
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <View className="flex-1 gap-4 px-4 pb-4">
+        <View>{renderContent()}</View>
+
+        <View className="flex-1">
+          {/* Back button */}
+          <RippleButton
+            title="Back to Help"
+            size="md"
+            variant="outline"
+            fullWidth
+            onPress={slideBackToMain}
+            leftIcon={
+              <Entypo
+                name="chevron-thin-left"
+                size={19}
+                color={themeColors[theme]['text-secondary']}
+              />
+            }
+          />
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View>
@@ -170,7 +221,7 @@ const NeedHelp = () => {
             ]}
           >
             <MainContent />
-            <AccountCompromisedSection onBackPress={slideBackToMain} />
+            <SecondaryContent />
           </Animated.View>
         </View>
       </SwipeModal>
