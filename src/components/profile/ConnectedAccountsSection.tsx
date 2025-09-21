@@ -5,7 +5,6 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import SetupPassword from '@/components/profile/SetupPassword';
 import IconButton from '@/components/ui/buttons/IconButton';
-import Divider from '@/components/ui/Divider';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -81,13 +80,13 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
 
   return linkedProviders?.length > 0 ? (
     <View className="gap-4">
-      <TextCustom type="subtitle">Log in</TextCustom>
-      <Divider />
-
+      <TextCustom size="m" type="semibold">
+        Connected Accounts
+      </TextCustom>
       <>
         {linkedProviders.map((provider, index) => (
           <View key={provider.type} className="flex-row items-center">
-            <View className="mr-3">
+            <View className="mr-4">
               <ProviderIcon provider={provider.type} />
             </View>
             <View className="flex-1">
@@ -115,6 +114,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
                 accessibilityLabel="Unlink Google Account"
                 onPress={handleUnlinkGoogle}
                 className="bg-transparent"
+                loading={isLinking}
               >
                 {isLinking ? (
                   <ActivityIndicator
@@ -134,7 +134,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
         ))}
 
         {linkedProviders.length > 1 && (
-          <View className="flex-row items-center gap-2 overflow-hidden rounded-xl bg-bg-tertiary p-3">
+          <View className="flex-row items-center gap-2 overflow-hidden rounded-xl bg-bg-tertiary p-2">
             <MaterialIcons
               name="info"
               size={20}
@@ -142,8 +142,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             />
             <View className="flex-1">
               <TextCustom size="xs">
-                Your accounts are linked - you can sign in using any of these
-                methods
+                You can sign in using any of these methods
               </TextCustom>
             </View>
           </View>
@@ -156,7 +155,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             disabled={isLinking}
             className="flex-row items-center rounded-xl border border-dashed border-border p-3"
           >
-            <View className="mr-3">
+            <View className="mr-4">
               <ProviderIcon provider="google" loading={isLinking} />
             </View>
             <View className="flex-1">
@@ -169,8 +168,10 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             </View>
             <IconButton
               accessibilityLabel="Link Google Account"
+              onPress={handleLinkGoogle}
               backgroundColor={themeColors[theme]['primary']}
               className="h-9 w-9"
+              loading={isLinking}
             >
               <MaterialIcons
                 name="add"
@@ -187,7 +188,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             onPress={() => setShowPasswordModal(true)}
             className="flex-row items-center rounded-xl border border-dashed border-border p-3"
           >
-            <View className="mr-3">
+            <View className="mr-4">
               <ProviderIcon provider="emailPassword" loading={isLinking} />
             </View>
             <View className="flex-1">
@@ -201,6 +202,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               onPress={() => setShowPasswordModal(true)}
               backgroundColor={themeColors[theme]['primary']}
               className="h-9 w-9"
+              loading={isLinking}
             >
               <MaterialIcons
                 name="add"

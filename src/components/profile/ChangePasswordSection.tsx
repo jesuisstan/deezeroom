@@ -108,13 +108,10 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
   return (
     <View>
       <LineButton onPress={() => setShowChangePasswordModal(true)}>
-        <View className="w-full flex-row items-center justify-between px-5 py-4">
-          <TextCustom size="m">Change password</TextCustom>
-          <Entypo
-            name="chevron-thin-right"
-            size={19}
-            color={themeColors[theme]['text-secondary']}
-          />
+        <View className="w-full items-start py-4">
+          <TextCustom size="m" type="semibold">
+            Change password
+          </TextCustom>
         </View>
       </LineButton>
 

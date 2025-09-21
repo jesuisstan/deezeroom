@@ -90,8 +90,21 @@ export class UserService {
   private static getAuthProvidersInfo(user: User) {
     const providers: UserProfile['authProviders'] = {};
 
+    console.log(
+      '🔍 getAuthProvidersInfo - user.providerData:',
+      user.providerData
+    );
+    console.log('🔍 getAuthProvidersInfo - user.uid:', user.uid);
+    console.log('🔍 getAuthProvidersInfo - user.email:', user.email);
+
     if (user.providerData && user.providerData.length > 0) {
       user.providerData.forEach((provider) => {
+        console.log(
+          '🔍 Processing provider:',
+          provider.providerId,
+          provider.email
+        );
+
         if (provider.providerId === 'google.com') {
           providers.google = {
             linked: true,
@@ -99,6 +112,7 @@ export class UserService {
             providerId: provider.providerId,
             email: provider.email || ''
           };
+          console.log('✅ Added Google provider to providers object');
         } else if (provider.providerId === 'password') {
           providers.emailPassword = {
             linked: true,
@@ -106,10 +120,12 @@ export class UserService {
             providerId: provider.providerId,
             email: provider.email || ''
           };
+          console.log('✅ Added EmailPassword provider to providers object');
         }
       });
     }
 
+    console.log('🔍 Final providers object:', providers);
     return providers;
   }
 
@@ -118,23 +134,88 @@ export class UserService {
     additionalData?: Partial<UserProfile>
   ): Promise<void> {
     try {
+      console.log(
+        '🚀 createOrUpdateUser called for user:',
+        user.uid,
+        user.email
+      );
+
       const userRef = doc(db, this.collection, user.uid);
       const existingSnap = await getDoc(userRef);
 
+      console.log('📄 User exists in Firestore:', existingSnap.exists());
+
       // Get current auth providers (source of truth)
       const currentProviders = this.getAuthProvidersInfo(user);
+      console.log('🔑 Current providers from Firebase Auth:', currentProviders);
+
+      // If user exists, merge auth providers to preserve linkedAt timestamps
+      let finalAuthProviders = currentProviders;
+      if (existingSnap.exists()) {
+        const existingData = existingSnap.data() as UserProfile;
+        console.log(
+          '📋 Existing authProviders in Firestore:',
+          existingData.authProviders
+        );
+
+        // Merge: keep only CURRENT providers, but preserve old linkedAt if existed
+        const merged: UserProfile['authProviders'] = {};
+        (
+          Object.keys(currentProviders) as (keyof NonNullable<
+            UserProfile['authProviders']
+          >)[]
+        ).forEach((key) => {
+          const current = (currentProviders as any)[key];
+          const previous = (existingData.authProviders as any)?.[key];
+          console.log(`🔄 Merging provider ${key}:`, { current, previous });
+
+          (merged as any)[key] = {
+            ...(previous || {}),
+            ...current,
+            linkedAt: previous?.linkedAt ?? current?.linkedAt
+          };
+        });
+
+        finalAuthProviders = merged;
+        console.log('🎯 Final merged authProviders:', finalAuthProviders);
+      }
 
       // "createdAt" only when first created
       const baseData: Partial<UserProfile> = {
         uid: user.uid,
         email: user.email || '',
-        displayName:
-          user.displayName || (user.email ? user.email.split('@')[0] : ''),
-        ...(user.photoURL ? { photoURL: user.photoURL } : {}),
-        authProviders: currentProviders,
+        authProviders: finalAuthProviders,
         updatedAt: serverTimestamp(),
         ...additionalData
       };
+
+      // Only update displayName and photoURL if they don't exist or are empty
+      if (existingSnap.exists()) {
+        const existingData = existingSnap.data() as UserProfile;
+
+        // Only set displayName if current one is empty or missing
+        if (
+          !existingData.displayName ||
+          existingData.displayName.trim() === ''
+        ) {
+          baseData.displayName =
+            user.displayName || (user.email ? user.email.split('@')[0] : '');
+        }
+
+        // Only set photoURL if current one is empty or missing
+        if (!existingData.photoURL || existingData.photoURL.trim() === '') {
+          if (user.photoURL) {
+            baseData.photoURL = user.photoURL;
+          }
+        }
+      } else {
+        // For new users, set both displayName and photoURL
+        baseData.displayName =
+          user.displayName || (user.email ? user.email.split('@')[0] : '');
+        if (user.photoURL) {
+          baseData.photoURL = user.photoURL;
+        }
+      }
 
       const dataToWrite = existingSnap.exists()
         ? baseData
@@ -142,10 +223,16 @@ export class UserService {
 
       const userData = removeUndefinedDeep(dataToWrite) as Partial<UserProfile>;
 
+      console.log('💾 About to write to Firestore:', {
+        uid: userData.uid,
+        email: userData.email,
+        authProviders: userData.authProviders
+      });
+
       await setDoc(userRef, userData, { merge: true });
-      console.log('User profile created/updated successfully');
+      console.log('✅ User profile created/updated successfully');
     } catch (error) {
-      console.error('Error in createOrUpdateUser:', error);
+      console.error('❌ Error in createOrUpdateUser:', error);
       throw error;
     }
   }
@@ -297,18 +384,20 @@ export class UserService {
         };
       }
 
+      // Unlink from Firebase Auth
       await unlink(currentUser, 'google.com');
       await currentUser.reload();
 
-      // Explicitly remove google subfield from Firestore profile
+      // Update Firestore with the current auth providers (without Google)
       const userRef = doc(db, this.collection, currentUser.uid);
+
+      // Get the updated providers info after unlinking
+      const updatedProviders = this.getAuthProvidersInfo(currentUser);
+
       await updateDoc(userRef, {
-        'authProviders.google': deleteField(),
+        authProviders: updatedProviders,
         updatedAt: serverTimestamp()
       });
-
-      // Then overwrite with the CURRENT providers set
-      await this.updateAuthProviders(currentUser);
 
       return { success: true, message: 'Google account unlinked successfully' };
     } catch (error: any) {

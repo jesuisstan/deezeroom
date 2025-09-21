@@ -73,18 +73,22 @@ export const UserProvider: FC<TUserProviderProps> = ({
       const userProfile = await UserService.getUserProfile(currentUser.uid);
 
       if (userProfile) {
-        // Keep emailVerified in sync with Firebase user state
-        const merged = {
-          ...userProfile,
+        console.log('👤 User profile exists, updating auth providers...');
+
+        // Always update the profile to sync auth providers and other data
+        await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified
-        } as UserProfile;
-        setProfile(merged);
-        // Persist to Firestore if changed
-        if (userProfile.emailVerified !== merged.emailVerified) {
-          await UserService.updateUserProfile(currentUser.uid, {
-            emailVerified: merged.emailVerified
-          });
-        }
+        });
+
+        // Load updated profile
+        const updatedProfile = await UserService.getUserProfile(
+          currentUser.uid
+        );
+        setProfile(
+          updatedProfile
+            ? { ...updatedProfile, emailVerified: !!currentUser.emailVerified }
+            : null
+        );
       } else {
         // If profile does not exist, create it
         console.log('Creating new user profile...');
