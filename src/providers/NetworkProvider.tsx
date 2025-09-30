@@ -3,7 +3,7 @@
  *
  * Purpose:
  * - Provides a global network connectivity context powered by Expo Network (useNetworkState).
- * - Emits user-facing notifications (via shootAlert) on connectivity loss and restoration.
+ * - Emits user-facing notifications on connectivity loss and restoration.
  * - Normalizes connection type to one of: "WIFI" | "CELLULAR" | "UNKNOWN" | "NONE".
  * - Works on Android, iOS, and Web.
  *
@@ -35,7 +35,7 @@ import React, {
 
 import { NetworkState, NetworkStateType, useNetworkState } from 'expo-network';
 
-import shootAlert from '@/utils/shoot-alert';
+import { Notifier } from '@/modules/notifier';
 
 type ConnectionType = 'WIFI' | 'CELLULAR' | 'UNKNOWN' | 'NONE';
 
@@ -109,10 +109,17 @@ export const NetworkProvider = ({ children }: NetworkProviderProps) => {
     const prev = previousOnlineRef.current;
     if (prev !== isOnline) {
       if (isOnline) {
-        shootAlert('toast', 'Online', 'Connection restored', 'success');
+        Notifier.shoot({
+          type: 'success',
+          title: 'Online',
+          message: 'Connection restored'
+        });
       } else {
-        // Inform about being offline; on web we still use shootAlert which falls back to alert/console
-        shootAlert('toast', 'Offline', `No internet connection`, 'error', true);
+        Notifier.shoot({
+          type: 'warn',
+          title: 'Offline',
+          message: 'No internet connection'
+        });
       }
       previousOnlineRef.current = isOnline;
     }

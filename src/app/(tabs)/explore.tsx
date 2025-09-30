@@ -4,7 +4,7 @@ import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import ParallaxScrollView from '@/components/ui/ParallaxScrollView';
 import { TextCustom } from '@/components/ui/TextCustom';
-import shootAlert from '@/utils/shoot-alert';
+import { Notifier } from '@/modules/notifier';
 
 const TabTwoScreen = () => {
   return (
@@ -22,7 +22,13 @@ const TabTwoScreen = () => {
       <View className="flex-row gap-2">
         <TextCustom
           type="title"
-          onPress={() => shootAlert('dialog', 'Hello', 'Hello')}
+          onPress={() => {
+            return Notifier.shoot({
+              type: 'info',
+              title: 'INFO',
+              message: 'Hello!!!'
+            });
+          }}
         >
           THIS APP gonna BE AWESOME
         </TextCustom>

@@ -14,12 +14,12 @@ import {
   User
 } from 'firebase/auth';
 
+import { Notifier } from '@/modules/notifier';
 import { auth } from '@/utils/firebase/firebase-init';
 import {
   UserProfile,
   UserService
 } from '@/utils/firebase/firebase-service-user';
-import shootAlert from '@/utils/shoot-alert';
 
 type TUserContextType = {
   user: User | null;
@@ -144,24 +144,26 @@ export const UserProvider: FC<TUserProviderProps> = ({
       if (result.success) {
         // Refresh profile to show updated providers
         await refreshProfile();
-        shootAlert(
-          'toast',
-          'Success',
-          'Google account linked successfully',
-          'success'
-        );
+        Notifier.shoot({
+          type: 'success',
+          title: 'Success',
+          message: 'Google account linked successfully'
+        });
       } else {
-        shootAlert(
-          'toast',
-          'Oops!',
-          result.message || 'Google account was not linked',
-          'warning'
-        );
+        Notifier.shoot({
+          type: 'warn',
+          title: 'Oops!',
+          message: result.message || 'Google account was not linked'
+        });
       }
       return result;
     } catch (error) {
       console.log('Error in linkWithGoogle:', error);
-      shootAlert('toast', 'Error', 'Failed to link Google account', 'error');
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to link Google account'
+      });
       return { success: false, message: 'Failed to link Google account' };
     }
   };
@@ -172,19 +174,24 @@ export const UserProvider: FC<TUserProviderProps> = ({
       const result = await UserService.unlinkGoogle();
       if (result.success) {
         await refreshProfile();
-        shootAlert('toast', 'Success', 'Google account unlinked', 'success');
+        Notifier.shoot({
+          type: 'info',
+          message: 'Google account unlinked'
+        });
       } else if (result.message) {
-        shootAlert(
-          'toast',
-          'Error',
-          result.message || 'Failed to unlink Google account',
-          'error'
-        );
+        Notifier.shoot({
+          type: 'error',
+          message: result.message || 'Failed to unlink Google account'
+        });
       }
       return result;
     } catch (error) {
       console.log('Error in unlinkWithGoogle:', error);
-      shootAlert('toast', 'Error', 'Failed to unlink Google account', 'error');
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to unlink Google account'
+      });
       return { success: false, message: 'Failed to unlink Google account' };
     }
   };
@@ -200,7 +207,11 @@ export const UserProvider: FC<TUserProviderProps> = ({
       return result;
     } catch (error) {
       console.error('Error in linkWithEmailPassword:', error);
-      shootAlert('toast', 'Error', 'Failed to link email/password', 'error');
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to link email/password'
+      });
       return { success: false, error: 'Failed to link email/password' };
     }
   };
@@ -250,7 +261,11 @@ export const UserProvider: FC<TUserProviderProps> = ({
       setProfileLoading(false);
     } catch (error) {
       console.error('Sign out error:', error);
-      shootAlert('toast', 'Error', 'Failed to sign out', 'error');
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to sign out'
+      });
     } finally {
       setLoading(false);
     }

@@ -9,10 +9,10 @@ import HelpButton from '@/components/auth/need-help/NeedHelp';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
-import shootAlert from '@/utils/shoot-alert';
 
 const VerifyEmailScreen: FC = () => {
   const router = useRouter();
@@ -25,21 +25,19 @@ const VerifyEmailScreen: FC = () => {
     try {
       setSending(true);
       await sendEmailVerification(auth.currentUser);
-      shootAlert(
-        'toast',
-        'Verification email sent',
-        'Please check your inbox.',
-        'success'
-      );
+      Notifier.shoot({
+        type: 'info',
+        title: 'Verification email sent',
+        message: 'Please check your inbox.'
+      });
     } catch (error: any) {
       console.log('sendEmailVerification error:', error);
       const errorMessage = getFirebaseErrorMessage(error);
-      shootAlert(
-        'toast',
-        'Error',
-        errorMessage || 'Failed to send verification email',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage || 'Failed to send verification email.'
+      });
     } finally {
       setSending(false);
     }
@@ -51,29 +49,31 @@ const VerifyEmailScreen: FC = () => {
       setChecking(true);
       await auth.currentUser.reload();
       if (auth.currentUser.emailVerified) {
-        shootAlert('toast', 'Email verified', 'Welcome!', 'success');
+        Notifier.shoot({
+          type: 'success',
+          title: 'Email verified',
+          message: 'Welcome!'
+        });
         try {
           await refreshProfile();
         } catch {}
         router.replace('/(tabs)');
       } else {
-        shootAlert(
-          'toast',
-          'Not verified yet',
-          'Please check your email.',
-          'warning'
-        );
+        Notifier.shoot({
+          type: 'warn',
+          title: 'Not verified yet',
+          message: 'Please check your email.'
+        });
       }
     } catch (e) {
       console.log('reload error', e);
       console.log(JSON.stringify(e));
       const errorMessage = getFirebaseErrorMessage(e);
-      shootAlert(
-        'toast',
-        'Error',
-        errorMessage || 'Failed to check verification status',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage || 'Failed to check verification status.'
+      });
     } finally {
       setChecking(false);
     }

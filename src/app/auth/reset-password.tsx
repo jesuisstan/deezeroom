@@ -18,9 +18,9 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
-import shootAlert from '@/utils/shoot-alert';
 
 const ResetPasswordScreen: FC = () => {
   const router = useRouter();
@@ -55,12 +55,11 @@ const ResetPasswordScreen: FC = () => {
       console.log('Reset password error:', error);
       const errorMessage = getFirebaseErrorMessage(error);
       setEmailError(errorMessage || 'Failed to send reset email');
-      shootAlert(
-        'toast',
-        'Error',
-        errorMessage || 'Failed to send reset email. Please try again.',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: errorMessage || 'Failed to send reset email. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,6 @@
 import { FC, useState } from 'react';
 import { View } from 'react-native';
 
-import { Entypo } from '@expo/vector-icons';
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -13,12 +12,12 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
 import { UserProfile } from '@/utils/firebase/firebase-service-user';
-import shootAlert from '@/utils/shoot-alert';
 
 interface ChangePasswordSectionProps {
   profile: UserProfile;
@@ -81,12 +80,11 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
       setTimeout(() => {
         clearInputs();
         setShowChangePasswordModal(false);
-        shootAlert(
-          'toast',
-          'Success',
-          'Password changed successfully',
-          'success'
-        );
+        Notifier.shoot({
+          type: 'success',
+          title: 'Success',
+          message: 'Password changed successfully.'
+        });
       }, 1500);
     } catch (error: any) {
       console.log('Change password error:', error);

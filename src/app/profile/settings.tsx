@@ -50,8 +50,14 @@ const ProfileSettingsScreen: FC = () => {
       </View>
       <View className="mb-4">
         <Divider />
-        <ChangePasswordSection profile={profile} />
-        <Divider />
+
+        {!profile?.authProviders?.emailPassword?.linked ? null : (
+          <>
+            <ChangePasswordSection profile={profile} />
+            <Divider />
+          </>
+        )}
+
         <LineButton onPress={handleContactSupport}>
           <View className="w-full items-start py-4">
             <TextCustom size="m" type="semibold">

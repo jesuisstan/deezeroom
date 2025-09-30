@@ -56,7 +56,7 @@ Get started with [EAS Hosting](https://docs.expo.dev/eas/hosting/introduction/).
 
 ### Ensure installation
 
-`"preinstall":`
+`"preinstall" / "prepare":`
 
 ```bash
 npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0

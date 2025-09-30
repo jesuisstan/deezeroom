@@ -9,10 +9,10 @@ import {
 } from 'firebase/auth';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { auth } from '@/utils/firebase/firebase-init';
-import shootAlert from '@/utils/shoot-alert';
 
 const AuthGoogleButton: FC = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -68,12 +68,11 @@ const AuthGoogleButton: FC = () => {
         const { idToken } = await GoogleSignin.getTokens();
         if (!idToken) {
           console.error('No idToken received');
-          shootAlert(
-            'toast',
-            'Error',
-            'No token received from Google',
-            'error'
-          );
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: 'No token received from Google.'
+          });
           return;
         }
 
@@ -102,12 +101,11 @@ const AuthGoogleButton: FC = () => {
                 console.log('Sign-in is already in progress');
                 return;
               case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-                shootAlert(
-                  'toast',
-                  'Error',
-                  'Google Play Services not available',
-                  'error'
-                );
+                Notifier.shoot({
+                  type: 'error',
+                  title: 'Error',
+                  message: 'Google Play Services not available'
+                });
                 return;
               default:
                 break;
@@ -116,12 +114,11 @@ const AuthGoogleButton: FC = () => {
         } catch {}
       }
 
-      shootAlert(
-        'toast',
-        'Sign in error',
-        'Failed to sign in with Google. Please try again.',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Sign in error',
+        message: 'Failed to sign in with Google. Please try again.'
+      });
     } finally {
       setIsGoogleLoading(false);
     }

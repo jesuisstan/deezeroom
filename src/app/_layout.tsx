@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { AlertNotificationRoot } from 'react-native-alert-notification';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   configureReanimatedLogger,
@@ -15,10 +13,11 @@ import {
 
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+// removed ToastManager in favor of our NotifierProvider
+import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
-import { themeColors } from '@/style/color-theme';
 
 import '@/global.css';
 
@@ -57,6 +56,7 @@ const RootLayout = () => {
       <ThemeProvider>
         <NetworkProvider>
           <UserProvider>
+            <NotifierModule />
             <DeezeroomApp />
           </UserProvider>
         </NetworkProvider>
@@ -64,44 +64,7 @@ const RootLayout = () => {
     </GestureHandlerRootView>
   );
 
-  // For web we don't use AlertNotificationRoot because of problems with useColorScheme
-  if (Platform.OS === 'web') {
-    return appContent;
-  }
-
-  return (
-    <AlertNotificationRoot
-      toastConfig={{
-        autoClose: 3000
-      }}
-      dialogConfig={{
-        closeOnOverlayTap: true,
-        autoClose: false
-      }}
-      colors={[
-        {
-          label: themeColors.light['text-main'],
-          card: themeColors.light['bg-secondary'],
-          overlay: themeColors.light['bg-main'],
-          success: themeColors.light.primary,
-          danger: themeColors.light['intent-error'],
-          warning: themeColors.light['intent-warning'],
-          info: themeColors.light.primary
-        },
-        {
-          label: themeColors.dark['text-main'],
-          card: themeColors.dark['bg-secondary'],
-          overlay: themeColors.dark['bg-main'],
-          success: themeColors.dark.accent,
-          danger: themeColors.dark['intent-error'],
-          warning: themeColors.dark['intent-warning'],
-          info: themeColors.dark.accent
-        }
-      ]}
-    >
-      {appContent}
-    </AlertNotificationRoot>
-  );
+  return appContent;
 };
 
 export default RootLayout;

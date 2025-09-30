@@ -15,10 +15,10 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
 import { UserService } from '@/utils/firebase/firebase-service-user';
-import shootAlert from '@/utils/shoot-alert';
 
 const RegisterScreen: FC = () => {
   const params = useLocalSearchParams<{ email?: string }>();
@@ -84,12 +84,11 @@ const RegisterScreen: FC = () => {
     } catch (err: any) {
       const errorMessage = getFirebaseErrorMessage(err);
       console.log('Error on register:', errorMessage);
-      shootAlert(
-        'toast',
-        'Registration error',
-        errorMessage || 'Failed to create account. Please try again.',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Registration error',
+        message: errorMessage || 'Failed to create account. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

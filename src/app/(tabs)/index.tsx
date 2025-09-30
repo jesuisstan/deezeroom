@@ -6,9 +6,9 @@ import clsx from 'clsx';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import shootAlert from '@/utils/shoot-alert';
 
 const HomeScreen = () => {
   const [name, setName] = useState('');
@@ -17,7 +17,12 @@ const HomeScreen = () => {
   const fetchGreeting = async () => {
     const response = await fetch('/api/greeting');
     const data = await response.json();
-    shootAlert('dialog', 'Greeting', data.greeting, 'warning');
+    Notifier.shoot({
+      title: 'Greeting',
+      message: data.greeting,
+      type: 'info',
+      position: 'top'
+    });
   };
 
   const postGreeting = async () => {
@@ -26,7 +31,11 @@ const HomeScreen = () => {
       { method: 'POST' }
     );
     const data = await response.json();
-    shootAlert('toast', 'Greeting', data.greeting, 'error');
+    Notifier.shoot({
+      message: data.greeting,
+      type: 'error',
+      position: 'bottom'
+    });
   };
 
   const postGraphql = async () => {
@@ -40,7 +49,11 @@ const HomeScreen = () => {
       })
     });
     const data = await response.json();
-    shootAlert('dialog', 'Greeting', data.data.greeting, 'success');
+    Notifier.shoot({
+      message: data.data.greeting,
+      type: 'success',
+      position: 'center'
+    });
   };
 
   return (

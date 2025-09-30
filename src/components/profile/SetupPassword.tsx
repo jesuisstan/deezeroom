@@ -5,10 +5,10 @@ import PasswordRequirements from '@/components/auth/PasswordRequirements';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
-import shootAlert from '@/utils/shoot-alert';
 
 interface SetupPasswordProps {
   userEmail: string;
@@ -32,7 +32,6 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
     try {
       const result = await linkWithEmailPassword(userEmail, password);
       setResult(result);
-      console.log('Result in handleSetupPassword:', result);
       if (result.success) {
         // Reset form
         setPassword('');
@@ -40,12 +39,11 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
       }
     } catch (error) {
       console.log('Error setting up password COMPONENT:', error);
-      shootAlert(
-        'toast',
-        'Error setting up password',
-        'Failed to set up password',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to set up password'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +59,7 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
   }, [password, confirmPassword]);
 
   return (
-    <View className="flex-1 gap-4">
+    <View className="flex-1 gap-4 px-4 pb-4">
       <View>
         <TextCustom>Create a password for account</TextCustom>
         <TextCustom type="bold">{userEmail}</TextCustom>

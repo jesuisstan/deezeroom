@@ -18,9 +18,9 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
-import shootAlert from '@/utils/shoot-alert';
 
 const LoginScreen: FC = () => {
   const params = useLocalSearchParams<{ email?: string }>();
@@ -63,12 +63,11 @@ const LoginScreen: FC = () => {
     } catch (err: any) {
       const errorMessage = getFirebaseErrorMessage(err);
       console.log('Error on login:', errorMessage);
-      shootAlert(
-        'toast',
-        'Sign in error',
-        errorMessage || 'Failed to sign in. Please try again.',
-        'error'
-      );
+      Notifier.shoot({
+        type: 'error',
+        title: 'Sign in error',
+        message: errorMessage || 'Failed to sign in. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
