@@ -104,7 +104,7 @@ export const NetworkProvider = ({ children }: NetworkProviderProps) => {
       return;
     }
 
-    console.log('NetworkProvider - current online status:', isOnline);
+    console.log('📡 NetworkProvider - current online status:', isOnline);
 
     const prev = previousOnlineRef.current;
     if (prev !== isOnline) {

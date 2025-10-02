@@ -24,7 +24,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const THEME_STORAGE_KEY = 'app:themePreference';
 
-  console.log('ThemeProvider - currentTheme:', currentTheme);
+  console.log('🎨 ThemeProvider - currentTheme:', currentTheme);
 
   const toggleTheme = () => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';

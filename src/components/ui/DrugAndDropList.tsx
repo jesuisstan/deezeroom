@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
 import {
   LayoutChangeEvent,
-  SafeAreaView,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -22,6 +21,7 @@ import Animated, {
   useSharedValue,
   withSpring
 } from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { runOnJS } from 'react-native-worklets';
 
 type Row = { key: string; label: string };

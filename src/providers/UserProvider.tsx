@@ -73,8 +73,6 @@ export const UserProvider: FC<TUserProviderProps> = ({
       const userProfile = await UserService.getUserProfile(currentUser.uid);
 
       if (userProfile) {
-        console.log('👤 User profile exists, updating auth providers...');
-
         // Always update the profile to sync auth providers and other data
         await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified

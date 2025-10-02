@@ -113,21 +113,14 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               <IconButton
                 accessibilityLabel="Unlink Google Account"
                 onPress={handleUnlinkGoogle}
-                className="bg-transparent"
+                className="h-9 w-9 border border-border"
                 loading={isLinking}
               >
-                {isLinking ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={themeColors[theme]['intent-error']}
-                  />
-                ) : (
-                  <MaterialIcons
-                    name={'close'}
-                    size={24}
-                    color={themeColors[theme]['intent-error']}
-                  />
-                )}
+                <MaterialIcons
+                  name="close"
+                  size={21}
+                  color={themeColors[theme]['text-main']}
+                />
               </IconButton>
             )}
           </View>
@@ -137,7 +130,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
           <View className="flex-row items-center gap-2 overflow-hidden rounded-xl bg-bg-tertiary p-2">
             <MaterialIcons
               name="info"
-              size={20}
+              size={21}
               color={themeColors[theme]['intent-warning']}
             />
             <View className="flex-1">
@@ -169,14 +162,14 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
             <IconButton
               accessibilityLabel="Link Google Account"
               onPress={handleLinkGoogle}
-              backgroundColor={themeColors[theme]['primary']}
-              className="h-9 w-9"
+              backgroundColor={themeColors[theme]['bg-secondary']}
+              className="h-9 w-9 border border-border"
               loading={isLinking}
             >
               <MaterialIcons
                 name="add"
                 size={21}
-                color={themeColors[theme]['white']}
+                color={themeColors[theme]['text-main']}
               />
             </IconButton>
           </Pressable>
@@ -201,7 +194,7 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
               accessibilityLabel="Setup Password"
               onPress={() => setShowPasswordModal(true)}
               backgroundColor={themeColors[theme]['primary']}
-              className="h-9 w-9"
+              className="h-9 w-9 border border-border"
               loading={isLinking}
             >
               <MaterialIcons

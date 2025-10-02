@@ -90,13 +90,6 @@ export class UserService {
   private static getAuthProvidersInfo(user: User) {
     const providers: UserProfile['authProviders'] = {};
 
-    console.log(
-      '🔍 getAuthProvidersInfo - user.providerData:',
-      user.providerData
-    );
-    console.log('🔍 getAuthProvidersInfo - user.uid:', user.uid);
-    console.log('🔍 getAuthProvidersInfo - user.email:', user.email);
-
     if (user.providerData && user.providerData.length > 0) {
       user.providerData.forEach((provider) => {
         console.log(
@@ -112,7 +105,6 @@ export class UserService {
             providerId: provider.providerId,
             email: provider.email || ''
           };
-          console.log('✅ Added Google provider to providers object');
         } else if (provider.providerId === 'password') {
           providers.emailPassword = {
             linked: true,
@@ -120,12 +112,10 @@ export class UserService {
             providerId: provider.providerId,
             email: provider.email || ''
           };
-          console.log('✅ Added EmailPassword provider to providers object');
         }
       });
     }
 
-    console.log('🔍 Final providers object:', providers);
     return providers;
   }
 
@@ -134,31 +124,21 @@ export class UserService {
     additionalData?: Partial<UserProfile>
   ): Promise<void> {
     try {
-      console.log(
-        '🚀 createOrUpdateUser called for user:',
-        user.uid,
-        user.email
-      );
-
       const userRef = doc(db, this.collection, user.uid);
       const existingSnap = await getDoc(userRef);
 
-      console.log('📄 User exists in Firestore:', existingSnap.exists());
-
       // Get current auth providers (source of truth)
       const currentProviders = this.getAuthProvidersInfo(user);
-      console.log('🔑 Current providers from Firebase Auth:', currentProviders);
 
       // If user exists, merge auth providers to preserve linkedAt timestamps
       let finalAuthProviders = currentProviders;
+      let needsUpdate = false;
+
       if (existingSnap.exists()) {
         const existingData = existingSnap.data() as UserProfile;
-        console.log(
-          '📋 Existing authProviders in Firestore:',
-          existingData.authProviders
-        );
 
         // Merge: keep only CURRENT providers, but preserve old linkedAt if existed
+        // This will automatically remove unlinked providers from the database
         const merged: UserProfile['authProviders'] = {};
         (
           Object.keys(currentProviders) as (keyof NonNullable<
@@ -167,7 +147,6 @@ export class UserService {
         ).forEach((key) => {
           const current = (currentProviders as any)[key];
           const previous = (existingData.authProviders as any)?.[key];
-          console.log(`🔄 Merging provider ${key}:`, { current, previous });
 
           (merged as any)[key] = {
             ...(previous || {}),
@@ -176,8 +155,30 @@ export class UserService {
           };
         });
 
+        // Important: Only keep CURRENT providers - this removes unlinked ones
         finalAuthProviders = merged;
-        console.log('🎯 Final merged authProviders:', finalAuthProviders);
+
+        // Log removed providers for debugging
+        const existingKeys = Object.keys(existingData.authProviders || {});
+        const currentKeys = Object.keys(currentProviders);
+        const removedKeys = existingKeys.filter(
+          (key) => !currentKeys.includes(key)
+        );
+
+        if (removedKeys.length > 0) {
+          console.log('🗑️ Removed unlinked providers:', removedKeys);
+        }
+
+        // Check if providers actually changed to avoid unnecessary updates
+        const existingProvidersStr = JSON.stringify(
+          existingData.authProviders || {}
+        );
+        const newProvidersStr = JSON.stringify(finalAuthProviders);
+        needsUpdate = existingProvidersStr !== newProvidersStr;
+
+        if (!needsUpdate) {
+          console.log('📝 No provider changes detected, skipping update');
+        }
       }
 
       // "createdAt" only when first created
@@ -217,20 +218,21 @@ export class UserService {
         }
       }
 
-      const dataToWrite = existingSnap.exists()
-        ? baseData
-        : { ...baseData, createdAt: Timestamp.now() };
+      // Only write to Firestore if there are actual changes or it's a new user
+      if (!existingSnap.exists() || needsUpdate || additionalData) {
+        const dataToWrite = existingSnap.exists()
+          ? baseData
+          : { ...baseData, createdAt: Timestamp.now() };
 
-      const userData = removeUndefinedDeep(dataToWrite) as Partial<UserProfile>;
+        const userData = removeUndefinedDeep(
+          dataToWrite
+        ) as Partial<UserProfile>;
 
-      console.log('💾 About to write to Firestore:', {
-        uid: userData.uid,
-        email: userData.email,
-        authProviders: userData.authProviders
-      });
-
-      await setDoc(userRef, userData, { merge: true });
-      console.log('✅ User profile created/updated successfully');
+        await setDoc(userRef, userData, { merge: true });
+        console.log('✅ User profile created/updated successfully');
+      } else {
+        console.log('⏭️ Skipping Firestore write - no changes detected');
+      }
     } catch (error) {
       console.error('❌ Error in createOrUpdateUser:', error);
       throw error;
