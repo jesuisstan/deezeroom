@@ -10,4 +10,10 @@
   body {
     font-family: 'Inter', 'Arial', sans-serif;
   }
+
+  /* Fix cursor for Pressable components used for overlays */
+  button[style*='position: fixed'],
+  button[style*='cursor: default'] {
+    cursor: default !important;
+  }
 }

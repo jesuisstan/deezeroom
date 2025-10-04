@@ -147,11 +147,14 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
         zIndex: 9999,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
-        cursor: 'auto'
+        padding: 20
       }}
+      className="cursor-default"
     >
-      <Pressable onPress={(e) => e.stopPropagation()}>
+      <Pressable
+        onPress={(e) => e.stopPropagation()}
+        className="cursor-default"
+      >
         <View
           style={{
             backgroundColor: colors['bg-main'],
@@ -166,7 +169,9 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
             },
             shadowOpacity: 0.3,
             shadowRadius: 6,
-            elevation: 8
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: colors['border']
           }}
         >
           {/* Title */}
@@ -189,7 +194,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
               flexDirection: 'row',
               justifyContent:
                 (state.buttons?.length || 0) > 2 ? 'flex-end' : 'space-between',
-              gap: 12
+              gap: 8
             }}
           >
             {(state.buttons || []).map((button, index) => (
@@ -199,7 +204,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
                 title={getButtonProps(button).title}
                 onPress={getButtonProps(button).onPress}
                 size="md"
-                className="min-w-[80px]"
+                className="min-w-20"
                 color={getButtonProps(button).color}
                 //fullWidth
               />
