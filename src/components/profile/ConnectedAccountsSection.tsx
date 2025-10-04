@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -8,6 +8,7 @@ import IconButton from '@/components/ui/buttons/IconButton';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -43,12 +44,20 @@ const ConnectedAccountsSection: FC<ConnectedAccountsSectionProps> = ({
   };
 
   const handleUnlinkGoogle = async () => {
-    setIsLinking(true);
-    try {
-      await unlinkWithGoogle();
-    } finally {
-      setIsLinking(false);
-    }
+    Alert.confirm(
+      'Unlink Google Account',
+      'Are you sure you want to unlink your Google account? You will no longer be able to sign in with Google.',
+      async () => {
+        // Confirmed - execute unlink
+        setIsLinking(true);
+        try {
+          await unlinkWithGoogle();
+        } finally {
+          setIsLinking(false);
+        }
+      }
+      // Cancelled - do nothing
+    );
   };
 
   const getProviderDisplayName = (providerId: string) => {

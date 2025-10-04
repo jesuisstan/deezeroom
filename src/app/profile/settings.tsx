@@ -18,8 +18,8 @@ const ProfileSettingsScreen: FC = () => {
   return !profile ? (
     <ActivityIndicatorScreen />
   ) : (
-    <ScrollView className="bg-bg-main px-4 py-4">
-      <View className="mb-4 flex-row items-center gap-4">
+    <ScrollView className="bg-bg-main py-4">
+      <View className="mb-4 flex-row items-center gap-4 px-4">
         {profile?.photoURL ? (
           <Image
             source={{
@@ -38,17 +38,15 @@ const ProfileSettingsScreen: FC = () => {
           </View>
         )}
         <View className="flex-1">
-          <TextCustom>
-            <TextCustom type="bold">User ID: </TextCustom>
-            {profile?.uid || 'User id'}
-          </TextCustom>
+          {profile?.email && <TextCustom>{profile?.email}</TextCustom>}
+          {profile?.uid && <TextCustom>User ID: {profile?.uid}</TextCustom>}
         </View>
       </View>
       <Divider />
-      <View className="mb-4 mt-4">
+      <View className="mb-4 mt-4 px-4">
         <ConnectedAccountsSection profile={profile} />
       </View>
-      <View className="mb-4">
+      <View className="mb-4 px-4">
         <Divider />
 
         {!profile?.authProviders?.emailPassword?.linked ? null : (
@@ -67,7 +65,9 @@ const ProfileSettingsScreen: FC = () => {
         </LineButton>
         <Divider />
       </View>
-      <DeleteAccountSection profile={profile} />
+      <View className="mb-4 px-4">
+        <DeleteAccountSection profile={profile} />
+      </View>
     </ScrollView>
   );
 };

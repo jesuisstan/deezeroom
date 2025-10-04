@@ -13,7 +13,7 @@ import {
 
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-// removed ToastManager in favor of our NotifierProvider
+import AlertModule from '@/modules/alert/AlertModule';
 import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
@@ -57,6 +57,7 @@ const RootLayout = () => {
         <NetworkProvider>
           <UserProvider>
             <NotifierModule />
+            <AlertModule />
             <DeezeroomApp />
           </UserProvider>
         </NetworkProvider>
