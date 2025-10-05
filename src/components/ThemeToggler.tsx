@@ -24,8 +24,8 @@ const ThemeToggler = () => {
 
   useEffect(() => {
     translateX.value = withSpring(theme === 'dark' ? 30 : 0, {
-      damping: 50,
-      stiffness: 300
+      damping: 80,
+      stiffness: 800
     });
   }, [theme, translateX]);
 
