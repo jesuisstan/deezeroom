@@ -2,7 +2,6 @@ import { User } from 'firebase/auth';
 import {
   collection,
   deleteDoc,
-  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -15,6 +14,7 @@ import {
   where
 } from 'firebase/firestore';
 
+import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 
@@ -92,12 +92,6 @@ export class UserService {
 
     if (user.providerData && user.providerData.length > 0) {
       user.providerData.forEach((provider) => {
-        console.log(
-          '🔍 Processing provider:',
-          provider.providerId,
-          provider.email
-        );
-
         if (provider.providerId === 'google.com') {
           providers.google = {
             linked: true,
@@ -166,7 +160,7 @@ export class UserService {
         );
 
         if (removedKeys.length > 0) {
-          console.log('🗑️ Removed unlinked providers:', removedKeys);
+          Logger.info('Removed unlinked providers', removedKeys, 'UserService');
         }
 
         // Check if providers actually changed to avoid unnecessary updates
@@ -177,7 +171,11 @@ export class UserService {
         needsUpdate = existingProvidersStr !== newProvidersStr;
 
         if (!needsUpdate) {
-          console.log('📝 No provider changes detected, skipping update');
+          Logger.info(
+            'No provider changes detected, skipping update',
+            null,
+            'UserService'
+          );
         }
       }
 
@@ -229,12 +227,20 @@ export class UserService {
         ) as Partial<UserProfile>;
 
         await setDoc(userRef, userData, { merge: true });
-        console.log('✅ User profile created/updated successfully');
+        Logger.info(
+          'User profile created/updated successfully',
+          null,
+          'UserService'
+        );
       } else {
-        console.log('⏭️ Skipping Firestore write - no changes detected');
+        Logger.info(
+          'Skipping Firestore write - no changes detected',
+          null,
+          'UserService'
+        );
       }
     } catch (error) {
-      console.error('❌ Error in createOrUpdateUser:', error);
+      Logger.error('Error in createOrUpdateUser', error, 'UserService');
       throw error;
     }
   }
@@ -293,7 +299,7 @@ export class UserService {
         });
       }
     } catch (error) {
-      console.error('Error updating auth providers:', error);
+      Logger.error('Error updating auth providers', error, 'UserService');
       throw error;
     }
   }
@@ -355,10 +361,10 @@ export class UserService {
       // Update auth providers in database
       await this.updateAuthProviders(currentUser);
 
-      console.log('Successfully linked Google account');
+      Logger.info('Successfully linked Google account', null, 'UserService');
       return { success: true, message: 'Google account linked successfully' };
     } catch (error: any) {
-      console.log('Error linking Google account:', error);
+      Logger.error('Error linking Google account', error, 'UserService');
       return {
         success: false,
         message:
@@ -403,7 +409,7 @@ export class UserService {
 
       return { success: true, message: 'Google account unlinked successfully' };
     } catch (error: any) {
-      console.error('Error unlinking Google account:', error);
+      Logger.error('Error unlinking Google account', error, 'UserService');
       return {
         success: false,
         message:
@@ -488,10 +494,10 @@ export class UserService {
       await this.updateUserProfile(currentUser.uid, {
         emailVerified: currentUser.emailVerified
       });
-      console.log('Successfully linked email/password');
+      Logger.info('Successfully linked email/password', null, 'UserService');
       return { success: true, message: 'Email/Password linked successfully' };
     } catch (error: any) {
-      console.log('Error linking email/password:', error);
+      Logger.error('Error linking email/password', error, 'UserService');
       return {
         success: false,
         message:
@@ -578,7 +584,7 @@ export class UserService {
 
       return { success: true, message: 'Account deleted successfully' };
     } catch (error: any) {
-      console.error('Error deleting account:', error);
+      Logger.error('Error deleting account', error, 'UserService');
       return {
         success: false,
         message: getFirebaseErrorMessage(error) || 'Failed to delete account'

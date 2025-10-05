@@ -14,6 +14,7 @@ import {
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import AlertModule from '@/modules/alert/AlertModule';
+import LoggerModule from '@/modules/logger/LoggerModule';
 import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
@@ -56,9 +57,10 @@ const RootLayout = () => {
       <ThemeProvider>
         <NetworkProvider>
           <UserProvider>
+            <DeezeroomApp />
+            <LoggerModule />
             <NotifierModule />
             <AlertModule />
-            <DeezeroomApp />
           </UserProvider>
         </NetworkProvider>
       </ThemeProvider>

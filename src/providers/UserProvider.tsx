@@ -14,6 +14,7 @@ import {
   User
 } from 'firebase/auth';
 
+import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { auth } from '@/utils/firebase/firebase-init';
 import {
@@ -89,7 +90,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         );
       } else {
         // If profile does not exist, create it
-        console.log('Creating new user profile...');
+        Logger.info('Creating new user profile...', null, 'UserProvider');
         await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified,
           musicPreferences: {
@@ -106,7 +107,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         );
       }
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      Logger.error('Error loading user profile', error, 'UserProvider');
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -124,7 +125,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         setProfile({ ...profile, ...data, updatedAt: new Date() });
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      Logger.error('Error updating profile', error, 'UserProvider');
       throw error;
     }
   };
@@ -156,7 +157,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      console.log('Error in linkWithGoogle:', error);
+      Logger.error('Error in linkWithGoogle', error, 'UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -184,7 +185,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      console.log('Error in unlinkWithGoogle:', error);
+      Logger.error('Error in unlinkWithGoogle', error, 'UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -204,7 +205,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      console.error('Error in linkWithEmailPassword:', error);
+      Logger.error('Error in linkWithEmailPassword', error, 'UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -249,16 +250,20 @@ export const UserProvider: FC<TUserProviderProps> = ({
       // Sign out from Google (if possible)
       try {
         await GoogleSignin.signOut();
-        console.log('Google sign out successful');
+        Logger.info('Google sign out successful', null, 'UserProvider');
       } catch (googleError) {
-        console.log('Google sign out error (non-critical):', googleError);
+        Logger.error(
+          'Google sign out error (non-critical)',
+          googleError,
+          'UserProvider'
+        );
       }
 
       // Clear profile
       setProfile(null);
       setProfileLoading(false);
     } catch (error) {
-      console.error('Sign out error:', error);
+      Logger.error('Sign out error', error, 'UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
