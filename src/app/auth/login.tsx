@@ -80,7 +80,9 @@ const LoginScreen: FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <TouchableWithoutFeedback 
+          onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}
+        >
           {/* Header with back and help buttons */}
           <ScrollView
             className="flex-1"
