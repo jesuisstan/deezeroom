@@ -20,12 +20,12 @@ const Icon = (props: any) => {
 
 const ThemeToggler = () => {
   const { theme, toggleTheme } = useTheme();
-  const translateX = useSharedValue(theme === 'dark' ? 32 : 0);
+  const translateX = useSharedValue(theme === 'dark' ? 30 : 0);
 
   useEffect(() => {
-    translateX.value = withSpring(theme === 'dark' ? 32 : 0, {
-      damping: 15,
-      stiffness: 200
+    translateX.value = withSpring(theme === 'dark' ? 30 : 0, {
+      damping: 50,
+      stiffness: 300
     });
   }, [theme, translateX]);
 
@@ -85,14 +85,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     height: 36,
-    width: 72
+    width: 70
   },
   innerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     position: 'relative',
-    flex: 1,
-    paddingHorizontal: 4
+    flex: 1
   },
   button: {
     width: 30,
@@ -104,11 +103,11 @@ const styles = StyleSheet.create({
   },
   buttonLeft: {
     position: 'absolute',
-    left: -0.5
+    left: 0
   },
   buttonRight: {
     position: 'absolute',
-    right: -1
+    right: 0
   },
   activeIndicator: {
     position: 'absolute',
