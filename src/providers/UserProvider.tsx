@@ -230,10 +230,14 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
       // Load user profile when user is signed in
       if (currentUser) {
-        Logger.user.login('👤 UserProvider'); // ← Automatic login log
+        Logger.info(
+          'User logged in',
+          { userId: currentUser.uid },
+          '👤 UserProvider'
+        ); // ← Simple login log
         await loadUserProfile(currentUser);
       } else {
-        Logger.user.logout('👤 UserProvider'); // ← Automatic logout log
+        Logger.info('No user logged in', null, '👤 UserProvider'); // ← Simple logout log
         setProfile(null);
         setProfileLoading(false);
       }

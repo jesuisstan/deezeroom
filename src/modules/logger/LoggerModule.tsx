@@ -10,8 +10,6 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { usePathname } from 'expo-router';
 
-import { useUser } from '@/providers/UserProvider';
-
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export type LogContext = {
@@ -20,8 +18,6 @@ export type LogContext = {
   appVersion: string;
   buildVersion?: string;
   timestamp: string;
-  userId?: string;
-  userDisplayName?: string;
 };
 
 export type LogEntry = {
@@ -50,7 +46,6 @@ const loggerRef = createRef<LoggerRef>();
 
 export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
   ({ enableConsole = true, logLevel = 'debug' }, ref) => {
-    const { user, profile } = useUser();
     const pathname = usePathname();
 
     // Format timestamp with timezone
@@ -78,11 +73,9 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
         appVersion: Constants.expoConfig?.version || '1.0.0',
         buildVersion:
           Constants.expoConfig?.runtimeVersion || Constants.nativeBuildVersion,
-        timestamp: formatTimestamp(now),
-        userId: user?.uid,
-        userDisplayName: user?.displayName || profile?.displayName
+        timestamp: formatTimestamp(now)
       };
-    }, [user, profile, formatTimestamp]);
+    }, [formatTimestamp]);
 
     // Check if log level should be logged
     const shouldLog = useCallback(
@@ -120,9 +113,6 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
             ? ` [${entry.context.deviceName}]`
             : '';
           const sourceInfo = source ? ` [${source}]` : '';
-          const userInfo = entry.context.userId
-            ? ` [User: ${entry.context.userId}${entry.context.userDisplayName ? ` (${entry.context.userDisplayName})` : ''}]`
-            : '';
 
           const levelEmoji = {
             debug: '🐛 ',
@@ -131,7 +121,7 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
             error: '❌ '
           }[level];
 
-          const logMessage = `${levelEmoji} [${timestamp}] [v ${appVersion}] [${platform}]${deviceInfo}${sourceInfo}${userInfo} ${message}`;
+          const logMessage = `${levelEmoji} [${timestamp}] [v ${appVersion}] [${platform}]${deviceInfo}${sourceInfo} ${message}`;
 
           switch (level) {
             case 'debug':
@@ -250,17 +240,6 @@ export const Logger = {
 
     error: (endpoint: string, error: any) =>
       loggerRef.current?.error(`API Error: ${endpoint}`, error, 'API')
-  },
-
-  user: {
-    login: (source?: string) =>
-      loggerRef.current?.info(`User logged in`, null, source),
-
-    logout: (source?: string) =>
-      loggerRef.current?.info(`User logged out`, null, source),
-
-    action: (action: string, data?: any, source?: string) =>
-      loggerRef.current?.info(`User action: ${action}`, data, source)
   },
 
   navigation: {
