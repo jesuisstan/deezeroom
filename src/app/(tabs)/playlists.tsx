@@ -5,7 +5,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const HomeScreen = () => {
+const PlaylistsScreen = () => {
   const { theme } = useTheme();
 
   return (
@@ -29,14 +29,11 @@ const HomeScreen = () => {
       }}
     >
       <View className="flex-row items-center gap-2">
-        <TextCustom type="title">DEEZEROOM APP</TextCustom>
+        <TextCustom type="title">PLAYLISTS SCREEN to be implemented</TextCustom>
       </View>
-      <Divider />
-      <TextCustom className="animate-pulse text-center">
-        To be implemented soon...
-      </TextCustom>
+      <Divider inset />
     </ScrollView>
   );
 };
 
-export default HomeScreen;
+export default PlaylistsScreen;

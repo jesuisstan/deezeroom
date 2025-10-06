@@ -1,11 +1,13 @@
 import { Platform, View } from 'react-native';
 
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { Tabs } from 'expo-router';
 
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import { HapticTab } from '@/components/ui/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -71,27 +73,31 @@ const TabLayout = () => {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="shippingbox.fill" color={color} />
+            <FontAwesome name="home" size={28} color={color} />
           ),
           headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
-        name="home"
+        name="events"
         options={{
-          title: 'Home',
+          title: 'Events',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <MaterialCommunityIcons
+              name="party-popper"
+              size={28}
+              color={color}
+            />
           ),
           headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="playlists"
         options={{
-          title: 'Explore',
+          title: 'Playlists',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="shippingbox.fill" color={color} />
+            <SimpleLineIcons name="playlist" size={28} color={color} />
           ),
           headerRight: () => <HeaderRight />
         }}

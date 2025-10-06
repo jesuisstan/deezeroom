@@ -187,7 +187,12 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
           ...getPositionStyle()
         }}
       >
-        <Pressable onPress={() => {}} style={{ width: '90%' }}>
+        <Pressable
+          onPress={() => {}}
+          style={{
+            width: '90%'
+          }}
+        >
           <View
             style={{
               backgroundColor: colors['bg-secondary'],
@@ -197,7 +202,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               paddingHorizontal: 16,
               paddingVertical: 12,
               zIndex: 1,
-
+              minHeight: state.position === 'center' ? '20%' : 'auto',
+              justifyContent: 'space-between',
               // 👇 Shadow styles - unified approach
               shadowColor: bgByType,
               shadowOffset: {
