@@ -90,7 +90,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         );
       } else {
         // If profile does not exist, create it
-        Logger.info('Creating new user profile...', null, 'UserProvider');
+        Logger.info('Creating new user profile...', null, '👤 UserProvider');
         await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified,
           musicPreferences: {
@@ -107,7 +107,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         );
       }
     } catch (error) {
-      Logger.error('Error loading user profile', error, 'UserProvider');
+      Logger.error('Error loading user profile', error, '👤 UserProvider');
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -125,7 +125,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
         setProfile({ ...profile, ...data, updatedAt: new Date() });
       }
     } catch (error) {
-      Logger.error('Error updating profile', error, 'UserProvider');
+      Logger.error('Error updating profile', error, '👤 UserProvider');
       throw error;
     }
   };
@@ -157,7 +157,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      Logger.error('Error in linkWithGoogle', error, 'UserProvider');
+      Logger.error('Error in linkWithGoogle', error, '👤 UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -185,7 +185,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      Logger.error('Error in unlinkWithGoogle', error, 'UserProvider');
+      Logger.error('Error in unlinkWithGoogle', error, '👤 UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -205,7 +205,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       }
       return result;
     } catch (error) {
-      Logger.error('Error in linkWithEmailPassword', error, 'UserProvider');
+      Logger.error('Error in linkWithEmailPassword', error, '👤 UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -230,8 +230,10 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
       // Load user profile when user is signed in
       if (currentUser) {
+        Logger.user.login('👤 UserProvider'); // ← Automatic login log
         await loadUserProfile(currentUser);
       } else {
+        Logger.user.logout('👤 UserProvider'); // ← Automatic logout log
         setProfile(null);
         setProfileLoading(false);
       }
@@ -250,12 +252,12 @@ export const UserProvider: FC<TUserProviderProps> = ({
       // Sign out from Google (if possible)
       try {
         await GoogleSignin.signOut();
-        Logger.info('Google sign out successful', null, 'UserProvider');
+        Logger.info('Google sign out successful', null, '👤 UserProvider');
       } catch (googleError) {
         Logger.error(
           'Google sign out error (non-critical)',
           googleError,
-          'UserProvider'
+          '👤 UserProvider'
         );
       }
 
@@ -263,7 +265,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
       setProfile(null);
       setProfileLoading(false);
     } catch (error) {
-      Logger.error('Sign out error', error, 'UserProvider');
+      Logger.error('Sign out error', error, '👤 UserProvider');
       Notifier.shoot({
         type: 'error',
         title: 'Error',

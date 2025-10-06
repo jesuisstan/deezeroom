@@ -253,12 +253,14 @@ export const Logger = {
   },
 
   user: {
-    login: () => loggerRef.current?.info(`User logged in`, {}, 'Auth'),
+    login: (source?: string) =>
+      loggerRef.current?.info(`User logged in`, null, source),
 
-    logout: () => loggerRef.current?.info(`User logged out`, {}, 'Auth'),
+    logout: (source?: string) =>
+      loggerRef.current?.info(`User logged out`, null, source),
 
-    action: (action: string, data?: any) =>
-      loggerRef.current?.info(`User action: ${action}`, data, 'User')
+    action: (action: string, data?: any, source?: string) =>
+      loggerRef.current?.info(`User action: ${action}`, data, source)
   },
 
   navigation: {
@@ -266,14 +268,14 @@ export const Logger = {
       const currentPath = loggerRef.current?.getCurrentPath?.() || 'unknown';
       const message = `Navigate back from ${currentPath}`;
 
-      loggerRef.current?.info(message, null, source || 'Navigation');
+      loggerRef.current?.info(message, null, source || '🧭 Navigation');
     },
 
     to: (destination: string, source?: string) => {
       const currentPath = loggerRef.current?.getCurrentPath?.() || 'unknown';
       const message = `Navigate to ${destination} from ${currentPath}`;
 
-      loggerRef.current?.info(message, null, source || 'Navigation');
+      loggerRef.current?.info(message, null, source || '🧭 Navigation');
     }
   }
 };
