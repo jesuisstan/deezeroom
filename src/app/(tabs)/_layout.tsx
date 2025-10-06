@@ -3,18 +3,32 @@ import { Platform, View } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { HapticTab } from '@/components/ui/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const HeaderRight = () => {
+  const router = useRouter();
+  const { theme } = useTheme();
+
   return (
     <View className="flex-row items-center gap-4">
+      <IconButton
+        accessibilityLabel="Open player"
+        onPress={() => router.push('/player')}
+      >
+        <MaterialCommunityIcons
+          name="music-note-eighth"
+          size={22}
+          color={themeColors[theme]['text-main']}
+        />
+      </IconButton>
       <ThemeToggler />
       <ProfileButton />
     </View>

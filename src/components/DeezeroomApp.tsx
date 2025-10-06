@@ -54,6 +54,15 @@ const DeezeroomApp = () => {
               headerShown: false
             }}
           />
+
+          <Stack.Screen
+            name="player"
+            options={{
+              presentation: 'modal',
+              headerShown: false,
+              animation: 'slide_from_bottom'
+            }}
+          />
         </Stack.Protected>
 
         {/* Protected screens for unauthenticated users */}
