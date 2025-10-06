@@ -48,12 +48,9 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
   ({ enableConsole = true, logLevel = 'debug' }, ref) => {
     const pathname = usePathname();
 
-    // Format timestamp with timezone
+    // Format timestamp with timezone (time before date)
     const formatTimestamp = useCallback((date: Date): string => {
-      const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
+      const timeOptions: Intl.DateTimeFormatOptions = {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
@@ -61,7 +58,20 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
         hour12: false
       };
 
-      return new Intl.DateTimeFormat('en-US', options).format(date);
+      const dateOptions: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      };
+
+      const timeStr = new Intl.DateTimeFormat('en-US', timeOptions).format(
+        date
+      );
+      const dateStr = new Intl.DateTimeFormat('en-US', dateOptions).format(
+        date
+      );
+
+      return `${timeStr} ${dateStr}`;
     }, []);
 
     // Get logging context information
@@ -121,7 +131,7 @@ export const LoggerModule = forwardRef<LoggerRef, LoggerModuleProps>(
             error: '❌ '
           }[level];
 
-          const logMessage = `${levelEmoji} [${timestamp}] [v ${appVersion}] [${platform}]${deviceInfo}${sourceInfo} ${message}`;
+          const logMessage = `${levelEmoji} [${appVersion}] [${timestamp}] [${platform}]${deviceInfo}${sourceInfo} ${message}`;
 
           switch (level) {
             case 'debug':

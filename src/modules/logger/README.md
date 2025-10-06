@@ -1,16 +1,16 @@
 # Logger Module
 
-A logging module for the DEEZERoom application that replaces primitive `console.log` and `console.error` with structured logging including platform, device, and context information.
+A simple and efficient logging module for the DEEZERoom application that replaces primitive `console.log` and `console.error` with structured logging including platform, device, and context information.
 
 ## Features
 
 - **Structured logging** with platform, device, and app version information
-- **Log levels**: debug, info, warn, error
-- **Automatic user context** - user ID and display name from UserProvider
+- **Log levels**: debug, info, warn, error with emoji indicators
 - **Log source** (component/module where the log came from)
 - **Ready for server logging** (TODO for future implementation)
-- **Specialized methods** for API, users, navigation
+- **Specialized methods** for API and navigation
 - **TypeScript support**
+- **No circular dependencies** - autonomous module
 
 ## Installation
 
@@ -48,41 +48,30 @@ Logger.api.request('/api/songs', 'GET', { limit: 20 });
 Logger.api.response('/api/songs', 200, { songs: [] });
 Logger.api.error('/api/songs', { message: 'Server error' });
 
-// User actions
-Logger.user.login();
-Logger.user.logout();
-Logger.user.action('play_song', { songId: 'song456' });
-
 // Navigation
-Logger.navigation.navigate('Profile', { userId: '123' });
-Logger.navigation.back('Home');
+Logger.navigation.back('RouterBackButton');
+Logger.navigation.to('/profile', 'MenuButton');
 ```
 
-## Automatic user context
+## User context
 
-The Logger automatically includes user information from UserProvider in all logs:
+For user-related logs, pass user information explicitly in the data parameter:
 
 ```tsx
-// When user is logged in, all logs automatically include:
-// - userId: user.uid from Firebase Auth
-// - userDisplayName: user.displayName or profile.displayName
-
-Logger.info('User action', { buttonId: 'play' }, 'Player');
-// Log will include: [User: user123 (John Doe)]
-
-// Logger.user methods automatically add user context
-Logger.user.login(); // userId is automatically added
-Logger.user.action('play_song', { songId: '456' }); // userId is automatically added
+// In UserProvider or components with user context
+Logger.info('User logged in', { userId: currentUser.uid }, '👤 UserProvider');
+Logger.info('User action', { userId: user.uid, action: 'play_song' }, 'Player');
+Logger.info('Profile updated', { userId: user.uid, changes: data }, 'Profile');
 ```
 
 ## Log format
 
 ### Timestamp format
 
-Timestamps are formatted with timezone information for better readability:
+Timestamps are formatted with timezone information and time before date for better readability:
 
 - **Old format**: `2024-01-15T10:30:00.000Z` (ISO string)
-- **New format**: `01/15/2024, 10:30:00 GMT+2` (localized with timezone)
+- **New format**: `11:30:00 GMT+1 01/15/2024` (time before date with timezone)
 
 The timestamp automatically adjusts to the user's local timezone and uses 24-hour format.
 
@@ -95,10 +84,20 @@ Logs now use emojis instead of text levels for better visual identification:
 - **Warn**: `⚠️` - Warnings
 - **Error**: `❌` - Errors
 
+**Log block order:**
+
+1. **Emoji** - Log level indicator
+2. **App version** - Application version (without "v" prefix)
+3. **Timestamp** - Time before date with timezone
+4. **Platform** - Operating system (android/ios)
+5. **Device** - Device name (if available)
+6. **Source** - Component/module name (if specified)
+7. **Message** - Log message content
+
 Example log output:
 
 ```
-[ℹ️] [01/15/2024, 10:30:00 GMT+2] [App v1.0.0] [android] [SM-S908B] [RouterBackButton] [User: user123 (John Doe)] Navigate back from /auth/register
+ℹ️ [1.0.0] [11:30:00 GMT+1 01/15/2024] [android] [SM-S908B] [👤 UserProvider] User logged in
 ```
 
 ### Log structure
@@ -109,17 +108,15 @@ Each log contains:
 {
   "level": "info",
   "message": "User logged in",
-  "data": { "userId": "123" },
+  "data": { "userId": "user123" },
   "context": {
-    "platform": "ios",
-    "deviceName": "iPhone 15",
+    "platform": "android",
+    "deviceName": "SM-S908B",
     "appVersion": "1.0.0",
     "buildVersion": "1",
-    "timestamp": "01/15/2024, 10:30:00 GMT+2",
-    "userId": "user123",
-    "userDisplayName": "John Doe"
+    "timestamp": "11:30:00 GMT+1 01/15/2024"
   },
-  "source": "Auth"
+  "source": "👤 UserProvider"
 }
 ```
 
@@ -163,8 +160,15 @@ const fetchSongs = async () => {
 
 ```tsx
 const handlePlay = () => {
-  Logger.user.action('play_song', { songId: currentSong.id });
   Logger.info('Playback started', { songId: currentSong.id }, 'Player');
+};
+
+const handleUserAction = (action: string, data: any) => {
+  Logger.info(
+    'User action',
+    { userId: user.uid, action, data },
+    'UserInterface'
+  );
 };
 ```
 
@@ -175,6 +179,17 @@ const handleError = (error: Error) => {
   Logger.error('Unexpected error', error, 'ErrorHandler');
 };
 ```
+
+## Advantages of simplified approach
+
+The Logger module follows the KISS principle (Keep It Simple, Stupid):
+
+- ✅ **No circular dependencies** - Logger is autonomous and doesn't depend on other modules
+- ✅ **Flexible** - can write any custom messages without being limited to predefined methods
+- ✅ **Consistent** - all logs use the same base methods (info, error, warn, debug)
+- ✅ **Easy to test** - fewer methods to cover in tests
+- ✅ **Maintainable** - less code to maintain and debug
+- ✅ **Explicit** - user context is passed explicitly when needed, making logs more transparent
 
 ## Project requirements
 
