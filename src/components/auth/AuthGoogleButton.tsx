@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -23,7 +24,7 @@ const AuthGoogleButton: FC = () => {
 
     setIsGoogleLoading(true);
     try {
-      console.log('Starting Google sign in');
+      Logger.info('Starting Google sign in', null, '🥽 AuthGoogleButton');
 
       if (Platform.OS === 'web') {
         // Web flow: use Firebase Auth popup (fallback to redirect if blocked)
@@ -42,7 +43,11 @@ const AuthGoogleButton: FC = () => {
             throw err;
           }
         }
-        console.log('Firebase web sign-in initiated');
+        Logger.info(
+          'Firebase web sign-in initiated',
+          null,
+          '🥽 AuthGoogleButton'
+        );
       } else {
         // Native (iOS/Android) flow using Google Sign-In
         const { GoogleSignin } = await import(
@@ -60,14 +65,14 @@ const AuthGoogleButton: FC = () => {
 
         const result = await GoogleSignin.signIn();
         if (result.type === 'success') {
-          console.log('Google sign-in successful');
+          Logger.info('Google sign-in successful', null, '🥽 AuthGoogleButton');
         } else {
-          console.log('Google sign-in failed');
+          Logger.error('Google sign-in failed', null, '🥽 AuthGoogleButton');
         }
 
         const { idToken } = await GoogleSignin.getTokens();
         if (!idToken) {
-          console.error('No idToken received');
+          Logger.error('No idToken received', null, '🥽 AuthGoogleButton');
           Notifier.shoot({
             type: 'error',
             title: 'Error',
@@ -80,12 +85,16 @@ const AuthGoogleButton: FC = () => {
         const credential = GoogleAuthProvider.credential(idToken);
         // Sign in to Firebase with Google credential
         await signInWithCredential(auth, credential);
-        console.log('Firebase native sign-in successful');
+        Logger.info(
+          'Firebase native sign-in successful',
+          null,
+          '🥽 AuthGoogleButton'
+        );
       }
 
       // Profile will be automatically created/loaded in UserContext in UserProvider.tsx
     } catch (error) {
-      console.log('Google sign-in error:', error);
+      Logger.error('Google sign-in error', error, '🥽 AuthGoogleButton');
       // Try to map common native errors when module is available; otherwise show generic
       if (Platform.OS !== 'web') {
         try {
@@ -95,10 +104,18 @@ const AuthGoogleButton: FC = () => {
           if (isErrorWithCode(error)) {
             switch ((error as any).code) {
               case statusCodes.SIGN_IN_CANCELLED:
-                console.log('User cancelled the sign-in flow');
+                Logger.info(
+                  'User cancelled the sign-in flow',
+                  null,
+                  '🥽 AuthGoogleButton'
+                );
                 return;
               case statusCodes.IN_PROGRESS:
-                console.log('Sign-in is already in progress');
+                Logger.info(
+                  'Sign-in is already in progress',
+                  null,
+                  '🥽 AuthGoogleButton'
+                );
                 return;
               case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
                 Notifier.shoot({

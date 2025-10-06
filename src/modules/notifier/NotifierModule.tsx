@@ -16,6 +16,7 @@ import {
   View
 } from 'react-native';
 
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -320,7 +321,7 @@ export const Notifier = {
     } catch (e) {
       if (Platform.OS === 'web')
         alert(title ? `${title}\n${message}` : message);
-      else console.log('Toast show error:', e);
+      else Logger.error('Toast show error:', e, 'NotifierModule');
     }
   }
 };

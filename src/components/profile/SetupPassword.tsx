@@ -5,6 +5,7 @@ import PasswordRequirements from '@/components/auth/PasswordRequirements';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -38,7 +39,12 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
         setConfirmPassword('');
       }
     } catch (error) {
-      console.log('Error setting up password COMPONENT:', error);
+      Logger.error(
+        'Error setting up password COMPONENT:',
+        error,
+        'SetupPassword'
+      );
+
       Notifier.shoot({
         type: 'error',
         title: 'Error',

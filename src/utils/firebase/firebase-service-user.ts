@@ -160,7 +160,11 @@ export class UserService {
         );
 
         if (removedKeys.length > 0) {
-          Logger.info('Removed unlinked providers', removedKeys, 'UserService');
+          Logger.info(
+            'Removed unlinked providers',
+            removedKeys,
+            '🔥 Firebase UserService'
+          );
         }
 
         // Check if providers actually changed to avoid unnecessary updates
@@ -174,7 +178,7 @@ export class UserService {
           Logger.info(
             'No provider changes detected, skipping update',
             null,
-            'UserService'
+            '🔥 Firebase UserService'
           );
         }
       }
@@ -230,17 +234,21 @@ export class UserService {
         Logger.info(
           'User profile created/updated successfully',
           null,
-          'UserService'
+          '🔥 Firebase UserService'
         );
       } else {
         Logger.info(
           'Skipping Firestore write - no changes detected',
           null,
-          'UserService'
+          '🔥 Firebase UserService'
         );
       }
     } catch (error) {
-      Logger.error('Error in createOrUpdateUser', error, 'UserService');
+      Logger.error(
+        'Error in createOrUpdateUser',
+        error,
+        '🔥 Firebase UserService'
+      );
       throw error;
     }
   }
@@ -299,7 +307,11 @@ export class UserService {
         });
       }
     } catch (error) {
-      Logger.error('Error updating auth providers', error, 'UserService');
+      Logger.error(
+        'Error updating auth providers',
+        error,
+        '🔥 Firebase UserService'
+      );
       throw error;
     }
   }
@@ -361,10 +373,18 @@ export class UserService {
       // Update auth providers in database
       await this.updateAuthProviders(currentUser);
 
-      Logger.info('Successfully linked Google account', null, 'UserService');
+      Logger.info(
+        'Successfully linked Google account',
+        null,
+        '🔥 Firebase UserService'
+      );
       return { success: true, message: 'Google account linked successfully' };
     } catch (error: any) {
-      Logger.error('Error linking Google account', error, 'UserService');
+      Logger.error(
+        'Error linking Google account',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -409,7 +429,11 @@ export class UserService {
 
       return { success: true, message: 'Google account unlinked successfully' };
     } catch (error: any) {
-      Logger.error('Error unlinking Google account', error, 'UserService');
+      Logger.error(
+        'Error unlinking Google account',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -494,10 +518,18 @@ export class UserService {
       await this.updateUserProfile(currentUser.uid, {
         emailVerified: currentUser.emailVerified
       });
-      Logger.info('Successfully linked email/password', null, 'UserService');
+      Logger.info(
+        'Successfully linked email/password',
+        null,
+        '🔥 Firebase UserService'
+      );
       return { success: true, message: 'Email/Password linked successfully' };
     } catch (error: any) {
-      Logger.error('Error linking email/password', error, 'UserService');
+      Logger.error(
+        'Error linking email/password',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -584,7 +616,7 @@ export class UserService {
 
       return { success: true, message: 'Account deleted successfully' };
     } catch (error: any) {
-      Logger.error('Error deleting account', error, 'UserService');
+      Logger.error('Error deleting account', error, '🔥 Firebase UserService');
       return {
         success: false,
         message: getFirebaseErrorMessage(error) || 'Failed to delete account'

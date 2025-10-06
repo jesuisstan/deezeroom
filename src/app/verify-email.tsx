@@ -9,6 +9,7 @@ import HelpButton from '@/components/auth/need-help/NeedHelp';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
@@ -31,7 +32,7 @@ const VerifyEmailScreen: FC = () => {
         message: 'Please check your inbox.'
       });
     } catch (error: any) {
-      console.log('sendEmailVerification error:', error);
+      Logger.error('sendEmailVerification error', error, 'VerifyEmailScreen');
       const errorMessage = getFirebaseErrorMessage(error);
       Notifier.shoot({
         type: 'error',
@@ -66,8 +67,7 @@ const VerifyEmailScreen: FC = () => {
         });
       }
     } catch (e) {
-      console.log('reload error', e);
-      console.log(JSON.stringify(e));
+      Logger.error('reload error', JSON.stringify(e), 'VerifyEmailScreen');
       const errorMessage = getFirebaseErrorMessage(e);
       Notifier.shoot({
         type: 'error',

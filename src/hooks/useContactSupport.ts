@@ -1,5 +1,6 @@
 import { Alert, Linking } from 'react-native';
 
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 
 const SUPPORT_EMAIL =
@@ -33,7 +34,7 @@ The issue description:
       const emailUrl = `mailto:${SUPPORT_EMAIL}?subject=Need Help - Deezeroom Support&body=${encodeURIComponent(emailBody)}`;
       await Linking.openURL(emailUrl);
     } catch (error) {
-      console.error('Error opening email:', error);
+      Logger.error('Error opening email', error, 'useContactSupport');
       Alert.alert('Error', 'Unable to open email client. Please try again.');
     }
   };

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 
 const ProfileScreen: FC = () => {
@@ -76,7 +77,7 @@ const ProfileScreen: FC = () => {
       setEditing(false);
       Alert.alert('Success', 'Profile updated');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      Logger.error('Error updating profile', error, 'ProfileScreen');
       Alert.alert('Error', 'Failed to update profile');
     }
   };

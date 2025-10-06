@@ -18,6 +18,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -62,7 +63,7 @@ const LoginScreen: FC = () => {
       // AuthGuard redirect to /(tabs)
     } catch (err: any) {
       const errorMessage = getFirebaseErrorMessage(err);
-      console.log('Error on login:', errorMessage);
+      Logger.error('Error on login', errorMessage, 'LoginScreen');
       Notifier.shoot({
         type: 'error',
         title: 'Sign in error',

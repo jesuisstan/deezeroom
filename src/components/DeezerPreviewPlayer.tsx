@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -21,7 +22,7 @@ const DeezerPreviewPlayer = () => {
         const data = await res.json();
         setPreviewUrl(data.preview);
       } catch (err) {
-        console.error('Error fetching Deezer track:', err);
+        Logger.error('Error fetching Deezer track', err, 'DeezerPreviewPlayer');
       } finally {
         setIsLoading(false);
       }
