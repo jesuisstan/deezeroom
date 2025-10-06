@@ -1,6 +1,6 @@
 import { Platform, View } from 'react-native';
 
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { Tabs } from 'expo-router';
@@ -73,7 +73,7 @@ const TabLayout = () => {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="home" size={28} color={color} />
+            <AntDesign name="home" size={28} color={color} />
           ),
           headerRight: () => <HeaderRight />
         }}
