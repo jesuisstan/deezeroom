@@ -45,9 +45,18 @@ const PlayerScreen = () => {
                 ✕
               </TextCustom>
             </IconButton>
-            <TextCustom type="subtitle" size="xl">
-              Now Playing
-            </TextCustom>
+            <View className="items-center">
+              <TextCustom type="subtitle" size="xl">
+                MIX
+              </TextCustom>
+              <TextCustom
+                type="semibold"
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+              >
+                {MOCK_TRACK.title}
+              </TextCustom>
+            </View>
             <View style={{ width: 48 }} />
           </View>
 
