@@ -65,7 +65,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: shape === 'circle' ? [1, 1] : [4, 3],
         quality: 0.8,
