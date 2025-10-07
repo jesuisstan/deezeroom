@@ -75,6 +75,13 @@ module.exports = () => ({
           supportsBackgroundPlayback: true,
           supportsPictureInPicture: true
         }
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission:
+            'The app accesses your photos to let you upload them to the app.'
+        }
       ]
     ],
     experiments: {
