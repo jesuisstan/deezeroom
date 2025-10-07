@@ -2,7 +2,6 @@ import { Platform, View } from 'react-native';
 
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { Tabs, useRouter } from 'expo-router';
 
 import ProfileButton from '@/components/profile/ProfileButton';
@@ -111,7 +110,11 @@ const TabLayout = () => {
         options={{
           title: 'Playlists',
           tabBarIcon: ({ color }) => (
-            <SimpleLineIcons name="playlist" size={28} color={color} />
+            <MaterialCommunityIcons
+              name="playlist-music"
+              size={28}
+              color={color}
+            />
           ),
           headerRight: () => <HeaderRight />
         }}
