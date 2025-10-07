@@ -17,6 +17,7 @@ import {
 import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
+import { StorageService } from '@/utils/firebase/firebase-service-storage';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
 // Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
@@ -551,6 +552,98 @@ export class UserService {
         callback(null);
       }
     });
+  }
+
+  // Upload user avatar and update profile
+  static async uploadUserAvatar(
+    uid: string,
+    imageUri: string
+  ): Promise<{ success: boolean; photoURL?: string; error?: string }> {
+    try {
+      // Upload image to Firebase Storage
+      const photoURL = await StorageService.uploadUserAvatar(uid, imageUri);
+
+      // Update user profile
+      await this.updateUserProfile(uid, { photoURL });
+
+      Logger.info(
+        'Avatar uploaded successfully',
+        { uid, photoURL },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, photoURL };
+    } catch (error) {
+      Logger.error('Error uploading avatar', error, '🔥 Firebase UserService');
+      return {
+        success: false,
+        error: getFirebaseErrorMessage(error) || 'Failed to upload avatar'
+      };
+    }
+  }
+
+  // Delete user avatar
+  static async deleteUserAvatar(
+    uid: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get current profile
+      const profile = await this.getUserProfile(uid);
+      if (!profile?.photoURL) {
+        Logger.info('No avatar to delete', { uid }, '🔥 Firebase UserService');
+        return { success: true }; // No avatar to delete
+      }
+
+      Logger.info(
+        'Deleting avatar',
+        { uid, photoURL: profile.photoURL },
+        '🔥 Firebase UserService'
+      );
+
+      // Delete image from Storage only if it's a Firebase Storage URL
+      if (
+        profile.photoURL.startsWith('https://firebasestorage.googleapis.com')
+      ) {
+        try {
+          await StorageService.deleteImage(profile.photoURL);
+          Logger.info(
+            'Avatar deleted from Storage',
+            { uid },
+            '🔥 Firebase UserService'
+          );
+        } catch (storageError) {
+          Logger.warn(
+            'Failed to delete from Storage, continuing with profile update',
+            storageError,
+            '🔥 Firebase UserService'
+          );
+          // Continue even if it fails to delete from Storage
+        }
+      } else {
+        Logger.info(
+          'Avatar is not from Firebase Storage, skipping Storage deletion',
+          { uid },
+          '🔥 Firebase UserService'
+        );
+      }
+
+      // Update profile (always clear photoURL)
+      await this.updateUserProfile(uid, { photoURL: '' });
+
+      Logger.info(
+        'Avatar deleted successfully',
+        { uid },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true };
+    } catch (error) {
+      Logger.error('Error deleting avatar', error, '🔥 Firebase UserService');
+      return {
+        success: false,
+        error: getFirebaseErrorMessage(error) || 'Failed to delete avatar'
+      };
+    }
   }
 
   // Securely delete current user's account and related data

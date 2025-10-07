@@ -161,6 +161,9 @@ export class PlaylistService {
   }
 
   static async deletePlaylist(playlistId: string): Promise<void> {
+    // Get playlist data first to check for cover image
+    const playlist = await this.getPlaylist(playlistId);
+
     // Delete playlist tracks
     const tracksQuery = query(
       collection(db, this.collection, playlistId, this.tracksCollection)
@@ -178,6 +181,17 @@ export class PlaylistService {
     batch.delete(doc(db, this.collection, playlistId));
 
     await batch.commit();
+
+    // Delete cover image from Storage if it exists
+    if (playlist?.coverImageUrl) {
+      try {
+        const { StorageService } = await import('./firebase-service-storage');
+        await StorageService.deleteImage(playlist.coverImageUrl);
+      } catch (error) {
+        console.warn('Failed to delete playlist cover image:', error);
+        // Don't fail the entire operation if image deletion fails
+      }
+    }
   }
 
   // ===== USER PLAYLISTS =====

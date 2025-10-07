@@ -8,6 +8,7 @@ import PlaylistCard from '@/components/playlists/PlaylistCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -81,6 +82,34 @@ const PlaylistsScreen = () => {
   const handlePlaylistEdit = (playlist: Playlist) => {
     // TODO: Navigate to playlist edit screen
     console.log('Edit playlist:', playlist.id);
+  };
+
+  const handlePlaylistDelete = (playlist: Playlist) => {
+    Alert.delete(
+      'Delete Playlist',
+      `Are you sure you want to delete "${playlist.name}"? This action cannot be undone.`,
+      async () => {
+        try {
+          await PlaylistService.deletePlaylist(playlist.id);
+
+          // Remove from local state
+          setPlaylists((prev) => prev.filter((p) => p.id !== playlist.id));
+
+          Notifier.shoot({
+            type: 'success',
+            title: 'Success',
+            message: 'Playlist deleted successfully'
+          });
+        } catch (error) {
+          Logger.error('Error deleting playlist:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to delete playlist'
+          });
+        }
+      }
+    );
   };
 
   const handlePlaylistCreated = (playlistId: string) => {
@@ -185,7 +214,9 @@ const PlaylistsScreen = () => {
                 playlist={playlist}
                 onPress={handlePlaylistPress}
                 onEdit={handlePlaylistEdit}
+                onDelete={handlePlaylistDelete}
                 showEditButton={playlist.createdBy === user?.uid}
+                showDeleteButton={playlist.createdBy === user?.uid}
               />
             ))}
           </View>
@@ -193,8 +224,9 @@ const PlaylistsScreen = () => {
       </ScrollView>
 
       {/* Create Playlist Modal */}
-      {showCreateModal && user && (
+      {user && (
         <CreatePlaylistModal
+          visible={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onPlaylistCreated={handlePlaylistCreated}
           userId={user.uid}

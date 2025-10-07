@@ -18,14 +18,18 @@ interface PlaylistCardProps {
   playlist: Playlist;
   onPress: (playlist: Playlist) => void;
   onEdit?: (playlist: Playlist) => void;
+  onDelete?: (playlist: Playlist) => void;
   showEditButton?: boolean;
+  showDeleteButton?: boolean;
 }
 
 const PlaylistCard: React.FC<PlaylistCardProps> = ({
   playlist,
   onPress,
   onEdit,
-  showEditButton = false
+  onDelete,
+  showEditButton = false,
+  showDeleteButton = false
 }) => {
   const { theme } = useTheme();
 
@@ -223,20 +227,36 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
             </View>
           </View>
 
-          {/* Edit Button */}
-          {showEditButton && onEdit && (
-            <IconButton
-              accessibilityLabel="Edit playlist"
-              onPress={() => onEdit(playlist)}
-              className="ml-3"
-            >
-              <MaterialCommunityIcons
-                name="pencil"
-                size={16}
-                color={themeColors[theme]['text-main']}
-              />
-            </IconButton>
-          )}
+          {/* Action Buttons */}
+          <View className="flex-row items-center gap-2">
+            {/* Edit Button */}
+            {showEditButton && onEdit && (
+              <IconButton
+                accessibilityLabel="Edit playlist"
+                onPress={() => onEdit(playlist)}
+              >
+                <MaterialCommunityIcons
+                  name="pencil"
+                  size={16}
+                  color={themeColors[theme]['text-main']}
+                />
+              </IconButton>
+            )}
+
+            {/* Delete Button */}
+            {showDeleteButton && onDelete && (
+              <IconButton
+                accessibilityLabel="Delete playlist"
+                onPress={() => onDelete(playlist)}
+              >
+                <MaterialCommunityIcons
+                  name="delete"
+                  size={16}
+                  color={themeColors[theme]['intent-error']}
+                />
+              </IconButton>
+            )}
+          </View>
         </View>
       </Pressable>
     </Animated.View>

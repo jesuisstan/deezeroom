@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+import LineButton from '@/components/ui/buttons/LineButton';
+import Divider from '@/components/ui/Divider';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
@@ -11,22 +14,26 @@ import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-interface ImageUploadProps {
+interface ImageUploaderProps {
   currentImageUrl?: string;
   onImageUploaded: (imageUrl: string) => void;
   placeholder?: string;
   size?: 'sm' | 'md' | 'lg';
   shape?: 'circle' | 'square';
   disabled?: boolean;
+  onUploadStart?: () => void; // Callback when upload starts
+  onUploadEnd?: () => void; // Callback when upload ends
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({
+const ImageUploader: React.FC<ImageUploaderProps> = ({
   currentImageUrl,
   onImageUploaded,
-  placeholder = 'Add Image',
+  placeholder = 'Add Picture',
   size = 'md',
   shape = 'square',
-  disabled = false
+  disabled = false,
+  onUploadStart,
+  onUploadEnd
 }) => {
   const { theme } = useTheme();
   const [isUploading, setIsUploading] = useState(false);
@@ -76,7 +83,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         await uploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      Logger.error('Error picking image:', error, '🖼️ ImageUpload');
+      Logger.error('Error picking image:', error, '🖼️ ImageUploader');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -107,7 +114,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         await uploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      Logger.error('Error taking photo:', error, '🖼️ ImageUpload');
+      Logger.error('Error taking photo:', error, '🖼️ ImageUploader');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -118,20 +125,27 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const uploadImage = async (imageUri: string) => {
     setIsUploading(true);
+    onUploadStart?.();
+
     try {
-      // This will be implemented in the parent component
-      // For now, we'll just call the callback with the local URI
+      // Just pass the local URI to the callback
+      // Business logic for uploading is in the parent component
       onImageUploaded(imageUri);
       setShowOptions(false);
     } catch (error) {
-      Logger.error('Error uploading image:', error, '🖼️ ImageUpload');
+      Logger.error(
+        'Error handling image selection:',
+        error,
+        '🖼️ ImageUploader'
+      );
       Notifier.shoot({
         type: 'error',
         title: 'Error',
-        message: 'Failed to upload image'
+        message: 'Failed to process image selection'
       });
     } finally {
       setIsUploading(false);
+      onUploadEnd?.();
     }
   };
 
@@ -209,118 +223,64 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       </Pressable>
 
       {/* Options Modal */}
-      <Modal
-        visible={showOptions}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowOptions(false)}
+      <SwipeModal
+        title="Choose Image Source"
+        modalVisible={showOptions}
+        setVisible={setShowOptions}
+        onClose={() => setShowOptions(false)}
       >
-        <View
-          className="flex-1 items-center justify-center"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-        >
-          <View
-            className="mx-4 rounded-lg p-6"
-            style={{
-              backgroundColor:
-                theme === 'dark'
-                  ? themeColors.dark['bg-secondary']
-                  : themeColors.light['bg-secondary'],
-              minWidth: 280
-            }}
-          >
-            <TextCustom type="subtitle" className="mb-4 text-center">
-              Choose Image Source
-            </TextCustom>
-
-            <View className="gap-3">
-              <Pressable
-                onPress={pickImage}
-                className="flex-row items-center gap-3 rounded-lg p-3"
-                style={{
-                  backgroundColor:
-                    theme === 'dark'
-                      ? themeColors.dark['bg-main']
-                      : themeColors.light['bg-main']
-                }}
-              >
+        <View className="flex-1 gap-4 pb-4">
+          <View className="gap-0">
+            <LineButton onPress={pickImage} className="py-4">
+              <View className="flex-row items-center gap-4 px-4">
                 <MaterialCommunityIcons
                   name="image-multiple"
                   size={24}
                   color={themeColors[theme]['primary']}
                 />
                 <TextCustom>Choose from Gallery</TextCustom>
-              </Pressable>
+              </View>
+            </LineButton>
 
-              <Pressable
-                onPress={takePhoto}
-                className="flex-row items-center gap-3 rounded-lg p-3"
-                style={{
-                  backgroundColor:
-                    theme === 'dark'
-                      ? themeColors.dark['bg-main']
-                      : themeColors.light['bg-main']
-                }}
-              >
+            <Divider inset />
+
+            <LineButton onPress={takePhoto} className="py-4">
+              <View className="flex-row items-center gap-4 px-4">
                 <MaterialCommunityIcons
                   name="camera"
                   size={24}
                   color={themeColors[theme]['primary']}
                 />
                 <TextCustom>Take Photo</TextCustom>
-              </Pressable>
+              </View>
+            </LineButton>
 
-              {currentImageUrl && (
-                <Pressable
-                  onPress={removeImage}
-                  className="flex-row items-center gap-3 rounded-lg p-3"
-                  style={{
-                    backgroundColor:
-                      theme === 'dark'
-                        ? themeColors.dark['bg-main']
-                        : themeColors.light['bg-main']
-                  }}
-                >
-                  <MaterialCommunityIcons
-                    name="delete"
-                    size={24}
-                    color={themeColors[theme]['intent-error']}
-                  />
-                  <TextCustom
-                    style={{ color: themeColors[theme]['intent-error'] }}
-                  >
-                    Remove Image
-                  </TextCustom>
-                </Pressable>
-              )}
+            <Divider inset />
 
-              <Pressable
-                onPress={() => setShowOptions(false)}
-                className="mt-2 flex-row items-center gap-3 rounded-lg p-3"
-                style={{
-                  backgroundColor:
-                    theme === 'dark'
-                      ? themeColors.dark['bg-main']
-                      : themeColors.light['bg-main']
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="close"
-                  size={24}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom
-                  style={{ color: themeColors[theme]['text-secondary'] }}
-                >
-                  Cancel
-                </TextCustom>
-              </Pressable>
-            </View>
+            {currentImageUrl && (
+              <>
+                <LineButton onPress={removeImage} className="py-4">
+                  <View className="flex-row items-center gap-4 px-4">
+                    <MaterialCommunityIcons
+                      name="delete"
+                      size={24}
+                      color={themeColors[theme]['intent-error']}
+                    />
+                    <TextCustom
+                      style={{ color: themeColors[theme]['intent-error'] }}
+                    >
+                      Remove Image
+                    </TextCustom>
+                  </View>
+                </LineButton>
+                <Divider inset />
+              </>
+            )}
           </View>
         </View>
-      </Modal>
+      </SwipeModal>
     </>
   );
 };
 
-export default ImageUpload;
+export default ImageUploader;

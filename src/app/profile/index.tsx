@@ -1,6 +1,5 @@
 import { FC, useEffect, useState } from 'react';
 import {
-  Alert,
   Image,
   ScrollView,
   TextInput,
@@ -12,9 +11,13 @@ import { useRouter } from 'expo-router';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import Divider from '@/components/ui/Divider';
+import ImageUploader from '@/components/ui/ImageUploader';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
+import { updateAvatar } from '@/utils/profile-utils';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
@@ -82,6 +85,11 @@ const ProfileScreen: FC = () => {
     }
   };
 
+  const handleImageUploaded = async (imageUrl: string) => {
+    if (!user || !profile) return;
+    await updateAvatar(imageUrl, profile, updateProfile);
+  };
+
   if (profileLoading) {
     return <ActivityIndicatorScreen />;
   }
@@ -140,6 +148,22 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="mb-4 mt-4">
+          <TextCustom>
+            !!! Profile picture changer below should be moved to edit-profile
+            screen
+          </TextCustom>
+          <Divider />
+          <View className="w-full flex-row items-center gap-4 px-4 py-4">
+            <ImageUploader
+              currentImageUrl={profile?.photoURL}
+              onImageUploaded={handleImageUploaded}
+              shape="circle"
+              placeholder="Add Photo"
+            />
+            <TextCustom type="semibold">Change profile picture</TextCustom>
+          </View>
+          <Divider />
+
           <View className="mb-4 flex-row items-center justify-between">
             <TextCustom type="subtitle">Basic information</TextCustom>
             <TouchableOpacity
