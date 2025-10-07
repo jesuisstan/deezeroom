@@ -255,7 +255,9 @@ export const Alert = {
         { text: 'Cancel', onPress: onCancel, style: 'cancel' },
         { text: 'Delete', onPress: onConfirm, style: 'destructive' }
       ]
-    })
+    }),
+
+  error: (title: string, message: string) => Alert.alert(title, message)
 };
 
 export default AlertModule;

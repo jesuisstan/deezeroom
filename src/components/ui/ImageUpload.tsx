@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  View
-} from 'react-native';
+import { ActivityIndicator, Image, Modal, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -55,7 +50,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
+      Alert.error(
         'Permission Required',
         'Please grant camera roll permissions to upload images.'
       );
@@ -81,7 +76,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         await uploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      Logger.error('Error picking image:', error, '🖼️ ImageUpload');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -93,7 +88,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
+      Alert.error(
         'Permission Required',
         'Please grant camera permissions to take photos.'
       );
@@ -112,7 +107,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         await uploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error taking photo:', error);
+      Logger.error('Error taking photo:', error, '🖼️ ImageUpload');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -129,7 +124,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       onImageUploaded(imageUri);
       setShowOptions(false);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      Logger.error('Error uploading image:', error, '🖼️ ImageUpload');
       Notifier.shoot({
         type: 'error',
         title: 'Error',
@@ -146,17 +141,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   };
 
   const removeImage = () => {
-    Alert.alert('Remove Image', 'Are you sure you want to remove this image?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: () => {
-          onImageUploaded('');
-          setShowOptions(false);
-        }
+    Alert.delete(
+      'Remove Image',
+      'Are you sure you want to remove this image?',
+      () => {
+        onImageUploaded('');
+        setShowOptions(false);
       }
-    ]);
+    );
   };
 
   const sizeStyles = getSizeStyles();
@@ -172,15 +164,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             width: sizeStyles.width,
             height: sizeStyles.height,
             borderRadius,
-            backgroundColor:
-              theme === 'dark'
-                ? themeColors.dark['bg-secondary']
-                : themeColors.light['bg-secondary'],
+            backgroundColor: themeColors[theme]['bg-secondary'],
             borderWidth: 2,
-            borderColor:
-              theme === 'dark'
-                ? themeColors.dark['border']
-                : themeColors.light['border'],
+            borderColor: themeColors[theme]['border'],
             borderStyle: 'dashed',
             justifyContent: 'center',
             alignItems: 'center',

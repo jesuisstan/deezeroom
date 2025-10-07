@@ -2,7 +2,13 @@ import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from 'react-native-reanimated';
 
+import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -22,6 +28,10 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
   showEditButton = false
 }) => {
   const { theme } = useTheme();
+
+  // Animation values
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -43,150 +53,193 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
       : 'account';
   };
 
+  // Animated styles
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 300 });
+    opacity.value = withSpring(0.8, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    opacity.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
   return (
-    <Pressable
-      onPress={() => onPress(playlist)}
-      className="mb-3 rounded-lg border border-gray-200 p-4 active:opacity-70"
-      style={{
-        backgroundColor:
-          theme === 'dark'
-            ? themeColors.dark['bg-secondary']
-            : themeColors.light['bg-secondary'],
-        borderColor:
-          theme === 'dark'
-            ? themeColors.dark['border']
-            : themeColors.light['border']
-      }}
-    >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-1 flex-row items-start gap-3">
-          {/* Cover Image */}
-          <View className="h-16 w-16 overflow-hidden rounded-lg">
-            {playlist.coverImageUrl ? (
-              <Image
-                source={{ uri: playlist.coverImageUrl }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode="cover"
-              />
-            ) : (
-              <View
-                className="h-full w-full items-center justify-center"
-                style={{
-                  backgroundColor:
-                    theme === 'dark'
-                      ? themeColors.dark['bg-main']
-                      : themeColors.light['bg-main']
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="music"
-                  size={24}
-                  color={themeColors[theme]['text-secondary']}
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={() => onPress(playlist)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        className="mb-3 rounded-xl border p-4"
+        style={{
+          backgroundColor: themeColors[theme]['bg-secondary'],
+          borderColor: themeColors[theme]['border'],
+          shadowColor: themeColors[theme]['bg-inverse'],
+          shadowOffset: {
+            width: 0,
+            height: 2
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 2
+        }}
+      >
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 flex-row items-start gap-3">
+            {/* Cover Image */}
+            <View
+              className="h-16 w-16 overflow-hidden rounded-xl"
+              style={{
+                backgroundColor: themeColors[theme]['bg-tertiary'],
+                shadowColor: themeColors[theme]['bg-inverse'],
+                shadowOffset: {
+                  width: 0,
+                  height: 1
+                },
+                shadowOpacity: 0.1,
+                shadowRadius: 2,
+                elevation: 1
+              }}
+            >
+              {playlist.coverImageUrl ? (
+                <Image
+                  source={{ uri: playlist.coverImageUrl }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
                 />
-              </View>
-            )}
-          </View>
+              ) : (
+                <View className="h-full w-full items-center justify-center">
+                  <MaterialCommunityIcons
+                    name="music"
+                    size={24}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              )}
+            </View>
 
-          {/* Content */}
-          <View className="flex-1">
-            {/* Playlist Name */}
-            <TextCustom type="subtitle" className="mb-1">
-              {playlist.name}
-            </TextCustom>
-
-            {/* Description */}
-            {playlist.description && (
-              <TextCustom className="mb-2 opacity-70">
-                {playlist.description}
+            {/* Content */}
+            <View className="flex-1">
+              {/* Playlist Name */}
+              <TextCustom type="subtitle" className="mb-1">
+                {playlist.name}
               </TextCustom>
-            )}
 
-            {/* Metadata */}
-            <View className="flex-row items-center gap-4">
-              <View className="flex-row items-center gap-1">
-                <MaterialCommunityIcons
-                  name="music-note"
-                  size={14}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom size="xs" className="opacity-70">
-                  {playlist.trackCount} tracks
+              {/* Description */}
+              {playlist.description && (
+                <TextCustom className="mb-2 opacity-70">
+                  {playlist.description}
                 </TextCustom>
+              )}
+
+              {/* Metadata */}
+              <View className="flex-row items-center gap-4">
+                <View className="flex-row items-center gap-1">
+                  <MaterialCommunityIcons
+                    name="music-note"
+                    size={14}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    style={{ color: themeColors[theme]['text-secondary'] }}
+                  >
+                    {playlist.trackCount} tracks
+                  </TextCustom>
+                </View>
+
+                <View className="flex-row items-center gap-1">
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={14}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    style={{ color: themeColors[theme]['text-secondary'] }}
+                  >
+                    {formatDuration(playlist.totalDuration)}
+                  </TextCustom>
+                </View>
+
+                <View className="flex-row items-center gap-1">
+                  <MaterialCommunityIcons
+                    name="account-multiple"
+                    size={14}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    style={{ color: themeColors[theme]['text-secondary'] }}
+                  >
+                    {playlist.participants.length} participants
+                  </TextCustom>
+                </View>
               </View>
 
-              <View className="flex-row items-center gap-1">
-                <MaterialCommunityIcons
-                  name="clock-outline"
-                  size={14}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom size="xs" className="opacity-70">
-                  {formatDuration(playlist.totalDuration)}
-                </TextCustom>
-              </View>
+              {/* Visibility and Permissions */}
+              <View className="mt-3 flex-row items-center gap-4">
+                <View
+                  className="flex-row items-center gap-1 rounded-full px-2 py-1"
+                  style={{ backgroundColor: themeColors[theme]['bg-tertiary'] }}
+                >
+                  <MaterialCommunityIcons
+                    name={getVisibilityIcon()}
+                    size={12}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    style={{ color: themeColors[theme]['text-secondary'] }}
+                  >
+                    {playlist.visibility === 'public' ? 'Public' : 'Private'}
+                  </TextCustom>
+                </View>
 
-              <View className="flex-row items-center gap-1">
-                <MaterialCommunityIcons
-                  name="account-multiple"
-                  size={14}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom size="xs" className="opacity-70">
-                  {playlist.participants.length} participants
-                </TextCustom>
-              </View>
-            </View>
-
-            {/* Visibility and Permissions */}
-            <View className="mt-2 flex-row items-center gap-3">
-              <View className="flex-row items-center gap-1">
-                <MaterialCommunityIcons
-                  name={getVisibilityIcon()}
-                  size={12}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom size="xs" className="opacity-60">
-                  {playlist.visibility === 'public' ? 'Public' : 'Private'}
-                </TextCustom>
-              </View>
-
-              <View className="flex-row items-center gap-1">
-                <MaterialCommunityIcons
-                  name={getEditPermissionsIcon()}
-                  size={12}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom size="xs" className="opacity-60">
-                  {playlist.editPermissions === 'everyone'
-                    ? 'Everyone can edit'
-                    : 'Invited only'}
-                </TextCustom>
+                <View
+                  className="flex-row items-center gap-1 rounded-full px-2 py-1"
+                  style={{ backgroundColor: themeColors[theme]['bg-tertiary'] }}
+                >
+                  <MaterialCommunityIcons
+                    name={getEditPermissionsIcon()}
+                    size={12}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    style={{ color: themeColors[theme]['text-secondary'] }}
+                  >
+                    {playlist.editPermissions === 'everyone'
+                      ? 'Everyone can edit'
+                      : 'Invited only'}
+                  </TextCustom>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Edit Button */}
-        {showEditButton && onEdit && (
-          <Pressable
-            onPress={() => onEdit(playlist)}
-            className="ml-3 rounded-full p-2 active:opacity-70"
-            style={{
-              backgroundColor:
-                theme === 'dark'
-                  ? themeColors.dark['bg-main']
-                  : themeColors.light['bg-main']
-            }}
-          >
-            <MaterialCommunityIcons
-              name="pencil"
-              size={16}
-              color={themeColors[theme]['text-main']}
-            />
-          </Pressable>
-        )}
-      </View>
-    </Pressable>
+          {/* Edit Button */}
+          {showEditButton && onEdit && (
+            <IconButton
+              accessibilityLabel="Edit playlist"
+              onPress={() => onEdit(playlist)}
+              className="ml-3"
+            >
+              <MaterialCommunityIcons
+                name="pencil"
+                size={16}
+                color={themeColors[theme]['text-main']}
+              />
+            </IconButton>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 };
 
