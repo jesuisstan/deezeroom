@@ -1,5 +1,6 @@
 import { Image, ScrollView, View } from 'react-native';
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -112,9 +113,40 @@ const PlayerScreen = () => {
           </View>
 
           <View className="flex-row items-center justify-around">
-            <RippleButton title="Prev" variant="ghost" />
-            <RippleButton title="Play" variant="secondary" className="w-32" />
-            <RippleButton title="Next" variant="ghost" />
+            <IconButton
+              accessibilityLabel="Play previous track"
+              onPress={() => {}}
+              className="h-14 w-14"
+            >
+              <MaterialCommunityIcons
+                name="skip-previous"
+                size={32}
+                color={themeColors[theme]['text-main']}
+              />
+            </IconButton>
+            <IconButton
+              accessibilityLabel="Play or pause"
+              onPress={() => {}}
+              className="h-16 w-16"
+              backgroundColor={themeColors[theme]['primary']}
+            >
+              <MaterialCommunityIcons
+                name="play"
+                size={38}
+                color={themeColors[theme]['text-inverse']}
+              />
+            </IconButton>
+            <IconButton
+              accessibilityLabel="Play next track"
+              onPress={() => {}}
+              className="h-14 w-14"
+            >
+              <MaterialCommunityIcons
+                name="skip-next"
+                size={32}
+                color={themeColors[theme]['text-main']}
+              />
+            </IconButton>
           </View>
 
           <View className="gap-3">
