@@ -30,10 +30,10 @@ const EventsScreen = () => {
         alignSelf: 'center'
       }}
     >
-      <TextCustom type="subtitle">API Test</TextCustom>
+      <TextCustom type="subtitle">Events</TextCustom>
       <View className={clsx('flex-1 gap-4 p-4', 'bg-bg-secondary')}>
         <TextCustom className="animate-pulse text-center">
-          Upcoming content
+          To be implemented soon...
         </TextCustom>
       </View>
     </ScrollView>

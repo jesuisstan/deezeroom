@@ -1,6 +1,6 @@
 import { Platform, View } from 'react-native';
 
-import AntDesign from '@expo/vector-icons/AntDesign';
+import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, useRouter } from 'expo-router';
 
@@ -40,11 +40,8 @@ const TabLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: themeColors.dark.primary,
-        tabBarInactiveTintColor:
-          theme === 'dark'
-            ? themeColors.dark['text-main']
-            : themeColors.light['text-main'],
+        tabBarActiveTintColor: themeColors[theme]['primary'],
+        tabBarInactiveTintColor: themeColors[theme]['text-main'],
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -52,32 +49,20 @@ const TabLayout = () => {
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
-            backgroundColor:
-              theme === 'dark'
-                ? themeColors.dark['bg-secondary']
-                : themeColors.light['bg-secondary']
+            backgroundColor: themeColors[theme]['bg-secondary']
           },
           default: {
-            backgroundColor:
-              theme === 'dark'
-                ? themeColors.dark['bg-secondary']
-                : themeColors.light['bg-secondary']
+            backgroundColor: themeColors[theme]['bg-secondary']
           }
         }),
         headerTitleStyle: {
           fontFamily: 'LeagueGothic',
           letterSpacing: 4,
           fontSize: 30,
-          color:
-            theme === 'dark'
-              ? themeColors.dark['text-main']
-              : themeColors.light['text-main']
+          color: themeColors[theme]['text-main']
         },
         headerStyle: {
-          backgroundColor:
-            theme === 'dark'
-              ? themeColors.dark['bg-secondary']
-              : themeColors.light['bg-secondary']
+          backgroundColor: themeColors[theme]['bg-secondary']
         }
       }}
     >
@@ -86,7 +71,7 @@ const TabLayout = () => {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <AntDesign name="home" size={28} color={color} />
+            <Foundation name="home" size={28} color={color} />
           ),
           headerRight: () => <HeaderRight />
         }}

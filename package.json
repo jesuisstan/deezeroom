@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.54.1",
   "scripts": {
-    "prepare": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
+    "before": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
     "start": "expo start",
     "start:clear": "npx expo start --clear",
     "start:tunnel": "npx expo start --tunnel",
@@ -65,8 +65,8 @@
     "expo-video": "~3.0.11",
     "expo-web-browser": "~15.0.7",
     "firebase": "^12.2.1",
-    "graphql": "^16.11.0",
-    "graphql-http": "^1.22.4",
+    "gql.tada": "^1.8.13",
+    "graphql-yoga": "^5.16.0",
     "lucide-react-native": "^0.542.0",
     "nativewind": "^4.1.23",
     "prettier-plugin-tailwindcss": "^0.5.14",
@@ -81,7 +81,8 @@
     "react-native-web": "~0.21.0",
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "urql": "^5.0.1"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
