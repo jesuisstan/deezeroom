@@ -16,6 +16,10 @@ import {
   View
 } from 'react-native';
 
+import { MaterialIcons } from '@expo/vector-icons';
+
+import IconButton from '@/components/ui/buttons/IconButton';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -157,8 +161,6 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
           ? colors['intent-warning']
           : colors.primary;
 
-  const textColor = colors['text-main'];
-
   const barWidth = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ['100%', '0%']
@@ -195,7 +197,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
         >
           <View
             style={{
-              backgroundColor: colors['bg-secondary'],
+              //backgroundColor: colors['bg-secondary'],
               borderColor: bgByType,
               borderWidth: 1,
               borderRadius: 12,
@@ -214,6 +216,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               shadowRadius: 6,
               elevation: 8 // Increased for Android to ensure visibility
             }}
+            className="bg-bg-inverse opacity-90"
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               {/* Dot */}
@@ -229,31 +232,32 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               {/* Text content with title */}
               <View style={{ flex: 1 }}>
                 {state.title ? (
-                  <Animated.Text
-                    style={{
-                      color: textColor,
-                      fontFamily: 'LeagueGothic',
-                      letterSpacing: 4,
-                      fontSize: 16,
-                      marginBottom: 2
-                    }}
+                  <TextCustom
+                    type="bold"
+                    color={themeColors[theme]['text-inverse']}
                   >
                     {state.title}
-                  </Animated.Text>
+                  </TextCustom>
                 ) : null}
-                <Animated.Text
-                  style={{
-                    color: textColor,
-                    fontFamily: 'Inter',
-                    fontSize: 14
-                  }}
+                <TextCustom
+                  type="default"
+                  color={themeColors[theme]['text-inverse']}
                 >
                   {state.message}
-                </Animated.Text>
+                </TextCustom>
               </View>
-              <Pressable onPress={hide} hitSlop={8} style={{ marginLeft: 8 }}>
-                <Animated.Text style={{ color: textColor }}>×</Animated.Text>
-              </Pressable>
+              {/* Close Button */}
+              <IconButton
+                accessibilityLabel="Close notification"
+                className="h-8 w-8 border border-border"
+                onPress={hide}
+              >
+                <MaterialIcons
+                  name="close"
+                  size={15}
+                  color={themeColors[theme]['text-inverse']}
+                />
+              </IconButton>
             </View>
 
             {state.showProgress ? (

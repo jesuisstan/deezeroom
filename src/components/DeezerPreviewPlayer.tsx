@@ -8,10 +8,9 @@ import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { DeezerTrack } from '@/utils/api/deezer-service';
 
 interface DeezerPreviewPlayerProps {
-  track: DeezerTrack | null;
+  track: any | null;
   onPrevious?: () => void;
   onNext?: () => void;
   hasPrevious?: boolean;

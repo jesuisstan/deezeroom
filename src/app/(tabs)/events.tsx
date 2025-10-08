@@ -2,7 +2,6 @@ import { ScrollView, View } from 'react-native';
 
 import clsx from 'clsx';
 
-import ApiTestComponent from '@/components/ApiTestComponent';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -33,7 +32,9 @@ const EventsScreen = () => {
     >
       <TextCustom type="subtitle">API Test</TextCustom>
       <View className={clsx('flex-1 gap-4 p-4', 'bg-bg-secondary')}>
-        <ApiTestComponent />
+        <TextCustom className="animate-pulse text-center">
+          Upcoming content
+        </TextCustom>
       </View>
     </ScrollView>
   );

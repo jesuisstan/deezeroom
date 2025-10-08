@@ -7,16 +7,15 @@ import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { DeezerTrack } from '@/utils/api/deezer-service';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
-  const [currentTrack, setCurrentTrack] = useState<DeezerTrack | null>(null);
-  const [searchResults, setSearchResults] = useState<DeezerTrack[]>([]);
+  const [currentTrack, setCurrentTrack] = useState<any | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
   // Handle track selection from search
-  const handleTrackSelect = (track: DeezerTrack) => {
+  const handleTrackSelect = (track: any) => {
     // Stop any currently playing track before switching
     setCurrentTrack(track);
     // Find the track index in search results
@@ -50,7 +49,7 @@ const HomeScreen = () => {
   };
 
   // Update search results when MusicSearch component updates them
-  const handleSearchResultsUpdate = (results: DeezerTrack[]) => {
+  const handleSearchResultsUpdate = (results: any[]) => {
     setSearchResults(results);
     if (results.length > 0 && !currentTrack) {
       // Auto-select first track if none is selected
