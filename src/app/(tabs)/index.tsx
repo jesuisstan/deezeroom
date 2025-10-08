@@ -5,8 +5,8 @@ import { useQuery } from 'urql';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { GetRandomJoke } from '@/graphql/queries';
 import { useTheme } from '@/providers/ThemeProvider';
-import { GetRandomJoke } from '@/queries';
 import { themeColors } from '@/style/color-theme';
 
 const HomeScreen = () => {
@@ -15,14 +15,6 @@ const HomeScreen = () => {
   const [{ data, fetching, error }, refetch] = useQuery({
     query: GetRandomJoke
   });
-
-  //// debugging:
-  //console.log('GraphQL Query State:', {
-  //  fetching,
-  //  error: error?.message,
-  //  hasData: !!data,
-  //  dataKeys: data ? Object.keys(data) : null
-  //});
 
   return (
     <ScrollView

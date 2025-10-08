@@ -1,13 +1,10 @@
-import { readFileSync } from 'fs';
 import { createSchema, createYoga } from 'graphql-yoga';
-import { join } from 'path';
 
+import { typeDefs } from '@/graphql/schema';
 import { getRandomJoke } from '@/utils/jokes';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface APIContext {}
-
-// Read schema from file
-const typeDefs = readFileSync(join(process.cwd(), 'schema.graphql'), 'utf8');
 
 const schema = createSchema({
   typeDefs,
