@@ -29,39 +29,8 @@ import { UserProvider } from '@/providers/UserProvider';
 
 import '@/global.css';
 
-// Определяем правильный URL в зависимости от платформы
-const getApiUrl = () => {
-  //console.log('Environment check:', {
-  //  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
-  //  Platform: Platform.OS
-  //});
-
-  // ВРЕМЕННО: закомментируем проверку переменной окружения для отладки
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    console.log('Using environment variable:', process.env.EXPO_PUBLIC_API_URL);
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Для веб-версии используем localhost
-  if (Platform.OS === 'web') {
-    console.log('Using web localhost');
-    return 'http://localhost:8081';
-  }
-
-  // Для мобильных устройств нужно использовать IP адрес компьютера
-  // ЗАМЕНИТЕ НА ВАШ IP АДРЕС! Получите командой: ipconfig (Windows) или ifconfig (macOS/Linux)
-  console.log('Using mobile IP address');
-  return 'http://10.46.190.186:8081';
-};
-
-const API_URL = getApiUrl();
-
-// Отладочная информация
-console.log(`Platform: ${Platform.OS}`);
-console.log(`API URL: ${API_URL}`);
-
 const urqlClient = new UrqlClient({
-  url: API_URL + '/api/graphql',
+  url: process.env.EXPO_PUBLIC_APP_URL + '/api/graphql',
   exchanges: [cacheExchange, fetchExchange]
 });
 
