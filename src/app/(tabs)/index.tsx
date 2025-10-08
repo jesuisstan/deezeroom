@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
-import MusicSearch from '@/components/MusicSearch';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -95,10 +94,6 @@ const HomeScreen = () => {
         onTrackChange={handleTrackChange}
       />
       <Divider />
-      <MusicSearch
-        onTrackSelect={handleTrackSelect}
-        onSearchResults={handleSearchResultsUpdate}
-      />
     </ScrollView>
   );
 };
