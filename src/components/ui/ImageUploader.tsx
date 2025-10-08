@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { FC, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ interface ImageUploaderProps {
   onUploadEnd?: () => void; // Callback when upload ends
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({
+const ImageUploader: FC<ImageUploaderProps> = ({
   currentImageUrl,
   onImageUploaded,
   placeholder = 'Add Picture',
@@ -75,8 +75,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: shape === 'circle' ? [1, 1] : [4, 3],
-        quality: 0.8,
-        base64: false
+        quality: 0.5, // ~50% quality compression
+        base64: false,
+        presentationStyle:
+          ImagePicker.UIImagePickerPresentationStyle.PAGE_SHEET,
+        allowsMultipleSelection: false,
+        exif: false
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -228,6 +232,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         modalVisible={showOptions}
         setVisible={setShowOptions}
         onClose={() => setShowOptions(false)}
+        size="half"
       >
         <View className="flex-1 gap-4 pb-4">
           <View className="gap-0">

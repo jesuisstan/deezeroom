@@ -8,15 +8,24 @@ import {
 import { Logger } from '@/modules/logger';
 import { auth, storage } from '@/utils/firebase/firebase-init';
 
+/**
+ * Firebase Storage Service
+ * @description Service for uploading, deleting and getting images from Firebase Storage
+ */
 export class StorageService {
-  // Upload image to Firebase Storage
+  /**
+   * Upload image to Firebase Storage
+   * @param fileUri - The URI of the file to upload
+   * @param path - The path to upload the file to
+   * @param fileName - The name of the file to upload
+   * @returns The URL of the uploaded file
+   */
   static async uploadImage(
     fileUri: string,
     path: string,
     fileName?: string
   ): Promise<string> {
     try {
-      // Проверяем аутентификацию
       const currentUser = auth.currentUser;
       if (!currentUser) {
         throw new Error('User not authenticated');
@@ -57,7 +66,12 @@ export class StorageService {
     }
   }
 
-  // Upload playlist cover image
+  /**
+   * Upload playlist cover image
+   * @param playlistId - The ID of the playlist
+   * @param fileUri - The URI of the file to upload
+   * @returns The URL of the uploaded file
+   */
   static async uploadPlaylistCover(
     playlistId: string,
     fileUri: string
@@ -65,7 +79,12 @@ export class StorageService {
     return this.uploadImage(fileUri, `playlists/${playlistId}`, 'cover.jpg');
   }
 
-  // Upload user avatar
+  /**
+   * Upload user avatar
+   * @param userId - The ID of the user
+   * @param fileUri - The URI of the file to upload
+   * @returns The URL of the uploaded file
+   */
   static async uploadUserAvatar(
     userId: string,
     fileUri: string
@@ -73,7 +92,10 @@ export class StorageService {
     return this.uploadImage(fileUri, `avatars/${userId}`, 'avatar.jpg');
   }
 
-  // Delete image from Firebase Storage
+  /**
+   * Delete image from Firebase Storage
+   * @param imageUrl - The URL of the image to delete
+   */
   static async deleteImage(imageUrl: string): Promise<void> {
     try {
       // Check authentication
@@ -147,7 +169,11 @@ export class StorageService {
     }
   }
 
-  // Get file size from URI
+  /**
+   * Get file size from URI
+   * @param fileUri - The URI of the file to get the size of
+   * @returns The size of the file
+   */
   static async getFileSize(fileUri: string): Promise<number> {
     try {
       const response = await fetch(fileUri);
@@ -163,7 +189,12 @@ export class StorageService {
     }
   }
 
-  // Validate image file
+  /**
+   * Validate image file
+   * @param fileUri - The URI of the file to validate
+   * @param maxSizeMB - The maximum size of the file in MB
+   * @returns The result of the validation
+   */
   static validateImage(
     fileUri: string,
     maxSizeMB: number = 10
