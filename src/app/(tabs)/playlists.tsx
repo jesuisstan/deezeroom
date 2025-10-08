@@ -122,6 +122,7 @@ const PlaylistsScreen = () => {
       loadPlaylists(activeTab);
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const getTabTitle = (tab: 'my' | 'participating' | 'public') => {
