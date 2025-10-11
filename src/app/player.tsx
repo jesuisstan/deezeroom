@@ -6,21 +6,55 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import IconButton from '@/components/ui/buttons/IconButton';
-import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-
-const MOCK_TRACK = {
-  title: 'The best track in the world',
-  artist: "Stan's favourite Artist",
-  album: 'Average album',
-  artwork: require('@/assets/images/logo/logo-heart-transparent.png')
-};
 
 const PlayerScreen = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const {
+    currentTrack,
+    queue,
+    currentIndex,
+    status,
+    isPlaying,
+    isLoading,
+    error,
+    playNext,
+    playPrevious,
+    togglePlayPause
+  } = usePlayback();
+
+  const formatTime = (valueInSeconds: number) => {
+    const totalSeconds = Number.isFinite(valueInSeconds)
+      ? Math.max(0, Math.floor(valueInSeconds))
+      : 0;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const currentSeconds = status?.currentTime ?? 0;
+  const durationSeconds =
+    status?.duration && status.duration > 0
+      ? status.duration
+      : currentTrack?.duration ?? 0;
+  const progress = durationSeconds
+    ? Math.min(currentSeconds / durationSeconds, 1)
+    : 0;
+  const progressPercent = `${Math.max(0, progress) * 100}%`;
+
+  const hasPrevious =
+    currentIndex > 0 && queue.slice(0, currentIndex).some((track) => track.preview);
+  const hasNext =
+    currentIndex >= 0 &&
+    queue.slice(currentIndex + 1).some((track) => track.preview);
+
+  const artworkSource = currentTrack?.album.cover
+    ? { uri: currentTrack.album.cover }
+    : require('@/assets/images/logo/logo-heart-transparent.png');
 
   return (
     <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
@@ -55,7 +89,7 @@ const PlayerScreen = () => {
                 size="s"
                 color={themeColors[theme]['text-secondary']}
               >
-                {MOCK_TRACK.title}
+                {currentTrack?.title ?? 'No track selected'}
               </TextCustom>
             </View>
             <View style={{ width: 48 }} />
@@ -64,27 +98,43 @@ const PlayerScreen = () => {
           <View className="items-center gap-4">
             <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
               <Image
-                source={MOCK_TRACK.artwork}
+                source={artworkSource}
                 style={{ width: '100%', height: '100%' }}
-                resizeMode="contain"
-                accessibilityLabel={`${MOCK_TRACK.album} cover art`}
+                resizeMode={currentTrack?.album.cover ? 'cover' : 'contain'}
+                accessibilityLabel={
+                  currentTrack
+                    ? `${currentTrack.album.title} cover art`
+                    : 'Default cover art'
+                }
               />
             </View>
             <View className="items-center gap-1">
               <TextCustom type="title" size="3xl">
-                {MOCK_TRACK.title}
+                {currentTrack?.title ?? 'Start playing a track'}
               </TextCustom>
               <TextCustom
                 type="semibold"
                 color={themeColors[theme]['text-secondary']}
               >
-                {MOCK_TRACK.artist}
+                {currentTrack?.artist.name ?? 'Select a track from the search'}
               </TextCustom>
               <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                {MOCK_TRACK.album}
+                {currentTrack?.album.title ?? 'Album information'}
               </TextCustom>
             </View>
           </View>
+
+          {error && (
+            <View className="rounded-2xl bg-intent-error/10 px-4 py-3">
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['intent-error']}
+                className="text-center"
+              >
+                {error}
+              </TextCustom>
+            </View>
+          )}
 
           <View className="gap-2">
             <View className="flex-row justify-between">
@@ -92,20 +142,20 @@ const PlayerScreen = () => {
                 size="xs"
                 color={themeColors[theme]['text-secondary']}
               >
-                0:00
+                {formatTime(currentSeconds)}
               </TextCustom>
               <TextCustom
                 size="xs"
                 color={themeColors[theme]['text-secondary']}
               >
-                3:30
+                {formatTime(durationSeconds)}
               </TextCustom>
             </View>
             <View className="h-2 rounded-full bg-bg-tertiary">
               <View
                 className="h-2 rounded-full"
                 style={{
-                  width: '25%',
+                  width: progressPercent,
                   backgroundColor: themeColors[theme]['primary']
                 }}
               />
@@ -115,7 +165,8 @@ const PlayerScreen = () => {
           <View className="flex-row items-center justify-around">
             <IconButton
               accessibilityLabel="Play previous track"
-              onPress={() => {}}
+              onPress={playPrevious}
+              disabled={!hasPrevious || !currentTrack}
               className="h-14 w-14"
             >
               <MaterialCommunityIcons
@@ -126,19 +177,22 @@ const PlayerScreen = () => {
             </IconButton>
             <IconButton
               accessibilityLabel="Play or pause"
-              onPress={() => {}}
+              onPress={togglePlayPause}
               className="h-16 w-16"
               backgroundColor={themeColors[theme]['primary']}
+              loading={isLoading}
+              disabled={queue.length === 0}
             >
               <MaterialCommunityIcons
-                name="play"
+                name={isPlaying ? 'pause' : 'play'}
                 size={38}
                 color={themeColors[theme]['text-inverse']}
               />
             </IconButton>
             <IconButton
               accessibilityLabel="Play next track"
-              onPress={() => {}}
+              onPress={playNext}
+              disabled={!hasNext || !currentTrack}
               className="h-14 w-14"
             >
               <MaterialCommunityIcons
@@ -149,27 +203,19 @@ const PlayerScreen = () => {
             </IconButton>
           </View>
 
-          <View className="gap-3">
-            <TextCustom type="semibold">Queue</TextCustom>
-            <View className="gap-2">
-              {[1, 2, 3].map((track) => (
-                <View
-                  key={track}
-                  className="flex-row items-center justify-between rounded-2xl bg-bg-secondary px-4 py-3"
-                >
-                  <View>
-                    <TextCustom type="bold">How you remind me</TextCustom>
-                    <TextCustom
-                      size="xs"
-                      color={themeColors[theme]['text-secondary']}
-                    >
-                      Nickelback · 3:30
-                    </TextCustom>
-                  </View>
-                  <RippleButton title="Play" size="sm" variant="outline" />
-                </View>
-              ))}
-            </View>
+          <View className="items-center gap-2">
+            <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+              {queue.length > 0
+                ? `Track ${currentIndex + 1} of ${queue.length}`
+                : 'Search for tracks to start playback'}
+            </TextCustom>
+            <TextCustom
+              size="xs"
+              color={themeColors[theme]['text-secondary']}
+              className="opacity-60"
+            >
+              Queue management is coming soon
+            </TextCustom>
           </View>
         </ScrollView>
       </LinearGradient>

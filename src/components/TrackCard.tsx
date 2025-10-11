@@ -100,6 +100,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
             accessibilityLabel={isPlaying ? 'Pause track' : 'Play track'}
             onPress={handlePlay}
             className="h-8 w-8"
+            disabled={!track.preview}
           >
             <FontAwesome
               name={isPlaying ? 'pause' : 'play'}

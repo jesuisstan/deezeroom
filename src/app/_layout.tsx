@@ -23,6 +23,7 @@ import AlertModule from '@/modules/alert/AlertModule';
 import LoggerModule from '@/modules/logger/LoggerModule';
 import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
+import { PlaybackProvider } from '@/providers/PlaybackProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
 
@@ -69,10 +70,12 @@ const RootLayout = () => {
         <ThemeProvider>
           <NetworkProvider>
             <UserProvider>
-              <DeezeroomApp />
-              <LoggerModule />
-              <NotifierModule />
-              <AlertModule />
+              <PlaybackProvider>
+                <DeezeroomApp />
+                <LoggerModule />
+                <NotifierModule />
+                <AlertModule />
+              </PlaybackProvider>
             </UserProvider>
           </NetworkProvider>
         </ThemeProvider>

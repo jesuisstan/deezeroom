@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
 import { FlatList, View } from 'react-native';
 
-import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
+import { useRouter } from 'expo-router';
+
 import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
-import Divider from '@/components/ui/Divider';
 import { Track } from '@/graphql/schema';
+import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
+  const router = useRouter();
+  const {
+    startPlayback,
+    togglePlayPause,
+    updateQueue,
+    currentTrack,
+    isPlaying
+  } = usePlayback();
   const [searchResults, setSearchResults] = useState<Track[]>([]);
-  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
-    string | undefined
-  >();
 
   const handlePlayTrack = (track: Track) => {
-    setCurrentPlayingTrackId(track.id);
+    if (currentTrack?.id === track.id) {
+      togglePlayPause();
+      router.push('/player');
+      return;
+    }
+
+    startPlayback(searchResults, track.id);
+    router.push('/player');
   };
 
   const handleSearchResults = (tracks: Track[]) => {
     setSearchResults(tracks);
+    updateQueue(tracks);
   };
 
   return (
@@ -46,23 +60,12 @@ const HomeScreen = () => {
           }}
         >
           <View className="w-full flex-1 gap-4">
-            {/* Preview Player */}
-            <DeezerPreviewPlayer
-              tracks={searchResults}
-              currentTrackId={currentPlayingTrackId}
-              onTrackChange={(track) => {
-                console.log('Track changed to:', track?.title);
-              }}
-              onPlayTrack={handlePlayTrack}
-            />
-
-            <Divider />
-
-            {/* Search Tracks Component */}
             <SearchTracksComponent
               onPlayTrack={handlePlayTrack}
               onSearchResults={handleSearchResults}
-              currentPlayingTrackId={currentPlayingTrackId}
+              currentPlayingTrackId={
+                isPlaying ? currentTrack?.id : undefined
+              }
             />
           </View>
         </View>
