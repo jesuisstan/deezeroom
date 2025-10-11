@@ -40,14 +40,15 @@ const PlayerScreen = () => {
   const durationSeconds =
     status?.duration && status.duration > 0
       ? status.duration
-      : currentTrack?.duration ?? 0;
+      : (currentTrack?.duration ?? 0);
   const progress = durationSeconds
     ? Math.min(currentSeconds / durationSeconds, 1)
     : 0;
   const progressPercent = `${Math.max(0, progress) * 100}%`;
 
   const hasPrevious =
-    currentIndex > 0 && queue.slice(0, currentIndex).some((track) => track.preview);
+    currentIndex > 0 &&
+    queue.slice(0, currentIndex).some((track) => track.preview);
   const hasNext =
     currentIndex >= 0 &&
     queue.slice(currentIndex + 1).some((track) => track.preview);
@@ -95,7 +96,7 @@ const PlayerScreen = () => {
             <View style={{ width: 48 }} />
           </View>
 
-          <View className="items-center gap-4">
+          <View className="items-center">
             <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
               <Image
                 source={artworkSource}
@@ -108,24 +109,10 @@ const PlayerScreen = () => {
                 }
               />
             </View>
-            <View className="items-center gap-1">
-              <TextCustom type="title" size="3xl">
-                {currentTrack?.title ?? 'Start playing a track'}
-              </TextCustom>
-              <TextCustom
-                type="semibold"
-                color={themeColors[theme]['text-secondary']}
-              >
-                {currentTrack?.artist.name ?? 'Select a track from the search'}
-              </TextCustom>
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                {currentTrack?.album.title ?? 'Album information'}
-              </TextCustom>
-            </View>
           </View>
 
           {error && (
-            <View className="rounded-2xl bg-intent-error/10 px-4 py-3">
+            <View className="bg-intent-error/10 rounded-2xl px-4 py-3">
               <TextCustom
                 size="s"
                 color={themeColors[theme]['intent-error']}
@@ -136,7 +123,7 @@ const PlayerScreen = () => {
             </View>
           )}
 
-          <View className="gap-2">
+          <View className="gap-3">
             <View className="flex-row justify-between">
               <TextCustom
                 size="xs"
@@ -159,6 +146,22 @@ const PlayerScreen = () => {
                   backgroundColor: themeColors[theme]['primary']
                 }}
               />
+            </View>
+            <View className="w-full items-center gap-1 px-4">
+              <TextCustom type="title" size="3xl" className="text-center">
+                {currentTrack?.title ?? 'Start playing a track'}
+              </TextCustom>
+              <TextCustom
+                type="semibold"
+                color={themeColors[theme]['text-secondary']}
+                className="text-center"
+              >
+                {currentTrack
+                  ? [currentTrack.artist?.name, currentTrack.album?.title]
+                      .filter(Boolean)
+                      .join(' - ') || 'Select a track from the search'
+                  : 'Select a track from the search'}
+              </TextCustom>
             </View>
           </View>
 
