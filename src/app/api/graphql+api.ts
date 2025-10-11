@@ -1,8 +1,8 @@
 import { createSchema, createYoga } from 'graphql-yoga';
 
+import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
 import { typeDefs } from '@/graphql/schema';
-import { deezerService } from '@/utils/deezer-service';
-import { getRandomJoke } from '@/utils/jokes';
+import { deezerService } from '@/utils/deezer/deezer-service';
 
 interface APIContext {
   // Context can be extended in the future
@@ -12,15 +12,12 @@ const schema = createSchema({
   typeDefs,
   resolvers: {
     Query: {
-      randomJoke: async (_: any, __: any, ctx: APIContext) => {
-        return getRandomJoke();
-      },
       searchTracks: async (
         _: any,
         args: { query: string; limit?: number; index?: number },
         ctx: APIContext
       ) => {
-        const { query, limit = 25, index = 0 } = args;
+        const { query, limit = LIMIT_DEFAULT, index = INDEX_DEFAULT } = args;
         return await deezerService.searchTracks(query, limit, index);
       },
       track: async (_: any, args: { id: string }, ctx: APIContext) => {

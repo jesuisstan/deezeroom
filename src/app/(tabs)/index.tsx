@@ -4,22 +4,19 @@ import { FlatList, View } from 'react-native';
 import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
 import SearchTracksComponent from '@/components/SearchTracksComponent';
 import Divider from '@/components/ui/Divider';
-import { TextCustom } from '@/components/ui/TextCustom';
+import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { Track } from '@/types/deezer';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
   const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
+    string | undefined
+  >();
 
-  const handleTrackSelect = (trackId: string) => {
-    // Находим трек по ID и устанавливаем его как текущий в плеере
-    const track = searchResults.find((t) => t.id === trackId);
-    if (track) {
-      // Можно добавить логику для установки конкретного трека как текущего
-      console.log('Selected track:', track.title);
-    }
+  const handlePlayTrack = (track: Track) => {
+    setCurrentPlayingTrackId(track.id);
   };
 
   const handleSearchResults = (tracks: Track[]) => {
@@ -49,25 +46,23 @@ const HomeScreen = () => {
           }}
         >
           <View className="w-full flex-1 gap-4">
-            <TextCustom type="subtitle" className="text-center">
-              DEEZEROOM APP with Deezer API
-            </TextCustom>
-            <Divider />
-
             {/* Preview Player */}
             <DeezerPreviewPlayer
               tracks={searchResults}
+              currentTrackId={currentPlayingTrackId}
               onTrackChange={(track) => {
                 console.log('Track changed to:', track?.title);
               }}
+              onPlayTrack={handlePlayTrack}
             />
 
             <Divider />
 
             {/* Search Tracks Component */}
             <SearchTracksComponent
-              onTrackSelect={handleTrackSelect}
+              onPlayTrack={handlePlayTrack}
               onSearchResults={handleSearchResults}
+              currentPlayingTrackId={currentPlayingTrackId}
             />
           </View>
         </View>

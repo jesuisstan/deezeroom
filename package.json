@@ -65,7 +65,6 @@
     "expo-video": "~3.0.11",
     "expo-web-browser": "~15.0.7",
     "firebase": "^12.2.1",
-    "gql.tada": "^1.8.13",
     "graphql-yoga": "^5.16.0",
     "lucide-react-native": "^0.542.0",
     "nativewind": "^4.1.23",

@@ -6,25 +6,35 @@ import { useAudioPlayer } from 'expo-audio';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { Track } from '@/types/deezer';
 
 interface DeezerPreviewPlayerProps {
   tracks: Track[];
+  currentTrackId?: string;
   onTrackChange?: (track: Track | null) => void;
+  onPlayTrack?: (track: Track) => void;
 }
 
 const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
   tracks,
-  onTrackChange
+  currentTrackId,
+  onTrackChange,
+  onPlayTrack
 }) => {
   const { theme } = useTheme();
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  const currentTrack = tracks.length > 0 ? tracks[currentTrackIndex] : null;
-  const hasPrevious = currentTrackIndex > 0;
-  const hasNext = currentTrackIndex < tracks.length - 1;
+  // Find current track index based on currentTrackId
+  const activeTrackIndex = currentTrackId
+    ? tracks.findIndex((track) => track.id === currentTrackId)
+    : currentTrackIndex;
+
+  const currentTrack = tracks.length > 0 ? tracks[activeTrackIndex] : null;
+  const hasPrevious = activeTrackIndex > 0;
+  const hasNext = activeTrackIndex < tracks.length - 1;
 
   // Initialize player once track data is ready
   const player = useAudioPlayer(
@@ -33,7 +43,7 @@ const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
 
   const handlePrevious = () => {
     if (hasPrevious) {
-      const newIndex = currentTrackIndex - 1;
+      const newIndex = activeTrackIndex - 1;
       setCurrentTrackIndex(newIndex);
       onTrackChange?.(tracks[newIndex]);
     }
@@ -41,26 +51,35 @@ const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
 
   const handleNext = () => {
     if (hasNext) {
-      const newIndex = currentTrackIndex + 1;
+      const newIndex = activeTrackIndex + 1;
       setCurrentTrackIndex(newIndex);
       onTrackChange?.(tracks[newIndex]);
     }
   };
 
+  const handlePlay = () => {
+    if (currentTrack) {
+      setIsPlaying(true);
+      player.play();
+      onPlayTrack?.(currentTrack);
+    }
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    player.pause();
+  };
+
   const handleStop = () => {
+    setIsPlaying(false);
     player.pause();
     player.seekTo(0);
   };
 
   if (!currentTrack) {
     return (
-      <View className="mt-20 items-center justify-center">
-        <FontAwesome
-          name="music"
-          size={48}
-          color={themeColors[theme]['text-secondary']}
-        />
-        <TextCustom className="mt-4 text-center" type="subtitle">
+      <View className="items-center justify-center">
+        <TextCustom type="subtitle" className="mt-4 text-center">
           No tracks available
         </TextCustom>
         <TextCustom className="mt-2 text-center opacity-70">
@@ -74,12 +93,6 @@ const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
     <View className="w-4/5 self-center">
       {/* Track Info */}
       <View className="mb-6 items-center">
-        <FontAwesome
-          name="music"
-          size={32}
-          color={themeColors[theme]['primary']}
-          className="mb-2"
-        />
         <TextCustom type="subtitle" className="text-center">
           {currentTrack.title}
         </TextCustom>
@@ -91,7 +104,7 @@ const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
           {(currentTrack.duration % 60).toString().padStart(2, '0')}
         </TextCustom>
         <TextCustom size="xs" className="mt-1 opacity-50">
-          Track {currentTrackIndex + 1} of {tracks.length}
+          Track {activeTrackIndex + 1} of {tracks.length}
         </TextCustom>
       </View>
 
@@ -115,19 +128,14 @@ const DeezerPreviewPlayer: React.FC<DeezerPreviewPlayerProps> = ({
         </IconButton>
 
         {/* Play/Pause Button */}
-        <IconButton accessibilityLabel="Play" onPress={() => player.play()}>
+        <IconButton
+          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+          onPress={isPlaying ? handlePause : handlePlay}
+        >
           <FontAwesome
-            name="play"
+            name={isPlaying ? 'pause' : 'play'}
             size={24}
             color={themeColors[theme]['primary']}
-          />
-        </IconButton>
-
-        <IconButton accessibilityLabel="Pause" onPress={() => player.pause()}>
-          <FontAwesome
-            name="pause"
-            size={24}
-            color={themeColors[theme]['intent-warning']}
           />
         </IconButton>
 

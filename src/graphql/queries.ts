@@ -1,17 +1,8 @@
-import { graphql, ResultOf } from 'gql.tada';
+// GraphQL Queries as strings
+import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
 
-export const GetRandomJoke = graphql(`
-  query GetRandomJoke {
-    randomJoke {
-      id
-      question
-      answer
-    }
-  }
-`);
-
-export const SearchTracks = graphql(`
-  query SearchTracks($query: String!, $limit: Int, $index: Int) {
+export const SEARCH_TRACKS = `
+  query SearchTracks($query: String!, $limit: Int = ${LIMIT_DEFAULT}, $index: Int = ${INDEX_DEFAULT}) {
     searchTracks(query: $query, limit: $limit, index: $index) {
       tracks {
         id
@@ -37,9 +28,9 @@ export const SearchTracks = graphql(`
       hasMore
     }
   }
-`);
+`;
 
-export const GetTrack = graphql(`
+export const GET_TRACK = `
   query GetTrack($id: ID!) {
     track(id: $id) {
       id
@@ -62,8 +53,4 @@ export const GetTrack = graphql(`
       }
     }
   }
-`);
-
-export type Joke = ResultOf<typeof GetRandomJoke>;
-export type SearchTracksResult = ResultOf<typeof SearchTracks>;
-export type TrackResult = ResultOf<typeof GetTrack>;
+`;

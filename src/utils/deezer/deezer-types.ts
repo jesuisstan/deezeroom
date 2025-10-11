@@ -1,4 +1,4 @@
-// Deezer API Types
+// Deezer API Types (raw API responses)
 export interface DeezerArtist {
   id: string;
   name: string;
@@ -64,36 +64,4 @@ export interface DeezerSearchResponse {
   total: number;
   next?: string;
   prev?: string;
-}
-
-// GraphQL Types
-export interface Track {
-  id: string;
-  title: string;
-  titleShort: string;
-  duration: number;
-  preview?: string;
-  artist: Artist;
-  album: Album;
-  explicitLyrics: boolean;
-}
-
-export interface Artist {
-  id: string;
-  name: string;
-  picture?: string;
-  link?: string;
-}
-
-export interface Album {
-  id: string;
-  title: string;
-  cover?: string;
-  link?: string;
-}
-
-export interface SearchTracksInput {
-  query: string;
-  limit?: number;
-  index?: number;
 }

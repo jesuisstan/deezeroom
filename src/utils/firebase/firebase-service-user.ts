@@ -65,6 +65,7 @@ export interface UserProfile {
     favoriteGenres: string[];
     favoriteArtists: string[];
   };
+  favoriteTracks?: string[]; // Array of track IDs
   authProviders?: {
     google?: {
       linked: boolean;
@@ -219,6 +220,8 @@ export class UserService {
         if (user.photoURL) {
           baseData.photoURL = user.photoURL;
         }
+        // Initialize favoriteTracks for new users
+        baseData.favoriteTracks = [];
       }
 
       // Only write to Firestore if there are actual changes or it's a new user
@@ -713,6 +716,167 @@ export class UserService {
       return {
         success: false,
         message: getFirebaseErrorMessage(error) || 'Failed to delete account'
+      };
+    }
+  }
+
+  // Add track to favorites
+  static async addToFavorites(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+
+      if (currentFavorites.includes(trackId)) {
+        return { success: false, message: 'Track is already in favorites' };
+      }
+
+      const updatedFavorites = [...currentFavorites, trackId];
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track added to favorites',
+        { uid, trackId },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, message: 'Track added to favorites' };
+    } catch (error: any) {
+      Logger.error(
+        'Error adding track to favorites',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        message:
+          getFirebaseErrorMessage(error) || 'Failed to add track to favorites'
+      };
+    }
+  }
+
+  // Remove track from favorites
+  static async removeFromFavorites(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+
+      if (!currentFavorites.includes(trackId)) {
+        return { success: false, message: 'Track is not in favorites' };
+      }
+
+      const updatedFavorites = currentFavorites.filter((id) => id !== trackId);
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track removed from favorites',
+        { uid, trackId },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, message: 'Track removed from favorites' };
+    } catch (error: any) {
+      Logger.error(
+        'Error removing track from favorites',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        message:
+          getFirebaseErrorMessage(error) ||
+          'Failed to remove track from favorites'
+      };
+    }
+  }
+
+  // Toggle track favorite status
+  static async toggleFavoriteTrack(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; isFavorite: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return {
+          success: false,
+          isFavorite: false,
+          message: 'User profile not found'
+        };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+      const isCurrentlyFavorite = currentFavorites.includes(trackId);
+
+      let updatedFavorites: string[];
+      let message: string;
+
+      if (isCurrentlyFavorite) {
+        updatedFavorites = currentFavorites.filter((id) => id !== trackId);
+        message = 'Track removed from favorites';
+      } else {
+        updatedFavorites = [...currentFavorites, trackId];
+        message = 'Track added to favorites';
+      }
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track favorite status toggled',
+        { uid, trackId, isFavorite: !isCurrentlyFavorite },
+        '🔥 Firebase UserService'
+      );
+
+      return {
+        success: true,
+        isFavorite: !isCurrentlyFavorite,
+        message
+      };
+    } catch (error: any) {
+      Logger.error(
+        'Error toggling track favorite status',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        isFavorite: false,
+        message:
+          getFirebaseErrorMessage(error) ||
+          'Failed to toggle track favorite status'
       };
     }
   }

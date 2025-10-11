@@ -1,4 +1,7 @@
 // GraphQL Schema Definition
+// !!! ATTENTION: DO NOT FORGET TO UPDATE THE SCHEMA IF YOU CHANGE THE TYPE DEFINITIONS BELOW
+import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
+
 export const typeDefs = /* GraphQL */ `
   type Artist {
     id: ID!
@@ -31,15 +34,49 @@ export const typeDefs = /* GraphQL */ `
     hasMore: Boolean!
   }
 
-  type Joke {
-    id: ID!
-    question: String!
-    answer: String!
-  }
-
   type Query {
-    randomJoke: Joke!
-    searchTracks(query: String!, limit: Int, index: Int): SearchTracksResult!
+    searchTracks(
+      query: String!
+      limit: Int = ${LIMIT_DEFAULT}
+      index: Int = ${INDEX_DEFAULT}
+    ): SearchTracksResult!
     track(id: ID!): Track
   }
 `;
+
+// TypeScript interfaces that match the GraphQL schema
+// !!! ATTENTION: DO NOT FORGET TO UPDATE THE TYPE DEFINITIONS IF YOU CHANGE THE SCHEMA ABOVE
+export interface SearchTracksResult {
+  tracks: Track[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface TrackResult {
+  track: Track | null;
+}
+
+export interface Track {
+  id: string;
+  title: string;
+  titleShort: string;
+  duration: number;
+  preview?: string;
+  explicitLyrics: boolean;
+  artist: Artist;
+  album: Album;
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  picture?: string;
+  link?: string;
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  cover?: string;
+  link?: string;
+}

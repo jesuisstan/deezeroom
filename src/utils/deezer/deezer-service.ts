@@ -1,4 +1,6 @@
-import { DeezerSearchResponse, DeezerTrack, Track } from '@/types/deezer';
+import { LIMIT_DEFAULT } from '@/constants/deezer';
+import { Track } from '@/graphql/schema';
+import { DeezerSearchResponse, DeezerTrack } from '@/utils/deezer/deezer-types';
 
 const DEEZER_API_BASE_URL = 'https://api.deezer.com';
 
@@ -23,7 +25,7 @@ export class DeezerService {
    */
   async searchTracks(
     query: string,
-    limit: number = 25,
+    limit: number = LIMIT_DEFAULT,
     index: number = 0
   ): Promise<{ tracks: Track[]; total: number; hasMore: boolean }> {
     try {
@@ -32,7 +34,7 @@ export class DeezerService {
       }
 
       const encodedQuery = encodeURIComponent(query.trim());
-      const url = `${DEEZER_API_BASE_URL}/search?q=${encodedQuery}&limit=${limit}&index=${index}`;
+      const url = `${DEEZER_API_BASE_URL}/search/track?q=${encodedQuery}&limit=${limit}&index=${index}`;
 
       const response = await fetch(url);
 
@@ -73,13 +75,13 @@ export class DeezerService {
       artist: {
         id: deezerTrack.artist.id,
         name: deezerTrack.artist.name,
-        picture: deezerTrack.artist.picture_medium,
+        picture: deezerTrack.artist.picture_medium || undefined,
         link: deezerTrack.artist.link
       },
       album: {
         id: deezerTrack.album.id,
         title: deezerTrack.album.title,
-        cover: deezerTrack.album.cover_medium,
+        cover: deezerTrack.album.cover_medium || undefined,
         link: deezerTrack.album.link
       }
     };
