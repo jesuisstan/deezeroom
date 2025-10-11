@@ -55,7 +55,7 @@ const DEFAULTS: State = {
   title: '',
   message: '',
   type: 'info',
-  position: 'top',
+  position: 'bottom',
   duration: 3000,
   autoHide: true,
   showProgress: true,

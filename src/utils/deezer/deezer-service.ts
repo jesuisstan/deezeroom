@@ -36,6 +36,9 @@ export class DeezerService {
       const encodedQuery = encodeURIComponent(query.trim());
       const url = `${DEEZER_API_BASE_URL}/search/track?q=${encodedQuery}&limit=${limit}&index=${index}`;
 
+      console.log('Deezer API URL:', url);
+      console.log('Search params:', { query: query.trim(), limit, index });
+
       const response = await fetch(url);
 
       if (!response.ok) {

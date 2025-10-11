@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FlatList, View } from 'react-native';
 
 import DeezerPreviewPlayer from '@/components/DeezerPreviewPlayer';
-import SearchTracksComponent from '@/components/SearchTracksComponent';
+import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
 import Divider from '@/components/ui/Divider';
 import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
