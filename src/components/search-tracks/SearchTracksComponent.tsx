@@ -37,72 +37,51 @@ export default function SearchTracksComponent({
   const { theme } = useTheme();
   const client = useClient();
 
+  // Create paused query for manual search execution
   const [{ data, fetching, error }, executeSearch] = useQuery({
     query: SEARCH_TRACKS,
-    variables: {
-      query: searchQuery,
-      limit: LIMIT_DEFAULT,
-      index: 0
-    },
-    pause: true // Don't execute automatically
+    variables: { query: searchQuery, limit: LIMIT_DEFAULT, index: 0 },
+    pause: true
   });
 
-  // Handle search results
+  // Handle received search results
   useEffect(() => {
-    if ((data as any)?.searchTracks) {
-      const { tracks, hasMore: moreAvailable } = (data as any).searchTracks;
-      console.log('useEffect triggered:', {
-        currentIndex,
-        tracksCount: tracks.length,
-        hasMore: moreAvailable,
-        allTracksLength: allTracks.length
-      });
+    if (!data?.searchTracks) return;
 
-      // Check if this is a new search by comparing with current tracks length
-      if (allTracks.length === 0) {
-        // New search - replace all tracks
-        console.log('New search - replacing tracks');
-        setAllTracks(tracks);
-        setHasMore(moreAvailable);
-        onSearchResults?.(tracks);
-      } else {
-        // Load more - append to existing tracks
-        console.log('Load more - appending tracks');
-        setAllTracks((prev) => {
-          console.log('Previous tracks count:', prev.length);
-          console.log('New tracks count:', tracks.length);
-          console.log('First new track:', tracks[0]?.title);
-          console.log('Last previous track:', prev[prev.length - 1]?.title);
+    const { tracks, hasMore: moreAvailable } = data.searchTracks;
 
-          const updated = [...prev, ...tracks];
-          console.log('Updated tracks count:', updated.length);
-          console.log('First track in updated:', updated[0]?.title);
-          console.log(
-            'Last track in updated:',
-            updated[updated.length - 1]?.title
-          );
-          return updated;
-        });
-        setHasMore(moreAvailable);
-      }
-
-      setIsLoadingMore(false);
+    // If it's a new search, replace existing tracks
+    if (currentIndex === 0) {
+      setAllTracks(tracks);
+    } else {
+      // Append new tracks for pagination
+      setAllTracks((prev) => [...prev, ...tracks]);
     }
+
+    setHasMore(moreAvailable);
+    setIsLoadingMore(false);
   }, [data]);
 
-  // Update parent with search results when allTracks changes
+  // Notify parent when tracks list changes
   useEffect(() => {
     onSearchResults?.(allTracks);
   }, [allTracks, onSearchResults]);
 
+  // Trigger new search
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       Alert.alert('Attention', 'Enter a search query');
       return;
     }
 
+    Logger.info(
+      'Searching tracks',
+      { searchQuery },
+      '🔍 SearchTracksComponent'
+    );
     setIsSearching(true);
-    setCurrentIndex(0); // Reset pagination for new search
+    setCurrentIndex(0); // Reset pagination
+
     try {
       await executeSearch({
         requestPolicy: 'network-only',
@@ -115,47 +94,32 @@ export default function SearchTracksComponent({
     }
   };
 
+  // Load next page
   const handleLoadMore = async () => {
     if (!hasMore || isLoadingMore || fetching) return;
 
     setIsLoadingMore(true);
     const nextIndex = currentIndex + LIMIT_DEFAULT;
-    console.log('searchQuery', searchQuery);
-    console.log('currentIndex', currentIndex);
-    console.log('nextIndex', nextIndex);
 
     try {
-      console.log('Executing search with index:', nextIndex);
-      const result = await client.query(
-        SEARCH_TRACKS,
+      Logger.info(
+        'Loading more tracks',
         {
-          query: searchQuery,
+          searchQuery,
           limit: LIMIT_DEFAULT,
           index: nextIndex
         },
-        {
-          requestPolicy: 'network-only'
-        }
+        '🔍 SearchTracksComponent'
+      );
+      const result = await client.query(
+        SEARCH_TRACKS,
+        { query: searchQuery, limit: LIMIT_DEFAULT, index: nextIndex },
+        { requestPolicy: 'network-only' }
       );
 
       if (result.data?.searchTracks) {
         const { tracks, hasMore: moreAvailable } = result.data.searchTracks;
-        console.log('Load more - appending tracks via client.query');
-        setAllTracks((prev) => {
-          console.log('Previous tracks count:', prev.length);
-          console.log('New tracks count:', tracks.length);
-          console.log('First new track:', tracks[0]?.title);
-          console.log('Last previous track:', prev[prev.length - 1]?.title);
-
-          const updated = [...prev, ...tracks];
-          console.log('Updated tracks count:', updated.length);
-          console.log('First track in updated:', updated[0]?.title);
-          console.log(
-            'Last track in updated:',
-            updated[updated.length - 1]?.title
-          );
-          return updated;
-        });
+        setAllTracks((prev) => [...prev, ...tracks]);
         setHasMore(moreAvailable);
         setCurrentIndex(nextIndex);
       }
@@ -169,12 +133,10 @@ export default function SearchTracksComponent({
   const handlePlayTrack = (track: Track) => {
     onPlayTrack?.(track);
   };
-  //console.log('allTracks', allTracks); // debug
-  //console.log('currentIndex', currentIndex);
-  //console.log('hasMore', hasMore);
 
   return (
     <View className="w-full">
+      {/* Search input and button */}
       <View className="mb-4 flex-row items-center gap-2">
         <InputCustom
           placeholder="Search tracks..."
@@ -183,7 +145,7 @@ export default function SearchTracksComponent({
           onSubmitEditing={handleSearch}
           returnKeyType="search"
           className="flex-1"
-          showClearButton={true}
+          showClearButton
           onClear={() => setSearchQuery('')}
         />
         <IconButton
@@ -200,6 +162,7 @@ export default function SearchTracksComponent({
         </IconButton>
       </View>
 
+      {/* Error display */}
       {error && (
         <View className="bg-intent-error/10 mb-4 rounded-lg p-3">
           <TextCustom color={themeColors[theme]['intent-error']}>
@@ -208,6 +171,7 @@ export default function SearchTracksComponent({
         </View>
       )}
 
+      {/* Search results */}
       {allTracks.length > 0 && (
         <View className="mb-4">
           <TextCustom
@@ -217,10 +181,11 @@ export default function SearchTracksComponent({
           >
             Found {allTracks.length} tracks
           </TextCustom>
+
           <ScrollView
             showsVerticalScrollIndicator={false}
             style={{ maxHeight: 400 }}
-            nestedScrollEnabled={true}
+            nestedScrollEnabled
           >
             {allTracks.map((track, index) => (
               <TrackCard
@@ -231,6 +196,8 @@ export default function SearchTracksComponent({
               />
             ))}
           </ScrollView>
+
+          {/* Load more button */}
           {hasMore && (
             <View className="mt-2 items-center">
               <RippleButton
@@ -242,6 +209,8 @@ export default function SearchTracksComponent({
               />
             </View>
           )}
+
+          {/* End of list indicator */}
           {!hasMore && allTracks.length > 0 && (
             <TextCustom
               size="xs"
@@ -254,6 +223,7 @@ export default function SearchTracksComponent({
         </View>
       )}
 
+      {/* Loading state */}
       {fetching && (
         <View className="items-center py-4">
           <ActivityIndicator color={themeColors[theme]['primary']} />
