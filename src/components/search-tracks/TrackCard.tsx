@@ -6,12 +6,9 @@ import { FontAwesome } from '@expo/vector-icons';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
+import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { useTheme } from '@/providers/ThemeProvider';
-import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
-import { UserService } from '@/utils/firebase/firebase-service-user';
 
 interface TrackCardProps {
   track: Track;
@@ -25,7 +22,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
   onPlay
 }) => {
   const { theme } = useTheme();
-  const { user, profile, updateProfile } = useUser();
+  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
 
   // Memoize colors
   const colors = useMemo(
@@ -45,10 +42,10 @@ const TrackCard: React.FC<TrackCardProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }, [track.duration]);
 
-  // Memoize check favorite
-  const isTrackFavorite = useMemo(() => {
-    return profile?.favoriteTracks?.includes(track.id) || false;
-  }, [profile?.favoriteTracks, track.id]);
+  // Check if current track is favorite
+  const isCurrentTrackFavorite = useMemo(() => {
+    return isTrackFavorite(track.id);
+  }, [isTrackFavorite, track.id]);
 
   // Memoize handle play
   const handlePlay = useCallback(() => {
@@ -57,29 +54,8 @@ const TrackCard: React.FC<TrackCardProps> = ({
 
   // Memoize handle toggle favorite
   const handleToggleFavorite = useCallback(async () => {
-    if (!user || !profile) {
-      Notifier.error('You must be logged in to manage favorites');
-      return;
-    }
-
-    try {
-      const result = await UserService.toggleFavoriteTrack(user.uid, track.id);
-      if (result.success) {
-        // Update profile optimistically
-        const updatedFavorites = result.isFavorite
-          ? [...(profile.favoriteTracks || []), track.id]
-          : (profile.favoriteTracks || []).filter((id) => id !== track.id);
-
-        await updateProfile({ favoriteTracks: updatedFavorites });
-        Notifier.success(result.message || 'Favorites updated');
-      } else {
-        Notifier.error(result.message || 'Failed to update favorites');
-      }
-    } catch (error) {
-      Logger.error('Error toggling favorite:', error, '🔍 TrackCard');
-      Notifier.error('Failed to update favorites');
-    }
-  }, [user, profile, track.id, updateProfile]);
+    await toggleFavoriteTrack(track.id);
+  }, [toggleFavoriteTrack, track.id]);
 
   return (
     <View className="mb-3 rounded-lg border border-border bg-bg-secondary p-3">
@@ -127,16 +103,20 @@ const TrackCard: React.FC<TrackCardProps> = ({
           {/* Favorite Button */}
           <IconButton
             accessibilityLabel={
-              isTrackFavorite ? 'Remove from favorites' : 'Add to favorites'
+              isCurrentTrackFavorite
+                ? 'Remove from favorites'
+                : 'Add to favorites'
             }
             onPress={handleToggleFavorite}
             className="h-8 w-8"
           >
             <FontAwesome
-              name={isTrackFavorite ? 'heart' : 'heart-o'}
+              name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
               size={14}
               color={
-                isTrackFavorite ? colors.intentError : colors.textSecondary
+                isCurrentTrackFavorite
+                  ? colors.intentError
+                  : colors.textSecondary
               }
             />
           </IconButton>

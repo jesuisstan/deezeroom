@@ -204,7 +204,7 @@ const SearchTracksComponent = ({
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            style={{ maxHeight: 500 }}
+            style={{ maxHeight: 400 }}
             nestedScrollEnabled
             removeClippedSubviews={true}
           >
