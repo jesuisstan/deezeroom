@@ -1,4 +1,4 @@
-import { Image, ScrollView, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -69,27 +69,35 @@ const PlayerScreen = () => {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, padding: 24, gap: 24 }}
-          showsVerticalScrollIndicator={false}
-        >
+        <View className="flex-1 gap-6 px-6 py-6">
           <View className="flex-row items-center justify-between">
             <IconButton
-              accessibilityLabel="Close player"
+              accessibilityLabel="Minimize player"
               onPress={() => router.back()}
             >
-              <TextCustom type="bold" size="xl">
-                ✕
-              </TextCustom>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={28}
+                color={themeColors[theme]['text-main']}
+              />
             </IconButton>
-            <View className="items-center">
-              <TextCustom type="subtitle" size="xl">
+            <View className="flex-1 items-center px-4">
+              <TextCustom
+                type="subtitle"
+                size="xl"
+                className="w-full text-center"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 MIX
               </TextCustom>
               <TextCustom
                 type="semibold"
                 size="s"
                 color={themeColors[theme]['text-secondary']}
+                className="w-full text-center"
+                numberOfLines={1}
+                ellipsizeMode="tail"
               >
                 {currentTrack?.title ?? 'No track selected'}
               </TextCustom>
@@ -97,95 +105,105 @@ const PlayerScreen = () => {
             <View style={{ width: 48 }} />
           </View>
 
-          <View className="items-center">
-            <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
-              <Image
-                source={artworkSource}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode={currentTrack?.album.cover ? 'cover' : 'contain'}
-                accessibilityLabel={
-                  currentTrack
-                    ? `${currentTrack.album.title} cover art`
-                    : 'Default cover art'
-                }
-              />
+          <View className="flex-1 gap-6">
+            <View className="flex-1 items-center justify-center">
+              <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
+                <Image
+                  source={artworkSource}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode={currentTrack?.album.cover ? 'cover' : 'contain'}
+                  accessibilityLabel={
+                    currentTrack
+                      ? `${currentTrack.album.title} cover art`
+                      : 'Default cover art'
+                  }
+                />
+              </View>
             </View>
-          </View>
 
-          <View className="w-full flex-row items-center justify-between px-4">
-            <IconButton
-              accessibilityLabel="Share track (coming soon)"
-              className="h-12 w-12"
-            >
-              <FontAwesome
-                name="share-alt"
-                size={24}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </IconButton>
-            <IconButton
-              accessibilityLabel="Like track (coming soon)"
-              className="h-12 w-12"
-            >
-              <FontAwesome
-                name="heart-o"
-                size={24}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </IconButton>
-          </View>
+            <View className="flex-row items-center justify-between">
+              <IconButton
+                accessibilityLabel="Share track (coming soon)"
+                className="h-12 w-12"
+              >
+                <FontAwesome
+                  name="share-alt"
+                  size={24}
+                  color={themeColors[theme]['text-secondary']}
+                />
+              </IconButton>
+              <IconButton
+                accessibilityLabel="Like track (coming soon)"
+                className="h-12 w-12"
+              >
+                <FontAwesome
+                  name="heart-o"
+                  size={24}
+                  color={themeColors[theme]['text-secondary']}
+                />
+              </IconButton>
+            </View>
 
-          {error && (
-            <View className="bg-intent-error/10 rounded-2xl px-4 py-3">
-              <TextCustom
-                size="s"
-                color={themeColors[theme]['intent-error']}
-                className="text-center"
-              >
-                {error}
-              </TextCustom>
-            </View>
-          )}
+            {error && (
+              <View className="bg-intent-error/10 rounded-2xl px-4 py-3">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['intent-error']}
+                  className="text-center"
+                >
+                  {error}
+                </TextCustom>
+              </View>
+            )}
 
-          <View className="gap-3">
-            <View className="flex-row justify-between">
-              <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
-              >
-                {formatTime(currentSeconds)}
-              </TextCustom>
-              <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
-              >
-                {formatTime(durationSeconds)}
-              </TextCustom>
-            </View>
-            <View className="h-2 rounded-full bg-bg-tertiary">
-              <View
-                className="h-2 rounded-full"
-                style={{
-                  width: progressPercent,
-                  backgroundColor: themeColors[theme]['primary']
-                }}
-              />
-            </View>
-            <View className="w-full items-center gap-1 px-4">
-              <TextCustom type="title" size="3xl" className="text-center">
-                {currentTrack?.title ?? 'Start playing a track'}
-              </TextCustom>
-              <TextCustom
-                type="semibold"
-                color={themeColors[theme]['text-secondary']}
-                className="text-center"
-              >
-                {currentTrack
-                  ? [currentTrack.artist?.name, currentTrack.album?.title]
-                      .filter(Boolean)
-                      .join(' - ') || 'Select a track from the search'
-                  : 'Select a track from the search'}
-              </TextCustom>
+            <View className="gap-3">
+              <View className="flex-row justify-between">
+                <TextCustom
+                  size="xs"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  {formatTime(currentSeconds)}
+                </TextCustom>
+                <TextCustom
+                  size="xs"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  {formatTime(durationSeconds)}
+                </TextCustom>
+              </View>
+              <View className="h-2 rounded-full bg-bg-tertiary">
+                <View
+                  className="h-2 rounded-full"
+                  style={{
+                    width: progressPercent,
+                    backgroundColor: themeColors[theme]['primary']
+                  }}
+                />
+              </View>
+              <View className="w-full items-center gap-1 px-4">
+                <TextCustom
+                  type="title"
+                  size="3xl"
+                  className="w-full text-center"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {currentTrack?.title ?? 'Start playing a track'}
+                </TextCustom>
+                <TextCustom
+                  type="semibold"
+                  color={themeColors[theme]['text-secondary']}
+                  className="w-full text-center"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {currentTrack
+                    ? [currentTrack.artist?.name, currentTrack.album?.title]
+                        .filter(Boolean)
+                        .join(' - ') || 'Select a track from the search'
+                    : 'Select a track from the search'}
+                </TextCustom>
+              </View>
             </View>
           </View>
 
@@ -244,7 +262,7 @@ const PlayerScreen = () => {
               Queue management is coming soon
             </TextCustom>
           </View>
-        </ScrollView>
+        </View>
       </LinearGradient>
     </SafeAreaView>
   );
