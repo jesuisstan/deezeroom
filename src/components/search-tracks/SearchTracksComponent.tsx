@@ -4,7 +4,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useClient, useQuery } from 'urql';
 
-import TrackCard from '@/components/TrackCard';
+import TrackCard from '@/components/search-tracks/TrackCard';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
