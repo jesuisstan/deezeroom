@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Image, View } from 'react-native';
+import { Image, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -13,6 +13,7 @@ import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { getAlbumCover } from '@/utils/image-utils';
 
 const PlayerScreen = () => {
   const router = useRouter();
@@ -63,7 +64,7 @@ const PlayerScreen = () => {
   const progress = durationSeconds
     ? Math.min(currentSeconds / durationSeconds, 1)
     : 0;
-  const progressPercent = `${Math.max(0, progress) * 100}%`;
+  const progressPercent = Math.max(0, progress) * 100;
 
   const hasPrevious =
     currentIndex > 0 &&
@@ -72,8 +73,14 @@ const PlayerScreen = () => {
     currentIndex >= 0 &&
     queue.slice(currentIndex + 1).some((track) => track.preview);
 
-  const artworkSource = currentTrack?.album.cover
-    ? { uri: currentTrack.album.cover }
+  // Get album cover image (use xl for web, big for mobile)
+  const imageSize = Platform.OS === 'web' ? 'xl' : 'big';
+  const albumCoverUrl = currentTrack?.album
+    ? getAlbumCover(currentTrack.album, imageSize)
+    : undefined;
+
+  const artworkSource = albumCoverUrl
+    ? { uri: albumCoverUrl }
     : require('@/assets/images/logo/logo-heart-transparent.png');
 
   return (
@@ -129,7 +136,7 @@ const PlayerScreen = () => {
                 <Image
                   source={artworkSource}
                   style={{ width: '100%', height: '100%' }}
-                  resizeMode={currentTrack?.album.cover ? 'cover' : 'contain'}
+                  resizeMode={albumCoverUrl ? 'cover' : 'contain'}
                   accessibilityLabel={
                     currentTrack
                       ? `${currentTrack.album.title} cover art`
@@ -203,7 +210,7 @@ const PlayerScreen = () => {
                 <View
                   className="h-2 rounded-full"
                   style={{
-                    width: progressPercent,
+                    width: `${progressPercent}%`,
                     backgroundColor: themeColors[theme]['primary']
                   }}
                 />

@@ -9,6 +9,7 @@ import { Track } from '@/graphql/schema';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { getAlbumCover } from '@/utils/image-utils';
 
 interface TrackCardProps {
   track: Track;
@@ -47,6 +48,11 @@ const TrackCard: React.FC<TrackCardProps> = ({
     return isTrackFavorite(track.id);
   }, [isTrackFavorite, track.id]);
 
+  // Get album cover image (using small size for card)
+  const albumCoverUrl = useMemo(() => {
+    return getAlbumCover(track.album, 'small');
+  }, [track.album]);
+
   // Memoize handle play
   const handlePlay = useCallback(() => {
     onPlay?.(track);
@@ -60,9 +66,9 @@ const TrackCard: React.FC<TrackCardProps> = ({
   return (
     <View className="mb-3 rounded-lg border border-border bg-bg-secondary p-3">
       <View className="flex-row items-center gap-3">
-        {track.album.cover && (
+        {albumCoverUrl && (
           <Image
-            source={{ uri: track.album.cover }}
+            source={{ uri: albumCoverUrl }}
             className="h-12 w-12 rounded"
             resizeMode="cover"
           />

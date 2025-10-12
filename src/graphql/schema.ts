@@ -7,6 +7,10 @@ export const typeDefs = /* GraphQL */ `
     id: ID!
     name: String!
     picture: String
+    pictureSmall: String
+    pictureMedium: String
+    pictureBig: String
+    pictureXl: String
     link: String
   }
 
@@ -14,7 +18,12 @@ export const typeDefs = /* GraphQL */ `
     id: ID!
     title: String!
     cover: String
+    coverSmall: String
+    coverMedium: String
+    coverBig: String
+    coverXl: String
     link: String
+    tracklist: String
   }
 
   type Track {
@@ -71,6 +80,10 @@ export interface Artist {
   id: string;
   name: string;
   picture?: string;
+  pictureSmall?: string;
+  pictureMedium?: string;
+  pictureBig?: string;
+  pictureXl?: string;
   link?: string;
 }
 
@@ -78,5 +91,10 @@ export interface Album {
   id: string;
   title: string;
   cover?: string;
+  coverSmall?: string;
+  coverMedium?: string;
+  coverBig?: string;
+  coverXl?: string;
   link?: string;
+  tracklist?: string;
 }

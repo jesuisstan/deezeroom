@@ -72,14 +72,23 @@ export class DeezerService {
       artist: {
         id: deezerTrack.artist.id,
         name: deezerTrack.artist.name,
-        picture: deezerTrack.artist.picture_medium || undefined,
+        picture: deezerTrack.artist.picture || undefined,
+        pictureSmall: deezerTrack.artist.picture_small || undefined,
+        pictureMedium: deezerTrack.artist.picture_medium || undefined,
+        pictureBig: deezerTrack.artist.picture_big || undefined,
+        pictureXl: deezerTrack.artist.picture_xl || undefined,
         link: deezerTrack.artist.link
       },
       album: {
         id: deezerTrack.album.id,
         title: deezerTrack.album.title,
-        cover: deezerTrack.album.cover_medium || undefined,
-        link: deezerTrack.album.link
+        cover: deezerTrack.album.cover || undefined,
+        coverSmall: deezerTrack.album.cover_small || undefined,
+        coverMedium: deezerTrack.album.cover_medium || undefined,
+        coverBig: deezerTrack.album.cover_big || undefined,
+        coverXl: deezerTrack.album.cover_xl || undefined,
+        link: deezerTrack.album.link,
+        tracklist: deezerTrack.album.tracklist || undefined
       }
     };
   }

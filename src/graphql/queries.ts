@@ -15,13 +15,22 @@ export const SEARCH_TRACKS = `
           id
           name
           picture
+          pictureSmall
+          pictureMedium
+          pictureBig
+          pictureXl
           link
         }
         album {
           id
           title
           cover
+          coverSmall
+          coverMedium
+          coverBig
+          coverXl
           link
+          tracklist
         }
       }
       total
@@ -43,13 +52,22 @@ export const GET_TRACK = `
         id
         name
         picture
+        pictureSmall
+        pictureMedium
+        pictureBig
+        pictureXl
         link
       }
       album {
         id
         title
         cover
+        coverSmall
+        coverMedium
+        coverBig
+        coverXl
         link
+        tracklist
       }
     }
   }
