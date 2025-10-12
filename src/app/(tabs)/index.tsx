@@ -63,9 +63,7 @@ const HomeScreen = () => {
             <SearchTracksComponent
               onPlayTrack={handlePlayTrack}
               onSearchResults={handleSearchResults}
-              currentPlayingTrackId={
-                isPlaying ? currentTrack?.id : undefined
-              }
+              currentPlayingTrackId={isPlaying ? currentTrack?.id : undefined}
             />
           </View>
         </View>
