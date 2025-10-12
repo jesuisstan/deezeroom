@@ -157,7 +157,7 @@ const SearchTracksComponent = ({
   return (
     <View className="w-full">
       {/* Search input and button */}
-      <View className="mb-4 flex-row items-center gap-2">
+      <View className="mb-2 flex-row items-center gap-2">
         <InputCustom
           placeholder="Search tracks..."
           value={searchQuery}
@@ -184,7 +184,7 @@ const SearchTracksComponent = ({
 
       {/* Error display */}
       {error && (
-        <View className="bg-intent-error/10 mb-4 rounded-lg p-3">
+        <View className="bg-intent-error/10 mb-2 rounded-lg p-3">
           <TextCustom color={themeColors[theme]['intent-error']}>
             Error: {error.message}
           </TextCustom>
@@ -193,7 +193,7 @@ const SearchTracksComponent = ({
 
       {/* Search results */}
       {allTracks.length > 0 && (
-        <View className="mb-4">
+        <View className="mb-2">
           <TextCustom
             size="s"
             color={themeColors[theme]['text-secondary']}

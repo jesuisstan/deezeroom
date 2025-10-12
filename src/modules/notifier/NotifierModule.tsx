@@ -7,16 +7,10 @@ import React, {
   useRef,
   useState
 } from 'react';
-import {
-  Animated,
-  Easing,
-  Modal,
-  Platform,
-  Pressable,
-  View
-} from 'react-native';
+import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -167,24 +161,20 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
   });
 
   return (
-    <Modal
-      visible
-      transparent
-      animationType="fade"
-      onRequestClose={hide}
+    <View
       style={{
-        shadowColor: bgByType,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-        elevation: 8 // Increased for Android to ensure visibility
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        pointerEvents: 'box-none'
       }}
     >
-      <Pressable
-        onPress={hide}
+      <View
         style={{
           flex: 1,
-          backgroundColor: colors.transparent,
           alignItems: 'center',
           ...getPositionStyle()
         }}
@@ -200,7 +190,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               //backgroundColor: colors['bg-secondary'],
               borderColor: bgByType,
               borderWidth: 1,
-              borderRadius: 12,
+              borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 12,
               zIndex: 1,
@@ -219,16 +209,27 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
             className="bg-bg-inverse opacity-90"
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {/* Dot */}
+              {/* Logo Icon */}
               <View
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
                   backgroundColor: bgByType,
-                  marginRight: 12
+                  marginRight: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center'
                 }}
-              />
+              >
+                <Image
+                  source={require('@/assets/images/logo/logo-heart-transparent.png')}
+                  style={{
+                    width: 20,
+                    height: 20
+                  }}
+                  contentFit="contain"
+                />
+              </View>
               {/* Text content with title */}
               <View style={{ flex: 1 }}>
                 {state.title ? (
@@ -249,7 +250,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               {/* Close Button */}
               <IconButton
                 accessibilityLabel="Close notification"
-                className="h-8 w-8 border border-border"
+                className="h-8 w-8"
                 onPress={hide}
               >
                 <MaterialIcons
@@ -280,8 +281,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
             ) : null}
           </View>
         </Pressable>
-      </Pressable>
-    </Modal>
+      </View>
+    </View>
   );
 });
 
