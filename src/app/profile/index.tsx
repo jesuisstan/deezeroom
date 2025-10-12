@@ -122,7 +122,7 @@ const ProfileScreen: FC = () => {
         <View className="flex-1 flex-row items-center gap-2">
           <View className="flex-1">
             <RippleButton
-              fullWidth
+              width="full"
               title="Edit profile"
               size="sm"
               variant="outline"
@@ -131,7 +131,7 @@ const ProfileScreen: FC = () => {
           </View>
           <View className="flex-1">
             <RippleButton
-              fullWidth
+              width="full"
               title="Settings"
               size="sm"
               variant="outline"

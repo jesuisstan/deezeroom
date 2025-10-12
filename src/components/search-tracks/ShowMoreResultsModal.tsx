@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { useQuery } from 'urql';
 
-import TrackCard from '@/components/TrackCard';
+import TrackCard from '@/components/search-tracks/TrackCard';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { SEARCH_TRACKS } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';

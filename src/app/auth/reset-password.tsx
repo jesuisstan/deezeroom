@@ -162,7 +162,7 @@ const ResetPasswordScreen: FC = () => {
             />
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Send reset email"
               size="lg"
               onPress={handleResetPassword}

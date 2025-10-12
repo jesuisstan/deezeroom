@@ -206,7 +206,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
                 size="md"
                 className="min-w-20"
                 color={getButtonProps(button).color}
-                //fullWidth
+                //width="full"
               />
             ))}
           </View>

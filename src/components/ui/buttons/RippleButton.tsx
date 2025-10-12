@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  DimensionValue,
   GestureResponderEvent,
   LayoutChangeEvent,
   Pressable,
@@ -33,7 +34,7 @@ interface RippleButtonProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   className?: string;
-  fullWidth?: boolean;
+  width?: 'auto' | 'full' | DimensionValue;
   color?: string;
 }
 
@@ -56,7 +57,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
   leftIcon,
   rightIcon,
   className,
-  fullWidth = false,
+  width = 'auto',
   color
 }) => {
   const { theme } = useTheme();
@@ -130,12 +131,18 @@ const RippleButton: React.FC<RippleButtonProps> = ({
     ghost: 'bg-transparent active:bg-border/10'
   };
 
+  // Width styles
+  const getWidthStyle = (): { width?: DimensionValue } => {
+    if (width === 'full') return { width: '100%' };
+    if (width === 'auto') return {};
+    return { width };
+  };
+
   // Container classes
   const containerClasses = clsx(
     baseClasses,
     sizeClasses[size],
     variantClasses[variant],
-    fullWidth ? 'w-full' : undefined,
     disabled ? 'opacity-60' : 'opacity-100',
     className
   );
@@ -162,7 +169,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
   })();
 
   return (
-    <View className={clsx('overflow-hidden rounded-xl', fullWidth && 'w-full')}>
+    <View className="overflow-hidden rounded-xl" style={getWidthStyle()}>
       <Pressable
         accessibilityRole="button"
         hitSlop={8}

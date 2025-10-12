@@ -19,7 +19,7 @@ export class DeezerService {
   /**
    * Search for tracks using Deezer API
    * @param query Search query string
-   * @param limit Maximum number of results (default: 25, max: 100)
+   * @param limit Maximum number of results
    * @param index Starting index for pagination (default: 0)
    * @returns Promise with search results
    */
@@ -36,11 +36,7 @@ export class DeezerService {
       const encodedQuery = encodeURIComponent(query.trim());
       const url = `${DEEZER_API_BASE_URL}/search/track?q=${encodedQuery}&limit=${limit}&index=${index}`;
 
-      console.log('Deezer API URL:', url);
-      console.log('Search params:', { query: query.trim(), limit, index });
-
       const response = await fetch(url);
-
       if (!response.ok) {
         throw new Error(
           `Deezer API error: ${response.status} ${response.statusText}`
@@ -48,7 +44,6 @@ export class DeezerService {
       }
 
       const data: DeezerSearchResponse = await response.json();
-
       const tracks = data.data.map(this.transformDeezerTrack);
 
       return {
@@ -57,7 +52,6 @@ export class DeezerService {
         hasMore: !!data.next
       };
     } catch (error) {
-      console.error('Error searching tracks:', error);
       throw new Error(
         `Failed to search tracks: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
@@ -109,7 +103,6 @@ export class DeezerService {
       const deezerTrack: DeezerTrack = await response.json();
       return this.transformDeezerTrack(deezerTrack);
     } catch (error) {
-      console.error('Error getting track by ID:', error);
       throw new Error(
         `Failed to get track: ${error instanceof Error ? error.message : 'Unknown error'}`
       );

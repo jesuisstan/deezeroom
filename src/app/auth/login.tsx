@@ -131,7 +131,7 @@ const LoginScreen: FC = () => {
             />
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Continue"
               size="lg"
               loading={loading}

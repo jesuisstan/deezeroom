@@ -57,7 +57,7 @@ const WelcomeScreen: FC = () => {
 
             {/* Continue with email */}
             <RippleButton
-              fullWidth
+              width="full"
               title="Continue with email"
               onPress={() => router.push('/auth/login')}
               size="lg"

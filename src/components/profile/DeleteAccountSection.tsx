@@ -63,7 +63,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
   return (
     <View>
       <RippleButton
-        fullWidth
+        width="full"
         title="Delete my account"
         variant="ghost"
         leftIcon={
@@ -105,7 +105,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                 </TextCustom>
                 <SetupPassword userEmail={profile.email} />
                 <RippleButton
-                  fullWidth
+                  width="full"
                   title="Cancel"
                   variant="outline"
                   onPress={() => {
@@ -145,7 +145,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   </View>
                 )}
                 <RippleButton
-                  fullWidth
+                  width="full"
                   title="Delete Account"
                   color={themeColors[theme]['intent-error']}
                   disabled={!emailInput.trim() || !passwordInput.trim()}
@@ -179,7 +179,7 @@ const DeleteAccountSection: FC<DeleteAccountSectionProps> = ({ profile }) => {
                   }}
                 />
                 <RippleButton
-                  fullWidth
+                  width="full"
                   title="Cancel"
                   variant="outline"
                   onPress={() => {
