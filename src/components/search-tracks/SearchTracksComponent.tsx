@@ -13,7 +13,7 @@ import { LIMIT_DEFAULT } from '@/constants/deezer';
 import { SEARCH_TRACKS } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
-import { Logger } from '@/modules/logger/LoggerModule';
+import { Logger } from '@/modules/logger';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -23,17 +23,18 @@ interface SearchTracksComponentProps {
   currentPlayingTrackId?: string;
 }
 
-export default function SearchTracksComponent({
+const SearchTracksComponent = ({
   onPlayTrack,
   onSearchResults,
   currentPlayingTrackId
-}: SearchTracksComponentProps) {
+}: SearchTracksComponentProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [allTracks, setAllTracks] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [totalTracks, setTotalTracks] = useState(0);
   const { theme } = useTheme();
   const client = useClient();
 
@@ -48,19 +49,26 @@ export default function SearchTracksComponent({
   useEffect(() => {
     if (!data?.searchTracks) return;
 
-    const { tracks, hasMore: moreAvailable } = data.searchTracks;
+    const { tracks, hasMore: moreAvailable, total } = data.searchTracks;
 
     // If it's a new search, replace existing tracks
     if (currentIndex === 0) {
       setAllTracks(tracks);
+      setTotalTracks(total);
     } else {
-      // Append new tracks for pagination
-      setAllTracks((prev) => [...prev, ...tracks]);
+      // Append new tracks for pagination, avoiding duplicates
+      setAllTracks((prev) => {
+        const existingIds = new Set(prev.map((track) => track.id));
+        const newTracks = tracks.filter(
+          (track: Track) => !existingIds.has(track.id)
+        );
+        return [...prev, ...newTracks];
+      });
     }
 
     setHasMore(moreAvailable);
     setIsLoadingMore(false);
-  }, [data]);
+  }, [data, currentIndex]);
 
   // Notify parent when tracks list changes
   useEffect(() => {
@@ -75,12 +83,18 @@ export default function SearchTracksComponent({
     }
 
     Logger.info(
-      'Searching tracks',
-      { searchQuery },
+      'Searching tracks with params',
+      {
+        query: searchQuery,
+        limit: LIMIT_DEFAULT,
+        index: 0
+      },
       '🔍 SearchTracksComponent'
     );
+
     setIsSearching(true);
     setCurrentIndex(0); // Reset pagination
+    setTotalTracks(0); // Reset total count
 
     try {
       await executeSearch({
@@ -88,7 +102,7 @@ export default function SearchTracksComponent({
         variables: { query: searchQuery, limit: LIMIT_DEFAULT, index: 0 }
       });
     } catch (err) {
-      Logger.error('Search error:', err);
+      Logger.error('Search error:', err, '🔍 SearchTracksComponent');
     } finally {
       setIsSearching(false);
     }
@@ -103,9 +117,9 @@ export default function SearchTracksComponent({
 
     try {
       Logger.info(
-        'Loading more tracks',
+        'Loading more tracks with params',
         {
-          searchQuery,
+          query: searchQuery,
           limit: LIMIT_DEFAULT,
           index: nextIndex
         },
@@ -119,12 +133,18 @@ export default function SearchTracksComponent({
 
       if (result.data?.searchTracks) {
         const { tracks, hasMore: moreAvailable } = result.data.searchTracks;
-        setAllTracks((prev) => [...prev, ...tracks]);
+        setAllTracks((prev) => {
+          const existingIds = new Set(prev.map((track: Track) => track.id));
+          const newTracks = tracks.filter(
+            (track: Track) => !existingIds.has(track.id)
+          );
+          return [...prev, ...newTracks];
+        });
         setHasMore(moreAvailable);
         setCurrentIndex(nextIndex);
       }
     } catch (err) {
-      Logger.error('Load more error:', err);
+      Logger.error('Load more error:', err, '🔍 SearchTracksComponent');
     } finally {
       setIsLoadingMore(false);
     }
@@ -179,13 +199,14 @@ export default function SearchTracksComponent({
             color={themeColors[theme]['text-secondary']}
             className="mb-2"
           >
-            Found {allTracks.length} tracks
+            Found {totalTracks} tracks ({allTracks.length} loaded)
           </TextCustom>
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            style={{ maxHeight: 400 }}
+            style={{ maxHeight: 500 }}
             nestedScrollEnabled
+            removeClippedSubviews={true}
           >
             {allTracks.map((track, index) => (
               <TrackCard
@@ -200,12 +221,19 @@ export default function SearchTracksComponent({
           {/* Load more button */}
           {hasMore && (
             <View className="mt-2 items-center">
+              <TextCustom
+                size="xs"
+                color={themeColors[theme]['text-secondary']}
+                className="mb-2"
+              >
+                Loaded {allTracks.length} tracks
+              </TextCustom>
               <RippleButton
                 title="Show more"
                 size="sm"
                 onPress={handleLoadMore}
                 loading={isLoadingMore}
-                className="px-4 py-2"
+                width={120}
               />
             </View>
           )}
@@ -238,4 +266,6 @@ export default function SearchTracksComponent({
       )}
     </View>
   );
-}
+};
+
+export default SearchTracksComponent;

@@ -130,7 +130,7 @@ const SetupPassword: FC<SetupPasswordProps> = ({ userEmail }) => {
 
       {/* Submit Button */}
       <RippleButton
-        fullWidth
+        width="full"
         title="Setup password"
         size="lg"
         loading={isLoading}

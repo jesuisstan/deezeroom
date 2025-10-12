@@ -199,7 +199,7 @@ const RegisterScreen: FC = () => {
 
           {/* Submit Button */}
           <RippleButton
-            fullWidth
+            width="full"
             title="Create account"
             size="lg"
             loading={loading}

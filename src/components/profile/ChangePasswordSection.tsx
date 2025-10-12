@@ -167,7 +167,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
             )}
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Change Password"
               onPress={handleChangePassword}
               loading={isChanging}
@@ -180,7 +180,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
             />
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Cancel"
               variant="outline"
               onPress={() => {
