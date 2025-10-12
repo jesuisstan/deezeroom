@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -15,6 +17,7 @@ import { themeColors } from '@/style/color-theme';
 const PlayerScreen = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
   const {
     currentTrack,
     queue,
@@ -27,6 +30,21 @@ const PlayerScreen = () => {
     playPrevious,
     togglePlayPause
   } = usePlayback();
+
+  const currentTrackId = currentTrack?.id;
+  const isCurrentTrackFavorite = useMemo(() => {
+    if (!currentTrackId) {
+      return false;
+    }
+    return isTrackFavorite(currentTrackId);
+  }, [currentTrackId, isTrackFavorite]);
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!currentTrackId) {
+      return;
+    }
+    await toggleFavoriteTrack(currentTrackId);
+  }, [currentTrackId, toggleFavoriteTrack]);
 
   const formatTime = (valueInSeconds: number) => {
     const totalSeconds = Number.isFinite(valueInSeconds)
@@ -133,13 +151,23 @@ const PlayerScreen = () => {
                 />
               </IconButton>
               <IconButton
-                accessibilityLabel="Like track (coming soon)"
+                accessibilityLabel={
+                  isCurrentTrackFavorite
+                    ? 'Remove from favorites'
+                    : 'Add to favorites'
+                }
+                onPress={handleToggleFavorite}
+                disabled={!currentTrackId}
                 className="h-12 w-12"
               >
                 <FontAwesome
-                  name="heart-o"
+                  name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
                   size={24}
-                  color={themeColors[theme]['text-secondary']}
+                  color={
+                    isCurrentTrackFavorite
+                      ? themeColors[theme]['intent-error']
+                      : themeColors[theme]['text-secondary']
+                  }
                 />
               </IconButton>
             </View>
