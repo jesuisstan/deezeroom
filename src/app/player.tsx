@@ -1,5 +1,6 @@
 import { Image, ScrollView, View } from 'react-native';
 
+import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -109,6 +110,29 @@ const PlayerScreen = () => {
                 }
               />
             </View>
+          </View>
+
+          <View className="w-full flex-row items-center justify-between px-4">
+            <IconButton
+              accessibilityLabel="Share track (coming soon)"
+              className="h-12 w-12"
+            >
+              <FontAwesome
+                name="share-alt"
+                size={24}
+                color={themeColors[theme]['text-secondary']}
+              />
+            </IconButton>
+            <IconButton
+              accessibilityLabel="Like track (coming soon)"
+              className="h-12 w-12"
+            >
+              <FontAwesome
+                name="heart-o"
+                size={24}
+                color={themeColors[theme]['text-secondary']}
+              />
+            </IconButton>
           </View>
 
           {error && (
