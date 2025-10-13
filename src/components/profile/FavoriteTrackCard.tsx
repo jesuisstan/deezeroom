@@ -59,12 +59,12 @@ const FavoriteTrackCard: React.FC<FavoriteTrackCardProps> = ({
   }, [removeFromFavorites, track.id]);
 
   return (
-    <View className="mb-3 rounded-lg border border-border bg-bg-secondary p-3">
+    <View className="mb-2 rounded-lg border border-border bg-bg-secondary px-2 py-1">
       <View className="flex-row items-center gap-3">
         {albumCoverUrl && (
           <Image
             source={{ uri: albumCoverUrl }}
-            className="h-12 w-12 rounded"
+            className="h-14 w-14 rounded"
             resizeMode="cover"
           />
         )}
@@ -91,12 +91,12 @@ const FavoriteTrackCard: React.FC<FavoriteTrackCardProps> = ({
           <IconButton
             accessibilityLabel={isPlaying ? 'Pause track' : 'Play track'}
             onPress={handlePlay}
-            className="h-8 w-8"
+            className="h-9 w-9"
             disabled={!track.preview}
           >
             <FontAwesome
               name={isPlaying ? 'pause' : 'play'}
-              size={14}
+              size={18}
               color={colors.primary}
             />
           </IconButton>
@@ -105,9 +105,9 @@ const FavoriteTrackCard: React.FC<FavoriteTrackCardProps> = ({
           <IconButton
             accessibilityLabel="Remove from favorites"
             onPress={handleRemoveFromFavorites}
-            className="h-8 w-8"
+            className="h-9 w-9"
           >
-            <FontAwesome name="trash" size={14} color={colors.intentError} />
+            <FontAwesome name="trash" size={18} color={colors.intentError} />
           </IconButton>
         </View>
       </View>

@@ -3,6 +3,7 @@ import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 
+import AnimatedTrackTitle from '@/components/search-tracks/AnimatedTrackTitle';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
@@ -64,16 +65,20 @@ const TrackCard: React.FC<TrackCardProps> = ({
   }, [toggleFavoriteTrack, track.id]);
 
   return (
-    <View className="mb-3 rounded-lg border border-border bg-bg-secondary p-3">
+    <View className="mb-2 rounded-lg border border-border bg-bg-secondary px-2 py-1">
       <View className="flex-row items-center gap-3">
         {albumCoverUrl && (
           <Image
             source={{ uri: albumCoverUrl }}
-            className="h-12 w-12 rounded"
+            className="h-14 w-14 rounded"
             resizeMode="cover"
           />
         )}
         <View className="flex-1">
+          {/*<AnimatedTrackTitle
+            title={track.title}
+            textColor={themeColors[theme]['text-main']}
+          />*/}
           <TextCustom type="semibold" size="s">
             {track.title}
           </TextCustom>
@@ -96,12 +101,12 @@ const TrackCard: React.FC<TrackCardProps> = ({
           <IconButton
             accessibilityLabel={isPlaying ? 'Pause track' : 'Play track'}
             onPress={handlePlay}
-            className="h-8 w-8"
+            className="h-9 w-9"
             disabled={!track.preview}
           >
             <FontAwesome
               name={isPlaying ? 'pause' : 'play'}
-              size={14}
+              size={18}
               color={colors.primary}
             />
           </IconButton>
@@ -114,11 +119,11 @@ const TrackCard: React.FC<TrackCardProps> = ({
                 : 'Add to favorites'
             }
             onPress={handleToggleFavorite}
-            className="h-8 w-8"
+            className="h-9 w-9"
           >
             <FontAwesome
               name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-              size={14}
+              size={18}
               color={
                 isCurrentTrackFavorite
                   ? colors.intentError

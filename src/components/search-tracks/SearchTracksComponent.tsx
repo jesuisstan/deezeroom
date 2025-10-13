@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import Feather from '@expo/vector-icons/Feather';
 import { useClient, useQuery } from 'urql';
@@ -202,12 +202,7 @@ const SearchTracksComponent = ({
             Found {totalTracks} tracks ({allTracks.length} loaded)
           </TextCustom>
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={{ maxHeight: 400 }}
-            nestedScrollEnabled
-            removeClippedSubviews={true}
-          >
+          <View>
             {allTracks.map((track, index) => (
               <TrackCard
                 key={`${track.id}-${index}`}
@@ -216,7 +211,7 @@ const SearchTracksComponent = ({
                 onPlay={handlePlayTrack}
               />
             ))}
-          </ScrollView>
+          </View>
 
           {/* Load more button */}
           {hasMore && (
