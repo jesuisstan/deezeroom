@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FlatList, Image, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -34,10 +34,13 @@ const HomeScreen = () => {
     router.push('/player');
   };
 
-  const handleSearchResults = (tracks: Track[]) => {
-    setSearchResults(tracks);
-    updateQueue(tracks);
-  };
+  const handleSearchResults = useCallback(
+    (tracks: Track[]) => {
+      setSearchResults(tracks);
+      updateQueue(tracks);
+    },
+    [updateQueue]
+  );
 
   const handleNavigateToEvents = () => {
     router.push('/(tabs)/events');
@@ -107,7 +110,7 @@ const HomeScreen = () => {
           </View>
 
           {/* Search Section */}
-          <View className="w-full gap-4">
+          <View className="w-full gap-2">
             <TextCustom type="subtitle" size="xl">
               Music Search
             </TextCustom>

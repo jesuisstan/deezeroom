@@ -23,6 +23,51 @@ export class DeezerService {
    * @param index Starting index for pagination (default: 0)
    * @returns Promise with search results
    */
+  // Get popular tracks from Deezer charts
+  async getPopularTracks(
+    limit: number = LIMIT_DEFAULT
+  ): Promise<{ tracks: Track[]; total: number; hasMore: boolean }> {
+    try {
+      const url = `${DEEZER_API_BASE_URL}/chart/0/tracks?limit=${limit}`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const tracks: Track[] = (data.data || []).map((item: any) => ({
+        id: item.id.toString(),
+        title: item.title,
+        titleShort: item.title_short,
+        duration: item.duration,
+        preview: item.preview,
+        explicitLyrics: item.explicit_lyrics === 1,
+        artist: {
+          id: item.artist.id.toString(),
+          name: item.artist.name,
+          picture: item.artist.picture,
+          link: item.artist.link
+        },
+        album: {
+          id: item.album.id.toString(),
+          title: item.album.title,
+          cover: item.album.cover,
+          link: item.album.link
+        }
+      }));
+
+      return {
+        tracks,
+        total: tracks.length,
+        hasMore: false // Chart API doesn't support pagination
+      };
+    } catch (error) {
+      console.error('Error fetching popular tracks:', error);
+      throw error;
+    }
+  }
+
   async searchTracks(
     query: string,
     limit: number = LIMIT_DEFAULT,

@@ -10,7 +10,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { LIMIT_DEFAULT } from '@/constants/deezer';
-import { SEARCH_TRACKS } from '@/graphql/queries';
+import { GET_POPULAR_TRACKS, SEARCH_TRACKS } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
@@ -35,6 +35,9 @@ const SearchTracksComponent = ({
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [totalTracks, setTotalTracks] = useState(0);
+  const [showPopularTracks, setShowPopularTracks] = useState(true);
+  const [popularTracksLoaded, setPopularTracksLoaded] = useState(false);
+  const [isLoadingPopular, setIsLoadingPopular] = useState(false);
   const { theme } = useTheme();
   const client = useClient();
 
@@ -44,6 +47,43 @@ const SearchTracksComponent = ({
     variables: { query: searchQuery, limit: LIMIT_DEFAULT, index: 0 },
     pause: true
   });
+
+  // Load popular tracks on initial load or when showPopularTracks changes
+  useEffect(() => {
+    const loadPopularTracks = async () => {
+      if (!showPopularTracks || popularTracksLoaded) return;
+
+      setIsLoadingPopular(true);
+      try {
+        Logger.info('Loading popular tracks', {}, '🔍 SearchTracksComponent');
+        const result = await client.query(
+          GET_POPULAR_TRACKS,
+          { limit: LIMIT_DEFAULT },
+          { requestPolicy: 'network-only' }
+        );
+
+        if (result.data?.getPopularTracks) {
+          const { tracks, total } = result.data.getPopularTracks;
+          setAllTracks(tracks);
+          setTotalTracks(total);
+          setHasMore(false); // Popular tracks don't support pagination
+          setPopularTracksLoaded(true);
+          // Popular tracks loaded successfully
+          onSearchResults?.(tracks);
+        }
+      } catch (err) {
+        Logger.error(
+          'Error loading popular tracks:',
+          err,
+          '🔍 SearchTracksComponent'
+        );
+      } finally {
+        setIsLoadingPopular(false);
+      }
+    };
+
+    loadPopularTracks();
+  }, [showPopularTracks, popularTracksLoaded, client, onSearchResults]);
 
   // Handle received search results
   useEffect(() => {
@@ -95,6 +135,9 @@ const SearchTracksComponent = ({
     setIsSearching(true);
     setCurrentIndex(0); // Reset pagination
     setTotalTracks(0); // Reset total count
+    setShowPopularTracks(false); // Switch to search mode
+    setPopularTracksLoaded(false); // Reset popular tracks flag
+    setIsLoadingPopular(false); // Reset popular tracks loading state
 
     try {
       await executeSearch({
@@ -154,9 +197,16 @@ const SearchTracksComponent = ({
     onPlayTrack?.(track);
   };
 
+  const handleShowPopularTracks = () => {
+    setShowPopularTracks(true);
+    setSearchQuery(''); // Clear search query
+    setPopularTracksLoaded(false); // Allow reloading popular tracks
+    setIsLoadingPopular(false); // Reset loading state
+  };
+  console.log('searchQuery', searchQuery);
   return (
     <View className="w-full">
-      {/* Search input and button */}
+      {/* Search input and buttons */}
       <View className="mb-2 flex-row items-center gap-2">
         <InputCustom
           placeholder="Search tracks..."
@@ -172,12 +222,33 @@ const SearchTracksComponent = ({
           accessibilityLabel="Search"
           onPress={handleSearch}
           loading={fetching || isSearching}
-          className="h-12 w-12"
+          className={`h-12 w-12 ${
+            !showPopularTracks && searchQuery.trim() ? 'bg-primary/20' : ''
+          }`}
         >
           <Feather
             name="search"
             size={18}
-            color={themeColors[theme]['accent']}
+            color={
+              !showPopularTracks && searchQuery.trim()
+                ? themeColors[theme]['primary']
+                : themeColors[theme]['accent']
+            }
+          />
+        </IconButton>
+        <IconButton
+          accessibilityLabel="Show Popular Tracks"
+          onPress={handleShowPopularTracks}
+          className={`h-12 w-12 ${showPopularTracks ? 'bg-primary/20' : ''}`}
+        >
+          <Feather
+            name="trending-up"
+            size={18}
+            color={
+              showPopularTracks
+                ? themeColors[theme]['primary']
+                : themeColors[theme]['accent']
+            }
           />
         </IconButton>
       </View>
@@ -192,14 +263,16 @@ const SearchTracksComponent = ({
       )}
 
       {/* Search results */}
-      {allTracks.length > 0 && (
+      {allTracks.length > 0 && !isLoadingPopular && (
         <View className="mb-2">
           <TextCustom
             size="s"
             color={themeColors[theme]['text-secondary']}
             className="mb-2"
           >
-            Found {totalTracks} tracks ({allTracks.length} loaded)
+            {showPopularTracks
+              ? `Popular Tracks (${allTracks.length})`
+              : `Found ${totalTracks} tracks (${allTracks.length} loaded)`}
           </TextCustom>
 
           <View>
@@ -214,7 +287,7 @@ const SearchTracksComponent = ({
           </View>
 
           {/* Load more button */}
-          {hasMore && (
+          {hasMore && !showPopularTracks && (
             <View className="mt-2 items-center">
               <TextCustom
                 size="xs"
@@ -229,12 +302,20 @@ const SearchTracksComponent = ({
                 onPress={handleLoadMore}
                 loading={isLoadingMore}
                 width={120}
+                disabled={
+                  isLoadingMore ||
+                  isLoadingPopular ||
+                  fetching ||
+                  isSearching ||
+                  !hasMore ||
+                  !searchQuery
+                }
               />
             </View>
           )}
 
           {/* End of list indicator */}
-          {!hasMore && allTracks.length > 0 && (
+          {!hasMore && allTracks.length > 0 && !showPopularTracks && (
             <TextCustom
               size="xs"
               color={themeColors[theme]['text-secondary']}
@@ -247,7 +328,7 @@ const SearchTracksComponent = ({
       )}
 
       {/* Loading state */}
-      {fetching && (
+      {(fetching || isSearching || isLoadingPopular) && (
         <View className="items-center py-4">
           <ActivityIndicator color={themeColors[theme]['primary']} />
           <TextCustom
@@ -255,7 +336,9 @@ const SearchTracksComponent = ({
             color={themeColors[theme]['text-secondary']}
             className="mt-2"
           >
-            Searching tracks...
+            {isLoadingPopular
+              ? 'Loading popular tracks...'
+              : 'Searching tracks...'}
           </TextCustom>
         </View>
       )}
