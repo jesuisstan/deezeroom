@@ -161,7 +161,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       setQueue((prev) => {
         const sameLength = prev.length === tracks.length;
         const sameOrder =
-          sameLength && prev.every((prevTrack, index) => prevTrack.id === tracks[index]?.id);
+          sameLength &&
+          prev.every((prevTrack, index) => prevTrack.id === tracks[index]?.id);
         if (sameOrder) {
           return prev;
         }

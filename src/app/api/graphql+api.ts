@@ -20,6 +20,14 @@ const schema = createSchema({
         const { query, limit = LIMIT_DEFAULT, index = INDEX_DEFAULT } = args;
         return await deezerService.searchTracks(query, limit, index);
       },
+      getPopularTracks: async (
+        _: any,
+        args: { limit?: number },
+        ctx: APIContext
+      ) => {
+        const { limit = LIMIT_DEFAULT } = args;
+        return await deezerService.getPopularTracks(limit);
+      },
       track: async (_: any, args: { id: string }, ctx: APIContext) => {
         const { id } = args;
         return await deezerService.getTrackById(id);

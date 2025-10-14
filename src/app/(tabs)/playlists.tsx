@@ -220,6 +220,18 @@ const PlaylistsScreen = () => {
                 showDeleteButton={playlist.createdBy === user?.uid}
               />
             ))}
+            {/*
+            <PlaylistGrid
+              playlists={playlists}
+              onPlaylistPress={handlePlaylistPress}
+              onPlaylistEdit={handlePlaylistEdit}
+              onPlaylistDelete={handlePlaylistDelete}
+              showEditButton={true}
+              showDeleteButton={true}
+              userId={user?.uid}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />*/}
           </View>
         )}
       </ScrollView>

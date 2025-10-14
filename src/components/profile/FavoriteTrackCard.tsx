@@ -3,7 +3,6 @@ import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 
-import AnimatedTrackTitle from '@/components/search-tracks/AnimatedTrackTitle';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
@@ -12,19 +11,19 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
 
-interface TrackCardProps {
+interface FavoriteTrackCardProps {
   track: Track;
   isPlaying?: boolean;
   onPlay?: (track: Track) => void;
 }
 
-const TrackCard: React.FC<TrackCardProps> = ({
+const FavoriteTrackCard: React.FC<FavoriteTrackCardProps> = ({
   track,
   isPlaying = false,
   onPlay
 }) => {
   const { theme } = useTheme();
-  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
+  const { removeFromFavorites } = useFavoriteTracks();
 
   // Memoize colors
   const colors = useMemo(
@@ -44,11 +43,6 @@ const TrackCard: React.FC<TrackCardProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }, [track.duration]);
 
-  // Check if current track is favorite
-  const isCurrentTrackFavorite = useMemo(() => {
-    return isTrackFavorite(track.id);
-  }, [isTrackFavorite, track.id]);
-
   // Get album cover image (using small size for card)
   const albumCoverUrl = useMemo(() => {
     return getAlbumCover(track.album, 'small');
@@ -59,10 +53,10 @@ const TrackCard: React.FC<TrackCardProps> = ({
     onPlay?.(track);
   }, [onPlay, track]);
 
-  // Memoize handle toggle favorite
-  const handleToggleFavorite = useCallback(async () => {
-    await toggleFavoriteTrack(track.id);
-  }, [toggleFavoriteTrack, track.id]);
+  // Memoize handle remove from favorites
+  const handleRemoveFromFavorites = useCallback(async () => {
+    await removeFromFavorites(track.id);
+  }, [removeFromFavorites, track.id]);
 
   return (
     <View className="mb-2 rounded-lg border border-border bg-bg-secondary px-2 py-1">
@@ -75,10 +69,6 @@ const TrackCard: React.FC<TrackCardProps> = ({
           />
         )}
         <View className="flex-1">
-          {/*<AnimatedTrackTitle
-            title={track.title}
-            textColor={themeColors[theme]['text-main']}
-          />*/}
           <TextCustom type="semibold" size="s">
             {track.title}
           </TextCustom>
@@ -111,25 +101,13 @@ const TrackCard: React.FC<TrackCardProps> = ({
             />
           </IconButton>
 
-          {/* Favorite Button */}
+          {/* Remove from Favorites Button */}
           <IconButton
-            accessibilityLabel={
-              isCurrentTrackFavorite
-                ? 'Remove from favorites'
-                : 'Add to favorites'
-            }
-            onPress={handleToggleFavorite}
+            accessibilityLabel="Remove from favorites"
+            onPress={handleRemoveFromFavorites}
             className="h-9 w-9"
           >
-            <FontAwesome
-              name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-              size={18}
-              color={
-                isCurrentTrackFavorite
-                  ? colors.intentError
-                  : colors.textSecondary
-              }
-            />
+            <FontAwesome name="trash" size={18} color={colors.intentError} />
           </IconButton>
         </View>
       </View>
@@ -137,4 +115,4 @@ const TrackCard: React.FC<TrackCardProps> = ({
   );
 };
 
-export default React.memo(TrackCard);
+export default React.memo(FavoriteTrackCard);
