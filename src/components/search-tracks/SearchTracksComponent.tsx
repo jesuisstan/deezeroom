@@ -55,7 +55,7 @@ const SearchTracksComponent = ({
 
       setIsLoadingPopular(true);
       try {
-        Logger.info('Loading popular tracks', {}, '🔍 SearchTracksComponent');
+        Logger.info('Loading popular tracks', null, '🔍 SearchTracksComponent');
         const result = await client.query(
           GET_POPULAR_TRACKS,
           { limit: LIMIT_DEFAULT },
