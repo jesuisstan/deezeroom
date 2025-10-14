@@ -21,10 +21,7 @@ const EventsScreen = () => {
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        backgroundColor:
-          theme === 'dark'
-            ? themeColors.dark['bg-main']
-            : themeColors.light['bg-main'],
+        backgroundColor: themeColors[theme]['bg-main'],
         flexDirection: 'column',
         alignSelf: 'center'
       }}
