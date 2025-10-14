@@ -203,7 +203,7 @@ const SearchTracksComponent = ({
     setPopularTracksLoaded(false); // Allow reloading popular tracks
     setIsLoadingPopular(false); // Reset loading state
   };
-  console.log('searchQuery', searchQuery);
+
   return (
     <View className="w-full">
       {/* Search input and buttons */}

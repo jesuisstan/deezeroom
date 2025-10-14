@@ -48,7 +48,7 @@ const FeatureTile: React.FC<FeatureTileProps> = ({
           },
           shadowOpacity: 0.15,
           shadowRadius: 8,
-          elevation: 4,
+          //elevation: 4,
           overflow: 'hidden'
         }}
       >
