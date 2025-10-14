@@ -14,6 +14,7 @@ import { GET_POPULAR_TRACKS, SEARCH_TRACKS } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -38,9 +39,10 @@ const SearchTracksComponent = ({
   const [showPopularTracks, setShowPopularTracks] = useState(true);
   const [popularTracksLoaded, setPopularTracksLoaded] = useState(false);
   const [isLoadingPopular, setIsLoadingPopular] = useState(false);
+  const [forceRefreshPopular, setForceRefreshPopular] = useState(false);
   const { theme } = useTheme();
+  const { isOnline } = useNetwork();
   const client = useClient();
-
   // Create paused query for manual search execution
   const [{ data, fetching, error }, executeSearch] = useQuery({
     query: SEARCH_TRACKS,
@@ -56,10 +58,25 @@ const SearchTracksComponent = ({
       setIsLoadingPopular(true);
       try {
         Logger.info('Loading popular tracks', null, '🔍 SearchTracksComponent');
+
+        // Use different cache policy based on network status and user request
+        let requestPolicy: 'cache-first' | 'network-only' | 'cache-only';
+
+        if (!isOnline) {
+          // Offline: only use cache
+          requestPolicy = 'cache-only';
+        } else if (forceRefreshPopular) {
+          // Online + user requested refresh: get fresh data
+          requestPolicy = 'network-only';
+        } else {
+          // Online + normal load: use cache first
+          requestPolicy = 'cache-first';
+        }
+
         const result = await client.query(
           GET_POPULAR_TRACKS,
           { limit: LIMIT_DEFAULT },
-          { requestPolicy: 'network-only' }
+          { requestPolicy } // Dynamic cache policy
         );
 
         if (result.data?.getPopularTracks) {
@@ -68,6 +85,7 @@ const SearchTracksComponent = ({
           setTotalTracks(total);
           setHasMore(false); // Popular tracks don't support pagination
           setPopularTracksLoaded(true);
+          setForceRefreshPopular(false); // Reset force refresh flag
           // Popular tracks loaded successfully
           onSearchResults?.(tracks);
         }
@@ -83,7 +101,14 @@ const SearchTracksComponent = ({
     };
 
     loadPopularTracks();
-  }, [showPopularTracks, popularTracksLoaded, client, onSearchResults]);
+  }, [
+    showPopularTracks,
+    popularTracksLoaded,
+    forceRefreshPopular,
+    isOnline,
+    client,
+    onSearchResults
+  ]);
 
   // Handle received search results
   useEffect(() => {
@@ -122,6 +147,14 @@ const SearchTracksComponent = ({
       return;
     }
 
+    // If offline, show cached results if available
+    if (!isOnline) {
+      Alert.alert(
+        'Offline',
+        'Searching cached results only. Some results may be outdated.'
+      );
+    }
+
     Logger.info(
       'Searching tracks with params',
       {
@@ -138,10 +171,14 @@ const SearchTracksComponent = ({
     setShowPopularTracks(false); // Switch to search mode
     setPopularTracksLoaded(false); // Reset popular tracks flag
     setIsLoadingPopular(false); // Reset popular tracks loading state
+    setForceRefreshPopular(false); // Reset force refresh flag
 
     try {
+      // Use different cache policy based on network status
+      const requestPolicy = !isOnline ? 'cache-only' : 'network-only';
+
       await executeSearch({
-        requestPolicy: 'network-only',
+        requestPolicy,
         variables: { query: searchQuery, limit: LIMIT_DEFAULT, index: 0 }
       });
     } catch (err) {
@@ -154,6 +191,14 @@ const SearchTracksComponent = ({
   // Load next page
   const handleLoadMore = async () => {
     if (!hasMore || isLoadingMore || fetching) return;
+
+    // If offline, try to load from cache
+    if (!isOnline) {
+      Alert.alert(
+        'Offline',
+        'Loading cached results only. Some results may be outdated.'
+      );
+    }
 
     setIsLoadingMore(true);
     const nextIndex = currentIndex + LIMIT_DEFAULT;
@@ -168,10 +213,13 @@ const SearchTracksComponent = ({
         },
         '🔍 SearchTracksComponent'
       );
+      // Use different cache policy based on network status
+      const requestPolicy = !isOnline ? 'cache-only' : 'network-only';
+
       const result = await client.query(
         SEARCH_TRACKS,
         { query: searchQuery, limit: LIMIT_DEFAULT, index: nextIndex },
-        { requestPolicy: 'network-only' }
+        { requestPolicy }
       );
 
       if (result.data?.searchTracks) {
@@ -198,10 +246,20 @@ const SearchTracksComponent = ({
   };
 
   const handleShowPopularTracks = () => {
+    // Check if offline and no cached data
+    if (!isOnline && allTracks.length === 0) {
+      Alert.alert(
+        'Offline',
+        'No cached popular tracks available. Please check your internet connection.'
+      );
+      return;
+    }
+
     setShowPopularTracks(true);
     setSearchQuery(''); // Clear search query
     setPopularTracksLoaded(false); // Allow reloading popular tracks
     setIsLoadingPopular(false); // Reset loading state
+    setForceRefreshPopular(true); // Force refresh from server
   };
 
   return (
@@ -252,6 +310,16 @@ const SearchTracksComponent = ({
           />
         </IconButton>
       </View>
+
+      {/* Offline indicator */}
+      {!isOnline && (
+        <View className="bg-intent-warning/10 mb-2 rounded-lg p-3">
+          <TextCustom color={themeColors[theme]['intent-warning']}>
+            Offline mode - showing cached data only. Search and pagination will
+            use cached results.
+          </TextCustom>
+        </View>
+      )}
 
       {/* Error display */}
       {error && (

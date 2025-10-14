@@ -11,6 +11,7 @@ import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -26,6 +27,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
 }) => {
   const { theme } = useTheme();
   const { profile } = useUser();
+  const { isOnline } = useNetwork();
   const client = useClient();
 
   const [loadedTracks, setLoadedTracks] = useState<Track[]>([]);
@@ -80,7 +82,14 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         // Load tracks in parallel
         const trackPromises = trackIdsToLoad.map(async (trackId) => {
           try {
-            const result = await client.query(GET_TRACK, { id: trackId });
+            // Use different cache policy based on network status
+            const requestPolicy = !isOnline ? 'cache-only' : 'cache-first';
+
+            const result = await client.query(
+              GET_TRACK,
+              { id: trackId },
+              { requestPolicy }
+            );
             return result.data?.track;
           } catch (error) {
             Logger.error(
@@ -121,7 +130,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         loadingState(false);
       }
     },
-    [favoriteTrackIds, client]
+    [favoriteTrackIds, client, isOnline]
   );
 
   // Load more tracks when scrolling
@@ -160,6 +169,15 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
 
   return (
     <View className="w-full">
+      {/* Offline indicator */}
+      {!isOnline && (
+        <View className="bg-intent-warning/10 mb-2 rounded-lg p-3">
+          <TextCustom color={themeColors[theme]['intent-warning']}>
+            Offline mode - showing cached favorite tracks only
+          </TextCustom>
+        </View>
+      )}
+
       <View className="mb-2 flex-row items-center justify-between">
         <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
           Favorite Tracks ({loadedTracks.length} of {favoriteTrackIds.length})
