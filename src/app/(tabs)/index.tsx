@@ -14,13 +14,8 @@ import { themeColors } from '@/style/color-theme';
 const HomeScreen = () => {
   const { theme } = useTheme();
   const router = useRouter();
-  const {
-    startPlayback,
-    togglePlayPause,
-    updateQueue,
-    currentTrack,
-    isPlaying
-  } = usePlayback();
+  const { startPlayback, togglePlayPause, currentTrack, isPlaying } =
+    usePlayback();
   const [searchResults, setSearchResults] = useState<Track[]>([]);
 
   const handlePlayTrack = (track: Track) => {
@@ -34,13 +29,9 @@ const HomeScreen = () => {
     router.push('/player');
   };
 
-  const handleSearchResults = useCallback(
-    (tracks: Track[]) => {
-      setSearchResults(tracks);
-      updateQueue(tracks);
-    },
-    [updateQueue]
-  );
+  const handleSearchResults = useCallback((tracks: Track[]) => {
+    setSearchResults(tracks);
+  }, []);
 
   const handleNavigateToEvents = () => {
     router.push('/(tabs)/events');

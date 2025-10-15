@@ -158,42 +158,39 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateQueue = useCallback(
     (tracks: Track[]) => {
-      setQueue((prev) => {
-        const sameLength = prev.length === tracks.length;
-        const sameOrder =
-          sameLength &&
-          prev.every((prevTrack, index) => prevTrack.id === tracks[index]?.id);
-        if (sameOrder) {
-          return prev;
-        }
-        return [...tracks];
-      });
+      const activeId = currentTrackRef.current?.id ?? null;
+      const nextIndex =
+        activeId !== null
+          ? tracks.findIndex((track) => track.id === activeId)
+          : -1;
 
-      const activeId = currentTrackRef.current?.id;
-      if (!activeId) {
+      // Preserve the existing playback queue if the updated list no longer
+      // contains the currently playing track. This keeps playback alive while
+      // new search results stream in.
+      if (activeId !== null && nextIndex === -1) {
         return;
       }
 
-      const nextIndex = tracks.findIndex((track) => track.id === activeId);
-      if (nextIndex !== -1) {
+      const sameLength = queue.length === tracks.length;
+      const sameOrder =
+        sameLength &&
+        queue.every((prevTrack, index) => prevTrack.id === tracks[index]?.id);
+
+      if (!sameOrder) {
+        setQueue([...tracks]);
+      }
+
+      if (activeId !== null && nextIndex !== -1) {
         currentIndexRef.current = nextIndex;
         currentTrackRef.current = tracks[nextIndex] ?? null;
         setCurrentIndex(nextIndex);
-        return;
-      }
-
-      currentIndexRef.current = -1;
-      currentTrackRef.current = null;
-      autoPlayRef.current = false;
-      playbackIntentRef.current = false;
-      setCurrentIndex(-1);
-      try {
-        player.pause();
-      } catch (pauseError) {
-        console.warn('Failed to pause player while updating queue', pauseError);
+      } else if (activeId === null) {
+        currentIndexRef.current = -1;
+        currentTrackRef.current = null;
+        setCurrentIndex(-1);
       }
     },
-    [player]
+    [queue]
   );
 
   const startPlayback = useCallback(
