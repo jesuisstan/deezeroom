@@ -291,8 +291,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    const shouldPlay = playbackIntentRef.current;
-    autoPlayRef.current = shouldPlay;
+    playbackIntentRef.current = true;
+    autoPlayRef.current = true;
     currentIndexRef.current = nextIndex;
     currentTrackRef.current = queue[nextIndex] ?? null;
     setCurrentIndex(nextIndex);

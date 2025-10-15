@@ -20,6 +20,7 @@ import { themeColors } from '@/style/color-theme';
 
 const ANIMATION_DURATION = 220;
 
+// TODO: PAINT THE MINIPLAYER WITH THE DOMINANT COLOR OF THE ALBUM COVER. STAS POSHLI PIT' PIVO
 const MiniPlayer = () => {
   const router = useRouter();
   const pathname = usePathname();
