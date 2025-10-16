@@ -35,27 +35,8 @@ export class DeezerService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      const tracks: Track[] = (data.data || []).map((item: any) => ({
-        id: item.id.toString(),
-        title: item.title,
-        titleShort: item.title_short,
-        duration: item.duration,
-        preview: item.preview,
-        explicitLyrics: item.explicit_lyrics === 1,
-        artist: {
-          id: item.artist.id.toString(),
-          name: item.artist.name,
-          picture: item.artist.picture,
-          link: item.artist.link
-        },
-        album: {
-          id: item.album.id.toString(),
-          title: item.album.title,
-          cover: item.album.cover,
-          link: item.album.link
-        }
-      }));
+      const data: DeezerSearchResponse = await response.json();
+      const tracks = data.data.map(this.transformDeezerTrack);
 
       return {
         tracks,
@@ -132,7 +113,7 @@ export class DeezerService {
         coverMedium: deezerTrack.album.cover_medium || undefined,
         coverBig: deezerTrack.album.cover_big || undefined,
         coverXl: deezerTrack.album.cover_xl || undefined,
-        link: deezerTrack.album.link,
+        link: deezerTrack.album.link || undefined,
         tracklist: deezerTrack.album.tracklist || undefined
       }
     };
