@@ -25,7 +25,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const DEFAULT_DURATION = 250;
+const DEFAULT_DURATION = 50;
 
 interface SwipeModalProps {
   modalVisible: boolean; // Whether the modal is visible

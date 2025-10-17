@@ -66,7 +66,7 @@ const NeedHelp = () => {
   });
 
   const MainContent = () => (
-    <View className="flex-1 gap-4 px-4 pb-4">
+    <View className="flex-1 gap-4 px-4 pb-4" style={{ width: '50%' }}>
       {/* Password issues */}
       <View className="gap-2">
         <TextCustom color={themeColors[theme]['text-secondary']}>
@@ -159,7 +159,7 @@ const NeedHelp = () => {
     };
 
     return (
-      <View className="flex-1 gap-4 px-4 pb-4">
+      <View className="flex-1 gap-4 px-4 pb-4" style={{ width: '50%' }}>
         <View>{renderContent()}</View>
 
         <View className="flex-1">
@@ -208,13 +208,18 @@ const NeedHelp = () => {
         setVisible={handleModalClose}
         onClose={resetModal}
       >
-        <View className="flex-1">
+        <View
+          className="flex-1 overflow-hidden"
+          onLayout={({ nativeEvent }) => {
+            widthMutable.value = nativeEvent.layout.width;
+          }}
+        >
           {/* Animated content container */}
           <Animated.View
             style={[
               {
                 flexDirection: 'row',
-                width: width * 2,
+                width: '200%',
                 flex: 1
               },
               animatedStyle
