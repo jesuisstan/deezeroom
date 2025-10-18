@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect, useRef, useState } from 'react';
 import { ScrollView, View, TextInput, TouchableOpacity, Platform } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
@@ -24,7 +24,7 @@ if (Platform.OS === 'web') {
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import Divider from '@/components/ui/Divider';
-import ImageUploader from '@/components/ui/ImageUploader';
+import ImageUploader, { ImageUploaderHandle } from '@/components/ui/ImageUploader';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
@@ -33,6 +33,9 @@ import { updateAvatar } from '@/utils/profile-utils';
 
 const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
+
+  // Ref to control avatar uploader
+  const uploaderRef = useRef<ImageUploaderHandle>(null);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -137,15 +140,33 @@ const EditProfileScreen: FC = () => {
     >
       <View className="w-full" style={[containerStyle]}>
         {/* Avatar */}
-        <View className="w-full flex-row items-center gap-4 px-4 py-4">
+        <View className="w-full items-center gap-3 px-4 py-6">
           <ImageUploader
+            ref={uploaderRef}
             currentImageUrl={profile?.photoURL}
             onImageUploaded={handleImageUploaded}
             shape="circle"
             placeholder="Add Photo"
-            size="sm"
+            size="lg"
           />
-          <TextCustom type="semibold">Change profile picture</TextCustom>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              className="rounded-full bg-primary px-4 py-2"
+              onPress={() => uploaderRef.current?.open()}
+            >
+              <TextCustom className="text-bg-main">Change photo</TextCustom>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="rounded-full border border-border px-4 py-2"
+              disabled={!profile?.photoURL}
+              onPress={() => uploaderRef.current?.remove()}
+            >
+              <TextCustom className={!profile?.photoURL ? 'opacity-60' : ''}>Remove</TextCustom>
+            </TouchableOpacity>
+          </View>
+          <TextCustom size="xs" className="opacity-60">
+            JPG or PNG, up to 5 MB. Tip: use a square image for best fit.
+          </TextCustom>
         </View>
         <Divider />
 
