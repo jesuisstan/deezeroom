@@ -108,23 +108,25 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           },
           Platform.OS === 'web' ? ({ cursor: 'text' } as any) : {}
         ]}
-        {...(Platform.OS === 'web' ? {
-          onStartShouldSetResponder: () => true,
-          onResponderGrant: () => {
-            // Focus the input when the container is clicked on web
-            if (internalRef.current) {
-              internalRef.current.focus();
-            }
-          },
-          onMouseDown: () => {
-            // Additional web-specific handling
-            setTimeout(() => {
-              if (internalRef.current) {
-                internalRef.current.focus();
+        {...(Platform.OS === 'web'
+          ? {
+              onStartShouldSetResponder: () => true,
+              onResponderGrant: () => {
+                // Focus the input when the container is clicked on web
+                if (internalRef.current) {
+                  internalRef.current.focus();
+                }
+              },
+              onMouseDown: () => {
+                // Additional web-specific handling
+                setTimeout(() => {
+                  if (internalRef.current) {
+                    internalRef.current.focus();
+                  }
+                }, 0);
               }
-            }, 0);
-          }
-        } : {})}
+            }
+          : {})}
       >
         {leftIconName ? (
           <View className="pl-3">
@@ -144,11 +146,15 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           value={stringValue}
           placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
-          style={Platform.OS === 'web' ? { 
-            outline: 'none',
-            cursor: 'text',
-            userSelect: 'text'
-          } as any : undefined}
+          style={
+            Platform.OS === 'web'
+              ? ({
+                  outline: 'none',
+                  cursor: 'text',
+                  userSelect: 'text'
+                } as any)
+              : undefined
+          }
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           onFocus={() => {
             setIsFocused(true);
@@ -179,7 +185,9 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           <TouchableOpacity
             className="py-1 pr-3"
             onPress={() => setIsPasswordVisible((v) => !v)}
-            onPressIn={Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined}
+            onPressIn={
+              Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined
+            }
           >
             <Feather
               name={isPasswordVisible ? 'eye-off' : 'eye'}
@@ -198,7 +206,9 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
                 (props.onChangeText as (text: string) => void)('');
               }
             }}
-            onPressIn={Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined}
+            onPressIn={
+              Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined
+            }
           >
             <Feather name="x-circle" size={18} color={getIconColor()} />
           </TouchableOpacity>

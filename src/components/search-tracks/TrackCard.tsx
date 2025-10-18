@@ -3,7 +3,6 @@ import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 
-import AnimatedTrackTitle from '@/components/search-tracks/AnimatedTrackTitle';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';

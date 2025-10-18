@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, Pressable, View } from 'react-native';
+import { Dimensions, Pressable } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
