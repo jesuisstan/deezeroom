@@ -8,6 +8,12 @@ import React, {
 } from 'react';
 import { Alert as RNAlert, Platform, Pressable, View } from 'react-native';
 
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
+
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -49,9 +55,20 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
   const { theme } = useTheme();
   const [state, setState] = useState<AlertState>(DEFAULTS);
 
-  const hide = () => {
-    setState((prev) => ({ ...prev, visible: false }));
-  };
+  // Animation values for web modal
+  const opacity = useSharedValue(0);
+
+  const hide = useCallback(() => {
+    if (Platform.OS === 'web') {
+      // Animate out for web
+      opacity.value = withTiming(0, { duration: 150 });
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, visible: false }));
+      }, 150);
+    } else {
+      setState((prev) => ({ ...prev, visible: false }));
+    }
+  }, [opacity]);
 
   const show = useCallback((params: AlertShowParams) => {
     const next: AlertState = {
@@ -62,6 +79,11 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
     };
 
     setState(next);
+
+    // Animate in for web
+    if (Platform.OS === 'web') {
+      opacity.value = withTiming(1, { duration: 150 });
+    }
 
     // Use native Alert on mobile platforms
     if (Platform.OS !== 'web') {
@@ -82,9 +104,10 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
       // Auto-hide state for mobile platforms
       setTimeout(hide, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useImperativeHandle(ref, () => ({ show, hide }), [show]);
+  useImperativeHandle(ref, () => ({ show, hide }), [show, hide]);
 
   // Expose through singleton ref
   useEffect(() => {
@@ -92,7 +115,20 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
     return () => {
       alertRef.current = null as unknown as AlertRef;
     };
-  }, [show]);
+  }, [show, hide]);
+
+  // Animated styles for web modal
+  const backgroundAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value
+    };
+  });
+
+  const modalAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value
+    };
+  });
 
   // Only render web modal
   if (!state.visible || Platform.OS !== 'web') return null;
@@ -135,44 +171,60 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
   };
 
   return (
-    <Pressable
-      onPress={hide}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 9999,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20
-      }}
+    <Animated.View
+      style={[
+        {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        },
+        backgroundAnimatedStyle
+      ]}
       className="cursor-default"
     >
+      <Pressable
+        onPress={hide}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}
+        className="cursor-default"
+      />
       <Pressable
         onPress={(e) => e.stopPropagation()}
         className="cursor-default"
       >
-        <View
-          style={{
-            backgroundColor: colors['bg-main'],
-            borderRadius: 12,
-            padding: 24,
-            minWidth: 300,
-            maxWidth: 400,
-            shadowColor: '#000',
-            shadowOffset: {
-              width: 0,
-              height: 4
+        <Animated.View
+          style={[
+            {
+              backgroundColor: colors['bg-main'],
+              borderRadius: 12,
+              padding: 24,
+              minWidth: 300,
+              maxWidth: 400,
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 4
+              },
+              shadowOpacity: 0.3,
+              shadowRadius: 6,
+              elevation: 8,
+              borderWidth: 1,
+              borderColor: colors['border']
             },
-            shadowOpacity: 0.3,
-            shadowRadius: 6,
-            elevation: 8,
-            borderWidth: 1,
-            borderColor: colors['border']
-          }}
+            modalAnimatedStyle
+          ]}
         >
           {/* Title */}
           {state.title && (
@@ -192,8 +244,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
           <View
             style={{
               flexDirection: 'row',
-              justifyContent:
-                (state.buttons?.length || 0) > 2 ? 'flex-end' : 'space-between',
+              justifyContent: 'center',
               gap: 8
             }}
           >
@@ -204,15 +255,14 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
                 title={getButtonProps(button).title}
                 onPress={getButtonProps(button).onPress}
                 size="md"
-                className="min-w-20"
+                className="flex-1"
                 color={getButtonProps(button).color}
-                //width="full"
               />
             ))}
           </View>
-        </View>
+        </Animated.View>
       </Pressable>
-    </Pressable>
+    </Animated.View>
   );
 });
 
