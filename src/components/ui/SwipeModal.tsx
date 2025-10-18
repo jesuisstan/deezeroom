@@ -25,7 +25,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const DEFAULT_DURATION = 50;
+const DEFAULT_DURATION = 150;
 
 interface SwipeModalProps {
   modalVisible: boolean; // Whether the modal is visible
@@ -63,6 +63,7 @@ const WebSwipeModal = (props: SwipeModalProps) => {
     );
 
     return () => backHandler.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.modalVisible]);
 
   if (!props.modalVisible) return null;
@@ -77,52 +78,62 @@ const WebSwipeModal = (props: SwipeModalProps) => {
     >
       {/* Background overlay */}
       <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={{
-          flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
           <TouchableWithoutFeedback onPress={() => {}}>
-            <View style={{
-              backgroundColor: themeColors[theme]['bg-main'],
-              borderRadius: 12,
-              marginHorizontal: 20,
-              maxWidth: Math.min(500, width - 40),
-              width: '100%',
-              maxHeight: height * 0.9,
-              minHeight: 200,
-              shadowColor: '#000',
-              shadowOffset: {
-                width: 0,
-                height: 2,
-              },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 8
-            }}>
+            <View
+              style={{
+                backgroundColor: themeColors[theme]['bg-main'],
+                borderRadius: 12,
+                marginHorizontal: 20,
+                maxWidth: Math.min(500, width - 40),
+                width: '100%',
+                maxHeight: height * 0.9,
+                minHeight: 200,
+                shadowColor: '#000',
+                shadowOffset: {
+                  width: 0,
+                  height: 2
+                },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 8
+              }}
+            >
               {/* Header */}
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                padding: 20,
-                paddingBottom: props.title ? 16 : 20
-              }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  padding: 20,
+                  paddingBottom: props.title ? 16 : 20
+                }}
+              >
                 {props.title && (
                   <View style={{ flex: 1, marginRight: 16 }}>
-                    <TextCustom type="bold" size="xl" style={{
-                      color: themeColors[theme]['text-main']
-                    }}>
+                    <TextCustom
+                      type="bold"
+                      size="xl"
+                      color={themeColors[theme]['text-main']}
+                    >
                       {props.title}
                     </TextCustom>
                   </View>
                 )}
-                <View style={{
-                  marginTop: -4,
-                  marginRight: -8
-                }}>
-                  <IconButton 
+                <View
+                  style={{
+                    marginTop: -4,
+                    marginRight: -8
+                  }}
+                >
+                  <IconButton
                     accessibilityLabel="Close modal"
                     onPress={handleClose}
                   >
@@ -136,12 +147,12 @@ const WebSwipeModal = (props: SwipeModalProps) => {
               </View>
 
               {/* Content */}
-              <ScrollView 
-                style={{ 
+              <ScrollView
+                style={{
                   flex: 1,
                   paddingHorizontal: 20
                 }}
-                contentContainerStyle={{ 
+                contentContainerStyle={{
                   flexGrow: 1,
                   paddingBottom: 20
                 }}
@@ -149,9 +160,7 @@ const WebSwipeModal = (props: SwipeModalProps) => {
                 keyboardShouldPersistTaps="handled"
               >
                 <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-                  <View style={{ flex: 1 }}>
-                    {props.children}
-                  </View>
+                  <View style={{ flex: 1 }}>{props.children}</View>
                 </TouchableWithoutFeedback>
               </ScrollView>
             </View>
