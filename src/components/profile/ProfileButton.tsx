@@ -6,7 +6,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
 const ProfileButton = () => {
-  const { user } = useUser();
+  const { profile } = useUser();
   const router = useRouter();
 
   return (
@@ -17,9 +17,9 @@ const ProfileButton = () => {
       }}
       hitSlop={8}
     >
-      {user?.photoURL ? (
+      {profile?.photoURL ? (
         <Image
-          source={{ uri: user.photoURL }}
+          source={{ uri: profile.photoURL }}
           className="h-12 w-12 rounded-full border-2 border-border"
           accessibilityRole="button"
           alt="Profile"
@@ -27,7 +27,7 @@ const ProfileButton = () => {
       ) : (
         <View className="h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-primary">
           <TextCustom type="title">
-            {(user?.displayName || user?.email || '?')
+            {(profile?.displayName || profile?.email || '?')
               .trim()
               .charAt(0)
               .toUpperCase()}

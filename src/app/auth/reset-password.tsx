@@ -18,6 +18,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -52,7 +53,7 @@ const ResetPasswordScreen: FC = () => {
       await sendPasswordResetEmail(auth, normalized);
       setIsEmailSent(true);
     } catch (error: any) {
-      console.log('Reset password error:', error);
+      Logger.error('Reset password error', error, 'ResetPasswordScreen');
       const errorMessage = getFirebaseErrorMessage(error);
       setEmailError(errorMessage || 'Failed to send reset email');
       Notifier.shoot({
@@ -161,7 +162,7 @@ const ResetPasswordScreen: FC = () => {
             />
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Send reset email"
               size="lg"
               onPress={handleResetPassword}

@@ -1,6 +1,5 @@
 import { FC, useEffect, useState } from 'react';
 import {
-  Alert,
   Image,
   ScrollView,
   TextInput,
@@ -10,15 +9,24 @@ import {
 
 import { useRouter } from 'expo-router';
 
+import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Track } from '@/graphql/schema';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger/LoggerModule';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, updateProfile } = useUser();
+  const { theme } = useTheme();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
+    string | undefined
+  >();
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -45,6 +53,10 @@ const ProfileScreen: FC = () => {
       });
     }
   }, [profile, editing]);
+
+  const handlePlayTrack = (track: Track) => {
+    setCurrentPlayingTrackId(track.id);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -76,7 +88,7 @@ const ProfileScreen: FC = () => {
       setEditing(false);
       Alert.alert('Success', 'Profile updated');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      Logger.error('Error updating profile', error, 'ProfileScreen');
       Alert.alert('Error', 'Failed to update profile');
     }
   };
@@ -120,16 +132,16 @@ const ProfileScreen: FC = () => {
         <View className="flex-1 flex-row items-center gap-2">
           <View className="flex-1">
             <RippleButton
-              fullWidth
+              width="full"
               title="Edit profile"
               size="sm"
               variant="outline"
-              onPress={() => setEditing(!editing)}
+              onPress={() => router.push('/profile/edit-profile')}
             />
           </View>
           <View className="flex-1">
             <RippleButton
-              fullWidth
+              width="full"
               title="Settings"
               size="sm"
               variant="outline"
@@ -250,6 +262,17 @@ const ProfileScreen: FC = () => {
               numberOfLines={2}
             />
           </View>
+        </View>
+
+        {/* Favorite Tracks Section */}
+        <View className="mb-6">
+          <TextCustom type="subtitle" className="mb-4">
+            Favorite Tracks
+          </TextCustom>
+          <FavoriteTracksList
+            onPlayTrack={handlePlayTrack}
+            currentPlayingTrackId={currentPlayingTrackId}
+          />
         </View>
 
         {editing && (

@@ -48,6 +48,23 @@ const ProfileLayout = () => {
           }
         }}
       />
+      <Stack.Screen
+        name="edit-profile"
+        options={{
+          title: 'Edit Profile',
+          headerShown: true,
+          //statusBarTranslucent: true, // UPDATED: value is ignored when using react-native-edge-to-edge
+          headerRight: () => <SignOutButton />,
+          headerStyle: {
+            backgroundColor: themeColors[theme]['primary']
+          },
+          headerTintColor: themeColors[theme]['text-main'],
+          headerTitleStyle: {
+            fontFamily: 'LeagueGothic',
+            fontSize: 30
+          }
+        }}
+      />
     </Stack>
   );
 };

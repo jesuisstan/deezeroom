@@ -2,7 +2,6 @@ import { User } from 'firebase/auth';
 import {
   collection,
   deleteDoc,
-  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -15,8 +14,10 @@ import {
   where
 } from 'firebase/firestore';
 
+import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
+import { StorageService } from '@/utils/firebase/firebase-service-storage';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
 // Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
@@ -64,6 +65,7 @@ export interface UserProfile {
     favoriteGenres: string[];
     favoriteArtists: string[];
   };
+  favoriteTracks?: string[]; // Array of track IDs
   authProviders?: {
     google?: {
       linked: boolean;
@@ -92,12 +94,6 @@ export class UserService {
 
     if (user.providerData && user.providerData.length > 0) {
       user.providerData.forEach((provider) => {
-        console.log(
-          '🔍 Processing provider:',
-          provider.providerId,
-          provider.email
-        );
-
         if (provider.providerId === 'google.com') {
           providers.google = {
             linked: true,
@@ -166,7 +162,11 @@ export class UserService {
         );
 
         if (removedKeys.length > 0) {
-          console.log('🗑️ Removed unlinked providers:', removedKeys);
+          Logger.info(
+            'Removed unlinked providers',
+            removedKeys,
+            '🔥 Firebase UserService'
+          );
         }
 
         // Check if providers actually changed to avoid unnecessary updates
@@ -177,7 +177,11 @@ export class UserService {
         needsUpdate = existingProvidersStr !== newProvidersStr;
 
         if (!needsUpdate) {
-          console.log('📝 No provider changes detected, skipping update');
+          Logger.info(
+            'No provider changes detected, skipping update',
+            null,
+            '🔥 Firebase UserService'
+          );
         }
       }
 
@@ -216,6 +220,8 @@ export class UserService {
         if (user.photoURL) {
           baseData.photoURL = user.photoURL;
         }
+        // Initialize favoriteTracks for new users
+        baseData.favoriteTracks = [];
       }
 
       // Only write to Firestore if there are actual changes or it's a new user
@@ -229,12 +235,24 @@ export class UserService {
         ) as Partial<UserProfile>;
 
         await setDoc(userRef, userData, { merge: true });
-        console.log('✅ User profile created/updated successfully');
+        Logger.info(
+          'User profile created/updated successfully',
+          null,
+          '🔥 Firebase UserService'
+        );
       } else {
-        console.log('⏭️ Skipping Firestore write - no changes detected');
+        Logger.info(
+          'Skipping Firestore write - no changes detected',
+          null,
+          '🔥 Firebase UserService'
+        );
       }
     } catch (error) {
-      console.error('❌ Error in createOrUpdateUser:', error);
+      Logger.error(
+        'Error in createOrUpdateUser',
+        error,
+        '🔥 Firebase UserService'
+      );
       throw error;
     }
   }
@@ -293,7 +311,11 @@ export class UserService {
         });
       }
     } catch (error) {
-      console.error('Error updating auth providers:', error);
+      Logger.error(
+        'Error updating auth providers',
+        error,
+        '🔥 Firebase UserService'
+      );
       throw error;
     }
   }
@@ -355,10 +377,18 @@ export class UserService {
       // Update auth providers in database
       await this.updateAuthProviders(currentUser);
 
-      console.log('Successfully linked Google account');
+      Logger.info(
+        'Successfully linked Google account',
+        null,
+        '🔥 Firebase UserService'
+      );
       return { success: true, message: 'Google account linked successfully' };
     } catch (error: any) {
-      console.log('Error linking Google account:', error);
+      Logger.error(
+        'Error linking Google account',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -403,7 +433,11 @@ export class UserService {
 
       return { success: true, message: 'Google account unlinked successfully' };
     } catch (error: any) {
-      console.error('Error unlinking Google account:', error);
+      Logger.error(
+        'Error unlinking Google account',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -488,10 +522,18 @@ export class UserService {
       await this.updateUserProfile(currentUser.uid, {
         emailVerified: currentUser.emailVerified
       });
-      console.log('Successfully linked email/password');
+      Logger.info(
+        'Successfully linked email/password',
+        null,
+        '🔥 Firebase UserService'
+      );
       return { success: true, message: 'Email/Password linked successfully' };
     } catch (error: any) {
-      console.log('Error linking email/password:', error);
+      Logger.error(
+        'Error linking email/password',
+        error,
+        '🔥 Firebase UserService'
+      );
       return {
         success: false,
         message:
@@ -513,6 +555,98 @@ export class UserService {
         callback(null);
       }
     });
+  }
+
+  // Upload user avatar and update profile
+  static async uploadUserAvatar(
+    uid: string,
+    imageUri: string
+  ): Promise<{ success: boolean; photoURL?: string; error?: string }> {
+    try {
+      // Upload image to Firebase Storage
+      const photoURL = await StorageService.uploadUserAvatar(uid, imageUri);
+
+      // Update user profile
+      await this.updateUserProfile(uid, { photoURL });
+
+      Logger.info(
+        'Avatar uploaded successfully',
+        { uid, photoURL },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, photoURL };
+    } catch (error) {
+      Logger.error('Error uploading avatar', error, '🔥 Firebase UserService');
+      return {
+        success: false,
+        error: getFirebaseErrorMessage(error) || 'Failed to upload avatar'
+      };
+    }
+  }
+
+  // Delete user avatar
+  static async deleteUserAvatar(
+    uid: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get current profile
+      const profile = await this.getUserProfile(uid);
+      if (!profile?.photoURL) {
+        Logger.info('No avatar to delete', { uid }, '🔥 Firebase UserService');
+        return { success: true }; // No avatar to delete
+      }
+
+      Logger.info(
+        'Deleting avatar',
+        { uid, photoURL: profile.photoURL },
+        '🔥 Firebase UserService'
+      );
+
+      // Delete image from Storage only if it's a Firebase Storage URL
+      if (
+        profile.photoURL.startsWith('https://firebasestorage.googleapis.com')
+      ) {
+        try {
+          await StorageService.deleteImage(profile.photoURL);
+          Logger.info(
+            'Avatar deleted from Storage',
+            { uid },
+            '🔥 Firebase UserService'
+          );
+        } catch (storageError) {
+          Logger.warn(
+            'Failed to delete from Storage, continuing with profile update',
+            storageError,
+            '🔥 Firebase UserService'
+          );
+          // Continue even if it fails to delete from Storage
+        }
+      } else {
+        Logger.info(
+          'Avatar is not from Firebase Storage, skipping Storage deletion',
+          { uid },
+          '🔥 Firebase UserService'
+        );
+      }
+
+      // Update profile (always clear photoURL)
+      await this.updateUserProfile(uid, { photoURL: '' });
+
+      Logger.info(
+        'Avatar deleted successfully',
+        { uid },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true };
+    } catch (error) {
+      Logger.error('Error deleting avatar', error, '🔥 Firebase UserService');
+      return {
+        success: false,
+        error: getFirebaseErrorMessage(error) || 'Failed to delete avatar'
+      };
+    }
   }
 
   // Securely delete current user's account and related data
@@ -578,10 +712,171 @@ export class UserService {
 
       return { success: true, message: 'Account deleted successfully' };
     } catch (error: any) {
-      console.error('Error deleting account:', error);
+      Logger.error('Error deleting account', error, '🔥 Firebase UserService');
       return {
         success: false,
         message: getFirebaseErrorMessage(error) || 'Failed to delete account'
+      };
+    }
+  }
+
+  // Add track to favorites
+  static async addToFavorites(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+
+      if (currentFavorites.includes(trackId)) {
+        return { success: false, message: 'Track is already in favorites' };
+      }
+
+      const updatedFavorites = [...currentFavorites, trackId];
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track added to favorites',
+        { uid, trackId },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, message: 'Track added to favorites' };
+    } catch (error: any) {
+      Logger.error(
+        'Error adding track to favorites',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        message:
+          getFirebaseErrorMessage(error) || 'Failed to add track to favorites'
+      };
+    }
+  }
+
+  // Remove track from favorites
+  static async removeFromFavorites(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return { success: false, message: 'User profile not found' };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+
+      if (!currentFavorites.includes(trackId)) {
+        return { success: false, message: 'Track is not in favorites' };
+      }
+
+      const updatedFavorites = currentFavorites.filter((id) => id !== trackId);
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track removed from favorites',
+        { uid, trackId },
+        '🔥 Firebase UserService'
+      );
+
+      return { success: true, message: 'Track removed from favorites' };
+    } catch (error: any) {
+      Logger.error(
+        'Error removing track from favorites',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        message:
+          getFirebaseErrorMessage(error) ||
+          'Failed to remove track from favorites'
+      };
+    }
+  }
+
+  // Toggle track favorite status
+  static async toggleFavoriteTrack(
+    uid: string,
+    trackId: string
+  ): Promise<{ success: boolean; isFavorite: boolean; message?: string }> {
+    try {
+      const userRef = doc(db, this.collection, uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        return {
+          success: false,
+          isFavorite: false,
+          message: 'User profile not found'
+        };
+      }
+
+      const userData = userSnap.data() as UserProfile;
+      const currentFavorites = userData.favoriteTracks || [];
+      const isCurrentlyFavorite = currentFavorites.includes(trackId);
+
+      let updatedFavorites: string[];
+      let message: string;
+
+      if (isCurrentlyFavorite) {
+        updatedFavorites = currentFavorites.filter((id) => id !== trackId);
+        message = 'Track removed from favorites';
+      } else {
+        updatedFavorites = [...currentFavorites, trackId];
+        message = 'Track added to favorites';
+      }
+
+      await updateDoc(userRef, {
+        favoriteTracks: updatedFavorites,
+        updatedAt: serverTimestamp()
+      });
+
+      Logger.info(
+        'Track favorite status toggled',
+        { uid, trackId, isFavorite: !isCurrentlyFavorite },
+        '🔥 Firebase UserService'
+      );
+
+      return {
+        success: true,
+        isFavorite: !isCurrentlyFavorite,
+        message
+      };
+    } catch (error: any) {
+      Logger.error(
+        'Error toggling track favorite status',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return {
+        success: false,
+        isFavorite: false,
+        message:
+          getFirebaseErrorMessage(error) ||
+          'Failed to toggle track favorite status'
       };
     }
   }

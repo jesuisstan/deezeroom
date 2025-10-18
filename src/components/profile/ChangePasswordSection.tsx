@@ -12,6 +12,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -87,7 +88,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
         });
       }, 1500);
     } catch (error: any) {
-      console.log('Change password error:', error);
+      Logger.error('Change password error', error, 'ChangePasswordSection');
       const errorMessage = getFirebaseErrorMessage(error);
       setResult({
         success: false,
@@ -166,7 +167,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
             )}
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Change Password"
               onPress={handleChangePassword}
               loading={isChanging}
@@ -179,7 +180,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
             />
 
             <RippleButton
-              fullWidth
+              width="full"
               title="Cancel"
               variant="outline"
               onPress={() => {

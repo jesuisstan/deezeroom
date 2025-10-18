@@ -168,7 +168,7 @@ const NeedHelp = () => {
             title="Back to Help"
             size="md"
             variant="outline"
-            fullWidth
+            width="full"
             onPress={slideBackToMain}
             leftIcon={
               <Entypo

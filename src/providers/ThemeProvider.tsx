@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colorScheme } from 'nativewind';
 
+import { Logger } from '@/modules/logger';
 import { themes } from '@/style/color-theme';
 
 interface ThemeProviderProps {
@@ -24,7 +25,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const THEME_STORAGE_KEY = 'app:themePreference';
 
-  console.log('🎨 ThemeProvider - currentTheme:', currentTheme);
+  Logger.info('Current theme:', currentTheme, '🎨 ThemeProvider');
 
   const toggleTheme = () => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';

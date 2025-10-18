@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
@@ -36,6 +36,7 @@ interface SwipeModalProps {
   disableSwipe?: boolean; // Disable the swipe gesture
   fade?: boolean; // Fade the background
   duration?: number; // Duration of the animation
+  size?: 'full' | 'three-quarter' | 'half' | 'third'; // Size of the modal
 }
 
 // Web version using Modal with centered popup
@@ -167,6 +168,9 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
   const { height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
 
+  // Destructure props with default value for size
+  const { size = 'full' } = props;
+
   const translateY = useSharedValue(height - insets.top);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -267,6 +271,21 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
     };
   });
 
+  const modalHeight = useMemo(() => {
+    switch (size) {
+      case 'full':
+        return height - insets.top;
+      case 'half':
+        return (height - insets.top) / 2;
+      case 'third':
+        return (height - insets.top) / 3;
+      case 'three-quarter':
+        return ((height - insets.top) / 3) * 2;
+      default:
+        return height - insets.top;
+    }
+  }, [size, height, insets.top]);
+
   if (!props.modalVisible) return null;
 
   return (
@@ -311,7 +330,7 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
               backgroundColor: themeColors[theme]['bg-main'],
               borderTopLeftRadius: 25,
               borderTopRightRadius: 25,
-              height: height - insets.top, // Screen height minus status bar
+              height: modalHeight,
               shadowColor: '#000',
               shadowOffset: {
                 width: 0,

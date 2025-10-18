@@ -112,8 +112,8 @@ graph TD
 
     H --> H1["(tabs)/_layout.tsx<br/>(Main App)"]
     H1 --> H2["(tabs)/index.tsx"]
-    H1 --> H3["(tabs)/home.tsx"]
-    H1 --> H4["(tabs)/explore.tsx"]
+    H1 --> H3["(tabs)/events.tsx"]
+    H1 --> H4["(tabs)/playlists.tsx"]
     H1 --> H5["Profile Button"]
     H5 --> H6["profile/_layout.tsx"]
     H6 --> H7["profile/index.tsx"]

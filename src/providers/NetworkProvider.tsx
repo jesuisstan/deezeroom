@@ -35,6 +35,7 @@ import React, {
 
 import { NetworkState, NetworkStateType, useNetworkState } from 'expo-network';
 
+import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 
 type ConnectionType = 'WIFI' | 'CELLULAR' | 'UNKNOWN' | 'NONE';
@@ -104,7 +105,7 @@ export const NetworkProvider = ({ children }: NetworkProviderProps) => {
       return;
     }
 
-    console.log('📡 NetworkProvider - current online status:', isOnline);
+    Logger.info('Current online status:', isOnline, '📡 NetworkProvider');
 
     const prev = previousOnlineRef.current;
     if (prev !== isOnline) {

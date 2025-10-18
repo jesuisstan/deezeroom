@@ -2,6 +2,7 @@ import { Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import { Logger } from '@/modules/logger';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -14,6 +15,8 @@ const RouterBackButton = ({ onPress }: RouterBackButtonProps) => {
   const { theme } = useTheme();
 
   const handleBackPress = () => {
+    Logger.navigation.back('RouterBackButton');
+
     if (onPress) {
       onPress();
     } else {

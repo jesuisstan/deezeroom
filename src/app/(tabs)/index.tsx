@@ -1,187 +1,127 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Image, ScrollView, View } from 'react-native';
 
-import clsx from 'clsx';
+import { useRouter } from 'expo-router';
 
-import RippleButton from '@/components/ui/buttons/RippleButton';
-import Divider from '@/components/ui/Divider';
+import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
+import FeatureTile from '@/components/ui/FeatureTile';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Notifier } from '@/modules/notifier';
+import { Track } from '@/graphql/schema';
+import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const HomeScreen = () => {
-  const [name, setName] = useState('');
   const { theme } = useTheme();
+  const router = useRouter();
+  const {
+    startPlayback,
+    togglePlayPause,
+    updateQueue,
+    currentTrack,
+    isPlaying
+  } = usePlayback();
+  const [searchResults, setSearchResults] = useState<Track[]>([]);
 
-  const fetchGreeting = async () => {
-    const response = await fetch('/api/greeting');
-    const data = await response.json();
-    Notifier.shoot({
-      title: 'Greeting',
-      message: data.greeting,
-      type: 'info',
-      position: 'top'
-    });
+  const handlePlayTrack = (track: Track) => {
+    if (currentTrack?.id === track.id) {
+      togglePlayPause();
+      router.push('/player');
+      return;
+    }
+
+    startPlayback(searchResults, track.id);
+    router.push('/player');
   };
 
-  const postGreeting = async () => {
-    const response = await fetch(
-      `/api/greeting?name=${encodeURIComponent(name)}`,
-      { method: 'POST' }
-    );
-    const data = await response.json();
-    Notifier.shoot({
-      message: data.greeting,
-      type: 'error',
-      position: 'bottom'
-    });
+  const handleSearchResults = useCallback(
+    (tracks: Track[]) => {
+      setSearchResults(tracks);
+      updateQueue(tracks);
+    },
+    [updateQueue]
+  );
+
+  const handleNavigateToEvents = () => {
+    router.push('/(tabs)/events');
   };
 
-  const postGraphql = async () => {
-    const response = await fetch('/api/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        query: '{ greeting }'
-      })
-    });
-    const data = await response.json();
-    Notifier.shoot({
-      message: data.data.greeting,
-      type: 'success',
-      position: 'center'
-    });
+  const handleNavigateToPlaylists = () => {
+    router.push('/(tabs)/playlists');
   };
 
   return (
     <ScrollView
-      //className="flex-1 bg-bg-main"
       showsVerticalScrollIndicator={true}
-      contentContainerStyle={{
-        paddingBottom: 16,
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        gap: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        backgroundColor:
-          theme === 'dark'
-            ? themeColors.dark['bg-main']
-            : themeColors.light['bg-main'],
-        flexDirection: 'column',
-        alignSelf: 'center'
-      }}
+      contentContainerStyle={{ flexGrow: 1 }}
+      className="bg-bg-main"
     >
-      <View className="flex-row items-center gap-2">
-        <TextCustom type="title">DEEZEROOM APP</TextCustom>
-      </View>
-      <View className={clsx('flex-1 gap-4 p-4', 'bg-bg-secondary')}>
-        <TextCustom type="subtitle">Open an API route</TextCustom>
-        <Pressable onPress={fetchGreeting}>
-          <TextCustom type="link">GET /api/greeting</TextCustom>
-        </Pressable>
-        <View className="w-full flex-row items-center gap-2">
-          <TextInput
-            className="flex-1 rounded border border-accent p-2 text-intent-warning"
-            placeholder="Enter your name"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor={themeColors.light.accent}
-          />
-          <Pressable onPress={postGreeting}>
-            <TextCustom type="link">POST /api/greeting</TextCustom>
-          </Pressable>
-        </View>
-        <Pressable onPress={postGraphql}>
-          <TextCustom type="link">POST /api/graphql</TextCustom>
-        </Pressable>
-      </View>
+      <View className="min-h-full w-full flex-col items-center justify-start gap-4 self-center p-4">
+        {/* Welcome Section */}
+        <View className="w-full gap-2">
+          <View className="items-center">
+            <Image
+              source={
+                theme === 'dark'
+                  ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
+                  : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
+              }
+              style={{ height: 60, width: 280 }}
+              resizeMode="contain"
+            />
+            <TextCustom
+              type="subtitle"
+              size="l"
+              color={themeColors[theme]['text-secondary']}
+            >
+              welcome to the party
+            </TextCustom>
+          </View>
 
-      <Divider />
-      <View className="w-full flex-1 flex-col items-center gap-4">
-        <TextCustom type="subtitle">RippleButton</TextCustom>
-        <RippleButton
-          title="Primary"
-          onPress={() => {
-            console.log('Primary');
-          }}
-        />
-        <RippleButton
-          title="Disabled"
-          disabled={true}
-          onPress={() => {
-            console.log('Disabled');
-          }}
-        />
-        <RippleButton
-          title="Loading"
-          loading={true}
-          onPress={() => {
-            console.log('Loading');
-          }}
-        />
-        <RippleButton
-          title="Secondary"
-          variant="secondary"
-          onPress={() => {
-            console.log('Secondary');
-          }}
-        />
-        <RippleButton
-          fullWidth
-          title="Outline"
-          variant="outline"
-          onPress={() => {
-            console.log('Outline');
-          }}
-        />
-        <RippleButton
-          title="Ghost"
-          variant="ghost"
-          onPress={() => {
-            console.log('Ghost');
-          }}
-        />
-        <RippleButton
-          title="Primary Custom Color"
-          onPress={() => {
-            console.log('Primary Custom Color');
-          }}
-          color={themeColors[theme]['intent-success']}
-        />
-      </View>
-      <Divider />
-      <View className="w-full flex-1 flex-col items-center gap-4">
-        <RippleButton
-          fullWidth
-          title="Custom width"
-          variant="primary"
-          onPress={() => {
-            console.log('Custom width');
-          }}
-          className="w-72"
-        />
-        <RippleButton
-          fullWidth
-          title="Primary MD"
-          size="md"
-          onPress={() => {
-            console.log('Primary');
-          }}
-        />
-        <RippleButton
-          fullWidth
-          title="Outline SM"
-          size="sm"
-          variant="outline"
-          onPress={() => {
-            console.log('Outline');
-          }}
-        />
+          <TextCustom
+            size="m"
+            color={themeColors[theme]['text-secondary']}
+            className="text-center"
+          >
+            Create playlists with friends, vote for tracks at events and enjoy
+            music together
+          </TextCustom>
+        </View>
+
+        {/* Feature Tiles */}
+        <View className="w-full gap-4">
+          <View className="flex-row gap-4">
+            {/* Music Track Vote Tile */}
+            <FeatureTile
+              onPress={handleNavigateToEvents}
+              icon="vote"
+              title="Music Track Vote"
+              description="Vote for tracks at events to move them up"
+              backgroundColor={themeColors[theme]['primary']}
+            />
+
+            {/* Music Playlist Editor Tile */}
+            <FeatureTile
+              onPress={handleNavigateToPlaylists}
+              icon="playlist-music"
+              title="Playlist Editor"
+              description="Create live collaborative playlists"
+              backgroundColor={themeColors[theme]['intent-success']}
+            />
+          </View>
+        </View>
+
+        {/* Search Section */}
+        <View className="w-full gap-2">
+          <TextCustom type="subtitle" size="xl">
+            Music Search
+          </TextCustom>
+          <SearchTracksComponent
+            onPlayTrack={handlePlayTrack}
+            onSearchResults={handleSearchResults}
+            currentPlayingTrackId={isPlaying ? currentTrack?.id : undefined}
+          />
+        </View>
       </View>
     </ScrollView>
   );

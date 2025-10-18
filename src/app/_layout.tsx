@@ -10,16 +10,29 @@ import {
   configureReanimatedLogger,
   ReanimatedLogLevel
 } from 'react-native-reanimated';
+import {
+  cacheExchange,
+  Client as UrqlClient,
+  fetchExchange,
+  Provider as UrqlProvider
+} from 'urql';
 
 import DeezeroomApp from '@/components/DeezeroomApp';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import AlertModule from '@/modules/alert/AlertModule';
+import LoggerModule from '@/modules/logger/LoggerModule';
 import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
+import { PlaybackProvider } from '@/providers/PlaybackProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
 
 import '@/global.css';
+
+const urqlClient = new UrqlClient({
+  url: process.env.EXPO_PUBLIC_APP_URL + '/api/graphql',
+  exchanges: [cacheExchange, fetchExchange]
+});
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -52,17 +65,22 @@ const RootLayout = () => {
   }
 
   const appContent = (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <NetworkProvider>
-          <UserProvider>
-            <NotifierModule />
-            <AlertModule />
-            <DeezeroomApp />
-          </UserProvider>
-        </NetworkProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <UrqlProvider value={urqlClient}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider>
+          <NetworkProvider>
+            <UserProvider>
+              <PlaybackProvider>
+                <DeezeroomApp />
+                <LoggerModule />
+                <NotifierModule />
+                <AlertModule />
+              </PlaybackProvider>
+            </UserProvider>
+          </NetworkProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </UrqlProvider>
   );
 
   return appContent;

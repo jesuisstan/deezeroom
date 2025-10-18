@@ -51,9 +51,7 @@ module.exports = () => ({
         'expo-router',
         {
           origin:
-            process.env.NODE_ENV === 'development'
-              ? 'http://localhost:8081'
-              : 'https://deezeroom.expo.app'
+            process.env.EXPO_PUBLIC_APP_URL || 'https://deezeroom.expo.app'
         }
       ],
       [
@@ -74,6 +72,13 @@ module.exports = () => ({
         {
           supportsBackgroundPlayback: true,
           supportsPictureInPicture: true
+        }
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission:
+            'The app accesses your photos to let you upload them to the app.'
         }
       ]
     ],

@@ -1,18 +1,33 @@
 import { Platform, View } from 'react-native';
 
-import { Tabs } from 'expo-router';
+import Foundation from '@expo/vector-icons/Foundation';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Tabs, useRouter } from 'expo-router';
 
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { HapticTab } from '@/components/ui/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const HeaderRight = () => {
+  const router = useRouter();
+  const { theme } = useTheme();
+
   return (
     <View className="flex-row items-center gap-4">
+      <IconButton
+        accessibilityLabel="Open player"
+        onPress={() => router.push('/player')}
+      >
+        <MaterialCommunityIcons
+          name="music-note-eighth"
+          size={22}
+          color={themeColors[theme]['text-main']}
+        />
+      </IconButton>
       <ThemeToggler />
       <ProfileButton />
     </View>
@@ -25,11 +40,8 @@ const TabLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: themeColors.dark.primary,
-        tabBarInactiveTintColor:
-          theme === 'dark'
-            ? themeColors.dark['text-main']
-            : themeColors.light['text-main'],
+        tabBarActiveTintColor: themeColors[theme]['primary'],
+        tabBarInactiveTintColor: themeColors[theme]['text-main'],
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -37,32 +49,20 @@ const TabLayout = () => {
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
-            backgroundColor:
-              theme === 'dark'
-                ? themeColors.dark['bg-secondary']
-                : themeColors.light['bg-secondary']
+            backgroundColor: themeColors[theme]['bg-secondary']
           },
           default: {
-            backgroundColor:
-              theme === 'dark'
-                ? themeColors.dark['bg-secondary']
-                : themeColors.light['bg-secondary']
+            backgroundColor: themeColors[theme]['bg-secondary']
           }
         }),
         headerTitleStyle: {
           fontFamily: 'LeagueGothic',
           letterSpacing: 4,
           fontSize: 30,
-          color:
-            theme === 'dark'
-              ? themeColors.dark['text-main']
-              : themeColors.light['text-main']
+          color: themeColors[theme]['text-main']
         },
         headerStyle: {
-          backgroundColor:
-            theme === 'dark'
-              ? themeColors.dark['bg-secondary']
-              : themeColors.light['bg-secondary']
+          backgroundColor: themeColors[theme]['bg-secondary']
         }
       }}
     >
@@ -71,27 +71,35 @@ const TabLayout = () => {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="shippingbox.fill" color={color} />
+            <Foundation name="home" size={28} color={color} />
           ),
           headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
-        name="home"
+        name="events"
         options={{
-          title: 'Home',
+          title: 'Events',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <MaterialCommunityIcons
+              name="party-popper"
+              size={28}
+              color={color}
+            />
           ),
           headerRight: () => <HeaderRight />
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="playlists"
         options={{
-          title: 'Explore',
+          title: 'Playlists',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="shippingbox.fill" color={color} />
+            <MaterialCommunityIcons
+              name="playlist-music"
+              size={28}
+              color={color}
+            />
           ),
           headerRight: () => <HeaderRight />
         }}

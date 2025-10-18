@@ -15,6 +15,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
@@ -77,13 +78,17 @@ const RegisterScreen: FC = () => {
       // Send verification email (AuthGuard will navigate to verify screen)
       try {
         await sendEmailVerification(credential.user);
-        console.log('Verification email sent to user: ', credential.user.email);
+        Logger.info(
+          'Verification email sent to user',
+          credential.user.email,
+          'RegisterScreen'
+        );
       } catch (e) {
-        console.log('sendEmailVerification error (non-critical):', e);
+        Logger.error('sendEmailVerification error', e, 'RegisterScreen');
       }
     } catch (err: any) {
       const errorMessage = getFirebaseErrorMessage(err);
-      console.log('Error on register:', errorMessage);
+      Logger.error('Error on register', errorMessage, 'RegisterScreen');
       Notifier.shoot({
         type: 'error',
         title: 'Registration error',
@@ -194,7 +199,7 @@ const RegisterScreen: FC = () => {
 
           {/* Submit Button */}
           <RippleButton
-            fullWidth
+            width="full"
             title="Create account"
             size="lg"
             loading={loading}

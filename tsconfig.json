@@ -7,13 +7,20 @@
     },
     "jsx": "react-native",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "plugins": [
+      {
+        "name": "gql.tada/ts-plugin",
+        "config": "./gql-tada.config.js"
+      }
+    ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "graphql-env.d.ts"
   ]
 }
