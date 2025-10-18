@@ -315,7 +315,7 @@ export const Notifier = {
     title,
     message,
     type = 'info',
-    position = 'top',
+    position = 'bottom',
     sticky = false,
     showProgress
   }: NotifierShowParams & { sticky?: boolean }) => {

@@ -1,11 +1,10 @@
 import React from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Dimensions, Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
-import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -15,23 +14,15 @@ import { Playlist } from '@/utils/firebase/firebase-service-playlists';
 interface PlaylistCardProps {
   playlist: Playlist;
   onPress: (playlist: Playlist) => void;
-  onEdit?: (playlist: Playlist) => void;
-  onDelete?: (playlist: Playlist) => void;
-  showEditButton?: boolean;
-  showDeleteButton?: boolean;
 }
 
-const PlaylistCard: React.FC<PlaylistCardProps> = ({
-  playlist,
-  onPress,
-  onEdit,
-  onDelete,
-  showEditButton = false,
-  showDeleteButton = false
-}) => {
+const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onPress }) => {
   const { theme } = useTheme();
   const router = useRouter();
   const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
+
+  const { width } = Dimensions.get('window');
+  const cardWidth = Math.min((width - 48) / 2, 200); // For web compatibility
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -43,14 +34,10 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
     return `${minutes}m`;
   };
 
-  const getVisibilityIcon = () => {
-    return playlist.visibility === 'public' ? 'earth' : 'lock';
-  };
-
-  const getEditPermissionsIcon = () => {
-    return playlist.editPermissions === 'everyone'
-      ? 'account-multiple'
-      : 'account';
+  const getCardBackgroundColor = () => {
+    return playlist.visibility === 'public'
+      ? themeColors[theme].primary
+      : themeColors[theme]['intent-success'];
   };
 
   const handleCardPress = () => {
@@ -58,18 +45,17 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
   };
 
   return (
-    <Animated.View style={[{ marginBottom: 12 }, animatedStyle]}>
+    <Animated.View style={animatedStyle}>
       <Pressable
         onPress={handleCardPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         android_ripple={null}
         style={{
-          width: 160, // Fixed width for consistent grid
-          height: 160,
-          backgroundColor: themeColors[theme]['bg-secondary'],
-          borderRadius: 12,
-          padding: 12,
+          width: cardWidth,
+          height: cardWidth,
+          backgroundColor: getCardBackgroundColor(),
+          borderRadius: 8,
           shadowColor: themeColors[theme]['bg-inverse'],
           shadowOffset: {
             width: 0,
@@ -77,185 +63,139 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({
           },
           shadowOpacity: 0.1,
           shadowRadius: 4,
-          elevation: 2
+          overflow: 'hidden'
         }}
       >
-        {/* Cover Image with Overlay */}
-        <View
-          style={{
-            position: 'relative',
-            height: 80,
-            borderRadius: 8,
-            overflow: 'hidden',
-            marginBottom: 8
-          }}
-        >
-          {playlist.coverImageUrl ? (
-            <Image
-              source={{ uri: playlist.coverImageUrl }}
-              style={{ width: '100%', height: '100%' }}
-              resizeMode="cover"
-            />
-          ) : (
+        {/* 4 Quadrants Layout */}
+        <View style={{ flex: 1 }}>
+          {/* Top Row */}
+          <View style={{ flexDirection: 'row', flex: 1 }}>
+            {/* Top Left - Playlist Name */}
             <View
               style={{
-                width: '100%',
-                height: '100%',
-                backgroundColor: themeColors[theme]['bg-tertiary'],
-                alignItems: 'center',
-                justifyContent: 'center'
+                flex: 1,
+                justifyContent: 'flex-start',
+                paddingLeft: 12,
+                paddingTop: 12
               }}
             >
-              <MaterialCommunityIcons
-                name="music"
-                size={32}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </View>
-          )}
-
-          {/* Dark overlay for text readability */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.3)'
-            }}
-          />
-
-          {/* Action buttons overlay */}
-          <View
-            style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              flexDirection: 'row',
-              gap: 4
-            }}
-          >
-            {showEditButton && onEdit && (
-              <IconButton
-                accessibilityLabel="Edit playlist"
-                onPress={() => onEdit(playlist)}
-                backgroundColor="rgba(255, 255, 255, 0.9)"
-              >
-                <MaterialCommunityIcons
-                  name="pencil"
-                  size={14}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
-            )}
-
-            {showDeleteButton && onDelete && (
-              <IconButton
-                accessibilityLabel="Delete playlist"
-                onPress={() => onDelete(playlist)}
-                backgroundColor="rgba(255, 255, 255, 0.9)"
-              >
-                <MaterialCommunityIcons
-                  name="delete"
-                  size={14}
-                  color={themeColors[theme]['intent-error']}
-                />
-              </IconButton>
-            )}
-          </View>
-        </View>
-
-        {/* Content */}
-        <View style={{ flex: 1, gap: 4 }}>
-          {/* Playlist Name */}
-          <TextCustom type="bold" size="s" numberOfLines={1}>
-            {playlist.name}
-          </TextCustom>
-
-          {/* Metadata */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-            >
-              <MaterialCommunityIcons
-                name="music-note"
-                size={12}
-                color={themeColors[theme]['text-secondary']}
-              />
               <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
+                type="subtitle"
+                size="xl"
+                numberOfLines={2}
+                color={themeColors[theme]['text-main']}
+                selectable={false}
               >
-                {playlist.trackCount}
+                {playlist.name}
               </TextCustom>
             </View>
 
+            {/* Top Right - Track Count & Duration */}
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+              style={{
+                flex: 1,
+                alignItems: 'flex-end',
+                justifyContent: 'flex-start'
+              }}
             >
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={12}
-                color={themeColors[theme]['text-secondary']}
-              />
-              <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
+              <View
+                style={{
+                  alignItems: 'flex-end',
+                  gap: 2,
+                  paddingRight: 12,
+                  paddingTop: 12
+                }}
               >
-                {formatDuration(playlist.totalDuration)}
-              </TextCustom>
+                <TextCustom size="s" selectable={false}>
+                  {playlist.trackCount} tracks
+                </TextCustom>
+                <TextCustom size="s" selectable={false}>
+                  {formatDuration(playlist.totalDuration)}
+                </TextCustom>
+              </View>
             </View>
           </View>
 
-          {/* Visibility and Permissions */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 2,
-                backgroundColor: themeColors[theme]['bg-tertiary'],
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                borderRadius: 8
-              }}
-            >
-              <MaterialCommunityIcons
-                name={getVisibilityIcon()}
-                size={10}
-                color={themeColors[theme]['text-secondary']}
-              />
-              <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
+          {/* Bottom Row */}
+          <View style={{ flexDirection: 'row', flex: 1 }}>
+            {/* Bottom Left - Cover Image */}
+            <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  overflow: 'hidden',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                }}
               >
-                {playlist.visibility === 'public' ? 'Public' : 'Private'}
-              </TextCustom>
+                {playlist.coverImageUrl ? (
+                  <Image
+                    source={{ uri: playlist.coverImageUrl }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="music"
+                      size={32}
+                      color="white"
+                    />
+                  </View>
+                )}
+              </View>
             </View>
 
+            {/* Bottom Right - Type & Availability */}
             <View
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 2,
-                backgroundColor: themeColors[theme]['bg-tertiary'],
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-                borderRadius: 8
+                flex: 1,
+                alignItems: 'flex-end',
+                justifyContent: 'flex-end'
               }}
             >
-              <MaterialCommunityIcons
-                name={getEditPermissionsIcon()}
-                size={10}
-                color={themeColors[theme]['text-secondary']}
-              />
-              <TextCustom
-                size="xs"
-                color={themeColors[theme]['text-secondary']}
+              <View
+                style={{
+                  alignItems: 'flex-end',
+                  gap: 4,
+                  paddingRight: 12,
+                  paddingBottom: 12
+                }}
               >
-                {playlist.editPermissions === 'everyone' ? 'All' : 'Invited'}
-              </TextCustom>
+                <View
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 4
+                  }}
+                >
+                  <TextCustom size="xs" selectable={false}>
+                    {playlist.visibility === 'public' ? 'Public' : 'Private'}
+                  </TextCustom>
+                </View>
+                <View
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    paddingHorizontal: 6,
+                    paddingVertical: 2,
+                    borderRadius: 4
+                  }}
+                >
+                  <TextCustom size="xs" selectable={false}>
+                    {playlist.editPermissions === 'everyone'
+                      ? 'All'
+                      : 'Invited'}
+                  </TextCustom>
+                </View>
+              </View>
             </View>
           </View>
         </View>

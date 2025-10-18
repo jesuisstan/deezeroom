@@ -3,10 +3,10 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import CreatePlaylistButton from '@/components/playlists/CreatePlaylistButton';
 import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
@@ -79,11 +79,6 @@ const PlaylistsScreen = () => {
     console.log('Navigate to playlist:', playlist.id);
   };
 
-  const handlePlaylistEdit = (playlist: Playlist) => {
-    // TODO: Navigate to playlist edit screen
-    console.log('Edit playlist:', playlist.id);
-  };
-
   const handlePlaylistDelete = (playlist: Playlist) => {
     Alert.delete(
       'Delete Playlist',
@@ -128,16 +123,63 @@ const PlaylistsScreen = () => {
   const getTabTitle = (tab: 'my' | 'participating' | 'public') => {
     switch (tab) {
       case 'my':
-        return 'My Playlists';
+        return 'My';
       case 'participating':
-        return 'Participating';
+        return 'Shared';
       case 'public':
         return 'Public';
     }
   };
 
   return (
-    <View className="flex-1">
+    <View
+      className="flex-1"
+      style={{
+        backgroundColor:
+          theme === 'dark'
+            ? themeColors.dark['bg-main']
+            : themeColors.light['bg-main']
+      }}
+    >
+      {/* Sticky Tabs Header */}
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+          backgroundColor:
+            theme === 'dark'
+              ? themeColors.dark['bg-main']
+              : themeColors.light['bg-main'],
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors[theme].border,
+          shadowColor: themeColors[theme]['bg-inverse'],
+          shadowOffset: {
+            width: 0,
+            height: 2
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 4
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {(['my', 'participating', 'public'] as const).map((tab) => (
+            <View key={tab} style={{ flex: 1 }}>
+              <RippleButton
+                title={getTabTitle(tab)}
+                size="sm"
+                onPress={() => handleTabChange(tab)}
+                color={
+                  activeTab === tab
+                    ? themeColors[theme].primary
+                    : themeColors[theme].border
+                }
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={true}
         refreshControl={
@@ -148,39 +190,9 @@ const PlaylistsScreen = () => {
           paddingHorizontal: 16,
           paddingTop: 16,
           gap: 16,
-          backgroundColor:
-            theme === 'dark'
-              ? themeColors.dark['bg-main']
-              : themeColors.light['bg-main'],
           flexGrow: 1
         }}
       >
-        {/* Header */}
-        <View className="flex-row items-center justify-between">
-          <TextCustom type="title">Playlists</TextCustom>
-          <RippleButton
-            title="Create"
-            onPress={() => setShowCreateModal(true)}
-            size="sm"
-          />
-        </View>
-
-        {/* Tabs */}
-        <View className="flex-row gap-2">
-          {(['my', 'participating', 'public'] as const).map((tab) => (
-            <RippleButton
-              key={tab}
-              title={getTabTitle(tab)}
-              variant={activeTab === tab ? 'primary' : 'outline'}
-              size="sm"
-              onPress={() => handleTabChange(tab)}
-              className="flex-1"
-            />
-          ))}
-        </View>
-
-        <Divider />
-
         {/* Playlists List */}
         {isLoading ? (
           <View className="flex-1 items-center justify-center py-20">
@@ -208,30 +220,22 @@ const PlaylistsScreen = () => {
             )}
           </View>
         ) : (
-          <View>
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              gap: 8
+            }}
+          >
+            <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
             {playlists.map((playlist) => (
               <PlaylistCard
                 key={playlist.id}
                 playlist={playlist}
                 onPress={handlePlaylistPress}
-                onEdit={handlePlaylistEdit}
-                onDelete={handlePlaylistDelete}
-                showEditButton={playlist.createdBy === user?.uid}
-                showDeleteButton={playlist.createdBy === user?.uid}
               />
             ))}
-            {/*
-            <PlaylistGrid
-              playlists={playlists}
-              onPlaylistPress={handlePlaylistPress}
-              onPlaylistEdit={handlePlaylistEdit}
-              onPlaylistDelete={handlePlaylistDelete}
-              showEditButton={true}
-              showDeleteButton={true}
-              userId={user?.uid}
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-            />*/}
           </View>
         )}
       </ScrollView>
