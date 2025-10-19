@@ -551,20 +551,6 @@ const EditProfileScreen: FC = () => {
         <View className="mb-6">
           <TextCustom type="subtitle">Music preferences</TextCustom>
 
-          <View className="mb-4">
-            <TextCustom>Favorite genres</TextCustom>
-            <TextInput
-              className="mt-1 h-20 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.favoriteGenres}
-              onChangeText={(text) =>
-                setFormData({ ...formData, favoriteGenres: text })
-              }
-              placeholder="Rock, Pop, Jazz (comma separated)"
-              multiline
-              numberOfLines={2}
-            />
-          </View>
-
           {/* Favorite artists with search + chips */}
           <View className="mb-2">
             <TextCustom>Favorite artists</TextCustom>
