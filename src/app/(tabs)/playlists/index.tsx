@@ -74,11 +74,6 @@ const PlaylistsScreen = () => {
     setIsLoading(false);
   };
 
-  const handlePlaylistPress = (playlist: Playlist) => {
-    // TODO: Navigate to playlist detail screen
-    console.log('Navigate to playlist:', playlist.id);
-  };
-
   const handlePlaylistDelete = (playlist: Playlist) => {
     Alert.delete(
       'Delete Playlist',
@@ -230,11 +225,7 @@ const PlaylistsScreen = () => {
           >
             <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
             {playlists.map((playlist) => (
-              <PlaylistCard
-                key={playlist.id}
-                playlist={playlist}
-                onPress={handlePlaylistPress}
-              />
+              <PlaylistCard key={playlist.id} playlist={playlist} />
             ))}
           </View>
         )}

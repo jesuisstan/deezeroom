@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -881,6 +882,135 @@ export class UserService {
           getFirebaseErrorMessage(error) ||
           'Failed to toggle track favorite status'
       };
+    }
+  }
+
+  // ===== USER SEARCH FOR INVITATIONS =====
+
+  // Search users by email or display name
+  static async searchUsers(
+    searchQuery: string,
+    limitCount: number = 10,
+    excludeUserId?: string
+  ): Promise<UserProfile[]> {
+    try {
+      if (!searchQuery.trim()) return [];
+
+      const searchTerm = searchQuery.trim().toLowerCase();
+
+      // Search by email (exact match)
+      const emailQuery = query(
+        collection(db, this.collection),
+        where('email', '==', searchTerm),
+        limit(limitCount)
+      );
+
+      // Search by display name (contains)
+      const nameQuery = query(
+        collection(db, this.collection),
+        where('displayName', '>=', searchTerm),
+        where('displayName', '<=', searchTerm + '\uf8ff'),
+        limit(limitCount)
+      );
+
+      const [emailResults, nameResults] = await Promise.all([
+        getDocs(emailQuery),
+        getDocs(nameQuery)
+      ]);
+
+      // Combine and deduplicate results
+      const allUsers = new Map<string, UserProfile>();
+
+      emailResults.docs.forEach((doc) => {
+        const docData = doc.data();
+        if (docData) {
+          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
+          if (!excludeUserId || userData.uid !== excludeUserId) {
+            allUsers.set(userData.uid, userData);
+          }
+        }
+      });
+
+      nameResults.docs.forEach((doc) => {
+        const docData = doc.data();
+        if (docData) {
+          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
+          if (!excludeUserId || userData.uid !== excludeUserId) {
+            allUsers.set(userData.uid, userData);
+          }
+        }
+      });
+
+      return Array.from(allUsers.values()).slice(0, limitCount);
+    } catch (error) {
+      Logger.error('Error searching users', error, '🔥 Firebase UserService');
+      return [];
+    }
+  }
+
+  // Get user by email
+  static async getUserByEmail(email: string): Promise<UserProfile | null> {
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const q = query(
+        collection(db, this.collection),
+        where('email', '==', normalizedEmail),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) return null;
+
+      const doc = querySnapshot.docs[0];
+      const docData = doc.data();
+      if (!docData) return null;
+      return { id: doc.id, ...docData } as unknown as UserProfile;
+    } catch (error) {
+      Logger.error(
+        'Error getting user by email',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return null;
+    }
+  }
+
+  // Get multiple users by their UIDs
+  static async getUsersByIds(uids: string[]): Promise<UserProfile[]> {
+    try {
+      if (uids.length === 0) return [];
+
+      // Firestore 'in' queries are limited to 10 items
+      const chunks = [];
+      for (let i = 0; i < uids.length; i += 10) {
+        chunks.push(uids.slice(i, i + 10));
+      }
+
+      const allUsers: UserProfile[] = [];
+
+      for (const chunk of chunks) {
+        const q = query(
+          collection(db, this.collection),
+          where('uid', 'in', chunk)
+        );
+        const querySnapshot = await getDocs(q);
+
+        querySnapshot.docs.forEach((doc) => {
+          const docData = doc.data();
+          if (docData) {
+            allUsers.push({ id: doc.id, ...docData } as unknown as UserProfile);
+          }
+        });
+      }
+
+      return allUsers;
+    } catch (error) {
+      Logger.error(
+        'Error getting users by IDs',
+        error,
+        '🔥 Firebase UserService'
+      );
+      return [];
     }
   }
 }

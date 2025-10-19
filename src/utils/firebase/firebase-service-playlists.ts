@@ -16,6 +16,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
+import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 
 export interface MusicTrack {
@@ -357,13 +358,17 @@ export class PlaylistService {
   static async inviteUserToPlaylist(
     playlistId: string,
     userId: string,
-    invitedBy: string
+    invitedBy: string,
+    displayName?: string,
+    email?: string
   ): Promise<string> {
     const invitationData = {
       userId,
       invitedBy,
       invitedAt: new Date(),
-      status: 'pending' as const
+      status: 'pending' as const,
+      displayName,
+      email
     };
 
     const docRef = await addDoc(
@@ -372,6 +377,104 @@ export class PlaylistService {
     );
 
     return docRef.id;
+  }
+
+  // Invite multiple users to playlist
+  static async inviteMultipleUsersToPlaylist(
+    playlistId: string,
+    users: { userId: string; displayName?: string; email?: string }[],
+    invitedBy: string
+  ): Promise<{ success: boolean; invitedCount: number; errors: string[] }> {
+    try {
+      const errors: string[] = [];
+      let invitedCount = 0;
+
+      // Check if playlist exists and user has permission to invite
+      const playlist = await this.getPlaylist(playlistId);
+      if (!playlist) {
+        return {
+          success: false,
+          invitedCount: 0,
+          errors: ['Playlist not found']
+        };
+      }
+
+      // Check if user can invite (owner or has edit permissions)
+      const canInvite =
+        playlist.createdBy === invitedBy ||
+        playlist.participants.some(
+          (p) => p.userId === invitedBy && p.role === 'editor'
+        );
+
+      if (!canInvite) {
+        return {
+          success: false,
+          invitedCount: 0,
+          errors: ['You do not have permission to invite users']
+        };
+      }
+
+      // Process invitations
+      for (const user of users) {
+        try {
+          // Check if user is already a participant
+          const isAlreadyParticipant = playlist.participants.some(
+            (p) => p.userId === user.userId
+          );
+          if (isAlreadyParticipant) {
+            errors.push(
+              `${user.displayName || user.email || 'User'} is already a participant`
+            );
+            continue;
+          }
+
+          // Check if invitation already exists
+          const existingInvitationsQuery = query(
+            collection(
+              db,
+              this.collection,
+              playlistId,
+              this.invitationsCollection
+            ),
+            where('userId', '==', user.userId),
+            where('status', '==', 'pending')
+          );
+          const existingInvitations = await getDocs(existingInvitationsQuery);
+
+          if (!existingInvitations.empty) {
+            errors.push(
+              `${user.displayName || user.email || 'User'} already has a pending invitation`
+            );
+            continue;
+          }
+
+          // Create invitation
+          await this.inviteUserToPlaylist(
+            playlistId,
+            user.userId,
+            invitedBy,
+            user.displayName,
+            user.email
+          );
+
+          invitedCount++;
+        } catch (error) {
+          Logger.error(`Error inviting user ${user.userId}:`, error);
+          errors.push(
+            `Failed to invite ${user.displayName || user.email || 'User'}`
+          );
+        }
+      }
+
+      return { success: true, invitedCount, errors };
+    } catch (error) {
+      Logger.error('Error inviting multiple users:', error);
+      return {
+        success: false,
+        invitedCount: 0,
+        errors: ['Failed to process invitations']
+      };
+    }
   }
 
   static async acceptInvitation(
