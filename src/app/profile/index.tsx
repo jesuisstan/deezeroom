@@ -105,6 +105,12 @@ const ProfileScreen: FC = () => {
   // Build share path for this profile
   const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
 
+  // New: resolve location label for display (only place, not coords)
+  const locationLabel =
+    (profile?.publicInfo as any)?.locationName ||
+    profile?.publicInfo?.location ||
+    '';
+
   return (
     <ScrollView
       className="flex-1 bg-bg-main px-4 py-4"
@@ -201,7 +207,7 @@ const ProfileScreen: FC = () => {
           />
           <InfoRow
             label="Location"
-            value={profile?.publicInfo?.location}
+            value={locationLabel}
             emptyText="No location yet"
           />
         </View>

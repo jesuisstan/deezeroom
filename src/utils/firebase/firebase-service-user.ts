@@ -56,6 +56,8 @@ export interface UserProfile {
   publicInfo?: {
     bio?: string;
     location?: string;
+    locationName?: string;
+    locationCoords?: { lat: number; lng: number } | null;
   };
   privateInfo?: {
     phone?: string;
@@ -811,8 +813,7 @@ export class UserService {
       return {
         success: false,
         message:
-          getFirebaseErrorMessage(error) ||
-          'Failed to remove track from favorites'
+          getFirebaseErrorMessage(error) || 'Failed to remove track from favorites'
       };
     }
   }

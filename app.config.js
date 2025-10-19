@@ -80,6 +80,13 @@ module.exports = () => ({
           photosPermission:
             'The app accesses your photos to let you upload them to the app.'
         }
+      ],
+      [
+        'expo-location',
+        {
+          locationWhenInUsePermission:
+            'Allow Deezeroom to use your location to show your city on profile.'
+        }
       ]
     ],
     experiments: {

@@ -20,6 +20,7 @@ import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 import { updateAvatar } from '@/utils/profile-utils';
+import * as ExpoLocation from 'expo-location';
 
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
@@ -49,13 +50,17 @@ const EditProfileScreen: FC = () => {
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
-    location: '',
+    // location now stored as coordinates + human-readable name
+    locationName: '',
+    locationCoords: null as null | { lat: number; lng: number },
     phone: '',
     birthDate: '',
     favoriteGenres: '',
     favoriteArtists: ''
   });
 
+  // Loading state for location detection
+  const [locLoading, setLocLoading] = useState(false);
   const [showBirthPicker, setShowBirthPicker] = useState(false);
 
   // Constrain content width on web for better readability
@@ -75,7 +80,11 @@ const EditProfileScreen: FC = () => {
       setFormData({
         displayName: profile.displayName || '',
         bio: profile.publicInfo?.bio || '',
-        location: profile.publicInfo?.location || '',
+        locationName:
+          (profile.publicInfo as any)?.locationName ||
+          profile.publicInfo?.location ||
+          '',
+        locationCoords: (profile.publicInfo as any)?.locationCoords || null,
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || '',
         favoriteGenres:
@@ -114,6 +123,169 @@ const EditProfileScreen: FC = () => {
     return isNaN(d.getTime()) ? null : d;
   };
 
+  const buildPlaceName = (data: any): string => {
+    try {
+      // Google Geocoding API response
+      if (data?.results && Array.isArray(data.results) && data.results[0]) {
+        const res = data.results[0];
+        const get = (type: string) =>
+          res.address_components.find((c: any) => c.types.includes(type))?.
+            long_name;
+        const city =
+          get('locality') ||
+          get('postal_town') ||
+          get('sublocality') ||
+          get('administrative_area_level_2') ||
+          '';
+        const admin = get('administrative_area_level_1') || '';
+        const country = get('country') || '';
+        const fromComponents = [city, admin, country].filter(Boolean).join(', ');
+        if (fromComponents) return fromComponents;
+        if (typeof res.formatted_address === 'string') {
+          return res.formatted_address;
+        }
+      }
+      // Expo reverseGeocodeAsync array
+      if (Array.isArray(data) && data[0]) {
+        const item = data[0] as any;
+        const city = item.city || item.town || item.district || item.subregion || '';
+        const region = item.region || item.state || '';
+        const country = item.country || '';
+        const fromExpo = [city, region, country].filter(Boolean).join(', ');
+        if (fromExpo) return fromExpo;
+        const nm = String(item.name || '').trim();
+        const looksLikeCoords = /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(nm);
+        if (nm && !looksLikeCoords) return nm;
+      }
+      // Nominatim response
+      if (data?.address) {
+        const a = data.address;
+        const city = a.city || a.town || a.village || a.hamlet || a.suburb || '';
+        const region = a.state || a.county || '';
+        const country = a.country || '';
+        const fromNom = [city, region, country].filter(Boolean).join(', ');
+        if (fromNom) return fromNom;
+        if (data.display_name) return data.display_name;
+      }
+    } catch {}
+    return '';
+  };
+
+  // Web-only: load Google Maps JS SDK and geocode via client to avoid CORS
+  const loadGoogleMaps = (key: string) =>
+    new Promise<void>((resolve, reject) => {
+      if (typeof window !== 'undefined' && (window as any).google?.maps) {
+        resolve();
+        return;
+      }
+      const scriptId = 'gmaps-sdk';
+      const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
+      if (existing && (window as any).google?.maps) {
+        resolve();
+        return;
+      }
+      const s = document.createElement('script');
+      s.id = scriptId;
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&v=weekly`;
+      s.async = true;
+      s.onerror = () => reject(new Error('Failed to load Google Maps JS SDK'));
+      s.onload = () => resolve();
+      document.head.appendChild(s);
+    });
+
+  const reverseGeocodeWebWithSDK = async (
+    lat: number,
+    lng: number,
+    key?: string
+  ): Promise<string> => {
+    if (!key) return '';
+    try {
+      await loadGoogleMaps(key);
+      const geocoder = new (window as any).google.maps.Geocoder();
+      const { results } = await geocoder.geocode({ location: { lat, lng } });
+      const place = buildPlaceName({ results });
+      return place || '';
+    } catch (e) {
+      Logger.warn('google.maps.Geocoder failed', e, 'EditProfile');
+      return '';
+    }
+  };
+
+  const reverseGeocode = async (lat: number, lng: number) => {
+    const key =
+      process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY;
+
+    if (Platform.OS === 'web' && key) {
+      const viaSdk = await reverseGeocodeWebWithSDK(lat, lng, key);
+      if (viaSdk) return viaSdk;
+    }
+
+    // 1) Try Google Geocoding REST if key provided
+    try {
+      if (key) {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${key}`;
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (json.status === 'OK') {
+          const place = buildPlaceName(json);
+          if (place) return place;
+        }
+      }
+    } catch (e) {
+      Logger.warn('Google reverse geocode REST failed', e, 'EditProfile');
+    }
+
+    // 2) Try Expo reverse geocode
+    try {
+      const res = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const place = buildPlaceName(res);
+      if (place) return place;
+    } catch (e) {
+      Logger.warn('Expo reverse geocode failed', e, 'EditProfile');
+    }
+
+    // 3) Web-only fallback: Nominatim (OpenStreetMap)
+    try {
+      if (Platform.OS === 'web') {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en`;
+        const resp = await fetch(url);
+        const json = await resp.json();
+        const place = buildPlaceName(json);
+        if (place) return place;
+      }
+    } catch (e) {
+      Logger.warn('Nominatim reverse geocode failed', e, 'EditProfile');
+    }
+    return '';
+  };
+
+  const detectLocation = async () => {
+    try {
+      setLocLoading(true);
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Location permission is needed.');
+        return;
+      }
+      const pos = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.Balanced
+      });
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lng = Number(pos.coords.longitude.toFixed(6));
+      const place = await reverseGeocode(lat, lng);
+      setFormData((prev) => ({
+        ...prev,
+        locationCoords: { lat, lng },
+        locationName: place || prev.locationName
+      }));
+    } catch (e) {
+      Logger.error('Failed to get location', e, 'EditProfile');
+      Alert.alert('Error', 'Failed to get location');
+    } finally {
+      setLocLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
     try {
@@ -121,7 +293,8 @@ const EditProfileScreen: FC = () => {
         displayName: formData.displayName,
         publicInfo: {
           bio: formData.bio,
-          location: formData.location
+          locationName: formData.locationName || undefined,
+          locationCoords: formData.locationCoords || undefined
         },
         privateInfo: {
           phone: formData.phone,
@@ -212,26 +385,51 @@ const EditProfileScreen: FC = () => {
               onChangeText={(text) => setFormData({ ...formData, bio: text })}
               placeholder="Tell me about yourself"
               multiline
-              numberOfLines={3}
             />
           </View>
 
+          {/* Location (read-only) */}
           <View className="mb-4">
             <TextCustom>Location</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.location}
-              onChangeText={(text) =>
-                setFormData({ ...formData, location: text })
-              }
-              placeholder="City, country"
-            />
+            <View className="mt-1 rounded-xl border border-border bg-bg-main p-3">
+              {formData.locationCoords ? (
+                <TextCustom className="text-text-main">
+                  {(() => {
+                    const { lat, lng } = formData.locationCoords!;
+                    const nm = (formData.locationName || '').trim();
+                    const looksLikeCoords = /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(nm);
+                    return `${lat}, ${lng}${nm && !looksLikeCoords ? ` (${nm})` : ''}`;
+                  })()}
+                </TextCustom>
+              ) : (
+                <TextCustom className="text-accent">Not set</TextCustom>
+              )}
+            </View>
+            <View className="mt-2 flex-row gap-8">
+              <TouchableOpacity
+                className="rounded-xl bg-bg-secondary px-4 py-3"
+                onPress={detectLocation}
+                disabled={locLoading}
+              >
+                <TextCustom className="text-bg-main">
+                  {locLoading ? 'Detecting…' : 'Use my location'}
+                </TextCustom>
+              </TouchableOpacity>
+              {formData.locationCoords && (
+                <TouchableOpacity
+                  className="rounded-xl border border-border px-4 py-3"
+                  onPress={() =>
+                    setFormData({ ...formData, locationCoords: null, locationName: '' })
+                  }
+                >
+                  <TextCustom>Clear</TextCustom>
+                </TouchableOpacity>
+              )}
+            </View>
+            <TextCustom size="xs" className="mt-2 opacity-60">
+              Coordinates are saved.
+            </TextCustom>
           </View>
-        </View>
-
-        {/* Private information */}
-        <View className="mb-6 mt-2">
-          <TextCustom type="subtitle">Private information</TextCustom>
 
           <View className="mb-4">
             <TextCustom>Phone</TextCustom>
@@ -239,7 +437,7 @@ const EditProfileScreen: FC = () => {
               className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              placeholder="+1 (999) 123-45-67"
+              placeholder="Enter your phone number"
               keyboardType="phone-pad"
             />
           </View>
@@ -247,63 +445,19 @@ const EditProfileScreen: FC = () => {
           <View className="mb-4">
             <TextCustom>Birth date</TextCustom>
             {Platform.OS === 'web' ? (
-              <View className="mt-1 w-full">
-                {ReactDatePicker ? (
-                  <>
-                    <TouchableOpacity
-                      className="rounded-xl border border-border bg-bg-main p-3"
-                      onPress={() => setShowBirthPicker(true)}
-                    >
-                      <TextCustom>
-                        {formData.birthDate || 'Select date'}
-                      </TextCustom>
-                    </TouchableOpacity>
-                    {showBirthPicker && (
-                      <div
-                        className="ml 1 dr-date-overlay mt-1"
-                        onClick={() => setShowBirthPicker(false)}
-                      >
-                        <div
-                          className="dr-date-modal"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {/* @ts-ignore web-only component */}
-                          <ReactDatePicker
-                            inline
-                            selected={parseDate(formData.birthDate)}
-                            onChange={(date: any) => {
-                              setFormData({
-                                ...formData,
-                                birthDate: date ? formatDate(date) : ''
-                              });
-                              setShowBirthPicker(false);
-                            }}
-                            maxDate={new Date()}
-                            dateFormat="yyyy-MM-dd"
-                            showMonthDropdown
-                            showYearDropdown
-                            dropdownMode="select"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <TextInput
-                      className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-                      value={formData.birthDate}
-                      onChangeText={(text) =>
-                        setFormData({ ...formData, birthDate: text })
-                      }
-                      placeholder="YYYY-MM-DD"
-                    />
-                    <TextCustom className="mt-2 text-accent">
-                      Temporary input on web (react-datepicker not installed).
-                    </TextCustom>
-                  </>
-                )}
-              </View>
+              <>
+                <TextInput
+                  className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
+                  value={formData.birthDate}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, birthDate: text })
+                  }
+                  placeholder="YYYY-MM-DD"
+                />
+                <TextCustom className="mt-2 text-accent">
+                  Temporary input on web (react-datepicker not installed).
+                </TextCustom>
+              </>
             ) : (
               <>
                 {RNDateTimePicker ? (
