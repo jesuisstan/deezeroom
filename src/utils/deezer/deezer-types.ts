@@ -13,6 +13,7 @@ export interface DeezerArtist {
   tracklist?: string;
   type?: string;
   role?: string;
+  nb_fan?: number;
 }
 
 export interface DeezerAlbum {
@@ -61,6 +62,13 @@ export interface DeezerTrack {
 
 export interface DeezerSearchResponse {
   data: DeezerTrack[];
+  total: number;
+  next?: string;
+  prev?: string;
+}
+
+export interface DeezerArtistSearchResponse {
+  data: DeezerArtist[];
   total: number;
   next?: string;
   prev?: string;

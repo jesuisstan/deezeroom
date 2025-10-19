@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 
 import { Logger } from '@/modules/logger';
+import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
@@ -57,6 +58,8 @@ export interface UserProfile {
   publicInfo?: {
     bio?: string;
     location?: string;
+    locationName?: string;
+    locationCoords?: { lat: number; lng: number } | null;
   };
   privateInfo?: {
     phone?: string;
@@ -64,7 +67,7 @@ export interface UserProfile {
   };
   musicPreferences?: {
     favoriteGenres: string[];
-    favoriteArtists: string[];
+    favoriteArtists: DeezerArtist[]; // Array of DeezerArtist (max 20)
   };
   favoriteTracks?: string[]; // Array of track IDs
   authProviders?: {

@@ -14,6 +14,7 @@ import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -102,8 +103,34 @@ const ProfileScreen: FC = () => {
     </View>
   );
 
+  const ArtistChip: FC<{ artist: DeezerArtist }> = ({ artist }) => (
+    <View className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-main px-2 py-1">
+      {artist.picture_small ? (
+        <Image
+          source={{ uri: artist.picture_small }}
+          className="mr-2 h-5 w-5 rounded-full"
+        />
+      ) : (
+        <View className="mr-2 h-5 w-5 items-center justify-center rounded-full bg-bg-secondary">
+          <TextCustom size="xs">
+            {(artist.name || '?').charAt(0).toUpperCase()}
+          </TextCustom>
+        </View>
+      )}
+      <TextCustom className="text-accent" size="s">
+        {artist.name || ''}
+      </TextCustom>
+    </View>
+  );
+
   // Build share path for this profile
   const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
+
+  // New: resolve location label for display (only place, not coords)
+  const locationLabel =
+    (profile?.publicInfo as any)?.locationName ||
+    profile?.publicInfo?.location ||
+    '';
 
   return (
     <ScrollView
@@ -149,13 +176,6 @@ const ProfileScreen: FC = () => {
                   message="Check out my Deezeroom profile:"
                 />
               </View>
-
-              {/* Access chip */}
-              <View className="mt-3 self-start rounded-full border border-border bg-bg-main px-3 py-1">
-                <TextCustom size="s" className="text-accent">
-                  Access: {accessLevel}
-                </TextCustom>
-              </View>
             </View>
           </View>
 
@@ -187,7 +207,7 @@ const ProfileScreen: FC = () => {
         {/* Basic information card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <View className="mb-2 flex-row items-center justify-between">
-            <TextCustom type="subtitle">Basic information</TextCustom>
+            <TextCustom type="subtitle">Profile details</TextCustom>
           </View>
           <InfoRow
             label="Name"
@@ -201,15 +221,16 @@ const ProfileScreen: FC = () => {
           />
           <InfoRow
             label="Location"
-            value={profile?.publicInfo?.location}
+            value={locationLabel}
             emptyText="No location yet"
           />
         </View>
 
         {/* Private information card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle">Private information</TextCustom>
-          {accessLevel === 'owner' && (
+        {accessLevel === 'owner' && (
+          <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+            <TextCustom type="subtitle">Private information</TextCustom>
+
             <>
               <InfoRow
                 label="Phone"
@@ -222,64 +243,39 @@ const ProfileScreen: FC = () => {
                 emptyText="No birth date yet"
               />
             </>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Music preferences card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
-
-          <View className="mt-2">
+          <View className="mt-4">
             <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-              Favorite genres
+              Favorite artists
             </TextCustom>
-            {/* chips */}
             {(() => {
-              const items = profile?.musicPreferences?.favoriteGenres;
+              const items = profile?.musicPreferences?.favoriteArtists as
+                | any[]
+                | undefined;
               if (!items || items.length === 0)
                 return (
                   <TextCustom className="text-accent/60">
-                    No favorite genres yet
+                    No favorite artists yet
                   </TextCustom>
                 );
               return (
                 <View className="mt-2 flex-row flex-wrap">
-                  {items.map((i) => (
-                    <Chip key={i} text={i} />
-                  ))}
+                  {items.map((i, idx) => {
+                    if (typeof i === 'string') {
+                      return <Chip key={`${i}-${idx}`} text={i} />;
+                    }
+                    const a = i as DeezerArtist;
+                    return <ArtistChip key={a.id || idx} artist={a} />;
+                  })}
                 </View>
               );
             })()}
           </View>
-
-          {accessLevel === 'owner' || accessLevel === 'friends' ? (
-            <View className="mt-4">
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-                Favorite artists
-              </TextCustom>
-              {(() => {
-                const items = profile?.musicPreferences?.favoriteArtists;
-                if (!items || items.length === 0)
-                  return (
-                    <TextCustom className="text-accent/60">
-                      No favorite artists yet
-                    </TextCustom>
-                  );
-                return (
-                  <View className="mt-2 flex-row flex-wrap">
-                    {items.map((i) => (
-                      <Chip key={i} text={i} />
-                    ))}
-                  </View>
-                );
-              })()}
-            </View>
-          ) : (
-            <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
-              <TextCustom className="text-accent">Limited</TextCustom>
-              <TextCustom>Artists list is visible to friends only.</TextCustom>
-            </View>
-          )}
         </View>
 
         {/* Favorite Tracks card */}
@@ -304,6 +300,18 @@ const ProfileScreen: FC = () => {
             </View>
           </View>
         )}
+
+        {/* Playlists card */}
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+          <TextCustom type="subtitle">Playlists</TextCustom>
+          <View className="mt-3">
+            <RippleButton
+              width="full"
+              title={`Open ${profile?.displayName} Playlists`}
+              onPress={() => router.push('/(tabs)/playlists')} //TODO: pass uid param
+            />
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
