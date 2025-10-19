@@ -176,13 +176,6 @@ const ProfileScreen: FC = () => {
                   message="Check out my Deezeroom profile:"
                 />
               </View>
-
-              {/* Access chip */}
-              <View className="mt-3 self-start rounded-full border border-border bg-bg-main px-3 py-1">
-                <TextCustom size="s" className="text-accent">
-                  Access: {accessLevel}
-                </TextCustom>
-              </View>
             </View>
           </View>
 
@@ -214,7 +207,7 @@ const ProfileScreen: FC = () => {
         {/* Basic information card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <View className="mb-2 flex-row items-center justify-between">
-            <TextCustom type="subtitle">Basic information</TextCustom>
+            <TextCustom type="subtitle">Profile details</TextCustom>
           </View>
           <InfoRow
             label="Name"
@@ -234,31 +227,28 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Private information card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle">Private information</TextCustom>
-          {accessLevel === 'owner' && (
-            <>
-              <InfoRow
-                label="Phone"
-                value={profile?.privateInfo?.phone}
-                emptyText="No phone yet"
-              />
-              <InfoRow
-                label="Birth date"
-                value={profile?.privateInfo?.birthDate}
-                emptyText="No birth date yet"
-              />
-            </>
-          )}
-        </View>
+        {accessLevel === 'owner' && (
+          <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+            <TextCustom type="subtitle">Private information</TextCustom>
+
+              <>
+                <InfoRow
+                  label="Phone"
+                  value={profile?.privateInfo?.phone}
+                  emptyText="No phone yet"
+                />
+                <InfoRow
+                  label="Birth date"
+                  value={profile?.privateInfo?.birthDate}
+                  emptyText="No birth date yet"
+                />
+              </>
+          </View>
+        )}
 
         {/* Music preferences card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
-
-          
-
-          {accessLevel === 'owner' || accessLevel === 'friends' ? (
             <View className="mt-4">
               <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
                 Favorite artists
@@ -284,12 +274,6 @@ const ProfileScreen: FC = () => {
                 );
               })()}
             </View>
-          ) : (
-            <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
-              <TextCustom className="text-accent">Limited</TextCustom>
-              <TextCustom>Artists list is visible to friends only.</TextCustom>
-            </View>
-          )}
         </View>
 
         {/* Favorite Tracks card */}
@@ -314,6 +298,18 @@ const ProfileScreen: FC = () => {
             </View>
           </View>
         )}
+
+        {/* Playlists card */}
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+          <TextCustom type="subtitle">Playlists</TextCustom>
+          <View className="mt-3">
+            <RippleButton
+              width="full"
+              title={`Open ${profile?.displayName} Playlists`}
+              onPress={() => router.push('/(tabs)/playlists')} //TODO: pass uid param
+            />
+          </View>
+        </View>
       </View>
     </ScrollView>
   );

@@ -494,6 +494,7 @@ const EditProfileScreen: FC = () => {
           </View>
 
           <View className="mb-4">
+            <TextCustom type="subtitle">Private information</TextCustom>
             <TextCustom>Phone</TextCustom>
             <TextInput
               className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
