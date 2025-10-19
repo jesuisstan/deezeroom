@@ -12,6 +12,7 @@ import { Track } from '@/graphql/schema';
 import { useUser } from '@/providers/UserProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import ShareButton from '@/components/share/ShareButton';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -77,6 +78,9 @@ const ProfileScreen: FC = () => {
     </View>
   );
 
+  // Build share path for this profile
+  const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
+
   return (
     <ScrollView className="flex-1 bg-bg-main px-4 py-4" contentContainerStyle={Platform.OS === 'web' ? { alignItems: 'center' } : undefined}>
       <View className="gap-4 w-full" style={[containerStyle]}>
@@ -96,12 +100,17 @@ const ProfileScreen: FC = () => {
               </View>
             )}
             <View className="flex-1">
-              <TextCustom type="title" size="4xl">
-                {profile?.displayName || 'User'}
-              </TextCustom>
-              {profile?.email ? (
-                <TextCustom className="text-accent">{profile.email}</TextCustom>
-              ) : null}
+              <View className="flex-row items-start justify-between">
+                <View className="flex-1 pr-2">
+                  <TextCustom type="title" size="4xl">
+                    {profile?.displayName || 'User'}
+                  </TextCustom>
+                  {profile?.email ? (
+                    <TextCustom className="text-accent">{profile.email}</TextCustom>
+                  ) : null}
+                </View>
+                <ShareButton path={profilePath} title="Share profile" message="Check out my Deezeroom profile:" />
+              </View>
 
               {/* Access chip */}
               <View className="mt-3 self-start rounded-full border border-border bg-bg-main px-3 py-1">
@@ -138,7 +147,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Basic information card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <View className="mb-2 flex-row items-center justify-between">
             <TextCustom type="subtitle">Basic information</TextCustom>
           </View>
@@ -148,7 +157,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Private information card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Private information</TextCustom>
           {accessLevel === 'owner' && (
             <>
@@ -159,7 +168,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Music preferences card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
 
           <View className="mt-2">
@@ -203,7 +212,7 @@ const ProfileScreen: FC = () => {
 
         {/* Favorite Tracks card */}
         {(accessLevel === 'owner' || accessLevel === 'friends') ? (
-          <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
+          <View className="rounded-2xl border border-border bg-bg-secondary p-4">
             <TextCustom type="subtitle" className="mb-4">
               Favorite Tracks
             </TextCustom>
