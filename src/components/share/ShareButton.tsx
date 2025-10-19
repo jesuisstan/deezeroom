@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
+
 import AntDesign from '@expo/vector-icons/AntDesign';
 import * as Linking from 'expo-linking';
-import IconButton from '@/components/ui/buttons/IconButton';
+
 import ShareLinkModal from '@/components/share/ShareLinkModal';
+import IconButton from '@/components/ui/buttons/IconButton';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -14,7 +16,13 @@ export type ShareButtonProps = {
   accessibilityLabel?: string;
 };
 
-const ShareButton = ({ path, url, title = 'Share', message, accessibilityLabel = 'Share' }: ShareButtonProps) => {
+const ShareButton = ({
+  path,
+  url,
+  title = 'Share',
+  message,
+  accessibilityLabel = 'Share'
+}: ShareButtonProps) => {
   const { theme } = useTheme();
   const [visible, setVisible] = useState(false);
 
@@ -26,10 +34,23 @@ const ShareButton = ({ path, url, title = 'Share', message, accessibilityLabel =
 
   return (
     <>
-      <IconButton accessibilityLabel={accessibilityLabel} onPress={() => setVisible(true)}>
-        <AntDesign name="share-alt" size={22} color={themeColors[theme]['text-main']} />
+      <IconButton
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => setVisible(true)}
+      >
+        <AntDesign
+          name="share-alt"
+          size={22}
+          color={themeColors[theme]['text-main']}
+        />
       </IconButton>
-      <ShareLinkModal visible={visible} onClose={() => setVisible(false)} url={shareUrl} title={title} message={message} />
+      <ShareLinkModal
+        visible={visible}
+        onClose={() => setVisible(false)}
+        url={shareUrl}
+        title={title}
+        message={message}
+      />
     </>
   );
 };

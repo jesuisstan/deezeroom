@@ -1,19 +1,19 @@
 import { FC, useState } from 'react';
-import { Image, ScrollView, View, Platform } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import { Image, Platform, ScrollView, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
+import type { ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
+import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
-import { useUser } from '@/providers/UserProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
-import ShareButton from '@/components/share/ShareButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -23,12 +23,20 @@ const ProfileScreen: FC = () => {
   const { user, profile, profileLoading } = useUser();
   const { theme } = useTheme();
   const router = useRouter();
-  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<string | undefined>();
+  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
+    string | undefined
+  >();
   const insets = useSafeAreaInsets();
 
   const accessLevel: AccessLevel = (() => {
     // TODO: derive from profile privacy settings and friendship status
-    if (user && profile && (user as any).uid && (profile as any).uid && (user as any).uid === (profile as any).uid) {
+    if (
+      user &&
+      profile &&
+      (user as any).uid &&
+      (profile as any).uid &&
+      (user as any).uid === (profile as any).uid
+    ) {
       return 'owner' as const;
     }
     // if (profile?.relations?.isFriend) return 'friends' as const;
@@ -60,11 +68,17 @@ const ProfileScreen: FC = () => {
   }
 
   // Small helper row for labels/values
-  const InfoRow: FC<{ label: string; value?: string | null; emptyText?: string }> = ({ label, value, emptyText = '—' }) => {
+  const InfoRow: FC<{
+    label: string;
+    value?: string | null;
+    emptyText?: string;
+  }> = ({ label, value, emptyText = '—' }) => {
     const isEmpty = !value || !value.trim();
     return (
       <View className="flex-row items-start justify-between py-2">
-        <TextCustom className="text-accent/60 tracking-wide text-[10px] uppercase">{label}</TextCustom>
+        <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+          {label}
+        </TextCustom>
         {isEmpty ? (
           <TextCustom
             size="s"
@@ -81,8 +95,10 @@ const ProfileScreen: FC = () => {
   };
 
   const Chip: FC<{ text: string }> = ({ text }) => (
-    <View className="mr-2 mb-2 rounded-full border border-border bg-bg-main px-3 py-1">
-      <TextCustom className="text-accent" size="s">{text}</TextCustom>
+    <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-3 py-1">
+      <TextCustom className="text-accent" size="s">
+        {text}
+      </TextCustom>
     </View>
   );
 
@@ -90,20 +106,28 @@ const ProfileScreen: FC = () => {
   const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
 
   return (
-    <ScrollView className="flex-1 bg-bg-main px-4 py-4" contentContainerStyle={scrollContentStyle}>
-      <View className="gap-4 w-full" style={[containerStyle]}>
+    <ScrollView
+      className="flex-1 bg-bg-main px-4 py-4"
+      contentContainerStyle={scrollContentStyle}
+    >
+      <View className="w-full gap-4" style={[containerStyle]}>
         {/* Header card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
           <View className="flex-row items-center gap-4">
             {profile?.photoURL ? (
               <Image
-                source={{ uri: profile.photoURL || 'https://via.placeholder.com/100' }}
+                source={{
+                  uri: profile.photoURL || 'https://via.placeholder.com/100'
+                }}
                 className="h-24 w-24 rounded-full"
               />
             ) : (
               <View className="h-24 w-24 items-center justify-center rounded-full border border-border bg-primary">
                 <TextCustom type="title">
-                  {(profile?.displayName || profile?.email || '?').trim().charAt(0).toUpperCase()}
+                  {(profile?.displayName || profile?.email || '?')
+                    .trim()
+                    .charAt(0)
+                    .toUpperCase()}
                 </TextCustom>
               </View>
             )}
@@ -114,10 +138,16 @@ const ProfileScreen: FC = () => {
                     {profile?.displayName || 'User'}
                   </TextCustom>
                   {profile?.email ? (
-                    <TextCustom className="text-accent">{profile.email}</TextCustom>
+                    <TextCustom className="text-accent">
+                      {profile.email}
+                    </TextCustom>
                   ) : null}
                 </View>
-                <ShareButton path={profilePath} title="Share profile" message="Check out my Deezeroom profile:" />
+                <ShareButton
+                  path={profilePath}
+                  title="Share profile"
+                  message="Check out my Deezeroom profile:"
+                />
               </View>
 
               {/* Access chip */}
@@ -159,9 +189,21 @@ const ProfileScreen: FC = () => {
           <View className="mb-2 flex-row items-center justify-between">
             <TextCustom type="subtitle">Basic information</TextCustom>
           </View>
-          <InfoRow label="Name" value={profile?.displayName} emptyText="No name yet" />
-          <InfoRow label="About me" value={profile?.publicInfo?.bio} emptyText="No bio yet" />
-          <InfoRow label="Location" value={profile?.publicInfo?.location} emptyText="No location yet" />
+          <InfoRow
+            label="Name"
+            value={profile?.displayName}
+            emptyText="No name yet"
+          />
+          <InfoRow
+            label="About me"
+            value={profile?.publicInfo?.bio}
+            emptyText="No bio yet"
+          />
+          <InfoRow
+            label="Location"
+            value={profile?.publicInfo?.location}
+            emptyText="No location yet"
+          />
         </View>
 
         {/* Private information card */}
@@ -169,8 +211,16 @@ const ProfileScreen: FC = () => {
           <TextCustom type="subtitle">Private information</TextCustom>
           {accessLevel === 'owner' && (
             <>
-              <InfoRow label="Phone" value={profile?.privateInfo?.phone} emptyText="No phone yet" />
-              <InfoRow label="Birth date" value={profile?.privateInfo?.birthDate} emptyText="No birth date yet" />
+              <InfoRow
+                label="Phone"
+                value={profile?.privateInfo?.phone}
+                emptyText="No phone yet"
+              />
+              <InfoRow
+                label="Birth date"
+                value={profile?.privateInfo?.birthDate}
+                emptyText="No birth date yet"
+              />
             </>
           )}
         </View>
@@ -180,11 +230,18 @@ const ProfileScreen: FC = () => {
           <TextCustom type="subtitle">Music preferences</TextCustom>
 
           <View className="mt-2">
-            <TextCustom className="text-accent/60 tracking-wide text-[10px] uppercase">Favorite genres</TextCustom>
+            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+              Favorite genres
+            </TextCustom>
             {/* chips */}
             {(() => {
               const items = profile?.musicPreferences?.favoriteGenres;
-              if (!items || items.length === 0) return <TextCustom className="text-accent/60">No favorite genres yet</TextCustom>;
+              if (!items || items.length === 0)
+                return (
+                  <TextCustom className="text-accent/60">
+                    No favorite genres yet
+                  </TextCustom>
+                );
               return (
                 <View className="mt-2 flex-row flex-wrap">
                   {items.map((i) => (
@@ -195,12 +252,19 @@ const ProfileScreen: FC = () => {
             })()}
           </View>
 
-          {(accessLevel === 'owner' || accessLevel === 'friends') ? (
+          {accessLevel === 'owner' || accessLevel === 'friends' ? (
             <View className="mt-4">
-              <TextCustom className="text-accent/60 tracking-wide text-[10px] uppercase">Favorite artists</TextCustom>
+              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+                Favorite artists
+              </TextCustom>
               {(() => {
                 const items = profile?.musicPreferences?.favoriteArtists;
-                if (!items || items.length === 0) return <TextCustom className="text-accent/60">No favorite artists yet</TextCustom>;
+                if (!items || items.length === 0)
+                  return (
+                    <TextCustom className="text-accent/60">
+                      No favorite artists yet
+                    </TextCustom>
+                  );
                 return (
                   <View className="mt-2 flex-row flex-wrap">
                     {items.map((i) => (
@@ -219,7 +283,7 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Favorite Tracks card */}
-        {(accessLevel === 'owner' || accessLevel === 'friends') ? (
+        {accessLevel === 'owner' || accessLevel === 'friends' ? (
           <View className="rounded-2xl border border-border bg-bg-secondary p-4">
             <TextCustom type="subtitle" className="mb-4">
               Favorite Tracks
@@ -231,7 +295,9 @@ const ProfileScreen: FC = () => {
           </View>
         ) : (
           <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-            <TextCustom type="subtitle" className="mb-2">Favorite Tracks</TextCustom>
+            <TextCustom type="subtitle" className="mb-2">
+              Favorite Tracks
+            </TextCustom>
             <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
               <TextCustom className="text-accent">Friends only</TextCustom>
               <TextCustom>Favorite tracks are visible to friends.</TextCustom>

@@ -1,4 +1,4 @@
-import { FC, useState, forwardRef, useImperativeHandle } from 'react';
+import { FC, forwardRef, useImperativeHandle, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -31,29 +31,36 @@ export type ImageUploaderHandle = {
 };
 
 const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(
-  ({
-    currentImageUrl,
-    onImageUploaded,
-    placeholder = 'Add Picture',
-    size = 'md',
-    shape = 'square',
-    disabled = false,
-    onUploadStart,
-    onUploadEnd
-  }, ref) => {
+  (
+    {
+      currentImageUrl,
+      onImageUploaded,
+      placeholder = 'Add Picture',
+      size = 'md',
+      shape = 'square',
+      disabled = false,
+      onUploadStart,
+      onUploadEnd
+    },
+    ref
+  ) => {
     const { theme } = useTheme();
     const [isUploading, setIsUploading] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
 
-    useImperativeHandle(ref, () => ({
-      open: () => setShowOptions(true),
-      remove: () => {
-        if (currentImageUrl) {
-          onImageUploaded('');
-          setShowOptions(false);
+    useImperativeHandle(
+      ref,
+      () => ({
+        open: () => setShowOptions(true),
+        remove: () => {
+          if (currentImageUrl) {
+            onImageUploaded('');
+            setShowOptions(false);
+          }
         }
-      }
-    }), [currentImageUrl, onImageUploaded]);
+      }),
+      [currentImageUrl, onImageUploaded]
+    );
 
     const getSizeStyles = () => {
       switch (size) {
@@ -71,7 +78,8 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(
     };
 
     const requestPermissions = async () => {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.error(
           'Permission Required',
