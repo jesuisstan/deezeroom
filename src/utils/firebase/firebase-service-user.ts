@@ -18,6 +18,7 @@ import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
+import { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
 // Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
@@ -65,7 +66,7 @@ export interface UserProfile {
   };
   musicPreferences?: {
     favoriteGenres: string[];
-    favoriteArtists: string[];
+    favoriteArtists: DeezerArtist[]; // Array of DeezerArtist (max 20)
   };
   favoriteTracks?: string[]; // Array of track IDs
   authProviders?: {

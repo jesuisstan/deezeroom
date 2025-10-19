@@ -4,7 +4,8 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Image
 } from 'react-native';
 
 import type { ViewStyle } from 'react-native';
@@ -21,6 +22,9 @@ import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 import { updateAvatar } from '@/utils/profile-utils';
 import * as ExpoLocation from 'expo-location';
+import { deezerService } from '@/utils/deezer/deezer-service';
+import { DeezerArtist } from '@/utils/deezer/deezer-types';
+import type { Artist as GqlArtist } from '@/graphql/schema';
 
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
@@ -55,9 +59,16 @@ const EditProfileScreen: FC = () => {
     locationCoords: null as null | { lat: number; lng: number },
     phone: '',
     birthDate: '',
-    favoriteGenres: '',
-    favoriteArtists: ''
+    favoriteGenres: ''
   });
+
+  // Artist selection state
+  const [selectedArtists, setSelectedArtists] = useState<DeezerArtist[]>([]);
+  const [artistQuery, setArtistQuery] = useState('');
+  const [artistResults, setArtistResults] = useState<GqlArtist[]>([]);
+  const [artistSearching, setArtistSearching] = useState(false);
+  const [artistError, setArtistError] = useState<string | null>(null);
+  const [debounceId, setDebounceId] = useState<any>(null);
 
   // Loading state for location detection
   const [locLoading, setLocLoading] = useState(false);
@@ -88,10 +99,11 @@ const EditProfileScreen: FC = () => {
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || '',
         favoriteGenres:
-          profile.musicPreferences?.favoriteGenres?.join(', ') || '',
-        favoriteArtists:
-          profile.musicPreferences?.favoriteArtists?.join(', ') || ''
+          profile.musicPreferences?.favoriteGenres?.join(', ') || ''
       });
+      setSelectedArtists(
+        (profile.musicPreferences?.favoriteArtists as DeezerArtist[]) || []
+      );
     }
   }, [profile]);
 
@@ -286,6 +298,59 @@ const EditProfileScreen: FC = () => {
     }
   };
 
+  const mapGqlArtistToDeezer = (a: GqlArtist): DeezerArtist => ({
+    id: a.id,
+    name: a.name,
+    link: a.link,
+    picture: a.picture,
+    picture_small: a.pictureSmall,
+    picture_medium: a.pictureMedium,
+    picture_big: a.pictureBig,
+    picture_xl: a.pictureXl,
+    type: 'artist'
+  });
+
+  const searchArtists = (q: string) => {
+    setArtistQuery(q);
+    setArtistError(null);
+    if (debounceId) clearTimeout(debounceId);
+
+    if (!q || q.trim().length < 2) {
+      setArtistResults([]);
+      return;
+    }
+
+    const id = setTimeout(async () => {
+      try {
+        setArtistSearching(true);
+        const res = await deezerService.searchArtistsViaGraphQL(q, 8, 0);
+        setArtistResults(res.artists || []);
+      } catch (e: any) {
+        Logger.error('Artist search failed', e, 'EditProfile');
+        setArtistError('Failed to search');
+      } finally {
+        setArtistSearching(false);
+      }
+    }, 300);
+    setDebounceId(id);
+  };
+
+  const addArtist = (artist: GqlArtist) => {
+    const toAdd = mapGqlArtistToDeezer(artist);
+    setArtistQuery('');
+    setArtistResults([]);
+    setSelectedArtists((prev) => {
+      // no duplicates and max 20
+      if (prev.find((a) => a.id === toAdd.id)) return prev;
+      if (prev.length >= 20) return prev;
+      return [...prev, toAdd];
+    });
+  };
+
+  const removeArtist = (id: string) => {
+    setSelectedArtists((prev) => prev.filter((a) => a.id !== id));
+  };
+
   const handleSave = async () => {
     if (!user) return;
     try {
@@ -305,12 +370,9 @@ const EditProfileScreen: FC = () => {
             .split(',')
             .map((g) => g.trim())
             .filter((g) => g),
-          favoriteArtists: formData.favoriteArtists
-            .split(',')
-            .map((a) => a.trim())
-            .filter((a) => a)
+          favoriteArtists: selectedArtists.slice(0, 20)
         }
-      };
+      } as any;
 
       await updateProfile(updateData);
       Alert.alert('Success', 'Profile updated');
@@ -460,45 +522,25 @@ const EditProfileScreen: FC = () => {
               </>
             ) : (
               <>
-                {RNDateTimePicker ? (
-                  <>
-                    <TouchableOpacity
-                      className="mt-1 rounded-xl border border-border bg-bg-main p-3"
-                      onPress={() => setShowBirthPicker(true)}
-                    >
-                      <TextCustom>
-                        {formData.birthDate || 'Select date'}
-                      </TextCustom>
-                    </TouchableOpacity>
-                    {showBirthPicker && (
-                      <RNDateTimePicker
-                        value={
-                          formData.birthDate
-                            ? new Date(formData.birthDate)
-                            : new Date(1990, 0, 1)
-                        }
-                        mode="date"
-                        display="default"
-                        onChange={handleBirthDateChange}
-                        maximumDate={new Date()}
-                      />
-                    )}
-                  </>
+                {showBirthPicker && RNDateTimePicker ? (
+                  <RNDateTimePicker
+                    value={parseDate(formData.birthDate) || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={handleBirthDateChange}
+                    style={{ width: '100%' }}
+                  />
                 ) : (
-                  <>
-                    <TextInput
-                      className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-                      value={formData.birthDate}
-                      onChangeText={(text) =>
-                        setFormData({ ...formData, birthDate: text })
-                      }
-                      placeholder="YYYY-MM-DD"
-                    />
-                    <TextCustom className="mt-2 text-accent">
-                      Date picker unavailable. Rebuild the app to enable native
-                      picker.
+                  <TouchableOpacity
+                    onPress={() => setShowBirthPicker(true)}
+                    className="mt-1 rounded-xl border border-border bg-bg-main p-3"
+                  >
+                    <TextCustom className="text-text-main">
+                      {formData.birthDate
+                        ? formatDate(parseDate(formData.birthDate)!)
+                        : 'Select your birth date'}
                     </TextCustom>
-                  </>
+                  </TouchableOpacity>
                 )}
               </>
             )}
@@ -523,18 +565,114 @@ const EditProfileScreen: FC = () => {
             />
           </View>
 
-          <View className="mb-4">
+          {/* Favorite artists with search + chips */}
+          <View className="mb-2">
             <TextCustom>Favorite artists</TextCustom>
             <TextInput
-              className="mt-1 h-20 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.favoriteArtists}
-              onChangeText={(text) =>
-                setFormData({ ...formData, favoriteArtists: text })
+              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
+              value={artistQuery}
+              onChangeText={searchArtists}
+              placeholder={
+                selectedArtists.length >= 20
+                  ? 'Maximum 20 selected'
+                  : 'Start typing artist name'
               }
-              placeholder="Queen, The Beatles, Pink Floyd (comma separated)"
-              multiline
-              numberOfLines={2}
+              editable={selectedArtists.length < 20}
             />
+            {artistSearching && (
+              <TextCustom size="s" className="mt-2 opacity-60">
+                Searching…
+              </TextCustom>
+            )}
+            {!!artistError && (
+              <TextCustom size="s" className="mt-2 text-accent">
+                {artistError}
+              </TextCustom>
+            )}
+            {artistResults.length > 0 && (
+              <View
+                className="mt-2 rounded-xl border border-border bg-bg-secondary"
+                style={{ borderRadius: 12, overflow: 'hidden' }}
+              >
+                <ScrollView
+                  style={{ maxHeight: 256 }}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                >
+                  {artistResults.map((a) => (
+                    <TouchableOpacity
+                      key={a.id}
+                      className="flex-row items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
+                      onPress={() => addArtist(a)}
+                    >
+                      {a.pictureSmall ? (
+                        <Image
+                          source={{ uri: a.pictureSmall }}
+                          style={{ width: 32, height: 32, borderRadius: 16 }}
+                        />
+                      ) : (
+                        <View
+                          style={{ width: 32, height: 32, borderRadius: 16 }}
+                          className="items-center justify-center bg-bg-main"
+                        >
+                          <TextCustom size="s">{a.name.charAt(0)}</TextCustom>
+                        </View>
+                      )}
+                      <TextCustom className="flex-1">{a.name}</TextCustom>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+
+          {/* Selected artists chips */}
+          <View className="mt-2">
+            <View className="mb-2 flex-row items-center justify-between">
+              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+                Selected
+              </TextCustom>
+              <TextCustom size="s" className="opacity-60">
+                {selectedArtists.length}/20
+              </TextCustom>
+            </View>
+            {selectedArtists.length === 0 ? (
+              <TextCustom className="opacity-60">
+                No artists selected yet
+              </TextCustom>
+            ) : (
+              <View className="flex-row flex-wrap">
+                {selectedArtists.map((a) => (
+                  <View
+                    key={a.id}
+                    className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
+                  >
+                    {a.picture_small ? (
+                      <Image
+                        source={{ uri: a.picture_small }}
+                        style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                      />
+                    ) : (
+                      <View
+                        style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                        className="items-center justify-center bg-bg-main"
+                      >
+                        <TextCustom size="xs">
+                          {a.name.charAt(0)}
+                        </TextCustom>
+                      </View>
+                    )}
+                    <TextCustom size="s">{a.name}</TextCustom>
+                    <TouchableOpacity
+                      onPress={() => removeArtist(a.id)}
+                      className="ml-2 rounded-full bg-bg-main px-2 py-1"
+                    >
+                      <TextCustom size="xs">×</TextCustom>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 

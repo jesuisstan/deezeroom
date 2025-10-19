@@ -43,6 +43,12 @@ export const typeDefs = /* GraphQL */ `
     hasMore: Boolean!
   }
 
+  type SearchArtistsResult {
+    artists: [Artist!]!
+    total: Int!
+    hasMore: Boolean!
+  }
+
   type Query {
     searchTracks(
       query: String!
@@ -51,6 +57,11 @@ export const typeDefs = /* GraphQL */ `
     ): SearchTracksResult!
     getPopularTracks(limit: Int = ${LIMIT_DEFAULT}): SearchTracksResult!
     track(id: ID!): Track
+    searchArtists(
+      query: String!
+      limit: Int = ${LIMIT_DEFAULT}
+      index: Int = ${INDEX_DEFAULT}
+    ): SearchArtistsResult!
   }
 `;
 
@@ -58,6 +69,12 @@ export const typeDefs = /* GraphQL */ `
 // !!! ATTENTION: DO NOT FORGET TO UPDATE THE TYPE DEFINITIONS IF YOU CHANGE THE SCHEMA ABOVE
 export interface SearchTracksResult {
   tracks: Track[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface SearchArtistsResult {
+  artists: Artist[];
   total: number;
   hasMore: boolean;
 }
