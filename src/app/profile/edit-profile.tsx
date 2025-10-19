@@ -30,9 +30,11 @@ import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 import { updateAvatar } from '@/utils/profile-utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
+  const insets = useSafeAreaInsets();
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
@@ -54,6 +56,11 @@ const EditProfileScreen: FC = () => {
     Platform.OS === 'web'
       ? { maxWidth: 920, width: '100%', alignSelf: 'center' }
       : undefined;
+
+  const contentStyle: ViewStyle = {
+    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
+    paddingBottom: insets.bottom + 32
+  };
 
   // Initialize form data from profile
   useEffect(() => {
@@ -136,7 +143,7 @@ const EditProfileScreen: FC = () => {
   ) : (
     <ScrollView
       className="flex-1 bg-bg-main px-4 py-4"
-      contentContainerStyle={Platform.OS === 'web' ? { alignItems: 'center' } : undefined}
+      contentContainerStyle={contentStyle}
     >
       <View className="w-full" style={[containerStyle]}>
         {/* Avatar */}

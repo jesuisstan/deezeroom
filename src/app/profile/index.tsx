@@ -13,6 +13,7 @@ import { useUser } from '@/providers/UserProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import ShareButton from '@/components/share/ShareButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -23,6 +24,7 @@ const ProfileScreen: FC = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<string | undefined>();
+  const insets = useSafeAreaInsets();
 
   const accessLevel: AccessLevel = (() => {
     // TODO: derive from profile privacy settings and friendship status
@@ -42,6 +44,12 @@ const ProfileScreen: FC = () => {
     Platform.OS === 'web'
       ? { maxWidth: 920, width: '100%', alignSelf: 'center' }
       : undefined;
+
+  // Safe-area aware padding so the last items are not cut off by tab bar/home indicator
+  const scrollContentStyle: ViewStyle = {
+    paddingBottom: insets.bottom + 32,
+    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {})
+  };
 
   if (profileLoading) {
     return <ActivityIndicatorScreen />;
@@ -82,7 +90,7 @@ const ProfileScreen: FC = () => {
   const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
 
   return (
-    <ScrollView className="flex-1 bg-bg-main px-4 py-4" contentContainerStyle={Platform.OS === 'web' ? { alignItems: 'center' } : undefined}>
+    <ScrollView className="flex-1 bg-bg-main px-4 py-4" contentContainerStyle={scrollContentStyle}>
       <View className="gap-4 w-full" style={[containerStyle]}>
         {/* Header card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
