@@ -215,7 +215,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: bgByType,
+                  //backgroundColor: bgByType,
                   marginRight: 12,
                   justifyContent: 'center',
                   alignItems: 'center'

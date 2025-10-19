@@ -13,10 +13,9 @@ import { Playlist } from '@/utils/firebase/firebase-service-playlists';
 
 interface PlaylistCardProps {
   playlist: Playlist;
-  onPress: (playlist: Playlist) => void;
 }
 
-const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onPress }) => {
+const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
   const { theme } = useTheme();
   const router = useRouter();
   const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
@@ -41,7 +40,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onPress }) => {
   };
 
   const handleCardPress = () => {
-    router.push(`/playlist/${playlist.id}` as any);
+    router.push(`/(tabs)/playlists/${playlist.id}` as any);
   };
 
   return (
