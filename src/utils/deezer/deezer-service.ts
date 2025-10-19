@@ -1,7 +1,12 @@
 import { LIMIT_DEFAULT } from '@/constants/deezer';
-import { Artist, Track } from '@/graphql/schema';
 import { SEARCH_ARTISTS } from '@/graphql/queries';
-import { DeezerArtist, DeezerArtistSearchResponse, DeezerSearchResponse, DeezerTrack } from '@/utils/deezer/deezer-types';
+import { Artist, Track } from '@/graphql/schema';
+import {
+  DeezerArtist,
+  DeezerArtistSearchResponse,
+  DeezerSearchResponse,
+  DeezerTrack
+} from '@/utils/deezer/deezer-types';
 
 const DEEZER_API_BASE_URL = 'https://api.deezer.com';
 

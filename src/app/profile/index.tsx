@@ -231,49 +231,51 @@ const ProfileScreen: FC = () => {
           <View className="rounded-2xl border border-border bg-bg-secondary p-4">
             <TextCustom type="subtitle">Private information</TextCustom>
 
-              <>
-                <InfoRow
-                  label="Phone"
-                  value={profile?.privateInfo?.phone}
-                  emptyText="No phone yet"
-                />
-                <InfoRow
-                  label="Birth date"
-                  value={profile?.privateInfo?.birthDate}
-                  emptyText="No birth date yet"
-                />
-              </>
+            <>
+              <InfoRow
+                label="Phone"
+                value={profile?.privateInfo?.phone}
+                emptyText="No phone yet"
+              />
+              <InfoRow
+                label="Birth date"
+                value={profile?.privateInfo?.birthDate}
+                emptyText="No birth date yet"
+              />
+            </>
           </View>
         )}
 
         {/* Music preferences card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
-            <View className="mt-4">
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-                Favorite artists
-              </TextCustom>
-              {(() => {
-                const items = profile?.musicPreferences?.favoriteArtists as any[] | undefined;
-                if (!items || items.length === 0)
-                  return (
-                    <TextCustom className="text-accent/60">
-                      No favorite artists yet
-                    </TextCustom>
-                  );
+          <View className="mt-4">
+            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+              Favorite artists
+            </TextCustom>
+            {(() => {
+              const items = profile?.musicPreferences?.favoriteArtists as
+                | any[]
+                | undefined;
+              if (!items || items.length === 0)
                 return (
-                  <View className="mt-2 flex-row flex-wrap">
-                    {items.map((i, idx) => {
-                      if (typeof i === 'string') {
-                        return <Chip key={`${i}-${idx}`} text={i} />;
-                      }
-                      const a = i as DeezerArtist;
-                      return <ArtistChip key={a.id || idx} artist={a} />;
-                    })}
-                  </View>
+                  <TextCustom className="text-accent/60">
+                    No favorite artists yet
+                  </TextCustom>
                 );
-              })()}
-            </View>
+              return (
+                <View className="mt-2 flex-row flex-wrap">
+                  {items.map((i, idx) => {
+                    if (typeof i === 'string') {
+                      return <Chip key={`${i}-${idx}`} text={i} />;
+                    }
+                    const a = i as DeezerArtist;
+                    return <ArtistChip key={a.id || idx} artist={a} />;
+                  })}
+                </View>
+              );
+            })()}
+          </View>
         </View>
 
         {/* Favorite Tracks card */}

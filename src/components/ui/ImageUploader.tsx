@@ -1,4 +1,4 @@
-import { FC, forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -312,5 +312,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(
     );
   }
 );
+
+ImageUploader.displayName = 'ImageUploader';
 
 export default ImageUploader;

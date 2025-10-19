@@ -15,10 +15,10 @@ import {
 } from 'firebase/firestore';
 
 import { Logger } from '@/modules/logger';
+import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
-import { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
 // Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
@@ -814,7 +814,8 @@ export class UserService {
       return {
         success: false,
         message:
-          getFirebaseErrorMessage(error) || 'Failed to remove track from favorites'
+          getFirebaseErrorMessage(error) ||
+          'Failed to remove track from favorites'
       };
     }
   }

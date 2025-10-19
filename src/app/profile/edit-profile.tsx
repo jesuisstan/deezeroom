@@ -1,30 +1,35 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import {
+  Image,
   Platform,
   ScrollView,
   TextInput,
   TouchableOpacity,
-  View,
-  Image
+  View
 } from 'react-native';
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ExpoLocation from 'expo-location';
 import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import IconButton from '@/components/ui/buttons/IconButton';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import ImageUploader, {
   ImageUploaderHandle
 } from '@/components/ui/ImageUploader';
 import { TextCustom } from '@/components/ui/TextCustom';
+import type { Artist as GqlArtist } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { updateAvatar } from '@/utils/profile-utils';
-import * as ExpoLocation from 'expo-location';
+import { themeColors } from '@/style/color-theme';
 import { deezerService } from '@/utils/deezer/deezer-service';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
-import type { Artist as GqlArtist } from '@/graphql/schema';
+import { updateAvatar } from '@/utils/profile-utils';
 
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
@@ -46,6 +51,7 @@ if (Platform.OS === 'web') {
 
 const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Ref to control avatar uploader
@@ -141,8 +147,8 @@ const EditProfileScreen: FC = () => {
       if (data?.results && Array.isArray(data.results) && data.results[0]) {
         const res = data.results[0];
         const get = (type: string) =>
-          res.address_components.find((c: any) => c.types.includes(type))?.
-            long_name;
+          res.address_components.find((c: any) => c.types.includes(type))
+            ?.long_name;
         const city =
           get('locality') ||
           get('postal_town') ||
@@ -151,7 +157,9 @@ const EditProfileScreen: FC = () => {
           '';
         const admin = get('administrative_area_level_1') || '';
         const country = get('country') || '';
-        const fromComponents = [city, admin, country].filter(Boolean).join(', ');
+        const fromComponents = [city, admin, country]
+          .filter(Boolean)
+          .join(', ');
         if (fromComponents) return fromComponents;
         if (typeof res.formatted_address === 'string') {
           return res.formatted_address;
@@ -160,19 +168,24 @@ const EditProfileScreen: FC = () => {
       // Expo reverseGeocodeAsync array
       if (Array.isArray(data) && data[0]) {
         const item = data[0] as any;
-        const city = item.city || item.town || item.district || item.subregion || '';
+        const city =
+          item.city || item.town || item.district || item.subregion || '';
         const region = item.region || item.state || '';
         const country = item.country || '';
         const fromExpo = [city, region, country].filter(Boolean).join(', ');
         if (fromExpo) return fromExpo;
         const nm = String(item.name || '').trim();
-        const looksLikeCoords = /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(nm);
+        const looksLikeCoords =
+          /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(
+            nm
+          );
         if (nm && !looksLikeCoords) return nm;
       }
       // Nominatim response
       if (data?.address) {
         const a = data.address;
-        const city = a.city || a.town || a.village || a.hamlet || a.suburb || '';
+        const city =
+          a.city || a.town || a.village || a.hamlet || a.suburb || '';
         const region = a.state || a.county || '';
         const country = a.country || '';
         const fromNom = [city, region, country].filter(Boolean).join(', ');
@@ -191,7 +204,9 @@ const EditProfileScreen: FC = () => {
         return;
       }
       const scriptId = 'gmaps-sdk';
-      const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
+      const existing = document.getElementById(
+        scriptId
+      ) as HTMLScriptElement | null;
       if (existing && (window as any).google?.maps) {
         resolve();
         return;
@@ -249,7 +264,10 @@ const EditProfileScreen: FC = () => {
 
     // 2) Try Expo reverse geocode
     try {
-      const res = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      const res = await ExpoLocation.reverseGeocodeAsync({
+        latitude: lat,
+        longitude: lng
+      });
       const place = buildPlaceName(res);
       if (place) return place;
     } catch (e) {
@@ -401,21 +419,19 @@ const EditProfileScreen: FC = () => {
             size="lg"
           />
           <View className="flex-row gap-3">
-            <TouchableOpacity
-              className="rounded-full bg-primary px-4 py-2"
+            <RippleButton
+              title="Change photo"
+              size="sm"
+              variant="primary"
               onPress={() => uploaderRef.current?.open()}
-            >
-              <TextCustom className="text-bg-main">Change photo</TextCustom>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="rounded-full border border-border px-4 py-2"
-              disabled={!profile?.photoURL}
+            />
+            <RippleButton
+              title="Remove"
+              size="sm"
+              variant="outline"
               onPress={() => uploaderRef.current?.remove()}
-            >
-              <TextCustom className={!profile?.photoURL ? 'opacity-60' : ''}>
-                Remove
-              </TextCustom>
-            </TouchableOpacity>
+              disabled={!profile?.photoURL}
+            />
           </View>
           <TextCustom size="xs" className="opacity-60">
             JPG or PNG, up to 5 MB. Tip: use a square image for best fit.
@@ -428,7 +444,7 @@ const EditProfileScreen: FC = () => {
           <TextCustom type="subtitle">Basic information</TextCustom>
 
           <View className="mb-4 mt-3">
-            <TextCustom>Name</TextCustom>
+            <TextCustom type="bold">Name</TextCustom>
             <TextInput
               className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
               value={formData.displayName}
@@ -440,7 +456,7 @@ const EditProfileScreen: FC = () => {
           </View>
 
           <View className="mb-4">
-            <TextCustom>About me</TextCustom>
+            <TextCustom type="bold">About me</TextCustom>
             <TextInput
               className="mt-1 h-20 rounded-xl border border-border bg-bg-main p-3 text-text-main"
               value={formData.bio}
@@ -452,50 +468,65 @@ const EditProfileScreen: FC = () => {
 
           {/* Location (read-only) */}
           <View className="mb-4">
-            <TextCustom>Location</TextCustom>
-            <View className="mt-1 rounded-xl border border-border bg-bg-main p-3">
-              {formData.locationCoords ? (
-                <TextCustom className="text-text-main">
-                  {(() => {
-                    const { lat, lng } = formData.locationCoords!;
-                    const nm = (formData.locationName || '').trim();
-                    const looksLikeCoords = /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(nm);
-                    return `${lat}, ${lng}${nm && !looksLikeCoords ? ` (${nm})` : ''}`;
-                  })()}
-                </TextCustom>
-              ) : (
-                <TextCustom className="text-accent">Not set</TextCustom>
-              )}
-            </View>
-            <View className="mt-2 flex-row gap-8">
-              <TouchableOpacity
-                className="rounded-xl bg-bg-secondary px-4 py-3"
+            <TextCustom type="bold">Location</TextCustom>
+            <View className="flex-row items-center gap-2">
+              <View>
+                {formData.locationCoords ? (
+                  <TextCustom color={themeColors[theme]['text-main']}>
+                    {(() => {
+                      const { lat, lng } = formData.locationCoords!;
+                      const nm = (formData.locationName || '').trim();
+                      const looksLikeCoords =
+                        /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(
+                          nm
+                        );
+                      return `${nm && !looksLikeCoords ? `${nm}` : ''}`;
+                    })()}
+                  </TextCustom>
+                ) : (
+                  <TextCustom color={themeColors[theme]['text-secondary']}>
+                    Not set
+                  </TextCustom>
+                )}
+              </View>
+              <IconButton
+                accessibilityLabel="Detect location"
                 onPress={detectLocation}
                 disabled={locLoading}
+                loading={locLoading}
+                className="h-8 w-8 border border-border"
               >
-                <TextCustom className="text-bg-main">
-                  {locLoading ? 'Detecting…' : 'Use my location'}
-                </TextCustom>
-              </TouchableOpacity>
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={18}
+                  color={themeColors[theme]['text-main']}
+                />
+              </IconButton>
               {formData.locationCoords && (
-                <TouchableOpacity
-                  className="rounded-xl border border-border px-4 py-3"
+                <IconButton
+                  accessibilityLabel="Clear location"
                   onPress={() =>
-                    setFormData({ ...formData, locationCoords: null, locationName: '' })
+                    setFormData({
+                      ...formData,
+                      locationCoords: null,
+                      locationName: ''
+                    })
                   }
+                  className="h-8 w-8 border border-border"
                 >
-                  <TextCustom>Clear</TextCustom>
-                </TouchableOpacity>
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={18}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
               )}
             </View>
-            <TextCustom size="xs" className="mt-2 opacity-60">
-              Coordinates are saved.
-            </TextCustom>
           </View>
 
           <View className="mb-4">
             <TextCustom type="subtitle">Private information</TextCustom>
-            <TextCustom>Phone</TextCustom>
+            <TextCustom type="bold">Phone</TextCustom>
             <TextInput
               className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
               value={formData.phone}
@@ -506,7 +537,7 @@ const EditProfileScreen: FC = () => {
           </View>
 
           <View className="mb-4">
-            <TextCustom>Birth date</TextCustom>
+            <TextCustom type="bold">Birth date</TextCustom>
             {Platform.OS === 'web' ? (
               <>
                 <TextInput
@@ -517,13 +548,16 @@ const EditProfileScreen: FC = () => {
                   }
                   placeholder="YYYY-MM-DD"
                 />
-                <TextCustom className="mt-2 text-accent">
+                <TextCustom
+                  color={themeColors[theme]['text-secondary']}
+                  className="mt-2"
+                >
                   Temporary input on web (react-datepicker not installed).
                 </TextCustom>
               </>
             ) : (
               <>
-                {showBirthPicker && RNDateTimePicker ? (
+                {showBirthPicker && RNDateTimePicker && (
                   <RNDateTimePicker
                     value={parseDate(formData.birthDate) || new Date()}
                     mode="date"
@@ -531,18 +565,44 @@ const EditProfileScreen: FC = () => {
                     onChange={handleBirthDateChange}
                     style={{ width: '100%' }}
                   />
-                ) : (
-                  <TouchableOpacity
-                    onPress={() => setShowBirthPicker(true)}
-                    className="mt-1 rounded-xl border border-border bg-bg-main p-3"
-                  >
-                    <TextCustom className="text-text-main">
-                      {formData.birthDate
-                        ? formatDate(parseDate(formData.birthDate)!)
-                        : 'Select your birth date'}
-                    </TextCustom>
-                  </TouchableOpacity>
                 )}
+                <View className="flex-row items-center gap-2">
+                  {formData.birthDate ? (
+                    <TextCustom color={themeColors[theme]['text-main']}>
+                      {formatDate(parseDate(formData.birthDate)!)}
+                    </TextCustom>
+                  ) : (
+                    <TextCustom color={themeColors[theme]['text-secondary']}>
+                      Not set
+                    </TextCustom>
+                  )}
+                  <IconButton
+                    accessibilityLabel="Select birth date"
+                    onPress={() => setShowBirthPicker(true)}
+                    className="h-8 w-8 border border-border"
+                  >
+                    <MaterialCommunityIcons
+                      name="calendar"
+                      size={18}
+                      color={themeColors[theme]['text-main']}
+                    />
+                  </IconButton>
+                  {formData.birthDate && (
+                    <IconButton
+                      accessibilityLabel="Clear birth date"
+                      onPress={() =>
+                        setFormData({ ...formData, birthDate: '' })
+                      }
+                      className="h-8 w-8 border border-border"
+                    >
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={18}
+                        color={themeColors[theme]['text-main']}
+                      />
+                    </IconButton>
+                  )}
+                </View>
               </>
             )}
           </View>
@@ -637,16 +697,24 @@ const EditProfileScreen: FC = () => {
                     {a.picture_small ? (
                       <Image
                         source={{ uri: a.picture_small }}
-                        style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          marginRight: 6
+                        }}
                       />
                     ) : (
                       <View
-                        style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          marginRight: 6
+                        }}
                         className="items-center justify-center bg-bg-main"
                       >
-                        <TextCustom size="xs">
-                          {a.name.charAt(0)}
-                        </TextCustom>
+                        <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
                       </View>
                     )}
                     <TextCustom size="s">{a.name}</TextCustom>
@@ -664,12 +732,12 @@ const EditProfileScreen: FC = () => {
         </View>
 
         {/* Save */}
-        <TouchableOpacity
-          className="mb-8 mt-2 items-center rounded-xl bg-bg-secondary p-4"
+        <RippleButton
+          title="Save"
+          size="md"
+          variant="primary"
           onPress={handleSave}
-        >
-          <TextCustom className="font-bold text-bg-main">Save</TextCustom>
-        </TouchableOpacity>
+        />
       </View>
     </ScrollView>
   );
