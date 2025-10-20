@@ -11,7 +11,7 @@ const ProfileButton = () => {
 
   return (
     <Pressable
-      className="mr-4 items-center rounded-full"
+      className="items-center rounded-full"
       onPress={() => {
         router.push('/profile');
       }}
@@ -20,12 +20,12 @@ const ProfileButton = () => {
       {profile?.photoURL ? (
         <Image
           source={{ uri: profile.photoURL }}
-          className="h-12 w-12 rounded-full border-2 border-border"
+          className="h-10 w-10 rounded-full border border-border"
           accessibilityRole="button"
           alt="Profile"
         />
       ) : (
-        <View className="h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-primary">
+        <View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-primary">
           <TextCustom type="title">
             {(profile?.displayName || profile?.email || '?')
               .trim()

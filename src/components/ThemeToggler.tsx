@@ -32,7 +32,7 @@ const ThemeToggler = () => {
   return (
     <BlurView
       intensity={8}
-      className="relative mx-2 h-9 w-[70px] overflow-hidden rounded-full border border-border bg-bg-secondary p-1"
+      className="relative h-9 w-[70px] overflow-hidden rounded-full border border-border bg-bg-secondary p-1"
     >
       <View className="relative flex-1 flex-row items-center">
         <Pressable

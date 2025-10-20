@@ -1,9 +1,8 @@
 import React, { FC, useMemo, useState } from 'react';
-import { Image, Modal, Platform, Pressable, Share, View } from 'react-native';
+import { Image, Platform, Pressable, Share, View } from 'react-native';
 
-import AntDesign from '@expo/vector-icons/AntDesign';
-
-import IconButton from '@/components/ui/buttons/IconButton';
+import RippleButton from '@/components/ui/buttons/RippleButton';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -45,20 +44,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
     [url]
   );
 
-  const overlayStyle = useMemo(
-    () =>
-      Platform.OS === 'web'
-        ? {
-            position: 'fixed' as const,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)'
-          }
-        : { backgroundColor: 'rgba(0,0,0,0.5)' },
-    []
-  );
+  // No overlayStyle needed with SwipeModal
 
   const handleShare = async () => {
     try {
@@ -67,7 +53,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
         message: message ? `${message} ${url}` : url,
         url // iOS prefers url field
       });
-    } catch (e) {
+    } catch {
       // noop
     }
   };
@@ -87,71 +73,67 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}
+    <SwipeModal
+      title={title}
+      modalVisible={visible}
+      setVisible={(v) => {
+        if (!v) onClose();
+      }}
+      onClose={onClose}
+      size="three-quarter"
     >
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={overlayStyle}
-      >
-        <View
-          className="w-full max-w-[420px] rounded-2xl bg-bg-secondary p-4"
-          style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
-        >
-          <View className="mb-2 flex-row items-center justify-between">
-            <TextCustom type="subtitle">{title}</TextCustom>
-            <IconButton accessibilityLabel="Close" onPress={onClose}>
-              <AntDesign
-                name="close"
-                size={20}
+      <View className="gap-4 px-4 py-4">
+        <View className="items-center justify-center gap-2">
+          <View>
+            {/* QR Code: native component if available, otherwise static image fallback */}
+            {QRCodeImpl ? (
+              <QRCodeImpl
+                value={url}
+                size={200}
+                backgroundColor={themeColors[theme]['bg-main']}
                 color={themeColors[theme]['text-main']}
               />
-            </IconButton>
+            ) : (
+              <Image
+                source={{ uri: qrImgUrl }}
+                style={{ width: 200, height: 200 }}
+              />
+            )}
           </View>
-
-          <View className="items-center justify-center py-4">
-            <View className="rounded-xl border border-border bg-bg-main p-4">
-              {/* QR Code: native component if available, otherwise static image fallback */}
-              {QRCodeImpl ? (
-                <QRCodeImpl
-                  value={url}
-                  size={200}
-                  backgroundColor={themeColors[theme]['bg-main']}
-                  color={themeColors[theme]['text-main']}
-                />
-              ) : (
-                <Image
-                  source={{ uri: qrImgUrl }}
-                  style={{ width: 200, height: 200 }}
-                />
-              )}
-            </View>
-            <TextCustom className="text-accent/60 mt-2" size="s">
-              Scan the QR or use the link below
-            </TextCustom>
-          </View>
-
-          {/* Link box */}
-          <Pressable
-            onLongPress={handleCopyWeb}
-            onPress={handleCopyWeb}
-            className="rounded-xl border border-dashed border-border bg-bg-main p-3"
-          >
-            <TextCustom className="break-all" selectable>
-              {url}
-            </TextCustom>
-            {Platform.OS === 'web' ? (
-              <TextCustom size="s" className="text-accent/60 mt-3">
-                {copied ? 'Copied!' : 'Tap to copy'}
-              </TextCustom>
-            ) : null}
-          </Pressable>
+          <TextCustom color={themeColors[theme]['text-secondary']} size="s">
+            Scan the QR or use the link below
+          </TextCustom>
         </View>
+
+        {/* Link box */}
+        <Pressable
+          onLongPress={handleCopyWeb}
+          onPress={handleCopyWeb}
+          className="rounded-xl border border-dashed border-border bg-bg-main p-2"
+        >
+          <TextCustom className="break-all" selectable>
+            {url}
+          </TextCustom>
+          {Platform.OS === 'web' ? (
+            <TextCustom
+              size="s"
+              className="mt-2"
+              color={themeColors[theme]['primary']}
+            >
+              {copied ? 'Copied!' : 'Tap to copy'}
+            </TextCustom>
+          ) : null}
+        </Pressable>
+
+        {/* Share button */}
+        <RippleButton
+          title="Send the link"
+          variant="outline"
+          onPress={handleShare}
+          className="w-full"
+        />
       </View>
-    </Modal>
+    </SwipeModal>
   );
 };
 

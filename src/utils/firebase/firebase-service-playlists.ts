@@ -51,6 +51,7 @@ export interface PlaylistParticipant {
 
 export interface PlaylistInvitation {
   id: string;
+  playlistId: string;
   userId: string;
   invitedBy: string;
   invitedAt: Date;
@@ -477,48 +478,6 @@ export class PlaylistService {
     }
   }
 
-  static async acceptInvitation(
-    playlistId: string,
-    invitationId: string,
-    userId: string,
-    role: 'editor' | 'viewer' = 'editor'
-  ): Promise<void> {
-    await runTransaction(db, async (transaction) => {
-      const invitationRef = doc(
-        db,
-        this.collection,
-        playlistId,
-        this.invitationsCollection,
-        invitationId
-      );
-      const playlistRef = doc(db, this.collection, playlistId);
-
-      // Update invitation status
-      transaction.update(invitationRef, {
-        status: 'accepted'
-      });
-
-      // Add user to participants
-      const playlistDoc = await transaction.get(playlistRef);
-      const playlist = playlistDoc.data() as Playlist;
-
-      const updatedParticipants = [
-        ...playlist.participants,
-        {
-          userId,
-          role,
-          joinedAt: new Date()
-        }
-      ];
-
-      transaction.update(playlistRef, {
-        participants: updatedParticipants,
-        updatedAt: serverTimestamp(),
-        version: increment(1)
-      });
-    });
-  }
-
   static async removeParticipant(
     playlistId: string,
     userId: string
@@ -538,6 +497,187 @@ export class PlaylistService {
       updatedAt: serverTimestamp(),
       version: increment(1)
     });
+  }
+
+  // ===== USER INVITATIONS =====
+
+  // Get all invitations for a specific user
+  static async getUserInvitations(
+    userId: string
+  ): Promise<PlaylistInvitation[]> {
+    try {
+      // Get all playlists to find invitations for this user
+      const playlistsQuery = query(collection(db, this.collection));
+      const playlistsSnapshot = await getDocs(playlistsQuery);
+
+      const allInvitations: PlaylistInvitation[] = [];
+
+      for (const playlistDoc of playlistsSnapshot.docs) {
+        const playlistId = playlistDoc.id;
+
+        // Get invitations for this playlist (only by userId, no orderBy to avoid index requirement)
+        const invitationsQuery = query(
+          collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          ),
+          where('userId', '==', userId),
+          where('status', '==', 'pending')
+        );
+
+        const invitationsSnapshot = await getDocs(invitationsQuery);
+
+        invitationsSnapshot.docs.forEach((invitationDoc) => {
+          allInvitations.push({
+            id: invitationDoc.id,
+            playlistId,
+            ...invitationDoc.data()
+          } as PlaylistInvitation);
+        });
+      }
+
+      // Sort by invitedAt in memory (descending)
+      return allInvitations.sort((a, b) => {
+        const dateA =
+          a.invitedAt instanceof Date ? a.invitedAt : new Date(a.invitedAt);
+        const dateB =
+          b.invitedAt instanceof Date ? b.invitedAt : new Date(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } catch (error) {
+      Logger.error('Error getting user invitations:', error);
+      return [];
+    }
+  }
+
+  // Accept an invitation
+  static async acceptInvitation(
+    playlistId: string,
+    invitationId: string,
+    userId: string,
+    role: 'editor' | 'viewer' = 'editor'
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      await runTransaction(db, async (transaction) => {
+        const invitationRef = doc(
+          db,
+          this.collection,
+          playlistId,
+          this.invitationsCollection,
+          invitationId
+        );
+        const playlistRef = doc(db, this.collection, playlistId);
+
+        // Get invitation and playlist data
+        const [invitationDoc, playlistDoc] = await Promise.all([
+          transaction.get(invitationRef),
+          transaction.get(playlistRef)
+        ]);
+
+        if (!invitationDoc.exists()) {
+          throw new Error('Invitation not found');
+        }
+
+        if (!playlistDoc.exists()) {
+          throw new Error('Playlist not found');
+        }
+
+        const invitation = invitationDoc.data() as PlaylistInvitation;
+        const playlist = playlistDoc.data() as Playlist;
+
+        // Verify this invitation is for the current user
+        if (invitation.userId !== userId) {
+          throw new Error('This invitation is not for you');
+        }
+
+        // Check if user is already a participant
+        const isAlreadyParticipant = playlist.participants.some(
+          (p) => p.userId === userId
+        );
+
+        if (isAlreadyParticipant) {
+          throw new Error('You are already a participant in this playlist');
+        }
+
+        // Update invitation status
+        transaction.update(invitationRef, {
+          status: 'accepted'
+        });
+
+        // Add user to participants
+        const updatedParticipants = [
+          ...playlist.participants,
+          {
+            userId,
+            role,
+            joinedAt: new Date()
+          }
+        ];
+
+        transaction.update(playlistRef, {
+          participants: updatedParticipants,
+          updatedAt: serverTimestamp(),
+          version: increment(1)
+        });
+      });
+
+      return { success: true, message: 'Invitation accepted successfully' };
+    } catch (error) {
+      Logger.error('Error accepting invitation:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to accept invitation'
+      };
+    }
+  }
+
+  // Decline an invitation
+  static async declineInvitation(
+    playlistId: string,
+    invitationId: string,
+    userId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const invitationRef = doc(
+        db,
+        this.collection,
+        playlistId,
+        this.invitationsCollection,
+        invitationId
+      );
+
+      const invitationDoc = await getDoc(invitationRef);
+
+      if (!invitationDoc.exists()) {
+        return { success: false, message: 'Invitation not found' };
+      }
+
+      const invitation = invitationDoc.data() as PlaylistInvitation;
+
+      // Verify this invitation is for the current user
+      if (invitation.userId !== userId) {
+        return { success: false, message: 'This invitation is not for you' };
+      }
+
+      // Update invitation status
+      await updateDoc(invitationRef, {
+        status: 'declined'
+      });
+
+      return { success: true, message: 'Invitation declined' };
+    } catch (error) {
+      Logger.error('Error declining invitation:', error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to decline invitation'
+      };
+    }
   }
 
   // ===== REAL-TIME SUBSCRIPTIONS =====
