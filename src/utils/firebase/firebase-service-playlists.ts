@@ -19,6 +19,8 @@ import {
 import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 
+import { parseFirestoreDate } from './firestore-date-utils';
+
 export interface MusicTrack {
   id: string;
   trackId: string; // Deezer track ID
@@ -55,7 +57,7 @@ export interface PlaylistInvitation {
   playlistName?: string; // Название плейлиста для отображения
   userId: string;
   invitedBy: string;
-  invitedAt: Date;
+  invitedAt: Date | any; // Can be Date or Firestore Timestamp
   status: 'pending' | 'accepted' | 'declined';
   displayName?: string;
   email?: string;
@@ -571,10 +573,8 @@ export class PlaylistService {
 
       // Sort by invitedAt in memory (descending)
       return allInvitations.sort((a, b) => {
-        const dateA =
-          a.invitedAt instanceof Date ? a.invitedAt : new Date(a.invitedAt);
-        const dateB =
-          b.invitedAt instanceof Date ? b.invitedAt : new Date(b.invitedAt);
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
         return dateB.getTime() - dateA.getTime();
       });
     } catch (error) {
@@ -812,10 +812,99 @@ export class PlaylistService {
     return onSnapshot(q, (querySnapshot) => {
       const invitations = querySnapshot.docs.map((doc) => ({
         id: doc.id,
+        playlistId,
         ...doc.data()
       })) as PlaylistInvitation[];
       callback(invitations);
     });
+  }
+
+  // Subscribe to all user invitations across all playlists (Real-time)
+  static subscribeToUserInvitations(
+    userId: string,
+    callback: (invitations: PlaylistInvitation[]) => void
+  ): () => void {
+    // We need to get all playlists and subscribe to their invitations
+    // This is a more complex real-time subscription
+    let unsubscribeFunctions: (() => void)[] = [];
+    let allInvitations: PlaylistInvitation[] = [];
+
+    const updateInvitations = () => {
+      // Sort by invitedAt in memory (descending)
+      const sortedInvitations = allInvitations.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+      callback(sortedInvitations);
+    };
+
+    // First, get all playlists to set up individual subscriptions
+    const setupSubscriptions = async () => {
+      try {
+        const playlistsQuery = query(collection(db, this.collection));
+        const playlistsSnapshot = await getDocs(playlistsQuery);
+
+        playlistsSnapshot.docs.forEach((playlistDoc) => {
+          const playlistId = playlistDoc.id;
+
+          // Subscribe to invitations for this playlist for the specific user
+          const invitationsRef = collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          );
+          const invitationsQuery = query(
+            invitationsRef,
+            where('userId', '==', userId),
+            where('status', '==', 'pending')
+          );
+
+          const unsubscribe = onSnapshot(
+            invitationsQuery,
+            (querySnapshot) => {
+              // Remove old invitations for this playlist
+              allInvitations = allInvitations.filter(
+                (inv) => inv.playlistId !== playlistId
+              );
+
+              // Add new invitations for this playlist
+              const newInvitations = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                playlistId,
+                ...doc.data()
+              })) as PlaylistInvitation[];
+
+              allInvitations.push(...newInvitations);
+              updateInvitations();
+            },
+            (error) => {
+              Logger.error(
+                `Error in real-time invitation subscription for playlist ${playlistId}:`,
+                error
+              );
+            }
+          );
+
+          unsubscribeFunctions.push(unsubscribe);
+        });
+      } catch (error) {
+        Logger.error(
+          'Error setting up real-time invitation subscriptions:',
+          error
+        );
+      }
+    };
+
+    setupSubscriptions();
+
+    // Return cleanup function
+    return () => {
+      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      unsubscribeFunctions = [];
+      allInvitations = [];
+    };
   }
 
   // ===== PERMISSIONS CHECK =====

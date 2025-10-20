@@ -14,6 +14,7 @@ import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 // Access level scaffolding for future privacy controls
@@ -47,12 +48,6 @@ const ProfileScreen: FC = () => {
   const handlePlayTrack = (track: Track) => {
     setCurrentPlayingTrackId(track.id);
   };
-
-  // Constrain content width on web for better readability
-  const containerStyle: ViewStyle | undefined =
-    Platform.OS === 'web'
-      ? { maxWidth: 920, width: '100%', alignSelf: 'center' }
-      : undefined;
 
   // Safe-area aware padding so the last items are not cut off by tab bar/home indicator
   const scrollContentStyle: ViewStyle = {
@@ -137,7 +132,7 @@ const ProfileScreen: FC = () => {
       className="flex-1 bg-bg-main px-4 py-4"
       contentContainerStyle={scrollContentStyle}
     >
-      <View className="w-full gap-4" style={[containerStyle]}>
+      <View className="w-full gap-4" style={[containerWidthStyle]}>
         {/* Header card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
           <View className="flex-row items-center gap-4">

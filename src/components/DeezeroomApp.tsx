@@ -49,13 +49,6 @@ const DeezeroomApp = () => {
           />
 
           <Stack.Screen
-            name="(tabs)/playlists/[id]"
-            options={{
-              headerShown: false
-            }}
-          />
-
-          <Stack.Screen
             name="profile"
             options={{
               headerShown: false

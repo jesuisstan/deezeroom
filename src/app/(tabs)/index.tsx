@@ -10,6 +10,7 @@ import { Track } from '@/graphql/schema';
 import { usePlayback } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
@@ -56,7 +57,10 @@ const HomeScreen = () => {
       contentContainerStyle={{ flexGrow: 1 }}
       className="bg-bg-main"
     >
-      <View className="min-h-full w-full flex-col items-center justify-start gap-4 self-center p-4">
+      <View
+        style={containerWidthStyle}
+        className="min-h-full w-full flex-col items-center justify-start gap-4 self-center p-4"
+      >
         {/* Welcome Section */}
         <View className="w-full gap-2">
           <View className="items-center">

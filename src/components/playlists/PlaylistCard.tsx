@@ -21,7 +21,8 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
   const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
 
   const { width } = Dimensions.get('window');
-  const cardWidth = Math.min((width - 48) / 2, 200); // For web compatibility
+  //const cardWidth = Math.min((width - 48) / 2, 200); // For web compatibility
+  const cardWidth = Math.min((width - 72) / 2, 200); // For web compatibility
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -54,7 +55,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
           width: cardWidth,
           height: cardWidth,
           backgroundColor: getCardBackgroundColor(),
-          borderRadius: 8,
+          borderRadius: 4,
           shadowColor: themeColors[theme]['bg-inverse'],
           shadowOffset: {
             width: 0,

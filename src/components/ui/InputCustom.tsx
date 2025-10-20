@@ -32,11 +32,11 @@ type InputProps = TextInputProps & {
 };
 
 const containerBase = 'w-full';
-const inputBase = 'text-base text-text-main px-4 py-3 rounded-xl';
+const inputBase = 'text-base text-text-main px-4 py-3 rounded-md';
 const variantStyles: Record<InputVariant, string> = {
-  default: 'bg-bg-secondary rounded-xl',
-  filled: 'bg-bg-secondary rounded-xl',
-  outline: 'bg-transparent rounded-xl'
+  default: 'bg-bg-secondary rounded-md',
+  filled: 'bg-bg-secondary rounded-md',
+  outline: 'bg-transparent rounded-md'
 };
 
 const InputCustom = forwardRef<TextInput, InputProps>(function Input(

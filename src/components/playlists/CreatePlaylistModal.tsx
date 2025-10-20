@@ -114,6 +114,11 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
       onPlaylistCreated(playlistId);
       handleClose();
+      Notifier.shoot({
+        type: 'success',
+        title: 'Success',
+        message: `Playlist "${name}" created successfully`
+      });
     } catch (error) {
       Logger.error('Error creating playlist:', error, '📝 CreatePlaylistModal');
       Notifier.shoot({

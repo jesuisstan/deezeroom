@@ -20,6 +20,7 @@ import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
+import { containerWidthStyle } from '@/style/container-width-style';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
 
@@ -88,7 +89,7 @@ const LoginScreen: FC = () => {
           <ScrollView
             className="flex-1"
             contentContainerClassName="gap-4 px-6 py-6"
-            contentContainerStyle={{ flexGrow: 1 }}
+            contentContainerStyle={{ flexGrow: 1, ...containerWidthStyle }}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             automaticallyAdjustKeyboardInsets

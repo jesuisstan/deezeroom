@@ -14,7 +14,8 @@ const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
   const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
 
   const { width } = Dimensions.get('window');
-  const cardWidth = Math.min((width - 48) / 2, 200);
+  //const cardWidth = Math.min((width - 48) / 2, 200);
+  const cardWidth = Math.min((width - 72) / 2, 200); // For web compatibility
 
   return (
     <Animated.View style={animatedStyle || {}}>
@@ -27,7 +28,7 @@ const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
           width: cardWidth,
           height: cardWidth,
           backgroundColor: themeColors[theme]['bg-secondary'],
-          borderRadius: 8,
+          borderRadius: 4,
           padding: 12,
           borderWidth: 2,
           borderColor: themeColors[theme]['border'],

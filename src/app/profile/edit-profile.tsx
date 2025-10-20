@@ -27,6 +27,7 @@ import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import { deezerService } from '@/utils/deezer/deezer-service';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { updateAvatar } from '@/utils/profile-utils';
@@ -79,12 +80,6 @@ const EditProfileScreen: FC = () => {
   // Loading state for location detection
   const [locLoading, setLocLoading] = useState(false);
   const [showBirthPicker, setShowBirthPicker] = useState(false);
-
-  // Constrain content width on web for better readability
-  const containerStyle: ViewStyle | undefined =
-    Platform.OS === 'web'
-      ? { maxWidth: 920, width: '100%', alignSelf: 'center' }
-      : undefined;
 
   const contentStyle: ViewStyle = {
     ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
@@ -407,7 +402,7 @@ const EditProfileScreen: FC = () => {
       className="flex-1 bg-bg-main px-4 py-4"
       contentContainerStyle={contentStyle}
     >
-      <View className="w-full" style={[containerStyle]}>
+      <View className="w-full" style={[containerWidthStyle]}>
         {/* Avatar */}
         <View className="w-full items-center gap-3 px-4 py-6">
           <ImageUploader

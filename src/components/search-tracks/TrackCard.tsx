@@ -64,7 +64,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
   }, [toggleFavoriteTrack, track.id]);
 
   return (
-    <View className="mb-2 rounded-lg border border-border bg-bg-secondary px-2 py-1">
+    <View className="mb-2 rounded-md border border-border bg-bg-secondary px-2 py-1">
       <View className="flex-row items-center gap-3">
         {albumCoverUrl && (
           <Image

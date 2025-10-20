@@ -1,18 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Playlist,
   PlaylistService
@@ -77,6 +81,36 @@ const PlaylistDetailScreen = () => {
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleDeletePlaylist = () => {
+    if (!playlist || !user) return;
+
+    Alert.delete(
+      'Delete Playlist',
+      `Are you sure you want to delete "${playlist.name}"? This action cannot be undone.`,
+      async () => {
+        try {
+          await PlaylistService.deletePlaylist(playlist.id);
+
+          Notifier.shoot({
+            type: 'warn',
+            title: 'Success',
+            message: 'Playlist deleted successfully'
+          });
+
+          // Navigate back to playlists and force refresh
+          router.replace('/(tabs)/playlists');
+        } catch (error) {
+          Logger.error('Error deleting playlist:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to delete playlist'
+          });
+        }
+      }
+    );
   };
 
   const handleEditPlaylist = () => {
@@ -174,16 +208,7 @@ const PlaylistDetailScreen = () => {
   };
 
   if (isLoading) {
-    return (
-      <View
-        className="flex-1 items-center justify-center"
-        style={{
-          backgroundColor: themeColors[theme]['bg-main']
-        }}
-      >
-        <TextCustom className="opacity-70">Loading playlist...</TextCustom>
-      </View>
-    );
+    return <ActivityIndicatorScreen />;
   }
 
   if (error || !playlist) {
@@ -218,8 +243,8 @@ const PlaylistDetailScreen = () => {
       <View
         style={{
           paddingHorizontal: 16,
-          paddingVertical: 16,
-          backgroundColor: themeColors[theme]['bg-main'],
+          paddingVertical: 4,
+          backgroundColor: themeColors[theme]['bg-tertiary'],
           borderBottomWidth: 1,
           borderBottomColor: themeColors[theme].border,
           shadowColor: themeColors[theme]['bg-inverse'],
@@ -234,31 +259,55 @@ const PlaylistDetailScreen = () => {
       >
         <View className="flex-row items-center justify-between">
           <RippleButton
-            title="Back to playlists"
+            title="To playlists"
             variant="outline"
             size="sm"
             onPress={handleBack}
-            //leftIcon="arrow-left"
+            leftIcon={
+              <Entypo
+                name="chevron-thin-left"
+                size={15}
+                color={themeColors[theme]['text-main']}
+              />
+            }
           />
 
-          <View className="flex-row gap-2">
+          <View>
             {playlist.createdBy === user?.uid && (
-              <>
-                <RippleButton
-                  title="Edit"
-                  variant="outline"
-                  size="sm"
+              <View className="flex flex-row ">
+                <IconButton
+                  accessibilityLabel="Delete playlist"
+                  onPress={handleDeletePlaylist}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color={themeColors[theme]['intent-error']}
+                  />
+                </IconButton>
+
+                <IconButton
+                  accessibilityLabel="Edit playlist"
                   onPress={handleEditPlaylist}
-                  //leftIcon="pencil"
-                />
-                <RippleButton
-                  title="Invite"
-                  variant="outline"
-                  size="sm"
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+
+                <IconButton
+                  accessibilityLabel="Invite users"
                   onPress={handleInviteUsers}
-                  //leftIcon="account-plus"
-                />
-              </>
+                >
+                  <MaterialCommunityIcons
+                    name="account-plus-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              </View>
             )}
           </View>
         </View>
@@ -273,120 +322,131 @@ const PlaylistDetailScreen = () => {
           gap: 16
         }}
       >
-        {/* Playlist Info */}
-        <View className="gap-4">
-          <View className="items-center">
-            <TextCustom type="title" className="text-center">
-              {playlist.name}
+        <View style={containerWidthStyle}>
+          {/* Playlist Info */}
+          <View className="gap-4">
+            <View className="items-center">
+              <TextCustom type="title" className="text-center">
+                {playlist.name}
+              </TextCustom>
+
+              {playlist.description && (
+                <TextCustom
+                  size="m"
+                  className="mt-2 text-center opacity-70"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  {playlist.description}
+                </TextCustom>
+              )}
+            </View>
+
+            {/* Playlist Stats */}
+            <View className="flex-row justify-center gap-6">
+              <View className="items-center">
+                <TextCustom type="bold" size="l">
+                  {playlist.trackCount}
+                </TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Tracks
+                </TextCustom>
+              </View>
+
+              <View className="items-center">
+                <TextCustom type="bold" size="l">
+                  {Math.floor(playlist.totalDuration / 60)}m
+                </TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Duration
+                </TextCustom>
+              </View>
+
+              <View className="items-center">
+                <TextCustom type="bold" size="l">
+                  {playlist.participants.length}
+                </TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Members
+                </TextCustom>
+              </View>
+            </View>
+
+            {/* Playlist Settings */}
+            <View className="flex-row justify-center gap-4">
+              <View
+                style={{
+                  backgroundColor: `${themeColors[theme]['primary']}15`,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: themeColors[theme]['primary']
+                }}
+              >
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['primary']}
+                  type="bold"
+                >
+                  {playlist.visibility === 'public' ? 'Public' : 'Private'}
+                </TextCustom>
+              </View>
+
+              <View
+                style={{
+                  backgroundColor: `${themeColors[theme]['text-secondary']}15`,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: themeColors[theme]['text-secondary']
+                }}
+              >
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                  type="bold"
+                >
+                  {playlist.editPermissions === 'everyone'
+                    ? 'All Can Edit'
+                    : 'Invited Only'}
+                </TextCustom>
+              </View>
+            </View>
+          </View>
+
+          {/* Tracks Section */}
+          <View className="gap-4">
+            <TextCustom type="subtitle" className="text-center">
+              Tracks
             </TextCustom>
 
-            {playlist.description && (
-              <TextCustom
-                size="m"
-                className="mt-2 text-center opacity-70"
+            <View className="items-center py-8">
+              <MaterialCommunityIcons
+                name="music-note"
+                size={48}
                 color={themeColors[theme]['text-secondary']}
-              >
-                {playlist.description}
+              />
+              <TextCustom className="mt-4 text-center opacity-70">
+                No tracks added yet
               </TextCustom>
-            )}
-          </View>
-
-          {/* Playlist Stats */}
-          <View className="flex-row justify-center gap-6">
-            <View className="items-center">
-              <TextCustom type="bold" size="l">
-                {playlist.trackCount}
-              </TextCustom>
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                Tracks
-              </TextCustom>
-            </View>
-
-            <View className="items-center">
-              <TextCustom type="bold" size="l">
-                {Math.floor(playlist.totalDuration / 60)}m
-              </TextCustom>
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                Duration
-              </TextCustom>
-            </View>
-
-            <View className="items-center">
-              <TextCustom type="bold" size="l">
-                {playlist.participants.length}
-              </TextCustom>
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                Members
-              </TextCustom>
-            </View>
-          </View>
-
-          {/* Playlist Settings */}
-          <View className="flex-row justify-center gap-4">
-            <View
-              style={{
-                backgroundColor: `${themeColors[theme]['primary']}15`,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: themeColors[theme]['primary']
-              }}
-            >
               <TextCustom
                 size="s"
-                color={themeColors[theme]['primary']}
-                type="bold"
-              >
-                {playlist.visibility === 'public' ? 'Public' : 'Private'}
-              </TextCustom>
-            </View>
-
-            <View
-              style={{
-                backgroundColor: `${themeColors[theme]['text-secondary']}15`,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 16,
-                borderWidth: 1,
-                borderColor: themeColors[theme]['text-secondary']
-              }}
-            >
-              <TextCustom
-                size="s"
+                className="mt-2 text-center opacity-50"
                 color={themeColors[theme]['text-secondary']}
-                type="bold"
               >
-                {playlist.editPermissions === 'everyone'
-                  ? 'All Can Edit'
-                  : 'Invited Only'}
+                Add tracks using the Deezer search
               </TextCustom>
             </View>
-          </View>
-        </View>
-
-        {/* Tracks Section */}
-        <View className="gap-4">
-          <TextCustom type="subtitle" className="text-center">
-            Tracks
-          </TextCustom>
-
-          <View className="items-center py-8">
-            <MaterialCommunityIcons
-              name="music-note"
-              size={48}
-              color={themeColors[theme]['text-secondary']}
-            />
-            <TextCustom className="mt-4 text-center opacity-70">
-              No tracks added yet
-            </TextCustom>
-            <TextCustom
-              size="s"
-              className="mt-2 text-center opacity-50"
-              color={themeColors[theme]['text-secondary']}
-            >
-              Add tracks using the Deezer search
-            </TextCustom>
           </View>
         </View>
       </ScrollView>

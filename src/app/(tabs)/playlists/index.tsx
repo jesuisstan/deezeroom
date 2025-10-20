@@ -1,19 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import CreatePlaylistButton from '@/components/playlists/CreatePlaylistButton';
 import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Playlist,
   PlaylistService
@@ -30,36 +32,39 @@ const PlaylistsScreen = () => {
     'my'
   );
 
-  const loadPlaylists = async (tab: 'my' | 'participating' | 'public') => {
-    if (!user) return;
+  const loadPlaylists = useCallback(
+    async (tab: 'my' | 'participating' | 'public') => {
+      if (!user) return;
 
-    try {
-      let playlistsData: Playlist[] = [];
+      try {
+        let playlistsData: Playlist[] = [];
 
-      switch (tab) {
-        case 'my':
-          playlistsData = await PlaylistService.getUserPlaylists(user.uid);
-          break;
-        case 'participating':
-          playlistsData = await PlaylistService.getUserParticipatingPlaylists(
-            user.uid
-          );
-          break;
-        case 'public':
-          playlistsData = await PlaylistService.getPublicPlaylists();
-          break;
+        switch (tab) {
+          case 'my':
+            playlistsData = await PlaylistService.getUserPlaylists(user.uid);
+            break;
+          case 'participating':
+            playlistsData = await PlaylistService.getUserParticipatingPlaylists(
+              user.uid
+            );
+            break;
+          case 'public':
+            playlistsData = await PlaylistService.getPublicPlaylists();
+            break;
+        }
+
+        setPlaylists(playlistsData);
+      } catch (error) {
+        Logger.error('Error loading playlists:', error);
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to load playlists'
+        });
       }
-
-      setPlaylists(playlistsData);
-    } catch (error) {
-      Logger.error('Error loading playlists:', error);
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load playlists'
-      });
-    }
-  };
+    },
+    [user]
+  );
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -74,34 +79,6 @@ const PlaylistsScreen = () => {
     setIsLoading(false);
   };
 
-  const handlePlaylistDelete = (playlist: Playlist) => {
-    Alert.delete(
-      'Delete Playlist',
-      `Are you sure you want to delete "${playlist.name}"? This action cannot be undone.`,
-      async () => {
-        try {
-          await PlaylistService.deletePlaylist(playlist.id);
-
-          // Remove from local state
-          setPlaylists((prev) => prev.filter((p) => p.id !== playlist.id));
-
-          Notifier.shoot({
-            type: 'success',
-            title: 'Success',
-            message: 'Playlist deleted successfully'
-          });
-        } catch (error) {
-          Logger.error('Error deleting playlist:', error);
-          Notifier.shoot({
-            type: 'error',
-            title: 'Error',
-            message: 'Failed to delete playlist'
-          });
-        }
-      }
-    );
-  };
-
   const handlePlaylistCreated = (playlistId: string) => {
     // Refresh playlists after creation
     loadPlaylists(activeTab);
@@ -114,6 +91,15 @@ const PlaylistsScreen = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Refresh data when screen comes into focus (e.g., after deleting a playlist)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadPlaylists(activeTab);
+      }
+    }, [user, activeTab, loadPlaylists])
+  );
 
   const getTabTitle = (tab: 'my' | 'participating' | 'public') => {
     switch (tab) {
@@ -130,10 +116,7 @@ const PlaylistsScreen = () => {
     <View
       className="flex-1"
       style={{
-        backgroundColor:
-          theme === 'dark'
-            ? themeColors.dark['bg-main']
-            : themeColors.light['bg-main']
+        backgroundColor: themeColors[theme]['bg-main']
       }}
     >
       {/* Sticky Tabs Header */}
@@ -141,10 +124,7 @@ const PlaylistsScreen = () => {
         style={{
           paddingHorizontal: 16,
           paddingVertical: 16,
-          backgroundColor:
-            theme === 'dark'
-              ? themeColors.dark['bg-main']
-              : themeColors.light['bg-main'],
+          backgroundColor: themeColors[theme]['bg-tertiary'],
           borderBottomWidth: 1,
           borderBottomColor: themeColors[theme].border,
           shadowColor: themeColors[theme]['bg-inverse'],
@@ -190,9 +170,7 @@ const PlaylistsScreen = () => {
       >
         {/* Playlists List */}
         {isLoading ? (
-          <View className="flex-1 items-center justify-center py-20">
-            <TextCustom className="opacity-70">Loading...</TextCustom>
-          </View>
+          <ActivityIndicatorScreen />
         ) : playlists.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
             <MaterialCommunityIcons
@@ -216,12 +194,8 @@ const PlaylistsScreen = () => {
           </View>
         ) : (
           <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              gap: 8
-            }}
+            className="flex-row flex-wrap justify-center gap-4"
+            style={containerWidthStyle}
           >
             <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
             {playlists.map((playlist) => (

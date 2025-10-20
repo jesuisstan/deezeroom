@@ -17,6 +17,7 @@ import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { Notifier } from '@/modules/notifier';
+import { containerWidthStyle } from '@/style/container-width-style';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';
 import { UserService } from '@/utils/firebase/firebase-service-user';
@@ -107,7 +108,7 @@ const RegisterScreen: FC = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, ...containerWidthStyle }}
           contentContainerClassName="flex-1 gap-4 px-6 py-6"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
