@@ -59,6 +59,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playbackIntent, setPlaybackIntentState] = useState(false);
 
   const autoPlayRef = useRef(false);
   const playbackIntentRef = useRef(false);
@@ -66,11 +67,17 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const currentIndexRef = useRef<number>(-1);
   const didFinishHandledRef = useRef(false);
 
+  const setPlaybackIntent = useCallback((intent: boolean) => {
+    playbackIntentRef.current = intent;
+    setPlaybackIntentState(intent);
+  }, []);
+
   const currentTrack =
     currentIndex >= 0 && currentIndex < queue.length
       ? queue[currentIndex]
       : null;
-  const isPlaying = status?.playing ?? false;
+  const playerIsPlaying = status?.playing ?? false;
+  const isPlaying = playbackIntent || playerIsPlaying;
 
   useEffect(() => {
     currentTrackRef.current = currentTrack;
@@ -84,6 +91,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     if (!currentTrack) {
       setIsLoading(false);
       setError(null);
+      setPlaybackIntent(false);
+      autoPlayRef.current = false;
       return;
     }
 
@@ -92,7 +101,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       setError(message);
       Notifier.error(message);
       autoPlayRef.current = false;
-      playbackIntentRef.current = false;
+      setPlaybackIntent(false);
       return;
     }
 
@@ -113,6 +122,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         if (!cancelled) {
           setError('Unable to load this preview');
           Notifier.error('Unable to load this preview');
+          setPlaybackIntent(false);
         }
       } finally {
         if (!cancelled) {
@@ -127,7 +137,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [currentTrack?.id, player]);
+  }, [currentTrack?.id, player, setPlaybackIntent]);
 
   useEffect(() => {
     if (!status?.didJustFinish) {
@@ -145,7 +155,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     const nextIndex = findNextPlayableIndex(queue, baseIndex + 1, 1);
     if (nextIndex !== -1) {
       autoPlayRef.current = true;
-      playbackIntentRef.current = true;
+      setPlaybackIntent(true);
       currentIndexRef.current = nextIndex;
       currentTrackRef.current = queue[nextIndex] ?? null;
       setCurrentIndex(nextIndex);
@@ -153,8 +163,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     autoPlayRef.current = false;
-    playbackIntentRef.current = false;
-  }, [status?.didJustFinish, queue]);
+    setPlaybackIntent(false);
+  }, [queue, setPlaybackIntent, status?.didJustFinish]);
 
   const updateQueue = useCallback(
     (tracks: Track[]) => {
@@ -188,9 +198,11 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         currentIndexRef.current = -1;
         currentTrackRef.current = null;
         setCurrentIndex(-1);
+        setPlaybackIntent(false);
+        autoPlayRef.current = false;
       }
     },
-    [queue]
+    [queue, setPlaybackIntent]
   );
 
   const startPlayback = useCallback(
@@ -217,12 +229,14 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       if (isSameTrack) {
         if (!status?.playing) {
           try {
-            playbackIntentRef.current = true;
+            setPlaybackIntent(true);
             autoPlayRef.current = true;
             player.play();
           } catch (resumeError) {
             console.warn('Failed to resume playback', resumeError);
             Notifier.error('Unable to resume playback');
+            setPlaybackIntent(false);
+            autoPlayRef.current = false;
           }
         }
         updateQueue(tracks);
@@ -234,11 +248,11 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
       updateQueue(tracks);
 
-      playbackIntentRef.current = true;
+      setPlaybackIntent(true);
       autoPlayRef.current = true;
       setCurrentIndex(targetIndex);
     },
-    [player, status?.playing, updateQueue]
+    [player, setPlaybackIntent, status?.playing, updateQueue]
   );
 
   const togglePlayPause = useCallback(() => {
@@ -254,7 +268,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      playbackIntentRef.current = true;
+      setPlaybackIntent(true);
       autoPlayRef.current = true;
       currentIndexRef.current = firstPlayable;
       currentTrackRef.current = queue[firstPlayable] ?? null;
@@ -264,11 +278,11 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       if (status?.playing) {
-        playbackIntentRef.current = false;
+        setPlaybackIntent(false);
         autoPlayRef.current = false;
         player.pause();
       } else {
-        playbackIntentRef.current = true;
+        setPlaybackIntent(true);
         autoPlayRef.current = true;
         player.play();
       }
@@ -277,8 +291,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       if (!status?.playing) {
         Notifier.error('Unable to start playback');
       }
+      setPlaybackIntent(false);
+      autoPlayRef.current = false;
     }
-  }, [player, queue, status?.playing]);
+  }, [player, queue, setPlaybackIntent, status?.playing]);
 
   const playNext = useCallback(() => {
     if (!queue.length) {
@@ -291,12 +307,12 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    playbackIntentRef.current = true;
+    setPlaybackIntent(true);
     autoPlayRef.current = true;
     currentIndexRef.current = nextIndex;
     currentTrackRef.current = queue[nextIndex] ?? null;
     setCurrentIndex(nextIndex);
-  }, [currentIndex, queue]);
+  }, [currentIndex, queue, setPlaybackIntent]);
 
   const playPrevious = useCallback(() => {
     if (!queue.length) {
@@ -318,27 +334,29 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   const pause = useCallback(() => {
     try {
-      playbackIntentRef.current = false;
+      setPlaybackIntent(false);
       autoPlayRef.current = false;
       player.pause();
     } catch (pauseError) {
       console.warn('Failed to pause playback', pauseError);
     }
-  }, [player]);
+  }, [player, setPlaybackIntent]);
 
   const resume = useCallback(() => {
     if (!currentTrackRef.current) {
       return;
     }
     try {
-      playbackIntentRef.current = true;
+      setPlaybackIntent(true);
       autoPlayRef.current = true;
       player.play();
     } catch (resumeError) {
       console.warn('Failed to resume playback', resumeError);
       Notifier.error('Unable to resume playback');
+      setPlaybackIntent(false);
+      autoPlayRef.current = false;
     }
-  }, [player]);
+  }, [player, setPlaybackIntent]);
 
   const seekTo = useCallback(
     (seconds: number) => {
