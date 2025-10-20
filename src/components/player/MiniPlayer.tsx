@@ -25,7 +25,7 @@ const MiniPlayer = () => {
   const router = useRouter();
   const pathname = usePathname();
   // Keep the mini player floating above the tab bar with a small gap.
-  const baseBottomOffset = Platform.select({ ios: 72, default: 60 });
+  const baseBottomOffset = Platform.select({ ios: 80, default: 68 });
 
   const {
     queue,
@@ -110,7 +110,7 @@ const MiniPlayer = () => {
         position: 'absolute',
         left: 16,
         right: 16,
-        bottom: baseBottomOffset ?? 60,
+        bottom: baseBottomOffset ?? 68,
         transform: [{ translateY }],
         opacity
       }}
