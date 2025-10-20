@@ -22,12 +22,10 @@ const HomeScreen = () => {
   const handlePlayTrack = (track: Track) => {
     if (currentTrack?.id === track.id) {
       togglePlayPause();
-      router.push('/player');
       return;
     }
 
     startPlayback(searchResults, track.id);
-    router.push('/player');
   };
 
   const handleSearchResults = useCallback((tracks: Track[]) => {
