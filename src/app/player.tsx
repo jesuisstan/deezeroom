@@ -1,11 +1,10 @@
 import { useCallback, useMemo } from 'react';
-import { Image, Platform, View } from 'react-native';
+import { Image, PanResponder, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
@@ -91,33 +90,41 @@ const PlayerScreen = () => {
     }
   }, [router]);
 
-  const swipeToCloseGesture = useMemo(
+  const swipeResponder = useMemo(
     () =>
-      Gesture.Pan()
-        .activeOffsetY([20, 9999])
-        .onEnd((event) => {
-          const { translationY, velocityY } = event;
-          const enoughDistance = translationY > 80;
-          const enoughVelocity = velocityY > 1200;
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gestureState) => {
+          const { dx, dy } = gestureState;
+          const isVerticalSwipe = Math.abs(dy) > Math.abs(dx) && dy > 12;
+          return isVerticalSwipe;
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          const { dy, vy } = gestureState;
+          const enoughDistance = dy > 80;
+          const enoughVelocity = vy > 0.6;
           if (enoughDistance || enoughVelocity) {
             scheduleOnRN(dismissPlayer);
           }
-        }),
+        }
+      }),
     [dismissPlayer]
   );
 
   return (
-    <GestureDetector gesture={swipeToCloseGesture}>
-      <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
-        <LinearGradient
-          colors={[
-            themeColors[theme]['bg-main'],
-            themeColors[theme]['bg-secondary']
-          ]}
-          style={{ flex: 1 }}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
+    <SafeAreaView
+      className="flex-1"
+      edges={['top', 'bottom']}
+      {...swipeResponder.panHandlers}
+    >
+      <LinearGradient
+        colors={[
+          themeColors[theme]['bg-main'],
+          themeColors[theme]['bg-secondary']
+        ]}
+        style={{ flex: 1 }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
           <View className="flex-1 gap-6 px-6 py-6">
             <View className="flex-row items-center justify-between">
               <IconButton
@@ -327,7 +334,6 @@ const PlayerScreen = () => {
           </View>
         </LinearGradient>
       </SafeAreaView>
-    </GestureDetector>
   );
 };
 
