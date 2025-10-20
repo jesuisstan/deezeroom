@@ -96,8 +96,8 @@ const NotificationsScreen = () => {
 
       if (result.success) {
         Notifier.shoot({
-          type: 'success',
-          title: 'Success',
+          type: 'warn',
+          title: 'Warning',
           message: result.message || 'Invitation declined'
         });
         await loadInvitations(); // Reload invitations
@@ -187,28 +187,54 @@ const NotificationsScreen = () => {
         >
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
-              <TextCustom type="subtitle" className="mb-1">
-                Playlist Invitation
-              </TextCustom>
+              <View className="mb-2 flex-row items-center">
+                <MaterialCommunityIcons
+                  name="playlist-music"
+                  size={20}
+                  color={themeColors[theme]['primary']}
+                  style={{ marginRight: 8 }}
+                />
+                <TextCustom type="subtitle">Playlist Invitation</TextCustom>
+              </View>
+
+              {invitation.playlistName && (
+                <TextCustom
+                  type="subtitle"
+                  color={themeColors[theme]['primary']}
+                  className="mb-2"
+                  numberOfLines={2}
+                >
+                  "{invitation.playlistName}"
+                </TextCustom>
+              )}
+
               <TextCustom
                 size="s"
                 color={themeColors[theme]['text-secondary']}
                 className="mb-2"
               >
-                You've been invited to join a playlist
+                You've been invited to collaborate on
+                {invitation.playlistName ? ' this playlist' : ' a playlist'}
               </TextCustom>
+
               <TextCustom
                 size="xs"
                 color={themeColors[theme]['text-secondary']}
               >
                 Invited by:{' '}
-                {invitation.displayName || invitation.email || 'Unknown'}
+                <TextCustom
+                  size="xs"
+                  color={themeColors[theme]['primary']}
+                  style={{ fontWeight: '500' }}
+                >
+                  {invitation.displayName || invitation.email || 'Unknown'}
+                </TextCustom>
               </TextCustom>
             </View>
 
             <MaterialCommunityIcons
               name="account-plus"
-              size={24}
+              size={28}
               color={themeColors[theme]['primary']}
             />
           </View>

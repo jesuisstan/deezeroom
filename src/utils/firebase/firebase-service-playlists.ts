@@ -52,6 +52,7 @@ export interface PlaylistParticipant {
 export interface PlaylistInvitation {
   id: string;
   playlistId: string;
+  playlistName?: string; // Название плейлиста для отображения
   userId: string;
   invitedBy: string;
   invitedAt: Date;
@@ -263,6 +264,14 @@ export class PlaylistService {
     >,
     addedBy: string
   ): Promise<string> {
+    // Check if user has permission to add tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, addedBy);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to add tracks to this playlist'
+      );
+    }
+
     return await runTransaction(db, async (transaction) => {
       const playlistRef = doc(db, this.collection, playlistId);
       const playlistDoc = await transaction.get(playlistRef);
@@ -303,8 +312,17 @@ export class PlaylistService {
 
   static async removeTrackFromPlaylist(
     playlistId: string,
-    trackId: string
+    trackId: string,
+    userId: string
   ): Promise<void> {
+    // Check if user has permission to remove tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, userId);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to remove tracks from this playlist'
+      );
+    }
+
     await runTransaction(db, async (transaction) => {
       const trackRef = doc(
         db,
@@ -363,13 +381,26 @@ export class PlaylistService {
     displayName?: string,
     email?: string
   ): Promise<string> {
+    // Check if user has permission to invite
+    const canInvite = await this.canUserInviteToPlaylist(playlistId, invitedBy);
+    if (!canInvite) {
+      throw new Error(
+        'You do not have permission to invite users to this playlist'
+      );
+    }
+
+    // Get playlist name for the invitation
+    const playlist = await this.getPlaylist(playlistId);
+    const playlistName = playlist?.name;
+
     const invitationData = {
       userId,
       invitedBy,
       invitedAt: new Date(),
       status: 'pending' as const,
       displayName,
-      email
+      email,
+      playlistName
     };
 
     const docRef = await addDoc(
@@ -560,59 +591,72 @@ export class PlaylistService {
     role: 'editor' | 'viewer' = 'editor'
   ): Promise<{ success: boolean; message?: string }> {
     try {
+      // First, validate the invitation outside of transaction
+      const invitationRef = doc(
+        db,
+        this.collection,
+        playlistId,
+        this.invitationsCollection,
+        invitationId
+      );
+
+      const invitationDoc = await getDoc(invitationRef);
+
+      if (!invitationDoc.exists()) {
+        return { success: false, message: 'Invitation not found' };
+      }
+
+      const invitation = invitationDoc.data() as PlaylistInvitation;
+
+      // Verify this invitation is for the current user
+      if (invitation.userId !== userId) {
+        return { success: false, message: 'This invitation is not for you' };
+      }
+
+      // Check if invitation is still pending
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          message: 'This invitation has already been processed'
+        };
+      }
+
+      // Validate playlist exists and user permissions
+      const playlist = await this.getPlaylist(playlistId);
+      if (!playlist) {
+        return { success: false, message: 'Playlist not found' };
+      }
+
+      // Check if user is already a participant
+      const isAlreadyParticipant = playlist.participants.some(
+        (p) => p.userId === userId
+      );
+
+      if (isAlreadyParticipant) {
+        return {
+          success: false,
+          message: 'You are already a participant in this playlist'
+        };
+      }
+
+      // Now execute the transaction
       await runTransaction(db, async (transaction) => {
-        const invitationRef = doc(
-          db,
-          this.collection,
-          playlistId,
-          this.invitationsCollection,
-          invitationId
-        );
         const playlistRef = doc(db, this.collection, playlistId);
-
-        // Get invitation and playlist data
-        const [invitationDoc, playlistDoc] = await Promise.all([
-          transaction.get(invitationRef),
-          transaction.get(playlistRef)
-        ]);
-
-        if (!invitationDoc.exists()) {
-          throw new Error('Invitation not found');
-        }
-
-        if (!playlistDoc.exists()) {
-          throw new Error('Playlist not found');
-        }
-
-        const invitation = invitationDoc.data() as PlaylistInvitation;
-        const playlist = playlistDoc.data() as Playlist;
-
-        // Verify this invitation is for the current user
-        if (invitation.userId !== userId) {
-          throw new Error('This invitation is not for you');
-        }
-
-        // Check if user is already a participant
-        const isAlreadyParticipant = playlist.participants.some(
-          (p) => p.userId === userId
-        );
-
-        if (isAlreadyParticipant) {
-          throw new Error('You are already a participant in this playlist');
-        }
 
         // Update invitation status
         transaction.update(invitationRef, {
           status: 'accepted'
         });
 
-        // Add user to participants
+        // Add user to participants with additional info from invitation
         const updatedParticipants = [
           ...playlist.participants,
           {
             userId,
             role,
-            joinedAt: new Date()
+            joinedAt: new Date(),
+            displayName: invitation.displayName,
+            email: invitation.email
           }
         ];
 
@@ -626,6 +670,23 @@ export class PlaylistService {
       return { success: true, message: 'Invitation accepted successfully' };
     } catch (error) {
       Logger.error('Error accepting invitation:', error);
+
+      // Handle specific Firestore errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        if ((error as any).code === 'permission-denied') {
+          return {
+            success: false,
+            message:
+              'Permission denied. Please make sure the invitation is valid and try again.'
+          };
+        } else if ((error as any).code === 'not-found') {
+          return {
+            success: false,
+            message: 'Invitation or playlist not found.'
+          };
+        }
+      }
+
       return {
         success: false,
         message:
@@ -662,6 +723,14 @@ export class PlaylistService {
         return { success: false, message: 'This invitation is not for you' };
       }
 
+      // Check if invitation is still pending
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          message: 'This invitation has already been processed'
+        };
+      }
+
       // Update invitation status
       await updateDoc(invitationRef, {
         status: 'declined'
@@ -670,6 +739,17 @@ export class PlaylistService {
       return { success: true, message: 'Invitation declined' };
     } catch (error) {
       Logger.error('Error declining invitation:', error);
+
+      // Handle specific Firestore errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        if ((error as any).code === 'permission-denied') {
+          return {
+            success: false,
+            message: 'Permission denied. Unable to decline invitation.'
+          };
+        }
+      }
+
       return {
         success: false,
         message:
@@ -762,6 +842,23 @@ export class PlaylistService {
     }
 
     return false;
+  }
+
+  static async canUserInviteToPlaylist(
+    playlistId: string,
+    userId: string
+  ): Promise<boolean> {
+    const playlist = await this.getPlaylist(playlistId);
+    if (!playlist) return false;
+
+    // Owner can always invite
+    if (playlist.createdBy === userId) return true;
+
+    // Check if user is participant with edit rights (editors can invite)
+    const participant = playlist.participants.find((p) => p.userId === userId);
+    if (!participant) return false;
+
+    return participant.role === 'editor' || participant.role === 'owner';
   }
 
   static async canUserViewPlaylist(
