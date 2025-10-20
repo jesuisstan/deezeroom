@@ -63,6 +63,7 @@ const FeatureTile: React.FC<FeatureTileProps> = ({
             size="m"
             color={themeColors[theme]['text-main']}
             className="text-center"
+            selectable={false}
           >
             {title}
           </TextCustom>
@@ -70,6 +71,7 @@ const FeatureTile: React.FC<FeatureTileProps> = ({
             size="xs"
             color={themeColors[theme]['text-main']}
             className="text-center"
+            selectable={false}
           >
             {description}
           </TextCustom>

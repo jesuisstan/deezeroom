@@ -12,6 +12,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import VideoBanner from '@/components/VideoBanner';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 
 const WelcomeScreen: FC = () => {
   const { theme } = useTheme();
@@ -40,7 +41,7 @@ const WelcomeScreen: FC = () => {
             justifyContent: 'space-between'
           }}
         >
-          <View className="gap-3">
+          <View className="gap-3" style={containerWidthStyle}>
             <TextCustom
               type="title"
               className="text-3xl leading-10 tracking-widest"

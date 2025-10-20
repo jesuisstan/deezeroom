@@ -16,7 +16,10 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
+import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
+
+import { parseFirestoreDate } from './firestore-date-utils';
 
 export interface MusicTrack {
   id: string;
@@ -50,9 +53,11 @@ export interface PlaylistParticipant {
 
 export interface PlaylistInvitation {
   id: string;
+  playlistId: string;
+  playlistName?: string; // Название плейлиста для отображения
   userId: string;
   invitedBy: string;
-  invitedAt: Date;
+  invitedAt: Date | any; // Can be Date or Firestore Timestamp
   status: 'pending' | 'accepted' | 'declined';
   displayName?: string;
   email?: string;
@@ -261,6 +266,14 @@ export class PlaylistService {
     >,
     addedBy: string
   ): Promise<string> {
+    // Check if user has permission to add tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, addedBy);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to add tracks to this playlist'
+      );
+    }
+
     return await runTransaction(db, async (transaction) => {
       const playlistRef = doc(db, this.collection, playlistId);
       const playlistDoc = await transaction.get(playlistRef);
@@ -301,8 +314,17 @@ export class PlaylistService {
 
   static async removeTrackFromPlaylist(
     playlistId: string,
-    trackId: string
+    trackId: string,
+    userId: string
   ): Promise<void> {
+    // Check if user has permission to remove tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, userId);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to remove tracks from this playlist'
+      );
+    }
+
     await runTransaction(db, async (transaction) => {
       const trackRef = doc(
         db,
@@ -357,13 +379,30 @@ export class PlaylistService {
   static async inviteUserToPlaylist(
     playlistId: string,
     userId: string,
-    invitedBy: string
+    invitedBy: string,
+    displayName?: string,
+    email?: string
   ): Promise<string> {
+    // Check if user has permission to invite
+    const canInvite = await this.canUserInviteToPlaylist(playlistId, invitedBy);
+    if (!canInvite) {
+      throw new Error(
+        'You do not have permission to invite users to this playlist'
+      );
+    }
+
+    // Get playlist name for the invitation
+    const playlist = await this.getPlaylist(playlistId);
+    const playlistName = playlist?.name;
+
     const invitationData = {
       userId,
       invitedBy,
       invitedAt: new Date(),
-      status: 'pending' as const
+      status: 'pending' as const,
+      displayName,
+      email,
+      playlistName
     };
 
     const docRef = await addDoc(
@@ -374,46 +413,102 @@ export class PlaylistService {
     return docRef.id;
   }
 
-  static async acceptInvitation(
+  // Invite multiple users to playlist
+  static async inviteMultipleUsersToPlaylist(
     playlistId: string,
-    invitationId: string,
-    userId: string,
-    role: 'editor' | 'viewer' = 'editor'
-  ): Promise<void> {
-    await runTransaction(db, async (transaction) => {
-      const invitationRef = doc(
-        db,
-        this.collection,
-        playlistId,
-        this.invitationsCollection,
-        invitationId
-      );
-      const playlistRef = doc(db, this.collection, playlistId);
+    users: { userId: string; displayName?: string; email?: string }[],
+    invitedBy: string
+  ): Promise<{ success: boolean; invitedCount: number; errors: string[] }> {
+    try {
+      const errors: string[] = [];
+      let invitedCount = 0;
 
-      // Update invitation status
-      transaction.update(invitationRef, {
-        status: 'accepted'
-      });
+      // Check if playlist exists and user has permission to invite
+      const playlist = await this.getPlaylist(playlistId);
+      if (!playlist) {
+        return {
+          success: false,
+          invitedCount: 0,
+          errors: ['Playlist not found']
+        };
+      }
 
-      // Add user to participants
-      const playlistDoc = await transaction.get(playlistRef);
-      const playlist = playlistDoc.data() as Playlist;
+      // Check if user can invite (owner or has edit permissions)
+      const canInvite =
+        playlist.createdBy === invitedBy ||
+        playlist.participants.some(
+          (p) => p.userId === invitedBy && p.role === 'editor'
+        );
 
-      const updatedParticipants = [
-        ...playlist.participants,
-        {
-          userId,
-          role,
-          joinedAt: new Date()
+      if (!canInvite) {
+        return {
+          success: false,
+          invitedCount: 0,
+          errors: ['You do not have permission to invite users']
+        };
+      }
+
+      // Process invitations
+      for (const user of users) {
+        try {
+          // Check if user is already a participant
+          const isAlreadyParticipant = playlist.participants.some(
+            (p) => p.userId === user.userId
+          );
+          if (isAlreadyParticipant) {
+            errors.push(
+              `${user.displayName || user.email || 'User'} is already a participant`
+            );
+            continue;
+          }
+
+          // Check if invitation already exists
+          const existingInvitationsQuery = query(
+            collection(
+              db,
+              this.collection,
+              playlistId,
+              this.invitationsCollection
+            ),
+            where('userId', '==', user.userId),
+            where('status', '==', 'pending')
+          );
+          const existingInvitations = await getDocs(existingInvitationsQuery);
+
+          if (!existingInvitations.empty) {
+            errors.push(
+              `${user.displayName || user.email || 'User'} already has a pending invitation`
+            );
+            continue;
+          }
+
+          // Create invitation
+          await this.inviteUserToPlaylist(
+            playlistId,
+            user.userId,
+            invitedBy,
+            user.displayName,
+            user.email
+          );
+
+          invitedCount++;
+        } catch (error) {
+          Logger.error(`Error inviting user ${user.userId}:`, error);
+          errors.push(
+            `Failed to invite ${user.displayName || user.email || 'User'}`
+          );
         }
-      ];
+      }
 
-      transaction.update(playlistRef, {
-        participants: updatedParticipants,
-        updatedAt: serverTimestamp(),
-        version: increment(1)
-      });
-    });
+      return { success: true, invitedCount, errors };
+    } catch (error) {
+      Logger.error('Error inviting multiple users:', error);
+      return {
+        success: false,
+        invitedCount: 0,
+        errors: ['Failed to process invitations']
+      };
+    }
   }
 
   static async removeParticipant(
@@ -435,6 +530,234 @@ export class PlaylistService {
       updatedAt: serverTimestamp(),
       version: increment(1)
     });
+  }
+
+  // ===== USER INVITATIONS =====
+
+  // Get all invitations for a specific user
+  static async getUserInvitations(
+    userId: string
+  ): Promise<PlaylistInvitation[]> {
+    try {
+      // Get all playlists to find invitations for this user
+      const playlistsQuery = query(collection(db, this.collection));
+      const playlistsSnapshot = await getDocs(playlistsQuery);
+
+      const allInvitations: PlaylistInvitation[] = [];
+
+      for (const playlistDoc of playlistsSnapshot.docs) {
+        const playlistId = playlistDoc.id;
+
+        // Get invitations for this playlist (only by userId, no orderBy to avoid index requirement)
+        const invitationsQuery = query(
+          collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          ),
+          where('userId', '==', userId),
+          where('status', '==', 'pending')
+        );
+
+        const invitationsSnapshot = await getDocs(invitationsQuery);
+
+        invitationsSnapshot.docs.forEach((invitationDoc) => {
+          allInvitations.push({
+            id: invitationDoc.id,
+            playlistId,
+            ...invitationDoc.data()
+          } as PlaylistInvitation);
+        });
+      }
+
+      // Sort by invitedAt in memory (descending)
+      return allInvitations.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } catch (error) {
+      Logger.error('Error getting user invitations:', error);
+      return [];
+    }
+  }
+
+  // Accept an invitation
+  static async acceptInvitation(
+    playlistId: string,
+    invitationId: string,
+    userId: string,
+    role: 'editor' | 'viewer' = 'editor'
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      // First, validate the invitation outside of transaction
+      const invitationRef = doc(
+        db,
+        this.collection,
+        playlistId,
+        this.invitationsCollection,
+        invitationId
+      );
+
+      const invitationDoc = await getDoc(invitationRef);
+
+      if (!invitationDoc.exists()) {
+        return { success: false, message: 'Invitation not found' };
+      }
+
+      const invitation = invitationDoc.data() as PlaylistInvitation;
+
+      // Verify this invitation is for the current user
+      if (invitation.userId !== userId) {
+        return { success: false, message: 'This invitation is not for you' };
+      }
+
+      // Check if invitation is still pending
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          message: 'This invitation has already been processed'
+        };
+      }
+
+      // Validate playlist exists and user permissions
+      const playlist = await this.getPlaylist(playlistId);
+      if (!playlist) {
+        return { success: false, message: 'Playlist not found' };
+      }
+
+      // Check if user is already a participant
+      const isAlreadyParticipant = playlist.participants.some(
+        (p) => p.userId === userId
+      );
+
+      if (isAlreadyParticipant) {
+        return {
+          success: false,
+          message: 'You are already a participant in this playlist'
+        };
+      }
+
+      // Now execute the transaction
+      await runTransaction(db, async (transaction) => {
+        const playlistRef = doc(db, this.collection, playlistId);
+
+        // Update invitation status
+        transaction.update(invitationRef, {
+          status: 'accepted'
+        });
+
+        // Add user to participants with additional info from invitation
+        const updatedParticipants = [
+          ...playlist.participants,
+          {
+            userId,
+            role,
+            joinedAt: new Date(),
+            displayName: invitation.displayName,
+            email: invitation.email
+          }
+        ];
+
+        transaction.update(playlistRef, {
+          participants: updatedParticipants,
+          updatedAt: serverTimestamp(),
+          version: increment(1)
+        });
+      });
+
+      return { success: true, message: 'Invitation accepted successfully' };
+    } catch (error) {
+      Logger.error('Error accepting invitation:', error);
+
+      // Handle specific Firestore errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        if ((error as any).code === 'permission-denied') {
+          return {
+            success: false,
+            message:
+              'Permission denied. Please make sure the invitation is valid and try again.'
+          };
+        } else if ((error as any).code === 'not-found') {
+          return {
+            success: false,
+            message: 'Invitation or playlist not found.'
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to accept invitation'
+      };
+    }
+  }
+
+  // Decline an invitation
+  static async declineInvitation(
+    playlistId: string,
+    invitationId: string,
+    userId: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const invitationRef = doc(
+        db,
+        this.collection,
+        playlistId,
+        this.invitationsCollection,
+        invitationId
+      );
+
+      const invitationDoc = await getDoc(invitationRef);
+
+      if (!invitationDoc.exists()) {
+        return { success: false, message: 'Invitation not found' };
+      }
+
+      const invitation = invitationDoc.data() as PlaylistInvitation;
+
+      // Verify this invitation is for the current user
+      if (invitation.userId !== userId) {
+        return { success: false, message: 'This invitation is not for you' };
+      }
+
+      // Check if invitation is still pending
+      if (invitation.status !== 'pending') {
+        return {
+          success: false,
+          message: 'This invitation has already been processed'
+        };
+      }
+
+      // Update invitation status
+      await updateDoc(invitationRef, {
+        status: 'declined'
+      });
+
+      return { success: true, message: 'Invitation declined' };
+    } catch (error) {
+      Logger.error('Error declining invitation:', error);
+
+      // Handle specific Firestore errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        if ((error as any).code === 'permission-denied') {
+          return {
+            success: false,
+            message: 'Permission denied. Unable to decline invitation.'
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to decline invitation'
+      };
+    }
   }
 
   // ===== REAL-TIME SUBSCRIPTIONS =====
@@ -489,10 +812,99 @@ export class PlaylistService {
     return onSnapshot(q, (querySnapshot) => {
       const invitations = querySnapshot.docs.map((doc) => ({
         id: doc.id,
+        playlistId,
         ...doc.data()
       })) as PlaylistInvitation[];
       callback(invitations);
     });
+  }
+
+  // Subscribe to all user invitations across all playlists (Real-time)
+  static subscribeToUserInvitations(
+    userId: string,
+    callback: (invitations: PlaylistInvitation[]) => void
+  ): () => void {
+    // We need to get all playlists and subscribe to their invitations
+    // This is a more complex real-time subscription
+    let unsubscribeFunctions: (() => void)[] = [];
+    let allInvitations: PlaylistInvitation[] = [];
+
+    const updateInvitations = () => {
+      // Sort by invitedAt in memory (descending)
+      const sortedInvitations = allInvitations.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+      callback(sortedInvitations);
+    };
+
+    // First, get all playlists to set up individual subscriptions
+    const setupSubscriptions = async () => {
+      try {
+        const playlistsQuery = query(collection(db, this.collection));
+        const playlistsSnapshot = await getDocs(playlistsQuery);
+
+        playlistsSnapshot.docs.forEach((playlistDoc) => {
+          const playlistId = playlistDoc.id;
+
+          // Subscribe to invitations for this playlist for the specific user
+          const invitationsRef = collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          );
+          const invitationsQuery = query(
+            invitationsRef,
+            where('userId', '==', userId),
+            where('status', '==', 'pending')
+          );
+
+          const unsubscribe = onSnapshot(
+            invitationsQuery,
+            (querySnapshot) => {
+              // Remove old invitations for this playlist
+              allInvitations = allInvitations.filter(
+                (inv) => inv.playlistId !== playlistId
+              );
+
+              // Add new invitations for this playlist
+              const newInvitations = querySnapshot.docs.map((doc) => ({
+                id: doc.id,
+                playlistId,
+                ...doc.data()
+              })) as PlaylistInvitation[];
+
+              allInvitations.push(...newInvitations);
+              updateInvitations();
+            },
+            (error) => {
+              Logger.error(
+                `Error in real-time invitation subscription for playlist ${playlistId}:`,
+                error
+              );
+            }
+          );
+
+          unsubscribeFunctions.push(unsubscribe);
+        });
+      } catch (error) {
+        Logger.error(
+          'Error setting up real-time invitation subscriptions:',
+          error
+        );
+      }
+    };
+
+    setupSubscriptions();
+
+    // Return cleanup function
+    return () => {
+      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      unsubscribeFunctions = [];
+      allInvitations = [];
+    };
   }
 
   // ===== PERMISSIONS CHECK =====
@@ -519,6 +931,23 @@ export class PlaylistService {
     }
 
     return false;
+  }
+
+  static async canUserInviteToPlaylist(
+    playlistId: string,
+    userId: string
+  ): Promise<boolean> {
+    const playlist = await this.getPlaylist(playlistId);
+    if (!playlist) return false;
+
+    // Owner can always invite
+    if (playlist.createdBy === userId) return true;
+
+    // Check if user is participant with edit rights (editors can invite)
+    const participant = playlist.participants.find((p) => p.userId === userId);
+    if (!participant) return false;
+
+    return participant.role === 'editor' || participant.role === 'owner';
   }
 
   static async canUserViewPlaylist(

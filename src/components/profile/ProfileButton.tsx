@@ -1,31 +1,32 @@
-import { Image, Pressable, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useUser } from '@/providers/UserProvider';
 
+import IconButton from '../ui/buttons/IconButton';
+
 const ProfileButton = () => {
   const { profile } = useUser();
   const router = useRouter();
 
   return (
-    <Pressable
-      className="mr-4 items-center rounded-full"
+    <IconButton
+      accessibilityLabel="Open profile"
       onPress={() => {
         router.push('/profile');
       }}
-      hitSlop={8}
     >
       {profile?.photoURL ? (
         <Image
           source={{ uri: profile.photoURL }}
-          className="h-12 w-12 rounded-full border-2 border-border"
+          className="h-10 w-10 rounded-full border border-border"
           accessibilityRole="button"
           alt="Profile"
         />
       ) : (
-        <View className="h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-primary">
+        <View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-primary">
           <TextCustom type="title">
             {(profile?.displayName || profile?.email || '?')
               .trim()
@@ -34,7 +35,7 @@ const ProfileButton = () => {
           </TextCustom>
         </View>
       )}
-    </Pressable>
+    </IconButton>
   );
 };
 

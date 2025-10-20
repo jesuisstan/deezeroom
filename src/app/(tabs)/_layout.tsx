@@ -1,10 +1,10 @@
 import { Platform, View } from 'react-native';
 
-import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, useRouter } from 'expo-router';
 
 import MiniPlayer from '@/components/player/MiniPlayer';
+import NotificationsButton from '@/components/notifications/NotificationsButton';
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -18,7 +18,7 @@ const HeaderRight = () => {
   const { theme } = useTheme();
 
   return (
-    <View className="flex-row items-center gap-4">
+    <View className="mx-2 flex-row items-center gap-2">
       <IconButton
         accessibilityLabel="Open player"
         onPress={() => router.push('/player')}
@@ -30,6 +30,14 @@ const HeaderRight = () => {
         />
       </IconButton>
       <ThemeToggler />
+      <NotificationsButton />
+    </View>
+  );
+};
+
+const HeaderLeft = () => {
+  return (
+    <View className="mx-2 flex-row items-center gap-2">
       <ProfileButton />
     </View>
   );
@@ -73,9 +81,14 @@ const TabLayout = () => {
           options={{
             title: 'Home',
             tabBarIcon: ({ color }) => (
-              <Foundation name="home" size={28} color={color} />
+              <MaterialCommunityIcons
+              name="home-search"
+              size={28}
+              color={color}
+            />
             ),
-            headerRight: () => <HeaderRight />
+            headerRight: () => <HeaderRight />,
+          headerLeft: () => <HeaderLeft />
           }}
         />
         <Tabs.Screen
@@ -89,7 +102,8 @@ const TabLayout = () => {
                 color={color}
               />
             ),
-            headerRight: () => <HeaderRight />
+            headerRight: () => <HeaderRight />,
+          headerLeft: () => <HeaderLeft />
           }}
         />
         <Tabs.Screen
@@ -103,7 +117,8 @@ const TabLayout = () => {
                 color={color}
               />
             ),
-            headerRight: () => <HeaderRight />
+            headerRight: () => <HeaderRight />,
+          headerLeft: () => <HeaderLeft />
           }}
         />
       </Tabs>

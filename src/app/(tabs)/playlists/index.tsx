@@ -1,0 +1,221 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
+
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+
+import CreatePlaylistButton from '@/components/playlists/CreatePlaylistButton';
+import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
+import PlaylistCard from '@/components/playlists/PlaylistCard';
+import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import RippleButton from '@/components/ui/buttons/RippleButton';
+import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
+import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
+import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
+import {
+  Playlist,
+  PlaylistService
+} from '@/utils/firebase/firebase-service-playlists';
+
+const PlaylistsScreen = () => {
+  const { theme } = useTheme();
+  const { user } = useUser();
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'my' | 'participating' | 'public'>(
+    'my'
+  );
+
+  const loadPlaylists = useCallback(
+    async (tab: 'my' | 'participating' | 'public') => {
+      if (!user) return;
+
+      try {
+        let playlistsData: Playlist[] = [];
+
+        switch (tab) {
+          case 'my':
+            playlistsData = await PlaylistService.getUserPlaylists(user.uid);
+            break;
+          case 'participating':
+            playlistsData = await PlaylistService.getUserParticipatingPlaylists(
+              user.uid
+            );
+            break;
+          case 'public':
+            playlistsData = await PlaylistService.getPublicPlaylists();
+            break;
+        }
+
+        setPlaylists(playlistsData);
+      } catch (error) {
+        Logger.error('Error loading playlists:', error);
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to load playlists'
+        });
+      }
+    },
+    [user]
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadPlaylists(activeTab);
+    setIsRefreshing(false);
+  };
+
+  const handleTabChange = async (tab: 'my' | 'participating' | 'public') => {
+    setActiveTab(tab);
+    setIsLoading(true);
+    await loadPlaylists(tab);
+    setIsLoading(false);
+  };
+
+  const handlePlaylistCreated = (playlistId: string) => {
+    // Refresh playlists after creation
+    loadPlaylists(activeTab);
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadPlaylists(activeTab);
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Refresh data when screen comes into focus (e.g., after deleting a playlist)
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadPlaylists(activeTab);
+      }
+    }, [user, activeTab, loadPlaylists])
+  );
+
+  const getTabTitle = (tab: 'my' | 'participating' | 'public') => {
+    switch (tab) {
+      case 'my':
+        return 'My';
+      case 'participating':
+        return 'Shared';
+      case 'public':
+        return 'Public';
+    }
+  };
+
+  return (
+    <View
+      className="flex-1"
+      style={{
+        backgroundColor: themeColors[theme]['bg-main']
+      }}
+    >
+      {/* Sticky Tabs Header */}
+      <View
+        style={{
+          paddingHorizontal: 16,
+          paddingVertical: 16,
+          backgroundColor: themeColors[theme]['bg-tertiary'],
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors[theme].border,
+          shadowColor: themeColors[theme]['bg-inverse'],
+          shadowOffset: {
+            width: 0,
+            height: 2
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 4
+        }}
+      >
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {(['my', 'participating', 'public'] as const).map((tab) => (
+            <View key={tab} style={{ flex: 1 }}>
+              <RippleButton
+                title={getTabTitle(tab)}
+                size="sm"
+                onPress={() => handleTabChange(tab)}
+                color={
+                  activeTab === tab
+                    ? themeColors[theme].primary
+                    : themeColors[theme].border
+                }
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <ScrollView
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+        contentContainerStyle={{
+          paddingBottom: 16,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          gap: 16,
+          flexGrow: 1
+        }}
+      >
+        {/* Playlists List */}
+        {isLoading ? (
+          <ActivityIndicatorScreen />
+        ) : playlists.length === 0 ? (
+          <View className="flex-1 items-center justify-center py-20">
+            <MaterialCommunityIcons
+              name="playlist-music"
+              size={48}
+              color={themeColors[theme]['text-secondary']}
+            />
+            <TextCustom className="mt-4 text-center opacity-70">
+              {activeTab === 'my' && 'You have no playlists yet'}
+              {activeTab === 'participating' &&
+                'You are not participating in any playlists'}
+              {activeTab === 'public' && 'No public playlists available'}
+            </TextCustom>
+            {activeTab === 'my' && (
+              <RippleButton
+                title="Create First Playlist"
+                onPress={() => setShowCreateModal(true)}
+                className="mt-4"
+              />
+            )}
+          </View>
+        ) : (
+          <View
+            className="flex-row flex-wrap justify-center gap-4"
+            style={containerWidthStyle}
+          >
+            <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
+            {playlists.map((playlist) => (
+              <PlaylistCard key={playlist.id} playlist={playlist} />
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Create Playlist Modal */}
+      {user && (
+        <CreatePlaylistModal
+          visible={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onPlaylistCreated={handlePlaylistCreated}
+          userId={user.uid}
+        />
+      )}
+    </View>
+  );
+};
+
+export default PlaylistsScreen;

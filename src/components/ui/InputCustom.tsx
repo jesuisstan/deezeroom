@@ -1,5 +1,6 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import {
+  Platform,
   TextInput,
   TextInputProps,
   TouchableOpacity,
@@ -31,11 +32,11 @@ type InputProps = TextInputProps & {
 };
 
 const containerBase = 'w-full';
-const inputBase = 'text-base text-text-main px-4 py-3 rounded-xl';
+const inputBase = 'text-base text-text-main px-4 py-3 rounded-md';
 const variantStyles: Record<InputVariant, string> = {
-  default: 'bg-bg-secondary rounded-xl',
-  filled: 'bg-bg-secondary rounded-xl',
-  outline: 'bg-transparent rounded-xl'
+  default: 'bg-bg-secondary rounded-md',
+  filled: 'bg-bg-secondary rounded-md',
+  outline: 'bg-transparent rounded-md'
 };
 
 const InputCustom = forwardRef<TextInput, InputProps>(function Input(
@@ -62,6 +63,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   const [isFocused, setIsFocused] = useState(autoFocus); // Initialize the focus state
   const { theme } = useTheme();
   const colors = themeColors[theme];
+  const internalRef = useRef<TextInput>(null);
 
   // Normalize the incoming value to ensure a string type for TextInput
   const stringValue = typeof value === 'string' ? value : undefined;
@@ -99,10 +101,32 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
       ) : null}
       <View
         className={clsx('flex-row items-center', variantStyles[variant])}
-        style={{
-          borderColor: getBorderColor(),
-          borderWidth: getBorderWidth()
-        }}
+        style={[
+          {
+            borderColor: getBorderColor(),
+            borderWidth: getBorderWidth()
+          },
+          Platform.OS === 'web' ? ({ cursor: 'text' } as any) : {}
+        ]}
+        {...(Platform.OS === 'web'
+          ? {
+              onStartShouldSetResponder: () => true,
+              onResponderGrant: () => {
+                // Focus the input when the container is clicked on web
+                if (internalRef.current) {
+                  internalRef.current.focus();
+                }
+              },
+              onMouseDown: () => {
+                // Additional web-specific handling
+                setTimeout(() => {
+                  if (internalRef.current) {
+                    internalRef.current.focus();
+                  }
+                }, 0);
+              }
+            }
+          : {})}
       >
         {leftIconName ? (
           <View className="pl-3">
@@ -110,10 +134,27 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           </View>
         ) : null}
         <TextInput
-          ref={ref}
+          ref={(inputRef) => {
+            // Handle both internal and forwarded refs
+            internalRef.current = inputRef;
+            if (typeof ref === 'function') {
+              ref(inputRef);
+            } else if (ref) {
+              ref.current = inputRef;
+            }
+          }}
           value={stringValue}
           placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
+          style={
+            Platform.OS === 'web'
+              ? ({
+                  outline: 'none',
+                  cursor: 'text',
+                  userSelect: 'text'
+                } as any)
+              : undefined
+          }
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           onFocus={() => {
             setIsFocused(true);
@@ -144,6 +185,9 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           <TouchableOpacity
             className="py-1 pr-3"
             onPress={() => setIsPasswordVisible((v) => !v)}
+            onPressIn={
+              Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined
+            }
           >
             <Feather
               name={isPasswordVisible ? 'eye-off' : 'eye'}
@@ -162,6 +206,9 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
                 (props.onChangeText as (text: string) => void)('');
               }
             }}
+            onPressIn={
+              Platform.OS === 'web' ? (e) => e.stopPropagation() : undefined
+            }
           >
             <Feather name="x-circle" size={18} color={getIconColor()} />
           </TouchableOpacity>

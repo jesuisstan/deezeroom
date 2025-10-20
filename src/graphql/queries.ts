@@ -17,7 +17,7 @@ export const SEARCH_TRACKS = `
           picture
           pictureSmall
           pictureMedium
-          pictureBig
+         
           pictureXl
           link
         }
@@ -107,6 +107,25 @@ export const GET_TRACK = `
         link
         tracklist
       }
+    }
+  }
+`;
+
+export const SEARCH_ARTISTS = `
+  query SearchArtists($query: String!, $limit: Int = ${LIMIT_DEFAULT}, $index: Int = ${INDEX_DEFAULT}) {
+    searchArtists(query: $query, limit: $limit, index: $index) {
+      artists {
+        id
+        name
+        picture
+        pictureSmall
+        pictureMedium
+        pictureBig
+        pictureXl
+        link
+      }
+      total
+      hasMore
     }
   }
 `;

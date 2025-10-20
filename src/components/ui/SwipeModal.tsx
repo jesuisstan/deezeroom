@@ -5,6 +5,7 @@ import {
   Keyboard,
   Modal,
   PanResponder,
+  Platform,
   ScrollView,
   TouchableWithoutFeedback,
   View
@@ -24,7 +25,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const DEFAULT_DURATION = 250;
+const DEFAULT_DURATION = 150;
 
 interface SwipeModalProps {
   modalVisible: boolean; // Whether the modal is visible
@@ -38,7 +39,140 @@ interface SwipeModalProps {
   size?: 'full' | 'three-quarter' | 'half' | 'third'; // Size of the modal
 }
 
-const SwipeModal = (props: SwipeModalProps) => {
+// Web version using Modal with centered popup
+const WebSwipeModal = (props: SwipeModalProps) => {
+  const { theme } = useTheme();
+  const { width, height } = Dimensions.get('window');
+
+  const handleClose = () => {
+    props.setVisible(false);
+    props.onClose?.();
+  };
+
+  // Use BackHandler for web escape key handling in Expo
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (props.modalVisible) {
+          handleClose();
+          return true;
+        }
+        return false;
+      }
+    );
+
+    return () => backHandler.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.modalVisible]);
+
+  if (!props.modalVisible) return null;
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={props.modalVisible}
+      onRequestClose={handleClose}
+      supportedOrientations={['portrait', 'landscape']}
+    >
+      {/* Background overlay */}
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
+        >
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View
+              style={{
+                backgroundColor: themeColors[theme]['bg-main'],
+                borderRadius: 12,
+                marginHorizontal: 20,
+                maxWidth: Math.min(500, width - 40),
+                width: '100%',
+                maxHeight: height * 0.9,
+                minHeight: 200,
+                shadowColor: '#000',
+                shadowOffset: {
+                  width: 0,
+                  height: 2
+                },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+                elevation: 8
+              }}
+            >
+              {/* Header */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  padding: 20,
+                  paddingBottom: props.title ? 16 : 20
+                }}
+              >
+                {props.title && (
+                  <View style={{ flex: 1, marginRight: 16 }}>
+                    <TextCustom
+                      type="bold"
+                      size="xl"
+                      color={themeColors[theme]['text-main']}
+                    >
+                      {props.title}
+                    </TextCustom>
+                  </View>
+                )}
+                <View
+                  style={{
+                    marginTop: -4,
+                    marginRight: -8
+                  }}
+                >
+                  <IconButton
+                    accessibilityLabel="Close modal"
+                    onPress={handleClose}
+                  >
+                    <EvilIcons
+                      name="close"
+                      size={32}
+                      color={themeColors[theme]['text-main']}
+                    />
+                  </IconButton>
+                </View>
+              </View>
+
+              {/* Content */}
+              <ScrollView
+                style={{
+                  flex: 1,
+                  paddingHorizontal: 20
+                }}
+                contentContainerStyle={{
+                  flexGrow: 1,
+                  paddingBottom: 20
+                }}
+                showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                keyboardShouldPersistTaps="handled"
+              >
+                <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+                  <View style={{ flex: 1 }}>{props.children}</View>
+                </TouchableWithoutFeedback>
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+};
+
+// Mobile version (original SwipeModal)
+const MobileSwipeModal = (props: SwipeModalProps) => {
   const { theme } = useTheme();
   const { height } = Dimensions.get('window');
   const insets = useSafeAreaInsets();
@@ -276,6 +410,14 @@ const SwipeModal = (props: SwipeModalProps) => {
       </Animated.View>
     </Modal>
   );
+};
+
+// Main component that switches between web and mobile versions
+const SwipeModal = (props: SwipeModalProps) => {
+  if (Platform.OS === 'web') {
+    return <WebSwipeModal {...props} />;
+  }
+  return <MobileSwipeModal {...props} />;
 };
 
 export default SwipeModal;

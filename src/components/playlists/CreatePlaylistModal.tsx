@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -37,6 +37,26 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
   >('everyone');
   const [isLoading, setIsLoading] = useState(false);
   const [coverImageUri, setCoverImageUri] = useState<string>('');
+
+  const handleClose = () => {
+    // Reset form state
+    setName('');
+    setDescription('');
+    setVisibility('public');
+    setEditPermissions('everyone');
+    setCoverImageUri('');
+    onClose();
+  };
+
+  // Auto-adjust edit permissions only when switching to private
+  useEffect(() => {
+    if (visibility === 'private') {
+      // For private playlists, "invited" makes more sense as default
+      // since private playlists are typically for invited users only
+      setEditPermissions('invited');
+    }
+    // Don't auto-change when switching to public - let user choose
+  }, [visibility]);
 
   const handleCreatePlaylist = async () => {
     if (!name.trim()) {
@@ -92,14 +112,13 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
         }
       }
 
+      onPlaylistCreated(playlistId);
+      handleClose();
       Notifier.shoot({
         type: 'success',
         title: 'Success',
-        message: 'Playlist created!'
+        message: `Playlist "${name}" created successfully`
       });
-
-      onPlaylistCreated(playlistId);
-      onClose();
     } catch (error) {
       Logger.error('Error creating playlist:', error, '📝 CreatePlaylistModal');
       Notifier.shoot({
@@ -112,10 +131,6 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    onClose();
-  };
-
   return (
     <SwipeModal
       title="Create Playlist"
@@ -123,52 +138,55 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
       setVisible={onClose}
       onClose={handleClose}
     >
-      <View className="flex-1 gap-6 px-4 pb-4">
+      <View className="flex-1 gap-4 px-4 py-4">
         {/* Cover Image */}
-        <View>
-          <TextCustom className="mb-3" type="subtitle">
-            Cover Image
-          </TextCustom>
-          <View className="items-start">
-            <ImageUploader
-              currentImageUrl={coverImageUri}
-              onImageUploaded={setCoverImageUri}
-              placeholder="Add Cover"
-              size="md"
-              shape="square"
-            />
-          </View>
+        <View className="items-center">
+          <ImageUploader
+            currentImageUrl={coverImageUri}
+            onImageUploaded={setCoverImageUri}
+            placeholder="Add Cover"
+            size="md"
+            shape="square"
+          />
         </View>
 
         {/* Name Input */}
-        <InputCustom
-          label="Name *"
-          value={name}
-          onChangeText={setName}
-          placeholder="Enter playlist name"
-          variant="default"
-        />
+        <View>
+          <TextCustom className="mb-2" type="bold">
+            Name *
+          </TextCustom>
+          <InputCustom
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter playlist name"
+            variant="default"
+          />
+        </View>
 
         {/* Description Input */}
-        <InputCustom
-          label="Description"
-          value={description}
-          onChangeText={setDescription}
-          placeholder="Playlist description (optional)"
-          multiline
-          numberOfLines={3}
-          variant="default"
-        />
+        <View>
+          <TextCustom className="mb-2" type="bold">
+            Description
+          </TextCustom>
+          <InputCustom
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Playlist description (optional)"
+            multiline
+            numberOfLines={3}
+            variant="default"
+          />
+        </View>
 
         {/* Visibility Settings */}
         <View>
-          <TextCustom className="mb-3" type="subtitle">
+          <TextCustom className="mb-2" type="bold">
             Visibility
           </TextCustom>
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-2">
             <Pressable
               onPress={() => setVisibility('public')}
-              className="flex-1 rounded-xl border-2 p-4"
+              className="flex-1 rounded-xl border p-1"
               style={{
                 backgroundColor:
                   visibility === 'public'
@@ -183,7 +201,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialCommunityIcons
                   name="earth"
-                  size={20}
+                  size={18}
                   color={
                     visibility === 'public'
                       ? themeColors[theme]['primary']
@@ -192,12 +210,12 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
                 />
                 <TextCustom
                   type="bold"
-                  style={{
-                    color:
-                      visibility === 'public'
-                        ? themeColors[theme]['primary']
-                        : themeColors[theme]['text-main']
-                  }}
+                  size="s"
+                  color={
+                    visibility === 'public'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['text-main']
+                  }
                 >
                   Public
                 </TextCustom>
@@ -206,7 +224,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
             <Pressable
               onPress={() => setVisibility('private')}
-              className="flex-1 rounded-xl border-2 p-4"
+              className="flex-1 rounded-xl border p-1"
               style={{
                 backgroundColor:
                   visibility === 'private'
@@ -221,7 +239,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialCommunityIcons
                   name="lock"
-                  size={20}
+                  size={18}
                   color={
                     visibility === 'private'
                       ? themeColors[theme]['primary']
@@ -230,12 +248,12 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
                 />
                 <TextCustom
                   type="bold"
-                  style={{
-                    color:
-                      visibility === 'private'
-                        ? themeColors[theme]['primary']
-                        : themeColors[theme]['text-main']
-                  }}
+                  size="s"
+                  color={
+                    visibility === 'private'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['text-main']
+                  }
                 >
                   Private
                 </TextCustom>
@@ -246,101 +264,134 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
         {/* Edit Permissions */}
         <View>
-          <TextCustom className="mb-3" type="subtitle">
+          <TextCustom className="mb-2" type="bold">
             Edit Permissions
           </TextCustom>
-          <View className="flex-row gap-3">
-            <Pressable
-              onPress={() => setEditPermissions('everyone')}
-              className="flex-1 rounded-xl border-2 p-4"
+          {visibility === 'private' ? (
+            // For private playlists, only "Invited Only" is allowed
+            <View
+              className="rounded-xl border p-1"
               style={{
-                backgroundColor:
-                  editPermissions === 'everyone'
-                    ? `${themeColors[theme]['primary']}15`
-                    : themeColors[theme]['bg-main'],
-                borderColor:
-                  editPermissions === 'everyone'
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['border']
-              }}
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                <MaterialCommunityIcons
-                  name="account-multiple"
-                  size={20}
-                  color={
-                    editPermissions === 'everyone'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-secondary']
-                  }
-                />
-                <TextCustom
-                  type="bold"
-                  style={{
-                    color:
-                      editPermissions === 'everyone'
-                        ? themeColors[theme]['primary']
-                        : themeColors[theme]['text-main']
-                  }}
-                >
-                  Everyone
-                </TextCustom>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setEditPermissions('invited')}
-              className="flex-1 rounded-xl border-2 p-4"
-              style={{
-                backgroundColor:
-                  editPermissions === 'invited'
-                    ? `${themeColors[theme]['primary']}15`
-                    : themeColors[theme]['bg-main'],
-                borderColor:
-                  editPermissions === 'invited'
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['border']
+                backgroundColor: `${themeColors[theme]['primary']}15`,
+                borderColor: themeColors[theme]['primary']
               }}
             >
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialCommunityIcons
                   name="account"
-                  size={20}
-                  color={
-                    editPermissions === 'invited'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-secondary']
-                  }
+                  size={18}
+                  color={themeColors[theme]['primary']}
                 />
                 <TextCustom
                   type="bold"
-                  style={{
-                    color:
-                      editPermissions === 'invited'
-                        ? themeColors[theme]['primary']
-                        : themeColors[theme]['text-main']
-                  }}
+                  size="s"
+                  color={themeColors[theme]['primary']}
                 >
                   Invited Only
                 </TextCustom>
               </View>
-            </Pressable>
+            </View>
+          ) : (
+            // For public playlists, show both options
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => setEditPermissions('everyone')}
+                className="flex-1 rounded-xl border p-1"
+                style={{
+                  backgroundColor:
+                    editPermissions === 'everyone'
+                      ? `${themeColors[theme]['primary']}15`
+                      : themeColors[theme]['bg-main'],
+                  borderColor:
+                    editPermissions === 'everyone'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['border']
+                }}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <MaterialCommunityIcons
+                    name="account-multiple"
+                    size={18}
+                    color={
+                      editPermissions === 'everyone'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
+                  />
+                  <TextCustom
+                    type="bold"
+                    size="s"
+                    color={
+                      editPermissions === 'everyone'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-main']
+                    }
+                  >
+                    Everyone
+                  </TextCustom>
+                </View>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setEditPermissions('invited')}
+                className="flex-1 rounded-xl border p-1"
+                style={{
+                  backgroundColor:
+                    editPermissions === 'invited'
+                      ? `${themeColors[theme]['primary']}15`
+                      : themeColors[theme]['bg-main'],
+                  borderColor:
+                    editPermissions === 'invited'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['border']
+                }}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <MaterialCommunityIcons
+                    name="account"
+                    size={18}
+                    color={
+                      editPermissions === 'invited'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
+                  />
+                  <TextCustom
+                    type="bold"
+                    size="s"
+                    color={
+                      editPermissions === 'invited'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-main']
+                    }
+                  >
+                    Invited Only
+                  </TextCustom>
+                </View>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Detailed explanations */}
+          <View className="mt-2 gap-1">
+            <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+              {visibility === 'private'
+                ? '• Only invited users can edit this private playlist'
+                : editPermissions === 'everyone'
+                  ? '• All users can edit this public playlist'
+                  : '• Only invited users can edit this public playlist'}
+            </TextCustom>
           </View>
         </View>
 
-        {/* Actions */}
-        <View className="mt-4 flex-row gap-3">
-          <RippleButton
-            title="Cancel"
-            variant="outline"
-            onPress={handleClose}
-            className="flex-1"
-          />
+        {/* Action Button */}
+        <View className="mt-4">
           <RippleButton
             title="Create"
             onPress={handleCreatePlaylist}
             loading={isLoading}
-            className="flex-1"
+            width="full"
+            disabled={!name.trim() || !visibility || !editPermissions}
           />
         </View>
       </View>

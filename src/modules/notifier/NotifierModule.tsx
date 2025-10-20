@@ -215,7 +215,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  backgroundColor: bgByType,
+                  //backgroundColor: bgByType,
                   marginRight: 12,
                   justifyContent: 'center',
                   alignItems: 'center'
@@ -315,7 +315,7 @@ export const Notifier = {
     title,
     message,
     type = 'info',
-    position = 'top',
+    position = 'bottom',
     sticky = false,
     showProgress
   }: NotifierShowParams & { sticky?: boolean }) => {
