@@ -146,7 +146,8 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
           value={stringValue}
           placeholderTextColor={colors['text-disabled']}
           className={clsx(inputBase, 'flex-1', inputClassName)}
-          style={
+          style={[
+            { color: colors['text-main'] },
             Platform.OS === 'web'
               ? ({
                   outline: 'none',
@@ -154,7 +155,7 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
                   userSelect: 'text'
                 } as any)
               : undefined
-          }
+          ]}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           onFocus={() => {
             setIsFocused(true);

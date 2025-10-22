@@ -159,7 +159,9 @@ const WebSwipeModal = (props: SwipeModalProps) => {
                 showsVerticalScrollIndicator={Platform.OS !== 'web'}
                 keyboardShouldPersistTaps="handled"
               >
-                <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+                <TouchableWithoutFeedback
+                  onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}
+                >
                   <View style={{ flex: 1 }}>{props.children}</View>
                 </TouchableWithoutFeedback>
               </ScrollView>
@@ -402,7 +404,9 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
             }}
             showsVerticalScrollIndicator={false}
           >
-            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <TouchableWithoutFeedback
+              onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}
+            >
               <View style={{ flex: 1 }}>{props.children}</View>
             </TouchableWithoutFeedback>
           </ScrollView>

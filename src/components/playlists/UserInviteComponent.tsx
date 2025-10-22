@@ -171,6 +171,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         )
       );
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedUsers, handleUsersSelected, maxUsers]
   );
 
