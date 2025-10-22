@@ -1,7 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import { FC, memo, useCallback, useMemo } from 'react';
 import { Image, View } from 'react-native';
 
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -13,13 +13,15 @@ import { themeColors } from '@/style/color-theme';
 import { usePressAnimation } from '@/style/usePressAnimation';
 import { getAlbumCover } from '@/utils/image-utils';
 
+import LineButton from '../ui/buttons/LineButton';
+
 interface TrackCardProps {
   track: Track;
   isPlaying?: boolean;
   onPlay?: (track: Track) => void;
 }
 
-const TrackCard: React.FC<TrackCardProps> = ({
+const TrackCard: FC<TrackCardProps> = ({
   track,
   isPlaying = false,
   onPlay
@@ -35,6 +37,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
   // Memoize colors
   const colors = useMemo(
     () => ({
+      textMain: themeColors[theme]['text-main'],
       primary: themeColors[theme]['primary'],
       textSecondary: themeColors[theme]['text-secondary'],
       intentError: themeColors[theme]['intent-error'],
@@ -71,79 +74,71 @@ const TrackCard: React.FC<TrackCardProps> = ({
   }, [toggleFavoriteTrack, track.id]);
 
   return (
-    <Animated.View
-      className="mb-2 rounded-md border border-border bg-bg-secondary px-2 py-1"
-      style={animatedStyle}
-    >
-      <View className="flex-row items-center gap-3">
-        {albumCoverUrl && (
-          <Image
-            source={{ uri: albumCoverUrl }}
-            className="h-14 w-14 rounded"
-            resizeMode="cover"
-          />
-        )}
-        <View className="flex-1">
-          {/*<AnimatedTrackTitle
+    <Animated.View className="" style={animatedStyle}>
+      <LineButton onPress={handlePlay}>
+        <View className="flex-row items-center gap-3 px-4 py-2">
+          {albumCoverUrl && (
+            <Image
+              source={{ uri: albumCoverUrl }}
+              className="h-16 w-16 rounded"
+              resizeMode="cover"
+            />
+          )}
+          <View className="flex-1">
+            {/*<AnimatedTrackTitle
             title={track.title}
             textColor={themeColors[theme]['text-main']}
           />*/}
-          <TextCustom type="semibold" size="s">
-            {track.title}
-          </TextCustom>
-          <TextCustom size="xs" color={colors.textSecondary}>
-            {track.artist.name}
-          </TextCustom>
-          <TextCustom size="xs" color={colors.textSecondary}>
-            {track.album.title} • {formattedDuration}
-          </TextCustom>
-          {track.explicitLyrics && (
-            <TextCustom size="xs" color={colors.intentWarning}>
-              Explicit
+            <TextCustom
+              type="semibold"
+              size="m"
+              color={isPlaying ? colors.primary : colors.textMain}
+            >
+              {track.title}
             </TextCustom>
-          )}
-        </View>
+            <TextCustom size="xs" color={colors.textSecondary}>
+              {track.artist.name}
+            </TextCustom>
+          </View>
 
-        {/* Action Buttons */}
-        <View className="flex-row gap-2">
-          {/* Play Button */}
-          <IconButton
-            accessibilityLabel={isPlaying ? 'Pause track' : 'Play track'}
-            onPress={handlePlay}
-            className="h-9 w-9"
-            disabled={!track.preview}
-          >
-            <FontAwesome
-              name={isPlaying ? 'pause' : 'play'}
-              size={18}
-              color={colors.primary}
-            />
-          </IconButton>
+          {/* Action Buttons */}
+          <View className="flex-row items-center gap-2">
+            {track.explicitLyrics && (
+              <MaterialIcons
+                name="explicit"
+                size={18}
+                color={colors.intentWarning}
+              />
+            )}
+            <TextCustom size="xs" color={colors.textSecondary}>
+              {formattedDuration}
+            </TextCustom>
 
-          {/* Favorite Button */}
-          <IconButton
-            accessibilityLabel={
-              isCurrentTrackFavorite
-                ? 'Remove from favorites'
-                : 'Add to favorites'
-            }
-            onPress={handleToggleFavorite}
-            className="h-9 w-9"
-          >
-            <FontAwesome
-              name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-              size={18}
-              color={
+            {/* Favorite Button */}
+            <IconButton
+              accessibilityLabel={
                 isCurrentTrackFavorite
-                  ? colors.intentError
-                  : colors.textSecondary
+                  ? 'Remove from favorites'
+                  : 'Add to favorites'
               }
-            />
-          </IconButton>
+              onPress={handleToggleFavorite}
+              className="h-9 w-9"
+            >
+              <FontAwesome
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+                size={18}
+                color={
+                  isCurrentTrackFavorite
+                    ? colors.intentError
+                    : colors.textSecondary
+                }
+              />
+            </IconButton>
+          </View>
         </View>
-      </View>
+      </LineButton>
     </Animated.View>
   );
 };
 
-export default React.memo(TrackCard);
+export default memo(TrackCard);
