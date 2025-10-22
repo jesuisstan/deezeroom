@@ -204,9 +204,10 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               },
               shadowOpacity: 0.3,
               shadowRadius: 6,
-              elevation: 8 // Increased for Android to ensure visibility
+              elevation: 8, // Increased for Android to ensure visibility
+              backgroundColor: themeColors[theme]['bg-inverse'],
+              opacity: 0.85
             }}
-            className="bg-bg-inverse opacity-90"
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               {/* Logo Icon */}

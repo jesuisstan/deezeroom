@@ -8,7 +8,6 @@ import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
@@ -33,8 +32,6 @@ const PlaylistDetailScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
-  const [isInviting, setIsInviting] = useState(false);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -144,10 +141,9 @@ const PlaylistDetailScreen = () => {
     setShowInviteModal(true);
   };
 
-  const handleSendInvitations = async () => {
+  const handleSendInvitations = async (selectedUsers: UserProfile[]) => {
     if (!playlist || !user || selectedUsers.length === 0) return;
 
-    setIsInviting(true);
     try {
       const invitationResult =
         await PlaylistService.inviteMultipleUsersToPlaylist(
@@ -176,10 +172,6 @@ const PlaylistDetailScreen = () => {
           });
         }
 
-        // Close modal and reset state
-        setShowInviteModal(false);
-        setSelectedUsers([]);
-
         // Reload playlist to get updated participants
         await loadPlaylist();
       } else {
@@ -197,14 +189,12 @@ const PlaylistDetailScreen = () => {
         title: 'Error',
         message: 'Failed to send invitations'
       });
-    } finally {
-      setIsInviting(false);
+      throw error; // Re-throw to let UserInviteModal handle loading state
     }
   };
 
   const handleCloseInviteModal = () => {
     setShowInviteModal(false);
-    setSelectedUsers([]);
   };
 
   if (isLoading) {
@@ -243,7 +233,7 @@ const PlaylistDetailScreen = () => {
       <View
         style={{
           paddingHorizontal: 16,
-          paddingVertical: 4,
+          paddingVertical: 8,
           backgroundColor: themeColors[theme]['bg-tertiary'],
           borderBottomWidth: 1,
           borderBottomColor: themeColors[theme].border,
@@ -452,56 +442,14 @@ const PlaylistDetailScreen = () => {
       </ScrollView>
 
       {/* Invite Users Modal */}
-      <SwipeModal
-        title="Invite Users"
-        modalVisible={showInviteModal}
-        setVisible={setShowInviteModal}
+      <UserInviteComponent
+        visible={showInviteModal}
         onClose={handleCloseInviteModal}
-      >
-        <View className="flex-1 gap-4 px-4 py-4">
-          <TextCustom className="text-center opacity-70">
-            Search and select users to invite to this playlist
-          </TextCustom>
-
-          <UserInviteComponent
-            onUsersSelected={setSelectedUsers}
-            selectedUsers={selectedUsers}
-            excludeUserId={user?.uid}
-            placeholder="Search users by email or name..."
-            maxUsers={20}
-          />
-
-          {selectedUsers.length > 0 && (
-            <View className="mt-4">
-              <TextCustom
-                size="s"
-                className="text-center"
-                color={themeColors[theme]['text-secondary']}
-              >
-                {selectedUsers.length} user(s) will be invited
-              </TextCustom>
-            </View>
-          )}
-
-          {/* Actions */}
-          <View className="mt-4 flex-row gap-3">
-            <RippleButton
-              title="Cancel"
-              variant="outline"
-              onPress={handleCloseInviteModal}
-              className="flex-1"
-              disabled={isInviting}
-            />
-            <RippleButton
-              title="Send Invitations"
-              onPress={handleSendInvitations}
-              loading={isInviting}
-              className="flex-1"
-              disabled={selectedUsers.length === 0 || isInviting}
-            />
-          </View>
-        </View>
-      </SwipeModal>
+        onInvite={handleSendInvitations}
+        excludeUserId={user?.uid}
+        existingUsers={playlist.participants}
+        placeholder="Search users by email or name..."
+      />
     </View>
   );
 };

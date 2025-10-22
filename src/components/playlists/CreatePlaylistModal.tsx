@@ -14,19 +14,20 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { PlaylistService } from '@/utils/firebase/firebase-service-playlists';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
+import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
 interface CreatePlaylistModalProps {
   visible: boolean;
   onClose: () => void;
   onPlaylistCreated: (playlistId: string) => void;
-  userId: string;
+  userData: UserProfile;
 }
 
 const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
   visible,
   onClose,
   onPlaylistCreated,
-  userId
+  userData
 }) => {
   const { theme } = useTheme();
   const [name, setName] = useState('');
@@ -75,7 +76,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
         name: name.trim(),
         visibility,
         editPermissions,
-        createdBy: userId,
+        createdBy: userData?.uid,
         participants: []
       };
 
@@ -86,7 +87,12 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
       const playlistId = await PlaylistService.createPlaylist(
         playlistData,
-        userId
+        userData?.uid,
+        {
+          displayName: userData?.displayName,
+          email: userData?.email,
+          photoURL: userData?.photoURL
+        }
       );
 
       // If there's a cover image, upload it

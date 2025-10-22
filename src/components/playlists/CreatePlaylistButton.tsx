@@ -11,7 +11,11 @@ import { usePressAnimation } from '@/style/usePressAnimation';
 
 const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
   const { theme } = useTheme();
-  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
+  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
 
   const { width } = Dimensions.get('window');
   //const cardWidth = Math.min((width - 48) / 2, 200);

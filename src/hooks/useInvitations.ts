@@ -27,7 +27,7 @@ export interface UseInvitationsReturn {
 }
 
 export const useInvitations = (): UseInvitationsReturn => {
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const [invitations, setInvitations] = useState<PlaylistInvitation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +136,7 @@ export const useInvitations = (): UseInvitationsReturn => {
   // Accept invitation
   const acceptInvitation = useCallback(
     async (invitation: PlaylistInvitation) => {
-      if (!user) {
+      if (!user || !profile) {
         return { success: false, message: 'User not authenticated' };
       }
 
@@ -144,7 +144,13 @@ export const useInvitations = (): UseInvitationsReturn => {
         const result = await PlaylistService.acceptInvitation(
           invitation.playlistId,
           invitation.id,
-          user.uid
+          user.uid,
+          'editor', // role
+          {
+            displayName: profile.displayName,
+            email: profile.email,
+            photoURL: profile.photoURL
+          }
         );
 
         // Invitations will be updated automatically via real-time subscription
@@ -160,7 +166,7 @@ export const useInvitations = (): UseInvitationsReturn => {
         };
       }
     },
-    [user]
+    [user, profile]
   );
 
   // Decline invitation

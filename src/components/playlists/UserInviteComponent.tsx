@@ -1,24 +1,42 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import IconButton from '@/components/ui/buttons/IconButton';
+import RippleButton from '@/components/ui/buttons/RippleButton';
+import InputCustom from '@/components/ui/InputCustom';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MAX_USERS_INVITE } from '@/constants/deezer';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { PlaylistParticipant } from '@/utils/firebase/firebase-service-playlists';
 import {
   UserProfile,
   UserService
 } from '@/utils/firebase/firebase-service-user';
 
 interface UserInviteComponentProps {
-  onUsersSelected: (users: UserProfile[]) => void;
-  selectedUsers: UserProfile[];
+  // Modal props (optional)
+  visible?: boolean;
+  onClose?: () => void;
+  onInvite?: (users: UserProfile[]) => Promise<void>;
+  isLoading?: boolean;
+
+  // Component props
+  onUsersSelected?: (users: UserProfile[]) => void;
+  selectedUsers?: UserProfile[];
+  existingUsers?: PlaylistParticipant[]; // Users already in the playlist
   excludeUserId?: string;
   placeholder?: string;
   maxUsers?: number;
+
+  // Modal customization
+  title?: string;
+  description?: string;
 }
 
 interface UserSearchResult extends UserProfile {
@@ -26,17 +44,47 @@ interface UserSearchResult extends UserProfile {
 }
 
 const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
+  // Modal props
+  visible,
+  onClose,
+  onInvite,
+  isLoading = false,
+
+  // Component props
   onUsersSelected,
-  selectedUsers,
+  selectedUsers: externalSelectedUsers,
+  existingUsers = [],
   excludeUserId,
   placeholder = 'Search users by email or name...',
-  maxUsers = 10
+  maxUsers = MAX_USERS_INVITE,
+
+  // Modal customization
+  title = 'Invite Users',
+  description
 }) => {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Internal state for modal mode
+  const [internalSelectedUsers, setInternalSelectedUsers] = useState<
+    UserProfile[]
+  >([]);
+  const [isInviting, setIsInviting] = useState(false);
+
+  // Determine if we're in modal mode
+  const isModalMode = visible !== undefined;
+  const selectedUsers = useMemo(
+    () => (isModalMode ? internalSelectedUsers : externalSelectedUsers || []),
+    [isModalMode, internalSelectedUsers, externalSelectedUsers]
+  );
+  const handleUsersSelected = useMemo(
+    () =>
+      isModalMode ? setInternalSelectedUsers : onUsersSelected || (() => {}),
+    [isModalMode, onUsersSelected]
+  );
 
   const performSearch = useCallback(
     async (query: string) => {
@@ -54,6 +102,10 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
 
         setSearchResults(searchResultsWithSelection);
         setShowResults(true);
+        //// Close keyboard only if there are results for better UX
+        //if (searchResultsWithSelection.length > 0) {
+        //  Keyboard.dismiss();
+        //}
       } catch (error) {
         Logger.error('Error searching users:', error);
         Notifier.shoot({
@@ -93,20 +145,21 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         const updatedUsers = selectedUsers.filter(
           (selected) => selected.uid !== user.uid
         );
-        onUsersSelected(updatedUsers);
+        handleUsersSelected(updatedUsers);
       } else {
-        // Add user (check max limit)
-        if (selectedUsers.length >= maxUsers) {
+        // Add user (check max limit including existing users)
+        const totalUsers = existingUsers.length + selectedUsers.length;
+        if (totalUsers >= maxUsers) {
           Notifier.shoot({
             type: 'warn',
             title: 'Limit Reached',
-            message: `You can only invite up to ${maxUsers} users`
+            message: `You can only have up to ${maxUsers} users total (${existingUsers.length} existing + ${selectedUsers.length} selected)`
           });
           return;
         }
 
         const updatedUsers = [...selectedUsers, user];
-        onUsersSelected(updatedUsers);
+        handleUsersSelected(updatedUsers);
       }
 
       // Update search results to reflect selection
@@ -118,7 +171,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         )
       );
     },
-    [selectedUsers, onUsersSelected, maxUsers]
+    [selectedUsers, handleUsersSelected, maxUsers]
   );
 
   const handleRemoveSelectedUser = useCallback(
@@ -126,7 +179,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       const updatedUsers = selectedUsers.filter(
         (user) => user.uid !== userToRemove.uid
       );
-      onUsersSelected(updatedUsers);
+      handleUsersSelected(updatedUsers);
 
       // Update search results if this user is in the current search
       setSearchResults((prev) =>
@@ -137,43 +190,48 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         )
       );
     },
-    [selectedUsers, onUsersSelected]
+    [selectedUsers, handleUsersSelected]
   );
+
+  // Modal mode functions
+  const handleInvite = async () => {
+    if (selectedUsers.length === 0 || !onInvite) return;
+
+    setIsInviting(true);
+    try {
+      await onInvite(selectedUsers);
+      handleClose();
+    } catch (error) {
+      Logger.error('Error in UserInviteComponent modal:', error);
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (isModalMode) {
+      setInternalSelectedUsers([]);
+      setSearchQuery('');
+      setSearchResults([]);
+      setShowResults(false);
+    }
+    onClose?.();
+  };
 
   const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
     <Pressable
       onPress={() => handleUserSelect(item)}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        backgroundColor: themeColors[theme]['bg-secondary'],
-        borderBottomWidth: 1,
-        borderBottomColor: themeColors[theme]['border']
-      }}
+      className="flex-row items-center rounded-lg border border-border bg-bg-secondary px-3 py-1"
     >
       {/* Avatar */}
-      <View style={{ marginRight: 12 }}>
+      <View className="mr-3">
         {item.photoURL ? (
           <Image
             source={{ uri: item.photoURL }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20
-            }}
+            className="h-10 w-10 rounded-full"
           />
         ) : (
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: themeColors[theme]['bg-main'],
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-bg-main">
             <MaterialCommunityIcons
               name="account"
               size={20}
@@ -184,8 +242,8 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       </View>
 
       {/* User Info */}
-      <View style={{ flex: 1 }}>
-        <TextCustom type="subtitle" numberOfLines={1}>
+      <View className="flex-1">
+        <TextCustom type="subtitle" numberOfLines={1} size="l">
           {item.displayName || 'Unknown User'}
         </TextCustom>
         <TextCustom
@@ -198,46 +256,43 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       </View>
 
       {/* Selection Indicator */}
-      <MaterialCommunityIcons
-        name={item.isSelected ? 'check-circle' : 'circle-outline'}
-        size={24}
-        color={
-          item.isSelected
-            ? themeColors[theme]['intent-success']
-            : themeColors[theme]['text-secondary']
+      <IconButton
+        accessibilityLabel={
+          item.isSelected ? 'Remove from selection' : 'Add to selection'
         }
-      />
+        onPress={() => handleUserSelect(item)}
+        className="h-10 w-10"
+      >
+        <MaterialCommunityIcons
+          name={item.isSelected ? 'check-circle' : 'circle-outline'}
+          size={20}
+          color={
+            item.isSelected
+              ? themeColors[theme]['intent-success']
+              : themeColors[theme]['text-secondary']
+          }
+        />
+      </IconButton>
     </Pressable>
   );
 
   const renderSelectedUser = ({ item }: { item: UserProfile }) => (
     <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: themeColors[theme]['primary'] + '20',
-        borderRadius: 20,
-        paddingHorizontal: 12,
-        paddingVertical: 6
-      }}
+      className="flex-row items-center rounded-full border border-border px-2 py-1"
+      style={{ backgroundColor: themeColors[theme]['primary'] + '20' }}
     >
       {/* Avatar */}
       {item.photoURL ? (
         <Image
           source={{ uri: item.photoURL }}
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 12,
-            marginRight: 6
-          }}
+          className="mr-2 h-6 w-6 rounded-full"
         />
       ) : (
         <MaterialCommunityIcons
           name="account"
           size={16}
           color={themeColors[theme]['primary']}
-          style={{ marginRight: 6 }}
+          className="mr-2"
         />
       )}
 
@@ -251,96 +306,94 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       </TextCustom>
 
       {/* Remove Button */}
-      <Pressable
+      <IconButton
+        accessibilityLabel="Remove user from selection"
         onPress={() => handleRemoveSelectedUser(item)}
-        style={{ marginLeft: 6 }}
+        className="ml-1 h-6 w-6"
       >
         <MaterialCommunityIcons
           name="close-circle"
           size={16}
           color={themeColors[theme]['primary']}
         />
-      </Pressable>
+      </IconButton>
     </View>
   );
 
-  return (
-    <View>
-      {/* Search Input */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          backgroundColor: themeColors[theme]['bg-secondary'],
-          borderRadius: 8,
-          borderWidth: 1,
-          borderColor: themeColors[theme]['border'],
-          paddingHorizontal: 12,
-          paddingVertical: 8
-        }}
-      >
-        <MaterialCommunityIcons
-          name="magnify"
-          size={20}
-          color={themeColors[theme]['text-secondary']}
-          style={{ marginRight: 8 }}
-        />
-
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={placeholder}
-          placeholderTextColor={themeColors[theme]['text-secondary']}
-          style={{
-            flex: 1,
-            color: themeColors[theme]['text-main'],
-            fontSize: 16
-          }}
-          onFocus={() => {
-            if (searchResults.length > 0) {
-              setShowResults(true);
-            }
-          }}
-        />
-
-        {isSearching && (
-          <MaterialCommunityIcons
-            name="loading"
-            size={20}
-            color={themeColors[theme]['text-secondary']}
-          />
-        )}
-      </View>
-
-      {/* Selected Users */}
-      {selectedUsers.length > 0 && (
-        <View style={{ marginTop: 12 }}>
-          <TextCustom type="subtitle" className="mb-2">
-            Selected Users ({selectedUsers.length}/{maxUsers})
+  const renderContent = () => (
+    <View className="gap-4">
+      {/* Existing Users */}
+      {existingUsers.length > 0 && (
+        <View>
+          <TextCustom type="semibold" className="mb-2">
+            Current Members ({existingUsers.length}/{maxUsers})
           </TextCustom>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {selectedUsers.map((user) => (
-              <View key={user.uid}>{renderSelectedUser({ item: user })}</View>
+          <View className="flex-row flex-wrap gap-2">
+            {existingUsers.map((user) => (
+              <View
+                key={user.userId}
+                className="flex-row items-center rounded-full border border-border px-2 py-1"
+                style={{
+                  backgroundColor: themeColors[theme]['primary'] + '20'
+                }}
+              >
+                {/* Avatar */}
+                {user.photoURL ? (
+                  <Image
+                    source={{ uri: user.photoURL }}
+                    className="mr-2 h-6 w-6 rounded-full"
+                  />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="account"
+                    size={16}
+                    color={themeColors[theme]['text-secondary']}
+                    className="mr-2"
+                  />
+                )}
+
+                {/* Name */}
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                  numberOfLines={1}
+                >
+                  {user.displayName || 'Unknown User'}
+                </TextCustom>
+              </View>
             ))}
           </View>
         </View>
       )}
 
+      {/* Search Input */}
+      <InputCustom
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={placeholder}
+        leftIconName="search"
+        rightIconName={isSearching ? 'loader' : undefined}
+        variant="default"
+        onFocus={() => {
+          if (searchResults.length > 0) {
+            setShowResults(true);
+            //// Close keyboard only if there are results
+            //Keyboard.dismiss();
+          }
+        }}
+      />
+
       {/* Search Results */}
       {showResults && searchResults.length > 0 && (
-        <View
-          style={{
-            marginTop: 8,
-            backgroundColor: themeColors[theme]['bg-secondary'],
-            borderRadius: 8,
-            borderWidth: 1,
-            borderColor: themeColors[theme]['border'],
-            maxHeight: 200
-          }}
-        >
-          {searchResults.map((user) => (
-            <View key={user.uid}>{renderSearchResult({ item: user })}</View>
-          ))}
+        <View>
+          <TextCustom type="semibold" className="mb-2">
+            Search Results
+          </TextCustom>
+          <View>
+            {searchResults.map((user) => (
+              <View key={user.uid}>{renderSearchResult({ item: user })}</View>
+            ))}
+          </View>
         </View>
       )}
 
@@ -349,17 +402,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         searchResults.length === 0 &&
         !isSearching &&
         searchQuery.trim().length >= 2 && (
-          <View
-            style={{
-              marginTop: 8,
-              padding: 16,
-              backgroundColor: themeColors[theme]['bg-secondary'],
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: themeColors[theme]['border'],
-              alignItems: 'center'
-            }}
-          >
+          <View className="items-center rounded-md border border-border bg-bg-secondary p-2">
             <MaterialCommunityIcons
               name="account-search"
               size={32}
@@ -375,6 +418,68 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         )}
     </View>
   );
+
+  // If in modal mode, wrap content in SwipeModal
+  if (isModalMode) {
+    return (
+      <SwipeModal
+        title={title}
+        modalVisible={visible!}
+        setVisible={onClose!}
+        onClose={handleClose}
+      >
+        <View className="flex-1 gap-4 px-4 pb-4">
+          {description && (
+            <TextCustom type="semibold" className="text-center" size="l">
+              {description}
+            </TextCustom>
+          )}
+
+          {renderContent()}
+
+          {/* Selected Users */}
+          <View>
+            <TextCustom type="semibold" className="mb-2">
+              Inviting ({selectedUsers.length}/{maxUsers - existingUsers.length}
+              )
+            </TextCustom>
+            <View className="flex-row flex-wrap gap-2">
+              {selectedUsers.length > 0 ? (
+                selectedUsers.map((user) => (
+                  <View key={user.uid}>
+                    {renderSelectedUser({ item: user })}
+                  </View>
+                ))
+              ) : (
+                <TextCustom className="my-1">No users selected</TextCustom>
+              )}
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <View className="flex-col gap-2">
+            <RippleButton
+              title="Send Invitations"
+              onPress={handleInvite}
+              loading={isInviting || isLoading}
+              width="full"
+              disabled={selectedUsers.length === 0 || isInviting || isLoading}
+            />
+            <RippleButton
+              title="Cancel"
+              variant="outline"
+              onPress={handleClose}
+              width="full"
+              disabled={isInviting || isLoading}
+            />
+          </View>
+        </View>
+      </SwipeModal>
+    );
+  }
+
+  // Return just the content for non-modal mode
+  return renderContent();
 };
 
 export default UserInviteComponent;

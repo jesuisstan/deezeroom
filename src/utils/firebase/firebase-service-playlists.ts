@@ -49,12 +49,13 @@ export interface PlaylistParticipant {
   joinedAt: Date;
   displayName?: string;
   email?: string;
+  photoURL?: string;
 }
 
 export interface PlaylistInvitation {
   id: string;
   playlistId: string;
-  playlistName?: string; // Название плейлиста для отображения
+  playlistName?: string;
   userId: string;
   invitedBy: string;
   invitedAt: Date | any; // Can be Date or Firestore Timestamp
@@ -110,7 +111,8 @@ export class PlaylistService {
       | 'totalDuration'
       | 'lastModifiedBy'
     >,
-    createdBy: string
+    createdBy: string,
+    ownerData?: { displayName?: string; email?: string; photoURL?: string }
   ): Promise<string> {
     const playlistData = {
       ...data,
@@ -125,7 +127,10 @@ export class PlaylistService {
         {
           userId: createdBy,
           role: 'owner' as const,
-          joinedAt: new Date()
+          joinedAt: new Date(),
+          ...(ownerData?.displayName && { displayName: ownerData.displayName }),
+          ...(ownerData?.email && { email: ownerData.email }),
+          ...(ownerData?.photoURL && { photoURL: ownerData.photoURL })
         }
       ]
     };
@@ -588,7 +593,8 @@ export class PlaylistService {
     playlistId: string,
     invitationId: string,
     userId: string,
-    role: 'editor' | 'viewer' = 'editor'
+    role: 'editor' | 'viewer' = 'editor',
+    userData?: { displayName?: string; email?: string; photoURL?: string }
   ): Promise<{ success: boolean; message?: string }> {
     try {
       // First, validate the invitation outside of transaction
@@ -648,17 +654,21 @@ export class PlaylistService {
           status: 'accepted'
         });
 
-        // Add user to participants with additional info from invitation
-        const updatedParticipants = [
-          ...playlist.participants,
-          {
-            userId,
-            role,
-            joinedAt: new Date(),
-            displayName: invitation.displayName,
-            email: invitation.email
-          }
-        ];
+        // Add user to participants with additional info from invitation and user data
+        const participantData: PlaylistParticipant = {
+          userId,
+          role,
+          joinedAt: new Date(),
+          displayName: userData?.displayName || invitation.displayName,
+          email: userData?.email || invitation.email
+        };
+
+        // Only add photoURL if it exists
+        if (userData?.photoURL) {
+          participantData.photoURL = userData.photoURL;
+        }
+
+        const updatedParticipants = [...playlist.participants, participantData];
 
         transaction.update(playlistRef, {
           participants: updatedParticipants,
@@ -905,6 +915,36 @@ export class PlaylistService {
       unsubscribeFunctions = [];
       allInvitations = [];
     };
+  }
+
+  // Update participant data (when user profile changes)
+  static async updateParticipantData(
+    playlistId: string,
+    userId: string,
+    userData: { displayName?: string; email?: string; photoURL?: string }
+  ): Promise<void> {
+    const playlistRef = doc(db, this.collection, playlistId);
+    const playlistDoc = await getDoc(playlistRef);
+
+    if (!playlistDoc.exists()) return;
+
+    const playlist = playlistDoc.data() as Playlist;
+    const updatedParticipants = playlist.participants.map((participant) =>
+      participant.userId === userId
+        ? {
+            ...participant,
+            ...(userData.displayName && { displayName: userData.displayName }),
+            ...(userData.email && { email: userData.email }),
+            ...(userData.photoURL && { photoURL: userData.photoURL })
+          }
+        : participant
+    );
+
+    await updateDoc(playlistRef, {
+      participants: updatedParticipants,
+      updatedAt: serverTimestamp(),
+      version: increment(1)
+    });
   }
 
   // ===== PERMISSIONS CHECK =====
