@@ -1,10 +1,11 @@
 import { FC, memo, useCallback, useMemo } from 'react';
 import { Image, View } from 'react-native';
 
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import LineButton from '@/components/ui/buttons/LineButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
@@ -12,8 +13,6 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { usePressAnimation } from '@/style/usePressAnimation';
 import { getAlbumCover } from '@/utils/image-utils';
-
-import LineButton from '../ui/buttons/LineButton';
 
 interface TrackCardProps {
   track: Track;
@@ -74,7 +73,7 @@ const TrackCard: FC<TrackCardProps> = ({
   }, [toggleFavoriteTrack, track.id]);
 
   return (
-    <Animated.View className="" style={animatedStyle}>
+    <Animated.View style={animatedStyle}>
       <LineButton onPress={handlePlay}>
         <View className="flex-row items-center gap-3 px-4 py-2">
           {albumCoverUrl && (
@@ -101,8 +100,16 @@ const TrackCard: FC<TrackCardProps> = ({
             </TextCustom>
           </View>
 
-          {/* Action Buttons */}
           <View className="flex-row items-center gap-2">
+            {isPlaying && (
+              <View className="animate-pulse">
+                <AntDesign
+                  name="play-square"
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+            )}
             {track.explicitLyrics && (
               <MaterialIcons
                 name="explicit"
