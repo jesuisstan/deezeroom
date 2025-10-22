@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import { Image, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
+import Animated from 'react-native-reanimated';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -9,6 +10,7 @@ import { Track } from '@/graphql/schema';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { usePressAnimation } from '@/style/usePressAnimation';
 import { getAlbumCover } from '@/utils/image-utils';
 
 interface TrackCardProps {
@@ -24,6 +26,11 @@ const TrackCard: React.FC<TrackCardProps> = ({
 }) => {
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
+  const { animatedStyle } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
 
   // Memoize colors
   const colors = useMemo(
@@ -64,7 +71,10 @@ const TrackCard: React.FC<TrackCardProps> = ({
   }, [toggleFavoriteTrack, track.id]);
 
   return (
-    <View className="mb-2 rounded-md border border-border bg-bg-secondary px-2 py-1">
+    <Animated.View
+      className="mb-2 rounded-md border border-border bg-bg-secondary px-2 py-1"
+      style={animatedStyle}
+    >
       <View className="flex-row items-center gap-3">
         {albumCoverUrl && (
           <Image
@@ -132,7 +142,7 @@ const TrackCard: React.FC<TrackCardProps> = ({
           </IconButton>
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

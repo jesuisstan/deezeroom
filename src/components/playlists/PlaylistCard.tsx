@@ -18,7 +18,11 @@ interface PlaylistCardProps {
 const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
   const { theme } = useTheme();
   const router = useRouter();
-  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
+  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
 
   const { width } = Dimensions.get('window');
   //const cardWidth = Math.min((width - 48) / 2, 200); // For web compatibility
