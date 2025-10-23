@@ -13,7 +13,11 @@ import ProgressBar from '@/components/player/ProgressBar';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
-import { usePlayback } from '@/providers/PlaybackProvider';
+import {
+  usePlaybackActions,
+  usePlaybackState,
+  usePlaybackStatus
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
@@ -23,18 +27,12 @@ const PlayerScreen = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
-  const {
-    currentTrack,
-    queue,
-    currentIndex,
-    status,
-    isPlaying,
-    isLoading,
-    error,
-    playNext,
-    playPrevious,
-    togglePlayPause
-  } = usePlayback();
+
+  // Split into three separate hooks to minimize re-renders
+  // ProgressBar will handle status internally
+  const { queue, currentTrack, currentIndex } = usePlaybackState();
+  const { isPlaying, isLoading, error } = usePlaybackStatus();
+  const { playNext, playPrevious, togglePlayPause } = usePlaybackActions();
 
   useEffect(() => {
     console.log('✅ PlayerScreen mounted');
@@ -59,12 +57,6 @@ const PlayerScreen = () => {
     }
     await toggleFavoriteTrack(currentTrackId);
   }, [currentTrackId, toggleFavoriteTrack]);
-
-  const currentSeconds = status?.currentTime ?? 0;
-  const durationSeconds =
-    status?.duration && status.duration > 0
-      ? status.duration
-      : (currentTrack?.duration ?? 0);
 
   const hasPrevious =
     currentIndex > 0 &&
@@ -218,9 +210,8 @@ const PlayerScreen = () => {
 
             <View className="gap-3">
               <ProgressBar
-                currentSeconds={currentSeconds}
-                durationSeconds={durationSeconds}
                 theme={theme}
+                trackDuration={currentTrack?.duration}
               />
               <View className="w-full items-center gap-1 px-4">
                 <TextCustom

@@ -15,7 +15,11 @@ import { usePathname, useRouter } from 'expo-router';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
-import { usePlayback } from '@/providers/PlaybackProvider';
+import {
+  usePlaybackActions,
+  usePlaybackState,
+  usePlaybackStatus
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -27,15 +31,10 @@ const MiniPlayer = () => {
   // Keep the mini player floating above the tab bar with a small gap.
   const baseBottomOffset = Platform.select({ ios: 80, default: 68 });
 
-  const {
-    queue,
-    currentIndex,
-    currentTrack,
-    isPlaying,
-    isLoading,
-    togglePlayPause,
-    playNext
-  } = usePlayback();
+  // Split into three separate hooks to minimize re-renders
+  const { queue, currentIndex, currentTrack } = usePlaybackState();
+  const { isPlaying, isLoading } = usePlaybackStatus();
+  const { togglePlayPause, playNext } = usePlaybackActions();
 
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -110,7 +109,8 @@ const MiniPlayer = () => {
           if (gestureState.dx <= 0) {
             return false;
           }
-          const horizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+          const horizontalSwipe =
+            Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
           return horizontalSwipe && gestureState.dx > 12;
         },
         onPanResponderMove: (_, gestureState) => {

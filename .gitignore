@@ -76,3 +76,6 @@ output-metadata.json
 # AI files
 .codegpt
 .cursor
+
+# GitHub 
+.github/

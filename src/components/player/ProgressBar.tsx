@@ -2,12 +2,12 @@ import { memo, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import { usePlaybackStatus } from '@/providers/PlaybackProvider';
 import { themeColors } from '@/style/color-theme';
 
 type ProgressBarProps = {
-  currentSeconds: number;
-  durationSeconds: number;
   theme: keyof typeof themeColors;
+  trackDuration?: number; // Fallback duration from track metadata
 };
 
 const formatTime = (valueInSeconds: number) => {
@@ -19,14 +19,19 @@ const formatTime = (valueInSeconds: number) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const ProgressBarComponent = ({
-  currentSeconds,
-  durationSeconds,
-  theme
-}: ProgressBarProps) => {
+const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
   const progressBarRef = useRef<View>(null);
-  const propsRef = useRef({ currentSeconds, durationSeconds });
 
+  // Subscribe to status directly in ProgressBar to avoid parent re-renders
+  const { status } = usePlaybackStatus();
+
+  const currentSeconds = status?.currentTime ?? 0;
+  const durationSeconds =
+    status?.duration && status.duration > 0
+      ? status.duration
+      : (trackDuration ?? 0);
+
+  const propsRef = useRef({ currentSeconds, durationSeconds });
   propsRef.current = { currentSeconds, durationSeconds };
 
   const safeDuration = Number.isFinite(durationSeconds)
@@ -92,16 +97,12 @@ const ProgressBarComponent = ({
   );
 };
 
-const ProgressBar = memo(ProgressBarComponent, (prev, next) => {
-  const prevSecond = Math.floor(prev.currentSeconds);
-  const nextSecond = Math.floor(next.currentSeconds);
-
-  return (
-    prev.durationSeconds === next.durationSeconds &&
-    prev.theme === next.theme &&
-    prevSecond === nextSecond
-  );
-});
+// Memo based only on theme and trackDuration (status updates are handled internally)
+const ProgressBar = memo(
+  ProgressBarComponent,
+  (prev, next) =>
+    prev.theme === next.theme && prev.trackDuration === next.trackDuration
+);
 ProgressBar.displayName = 'ProgressBar';
 
 export default ProgressBar;

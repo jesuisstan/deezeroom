@@ -14,14 +14,20 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Track } from '@/graphql/schema';
 import { Notifier } from '@/modules/notifier';
 
-interface PlaybackContextValue {
+interface PlaybackStateContextValue {
   queue: Track[];
   currentTrack: Track | null;
   currentIndex: number;
+}
+
+interface PlaybackStatusContextValue {
   isPlaying: boolean;
   isLoading: boolean;
   status: AudioStatus | null;
   error: string | null;
+}
+
+interface PlaybackActionsContextValue {
   startPlayback: (tracks: Track[], trackId: string) => void;
   togglePlayPause: () => void;
   playNext: () => void;
@@ -32,9 +38,17 @@ interface PlaybackContextValue {
   updateQueue: (tracks: Track[]) => void;
 }
 
-const PlaybackContext = createContext<PlaybackContextValue | undefined>(
-  undefined
-);
+const PlaybackStateContext = createContext<
+  PlaybackStateContextValue | undefined
+>(undefined);
+
+const PlaybackStatusContext = createContext<
+  PlaybackStatusContextValue | undefined
+>(undefined);
+
+const PlaybackActionsContext = createContext<
+  PlaybackActionsContextValue | undefined
+>(undefined);
 
 const findNextPlayableIndex = (
   tracks: Track[],
@@ -118,7 +132,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         if (autoPlayRef.current) {
           await player.play();
         }
-      } catch (loadError) {
+      } catch {
         if (!cancelled) {
           setError('Unable to load this preview');
           Notifier.error('Unable to load this preview');
@@ -137,6 +151,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id, player, setPlaybackIntent]);
 
   useEffect(() => {
@@ -365,15 +380,28 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     [player]
   );
 
-  const contextValue: PlaybackContextValue = useMemo(
+  // Separate context values for optimal re-renders
+  const stateValue: PlaybackStateContextValue = useMemo(
     () => ({
       queue,
       currentTrack,
-      currentIndex,
+      currentIndex
+    }),
+    [queue, currentTrack, currentIndex]
+  );
+
+  const statusValue: PlaybackStatusContextValue = useMemo(
+    () => ({
       isPlaying,
       isLoading,
       status: status ?? null,
-      error,
+      error
+    }),
+    [isPlaying, isLoading, status, error]
+  );
+
+  const actionsValue: PlaybackActionsContextValue = useMemo(
+    () => ({
       startPlayback,
       togglePlayPause,
       playNext,
@@ -384,13 +412,6 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       updateQueue
     }),
     [
-      queue,
-      currentTrack,
-      currentIndex,
-      isPlaying,
-      isLoading,
-      status,
-      error,
       startPlayback,
       togglePlayPause,
       playNext,
@@ -403,18 +424,58 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   return (
-    <PlaybackContext.Provider value={contextValue}>
-      {children}
-    </PlaybackContext.Provider>
+    <PlaybackStateContext.Provider value={stateValue}>
+      <PlaybackStatusContext.Provider value={statusValue}>
+        <PlaybackActionsContext.Provider value={actionsValue}>
+          {children}
+        </PlaybackActionsContext.Provider>
+      </PlaybackStatusContext.Provider>
+    </PlaybackStateContext.Provider>
   );
 };
 
-const usePlayback = () => {
-  const context = useContext(PlaybackContext);
+/**
+ * Hook for accessing playback state (queue, currentTrack, currentIndex).
+ * Components using this hook will only re-render when these values change.
+ */
+const usePlaybackState = () => {
+  const context = useContext(PlaybackStateContext);
   if (!context) {
-    throw new Error('usePlayback must be used within a PlaybackProvider');
+    throw new Error('usePlaybackState must be used within a PlaybackProvider');
   }
   return context;
 };
 
-export { PlaybackProvider, usePlayback };
+/**
+ * Hook for accessing playback status (isPlaying, isLoading, status, error).
+ * Components using this hook will re-render on status changes (including progress updates).
+ * Use sparingly for components that need real-time playback status.
+ */
+const usePlaybackStatus = () => {
+  const context = useContext(PlaybackStatusContext);
+  if (!context) {
+    throw new Error('usePlaybackStatus must be used within a PlaybackProvider');
+  }
+  return context;
+};
+
+/**
+ * Hook for accessing playback control functions.
+ * This hook never causes re-renders as functions are stable (memoized).
+ */
+const usePlaybackActions = () => {
+  const context = useContext(PlaybackActionsContext);
+  if (!context) {
+    throw new Error(
+      'usePlaybackActions must be used within a PlaybackProvider'
+    );
+  }
+  return context;
+};
+
+export {
+  PlaybackProvider,
+  usePlaybackActions,
+  usePlaybackState,
+  usePlaybackStatus
+};

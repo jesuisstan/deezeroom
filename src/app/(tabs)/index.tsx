@@ -7,7 +7,11 @@ import SearchTracksComponent from '@/components/search-tracks/SearchTracksCompon
 import FeatureTile from '@/components/ui/FeatureTile';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
-import { usePlayback } from '@/providers/PlaybackProvider';
+import {
+  usePlaybackActions,
+  usePlaybackState,
+  usePlaybackStatus
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
@@ -15,8 +19,12 @@ import { containerWidthStyle } from '@/style/container-width-style';
 const HomeScreen = () => {
   const { theme } = useTheme();
   const router = useRouter();
-  const { startPlayback, togglePlayPause, currentTrack, isPlaying } =
-    usePlayback();
+
+  // Split into separate hooks to minimize re-renders
+  const { currentTrack } = usePlaybackState();
+  const { isPlaying } = usePlaybackStatus();
+  const { startPlayback, togglePlayPause } = usePlaybackActions();
+
   const [searchResults, setSearchResults] = useState<Track[]>([]);
 
   const handlePlayTrack = (track: Track) => {

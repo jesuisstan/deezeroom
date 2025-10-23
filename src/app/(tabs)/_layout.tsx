@@ -3,8 +3,8 @@ import { Platform, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, useRouter } from 'expo-router';
 
-import MiniPlayer from '@/components/player/MiniPlayer';
 import NotificationsButton from '@/components/notifications/NotificationsButton';
+import MiniPlayer from '@/components/player/MiniPlayer';
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -82,13 +82,13 @@ const TabLayout = () => {
             title: 'Home',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons
-              name="home-search"
-              size={28}
-              color={color}
-            />
+                name="home-search"
+                size={28}
+                color={color}
+              />
             ),
             headerRight: () => <HeaderRight />,
-          headerLeft: () => <HeaderLeft />
+            headerLeft: () => <HeaderLeft />
           }}
         />
         <Tabs.Screen
@@ -103,7 +103,7 @@ const TabLayout = () => {
               />
             ),
             headerRight: () => <HeaderRight />,
-          headerLeft: () => <HeaderLeft />
+            headerLeft: () => <HeaderLeft />
           }}
         />
         <Tabs.Screen
@@ -118,7 +118,7 @@ const TabLayout = () => {
               />
             ),
             headerRight: () => <HeaderRight />,
-          headerLeft: () => <HeaderLeft />
+            headerLeft: () => <HeaderLeft />
           }}
         />
       </Tabs>
