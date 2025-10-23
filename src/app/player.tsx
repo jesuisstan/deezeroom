@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { Image, PanResponder, Platform, View } from 'react-native';
+import { PanResponder, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import PlayerArtwork from '@/components/player/PlayerArtwork';
 import ProgressBar from '@/components/player/ProgressBar';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -36,11 +37,11 @@ const PlayerScreen = () => {
   } = usePlayback();
 
   useEffect(() => {
-    console.log('PlayerScreen mounted');
+    console.log('✅ PlayerScreen mounted');
 
     return () => {
-      console.log('PlayerScreen unmounted');
-      console.countReset('PlayerScreen render');
+      console.log('❌ PlayerScreen unmounted');
+      console.countReset('🎬 PlayerScreen render');
     };
   }, []);
 
@@ -78,9 +79,13 @@ const PlayerScreen = () => {
     ? getAlbumCover(currentTrack.album, imageSize)
     : undefined;
 
-  const artworkSource = albumCoverUrl
-    ? { uri: albumCoverUrl }
-    : require('@/assets/images/logo/logo-heart-transparent.png');
+  const artworkSource = useMemo(
+    () =>
+      albumCoverUrl
+        ? { uri: albumCoverUrl }
+        : require('@/assets/images/logo/logo-heart-transparent.png'),
+    [albumCoverUrl]
+  );
 
   const dismissPlayer = useCallback(() => {
     if (router.canGoBack()) {
@@ -160,20 +165,11 @@ const PlayerScreen = () => {
           </View>
 
           <View className="flex-1 gap-6">
-            <View className="flex-1 items-center justify-center">
-              <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
-                <Image
-                  source={artworkSource}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode={albumCoverUrl ? 'cover' : 'contain'}
-                  accessibilityLabel={
-                    currentTrack
-                      ? `${currentTrack.album.title} cover art`
-                      : 'Default cover art'
-                  }
-                />
-              </View>
-            </View>
+            <PlayerArtwork
+              artworkSource={artworkSource}
+              albumCoverUrl={albumCoverUrl}
+              albumTitle={currentTrack?.album?.title}
+            />
 
             <View className="flex-row items-center justify-between">
               <IconButton
