@@ -90,8 +90,9 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     currentIndex >= 0 && currentIndex < queue.length
       ? queue[currentIndex]
       : null;
-  const playerIsPlaying = status?.playing ?? false;
-  const isPlaying = playbackIntent || playerIsPlaying;
+  // Use playbackIntent as the source of truth for UI to avoid delays
+  // This provides instant feedback without waiting for expo-audio status updates
+  const isPlaying = playbackIntent;
 
   useEffect(() => {
     currentTrackRef.current = currentTrack;
@@ -292,7 +293,9 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      if (status?.playing) {
+      // Use playbackIntentRef instead of status?.playing for instant toggle
+      // This avoids delays waiting for expo-audio status updates
+      if (playbackIntentRef.current) {
         setPlaybackIntent(false);
         autoPlayRef.current = false;
         player.pause();
@@ -303,13 +306,13 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (playbackError) {
       console.warn('Playback toggle failed', playbackError);
-      if (!status?.playing) {
+      if (!playbackIntentRef.current) {
         Notifier.error('Unable to start playback');
       }
       setPlaybackIntent(false);
       autoPlayRef.current = false;
     }
-  }, [player, queue, setPlaybackIntent, status?.playing]);
+  }, [player, queue, setPlaybackIntent]);
 
   const playNext = useCallback(() => {
     if (!queue.length) {
