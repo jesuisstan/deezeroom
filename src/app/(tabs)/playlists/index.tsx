@@ -195,7 +195,7 @@ const PlaylistsScreen = () => {
           </View>
         ) : (
           <View
-            className="flex-row flex-wrap justify-center gap-4"
+            className="flex-row flex-wrap justify-center gap-2"
             style={containerWidthStyle}
           >
             <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
