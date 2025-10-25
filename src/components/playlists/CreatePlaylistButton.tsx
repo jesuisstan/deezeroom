@@ -11,11 +11,15 @@ import { usePressAnimation } from '@/style/usePressAnimation';
 
 const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
   const { theme } = useTheme();
-  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
+  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
 
   const { width } = Dimensions.get('window');
-  //const cardWidth = Math.min((width - 48) / 2, 200);
-  const cardWidth = Math.min((width - 72) / 2, 200); // For web compatibility
+  const cardWidth = Math.min(width / 3.5, 200); // For web compatibility
+  //const cardWidth = Math.min((width - 72) / 2, 200); // For web compatibility
 
   return (
     <Animated.View style={animatedStyle || {}}>
@@ -47,12 +51,12 @@ const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
       >
         <MaterialCommunityIcons
           name="plus"
-          size={42}
+          size={35}
           color={themeColors[theme]['text-secondary']}
         />
         <TextCustom
-          type="title"
-          size="xl"
+          type="bold"
+          size="l"
           color={themeColors[theme]['text-secondary']}
           className="text-center"
           selectable={false}

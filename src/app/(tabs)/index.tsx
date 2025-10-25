@@ -56,10 +56,10 @@ const HomeScreen = () => {
     >
       <View
         style={containerWidthStyle}
-        className="min-h-full w-full flex-col items-center justify-start gap-4 self-center p-4"
+        className="min-h-full w-full flex-col items-center justify-start gap-4 self-center py-4"
       >
         {/* Welcome Section */}
-        <View className="w-full gap-2">
+        <View className="w-full gap-2 px-4">
           <View className="items-center">
             <Image
               source={
@@ -90,7 +90,7 @@ const HomeScreen = () => {
         </View>
 
         {/* Feature Tiles */}
-        <View className="w-full gap-4">
+        <View className="w-full gap-4 px-4">
           <View className="flex-row gap-4">
             {/* Music Track Vote Tile */}
             <FeatureTile
@@ -114,7 +114,7 @@ const HomeScreen = () => {
 
         {/* Search Section */}
         <View className="w-full gap-2">
-          <TextCustom type="subtitle" size="xl">
+          <TextCustom type="subtitle" size="xl" className="px-4">
             Music Search
           </TextCustom>
           <SearchTracksComponent

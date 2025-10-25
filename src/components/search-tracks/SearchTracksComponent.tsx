@@ -265,7 +265,7 @@ const SearchTracksComponent = ({
   return (
     <View className="w-full">
       {/* Search input and buttons */}
-      <View className="mb-2 flex-row items-center gap-2">
+      <View className="mb-2 flex-row items-center gap-2 px-4">
         <InputCustom
           placeholder="Search tracks..."
           value={searchQuery}
@@ -313,7 +313,7 @@ const SearchTracksComponent = ({
 
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="bg-intent-warning/10 mb-2 rounded-lg p-3">
+        <View className="bg-intent-warning/10 mb-2 rounded-lg p-4">
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached data only. Search and pagination will
             use cached results.
@@ -323,7 +323,7 @@ const SearchTracksComponent = ({
 
       {/* Error display */}
       {error && (
-        <View className="bg-intent-error/10 mb-2 rounded-lg p-3">
+        <View className="bg-intent-error/10 mb-2 rounded-lg p-4">
           <TextCustom color={themeColors[theme]['intent-error']}>
             Error: {error.message}
           </TextCustom>
@@ -336,7 +336,7 @@ const SearchTracksComponent = ({
           <TextCustom
             size="s"
             color={themeColors[theme]['text-secondary']}
-            className="mb-2"
+            className="mb-2 px-4"
           >
             {showPopularTracks
               ? `Popular Tracks (${allTracks.length})`

@@ -21,40 +21,19 @@ import { db } from '@/utils/firebase/firebase-init';
 
 import { parseFirestoreDate } from './firestore-date-utils';
 
-export interface MusicTrack {
-  id: string;
-  trackId: string; // Deezer track ID
-  title: string;
-  artist: string;
-  album?: string;
-  duration: number;
-  previewUrl?: string;
-  coverUrl?: string;
-
-  // Order management
-  position: number;
-
-  // Who added and when
-  addedBy: string;
-  addedAt: any;
-
-  // Real-time sync
-  lastModifiedBy: string;
-  lastModifiedAt: any;
-}
-
 export interface PlaylistParticipant {
   userId: string;
   role: 'owner' | 'editor' | 'viewer';
   joinedAt: Date;
   displayName?: string;
   email?: string;
+  photoURL?: string;
 }
 
 export interface PlaylistInvitation {
   id: string;
   playlistId: string;
-  playlistName?: string; // Название плейлиста для отображения
+  playlistName?: string;
   userId: string;
   invitedBy: string;
   invitedAt: Date | any; // Can be Date or Firestore Timestamp
@@ -88,6 +67,9 @@ export interface Playlist {
   trackCount: number;
   totalDuration: number; // in seconds
 
+  // Ordered list of Deezer track IDs (we store only IDs, not full data)
+  tracks?: string[];
+
   // Cover image
   coverImageUrl?: string;
 }
@@ -110,7 +92,8 @@ export class PlaylistService {
       | 'totalDuration'
       | 'lastModifiedBy'
     >,
-    createdBy: string
+    createdBy: string,
+    ownerData?: { displayName?: string; email?: string; photoURL?: string }
   ): Promise<string> {
     const playlistData = {
       ...data,
@@ -121,11 +104,15 @@ export class PlaylistService {
       version: 1,
       trackCount: 0,
       totalDuration: 0,
+      tracks: [],
       participants: [
         {
           userId: createdBy,
           role: 'owner' as const,
-          joinedAt: new Date()
+          joinedAt: new Date(),
+          ...(ownerData?.displayName && { displayName: ownerData.displayName }),
+          ...(ownerData?.email && { email: ownerData.email }),
+          ...(ownerData?.photoURL && { photoURL: ownerData.photoURL })
         }
       ]
     };
@@ -260,12 +247,10 @@ export class PlaylistService {
 
   static async addTrackToPlaylist(
     playlistId: string,
-    track: Omit<
-      MusicTrack,
-      'id' | 'addedAt' | 'lastModifiedAt' | 'lastModifiedBy' | 'position'
-    >,
+    trackId: string,
+    durationSeconds: number,
     addedBy: string
-  ): Promise<string> {
+  ): Promise<number> {
     // Check if user has permission to add tracks
     const canEdit = await this.canUserEditPlaylist(playlistId, addedBy);
     if (!canEdit) {
@@ -283,39 +268,31 @@ export class PlaylistService {
       }
 
       const playlist = playlistDoc.data() as Playlist;
-      const newPosition = playlist.trackCount + 1;
+      const currentTracks = Array.isArray(playlist.tracks)
+        ? [...(playlist.tracks as string[])]
+        : [];
+      currentTracks.push(trackId); // keep duplicates as in real playlists
+      const newPosition = currentTracks.length; // 1-based position at end
 
-      const trackData = {
-        ...track,
-        position: newPosition,
-        addedBy,
-        addedAt: serverTimestamp(),
-        lastModifiedBy: addedBy,
-        lastModifiedAt: serverTimestamp()
-      };
-
-      const trackRef = doc(
-        collection(db, this.collection, playlistId, this.tracksCollection)
-      );
-      transaction.set(trackRef, trackData);
-
-      // Update playlist metadata
+      // Update playlist metadata and tracks array
       transaction.update(playlistRef, {
+        tracks: currentTracks,
         trackCount: increment(1),
-        totalDuration: increment(track.duration),
+        totalDuration: increment(durationSeconds),
         updatedAt: serverTimestamp(),
         lastModifiedBy: addedBy,
         version: increment(1)
       });
 
-      return trackRef.id;
+      return newPosition;
     });
   }
 
   static async removeTrackFromPlaylist(
     playlistId: string,
     trackId: string,
-    userId: string
+    userId: string,
+    durationSeconds?: number
   ): Promise<void> {
     // Check if user has permission to remove tracks
     const canEdit = await this.canUserEditPlaylist(playlistId, userId);
@@ -326,29 +303,30 @@ export class PlaylistService {
     }
 
     await runTransaction(db, async (transaction) => {
-      const trackRef = doc(
-        db,
-        this.collection,
-        playlistId,
-        this.tracksCollection,
-        trackId
-      );
-      const trackDoc = await transaction.get(trackRef);
+      const playlistRef = doc(db, this.collection, playlistId);
+      const playlistDoc = await transaction.get(playlistRef);
 
-      if (!trackDoc.exists()) {
-        throw new Error('Track not found');
+      if (!playlistDoc.exists()) {
+        throw new Error('Playlist not found');
       }
 
-      const track = trackDoc.data() as MusicTrack;
-      const playlistRef = doc(db, this.collection, playlistId);
+      const playlist = playlistDoc.data() as Playlist;
+      const currentTracks = Array.isArray(playlist.tracks)
+        ? [...(playlist.tracks as string[])]
+        : [];
 
-      // Delete track
-      transaction.delete(trackRef);
+      const indexToRemove = currentTracks.indexOf(trackId);
+      if (indexToRemove === -1) {
+        throw new Error('Track not found in playlist');
+      }
+      currentTracks.splice(indexToRemove, 1); // remove first occurrence only
 
-      // Update playlist metadata
       transaction.update(playlistRef, {
+        tracks: currentTracks,
         trackCount: increment(-1),
-        totalDuration: increment(-track.duration),
+        totalDuration: durationSeconds
+          ? increment(-durationSeconds)
+          : increment(0),
         updatedAt: serverTimestamp(),
         version: increment(1)
       });
@@ -357,20 +335,39 @@ export class PlaylistService {
 
   static async reorderTrack(
     playlistId: string,
-    trackId: string,
-    newPosition: number
+    fromIndex: number,
+    toIndex: number
   ): Promise<void> {
-    const trackRef = doc(
-      db,
-      this.collection,
-      playlistId,
-      this.tracksCollection,
-      trackId
-    );
+    await runTransaction(db, async (transaction) => {
+      const playlistRef = doc(db, this.collection, playlistId);
+      const playlistDoc = await transaction.get(playlistRef);
 
-    await updateDoc(trackRef, {
-      position: newPosition,
-      lastModifiedAt: serverTimestamp()
+      if (!playlistDoc.exists()) {
+        throw new Error('Playlist not found');
+      }
+
+      const playlist = playlistDoc.data() as Playlist;
+      const currentTracks = Array.isArray(playlist.tracks)
+        ? [...(playlist.tracks as string[])]
+        : [];
+
+      if (
+        fromIndex < 0 ||
+        fromIndex >= currentTracks.length ||
+        toIndex < 0 ||
+        toIndex >= currentTracks.length
+      ) {
+        throw new Error('Invalid reorder indexes');
+      }
+
+      const [moved] = currentTracks.splice(fromIndex, 1);
+      currentTracks.splice(toIndex, 0, moved);
+
+      transaction.update(playlistRef, {
+        tracks: currentTracks,
+        updatedAt: serverTimestamp(),
+        version: increment(1)
+      });
     });
   }
 
@@ -588,7 +585,8 @@ export class PlaylistService {
     playlistId: string,
     invitationId: string,
     userId: string,
-    role: 'editor' | 'viewer' = 'editor'
+    role: 'editor' | 'viewer' = 'editor',
+    userData?: { displayName?: string; email?: string; photoURL?: string }
   ): Promise<{ success: boolean; message?: string }> {
     try {
       // First, validate the invitation outside of transaction
@@ -648,17 +646,21 @@ export class PlaylistService {
           status: 'accepted'
         });
 
-        // Add user to participants with additional info from invitation
-        const updatedParticipants = [
-          ...playlist.participants,
-          {
-            userId,
-            role,
-            joinedAt: new Date(),
-            displayName: invitation.displayName,
-            email: invitation.email
-          }
-        ];
+        // Add user to participants with additional info from invitation and user data
+        const participantData: PlaylistParticipant = {
+          userId,
+          role,
+          joinedAt: new Date(),
+          displayName: userData?.displayName || invitation.displayName,
+          email: userData?.email || invitation.email
+        };
+
+        // Only add photoURL if it exists
+        if (userData?.photoURL) {
+          participantData.photoURL = userData.photoURL;
+        }
+
+        const updatedParticipants = [...playlist.participants, participantData];
 
         transaction.update(playlistRef, {
           participants: updatedParticipants,
@@ -778,22 +780,17 @@ export class PlaylistService {
 
   static subscribeToPlaylistTracks(
     playlistId: string,
-    callback: (tracks: MusicTrack[]) => void
+    callback: (trackIds: string[]) => void
   ) {
-    const tracksRef = collection(
-      db,
-      this.collection,
-      playlistId,
-      this.tracksCollection
-    );
-    const q = query(tracksRef, orderBy('position', 'asc'));
-
-    return onSnapshot(q, (querySnapshot) => {
-      const tracks = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MusicTrack[];
-      callback(tracks);
+    const playlistRef = doc(db, this.collection, playlistId);
+    return onSnapshot(playlistRef, (docSnap) => {
+      if (!docSnap.exists()) {
+        callback([]);
+        return;
+      }
+      const data = docSnap.data() as Playlist;
+      const ids = (data.tracks as string[]) || [];
+      callback(ids);
     });
   }
 
@@ -905,6 +902,36 @@ export class PlaylistService {
       unsubscribeFunctions = [];
       allInvitations = [];
     };
+  }
+
+  // Update participant data (when user profile changes)
+  static async updateParticipantData(
+    playlistId: string,
+    userId: string,
+    userData: { displayName?: string; email?: string; photoURL?: string }
+  ): Promise<void> {
+    const playlistRef = doc(db, this.collection, playlistId);
+    const playlistDoc = await getDoc(playlistRef);
+
+    if (!playlistDoc.exists()) return;
+
+    const playlist = playlistDoc.data() as Playlist;
+    const updatedParticipants = playlist.participants.map((participant) =>
+      participant.userId === userId
+        ? {
+            ...participant,
+            ...(userData.displayName && { displayName: userData.displayName }),
+            ...(userData.email && { email: userData.email }),
+            ...(userData.photoURL && { photoURL: userData.photoURL })
+          }
+        : participant
+    );
+
+    await updateDoc(playlistRef, {
+      participants: updatedParticipants,
+      updatedAt: serverTimestamp(),
+      version: increment(1)
+    });
   }
 
   // ===== PERMISSIONS CHECK =====

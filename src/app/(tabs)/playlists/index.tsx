@@ -20,10 +20,11 @@ import {
   Playlist,
   PlaylistService
 } from '@/utils/firebase/firebase-service-playlists';
+import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
 const PlaylistsScreen = () => {
   const { theme } = useTheme();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -137,9 +138,9 @@ const PlaylistsScreen = () => {
           elevation: 4
         }}
       >
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View className="flex-row gap-4">
           {(['my', 'participating', 'public'] as const).map((tab) => (
-            <View key={tab} style={{ flex: 1 }}>
+            <View key={tab} className="flex-1">
               <RippleButton
                 title={getTabTitle(tab)}
                 size="sm"
@@ -194,7 +195,7 @@ const PlaylistsScreen = () => {
           </View>
         ) : (
           <View
-            className="flex-row flex-wrap justify-center gap-4"
+            className="flex-row flex-wrap justify-center gap-2"
             style={containerWidthStyle}
           >
             <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
@@ -211,7 +212,7 @@ const PlaylistsScreen = () => {
           visible={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onPlaylistCreated={handlePlaylistCreated}
-          userId={user.uid}
+          userData={profile as UserProfile}
         />
       )}
     </View>

@@ -25,7 +25,11 @@ const FeatureTile: React.FC<FeatureTileProps> = ({
   backgroundColor
 }) => {
   const { theme } = useTheme();
-  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation();
+  const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
 
   return (
     <Animated.View style={[{ flex: 1 }, animatedStyle]}>

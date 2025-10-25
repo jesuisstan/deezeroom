@@ -1,22 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Dimensions, ScrollView, Text, View } from 'react-native';
 
 import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { TabBar, TabView } from 'react-native-tab-view';
+import { useClient } from 'urql';
 
+import CoverTab from '@/components/playlists/CoverTab';
+import InfoTab from '@/components/playlists/InfoTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
+import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { GET_TRACK } from '@/graphql/queries';
+import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
-import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Playlist,
   PlaylistService
@@ -28,13 +33,20 @@ const PlaylistDetailScreen = () => {
   const { user } = useUser();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const urqlClient = useClient();
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
-  const [isInviting, setIsInviting] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'cover', title: 'Cover' },
+    { key: 'info', title: 'Info' }
+  ]);
+  const [trackIds, setTrackIds] = useState<string[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracksLoading, setTracksLoading] = useState<boolean>(false);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -62,6 +74,7 @@ const PlaylistDetailScreen = () => {
       }
 
       setPlaylist(playlistData);
+      setTrackIds((playlistData.tracks as string[]) || []);
     } catch (error) {
       Logger.error('Error loading playlist:', error);
       setError('Failed to load playlist');
@@ -78,6 +91,35 @@ const PlaylistDetailScreen = () => {
   useEffect(() => {
     loadPlaylist();
   }, [id, user, loadPlaylist]);
+
+  useEffect(() => {
+    const fetchTrackDetails = async () => {
+      if (!trackIds || trackIds.length === 0) {
+        setTracks([]);
+        return;
+      }
+      try {
+        setTracksLoading(true);
+        const results = await Promise.all(
+          trackIds.map((trackId) =>
+            urqlClient
+              .query(GET_TRACK, { id: trackId })
+              .toPromise()
+              .catch(() => ({ data: null }))
+          )
+        );
+        const loaded: Track[] = results
+          .map((res: any) => res?.data?.track)
+          .filter((t: any) => !!t);
+        setTracks(loaded);
+      } catch (e) {
+        Logger.error('Error loading playlist tracks', e);
+      } finally {
+        setTracksLoading(false);
+      }
+    };
+    fetchTrackDetails();
+  }, [trackIds, urqlClient]);
 
   const handleBack = () => {
     router.back();
@@ -144,10 +186,9 @@ const PlaylistDetailScreen = () => {
     setShowInviteModal(true);
   };
 
-  const handleSendInvitations = async () => {
+  const handleSendInvitations = async (selectedUsers: UserProfile[]) => {
     if (!playlist || !user || selectedUsers.length === 0) return;
 
-    setIsInviting(true);
     try {
       const invitationResult =
         await PlaylistService.inviteMultipleUsersToPlaylist(
@@ -176,10 +217,6 @@ const PlaylistDetailScreen = () => {
           });
         }
 
-        // Close modal and reset state
-        setShowInviteModal(false);
-        setSelectedUsers([]);
-
         // Reload playlist to get updated participants
         await loadPlaylist();
       } else {
@@ -197,14 +234,23 @@ const PlaylistDetailScreen = () => {
         title: 'Error',
         message: 'Failed to send invitations'
       });
-    } finally {
-      setIsInviting(false);
+      throw error; // Re-throw to let UserInviteModal handle loading state
     }
   };
 
   const handleCloseInviteModal = () => {
     setShowInviteModal(false);
-    setSelectedUsers([]);
+  };
+
+  const renderScene = ({ route }: { route: { key: string } }) => {
+    switch (route.key) {
+      case 'cover':
+        return <CoverTab playlist={playlist!} />;
+      case 'info':
+        return <InfoTab playlist={playlist!} />;
+      default:
+        return null;
+    }
   };
 
   if (isLoading) {
@@ -216,13 +262,16 @@ const PlaylistDetailScreen = () => {
       <View
         className="flex-1 items-center justify-center px-4"
         style={{
-          backgroundColor: themeColors[theme]['bg-main']
+          backgroundColor:
+            themeColors[theme as keyof typeof themeColors]['bg-main']
         }}
       >
         <MaterialCommunityIcons
           name="alert-circle"
           size={48}
-          color={themeColors[theme]['text-secondary']}
+          color={
+            themeColors[theme as keyof typeof themeColors]['text-secondary']
+          }
         />
         <TextCustom className="mt-4 text-center opacity-70">
           {error || 'Playlist not found'}
@@ -236,18 +285,22 @@ const PlaylistDetailScreen = () => {
     <View
       className="flex-1"
       style={{
-        backgroundColor: themeColors[theme]['bg-main']
+        backgroundColor:
+          themeColors[theme as keyof typeof themeColors]['bg-main']
       }}
     >
       {/* Header */}
       <View
         style={{
           paddingHorizontal: 16,
-          paddingVertical: 4,
-          backgroundColor: themeColors[theme]['bg-tertiary'],
+          paddingVertical: 8,
+          backgroundColor:
+            themeColors[theme as keyof typeof themeColors]['bg-tertiary'],
           borderBottomWidth: 1,
-          borderBottomColor: themeColors[theme].border,
-          shadowColor: themeColors[theme]['bg-inverse'],
+          borderBottomColor:
+            themeColors[theme as keyof typeof themeColors].border,
+          shadowColor:
+            themeColors[theme as keyof typeof themeColors]['bg-inverse'],
           shadowOffset: {
             width: 0,
             height: 2
@@ -267,7 +320,9 @@ const PlaylistDetailScreen = () => {
               <Entypo
                 name="chevron-thin-left"
                 size={15}
-                color={themeColors[theme]['text-main']}
+                color={
+                  themeColors[theme as keyof typeof themeColors]['text-main']
+                }
               />
             }
           />
@@ -282,7 +337,11 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="delete-outline"
                     size={20}
-                    color={themeColors[theme]['intent-error']}
+                    color={
+                      themeColors[theme as keyof typeof themeColors][
+                        'intent-error'
+                      ]
+                    }
                   />
                 </IconButton>
 
@@ -293,7 +352,11 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="pencil-outline"
                     size={20}
-                    color={themeColors[theme]['text-main']}
+                    color={
+                      themeColors[theme as keyof typeof themeColors][
+                        'text-main'
+                      ]
+                    }
                   />
                 </IconButton>
 
@@ -304,7 +367,11 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="account-plus-outline"
                     size={20}
-                    color={themeColors[theme]['text-main']}
+                    color={
+                      themeColors[theme as keyof typeof themeColors][
+                        'text-main'
+                      ]
+                    }
                   />
                 </IconButton>
               </View>
@@ -313,128 +380,145 @@ const PlaylistDetailScreen = () => {
         </View>
       </View>
 
+      {/* Playlist Content */}
       <ScrollView
         showsVerticalScrollIndicator={true}
         contentContainerStyle={{
-          paddingBottom: 16,
-          paddingHorizontal: 16,
-          paddingTop: 16,
-          gap: 16
+          paddingBottom: 16
         }}
       >
-        <View style={containerWidthStyle}>
-          {/* Playlist Info */}
-          <View className="gap-4">
-            <View className="items-center">
-              <TextCustom type="title" className="text-center">
-                {playlist.name}
-              </TextCustom>
+        {/* Swipeable Cover/Description/Stats Section */}
+        <TabView
+          navigationState={{ index, routes }}
+          renderScene={renderScene}
+          onIndexChange={setIndex}
+          initialLayout={{ width: Dimensions.get('window').width }}
+          renderTabBar={(props) => (
+            <TabBar
+              {...props}
+              indicatorStyle={{
+                backgroundColor:
+                  themeColors[theme as keyof typeof themeColors]['primary'],
+                height: 2
+              }}
+              style={{
+                backgroundColor:
+                  themeColors[theme as keyof typeof themeColors]['bg-main'],
+                elevation: 0,
+                shadowOpacity: 0
+              }}
+              tabStyle={{
+                paddingVertical: 8
+              }}
+              inactiveColor={
+                themeColors[theme as keyof typeof themeColors]['text-secondary']
+              }
+              activeColor={
+                themeColors[theme as keyof typeof themeColors]['primary']
+              }
+            />
+          )}
+        />
 
-              {playlist.description && (
-                <TextCustom
-                  size="m"
-                  className="mt-2 text-center opacity-70"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  {playlist.description}
-                </TextCustom>
-              )}
-            </View>
+        {/* Playlist Title and Creator */}
+        <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
+          <TextCustom type="title" className="text-center">
+            {playlist.name}
+          </TextCustom>
 
-            {/* Playlist Stats */}
-            <View className="flex-row justify-center gap-6">
-              <View className="items-center">
-                <TextCustom type="bold" size="l">
-                  {playlist.trackCount}
-                </TextCustom>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Tracks
-                </TextCustom>
-              </View>
+          <TextCustom
+            size="m"
+            className="mt-2 text-center opacity-70"
+            color={
+              themeColors[theme as keyof typeof themeColors]['text-secondary']
+            }
+          >
+            Stanislav Krivtsov
+          </TextCustom>
+        </View>
 
-              <View className="items-center">
-                <TextCustom type="bold" size="l">
-                  {Math.floor(playlist.totalDuration / 60)}m
-                </TextCustom>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Duration
-                </TextCustom>
-              </View>
+        {/* Action Buttons */}
+        <View className="mb-4 flex-row items-center justify-center gap-4 px-4">
+          <IconButton accessibilityLabel="Search" className="h-10 w-10">
+            <MaterialCommunityIcons
+              name="magnify"
+              size={20}
+              color={
+                themeColors[theme as keyof typeof themeColors]['text-main']
+              }
+            />
+          </IconButton>
 
-              <View className="items-center">
-                <TextCustom type="bold" size="l">
-                  {playlist.participants.length}
-                </TextCustom>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Members
-                </TextCustom>
-              </View>
-            </View>
+          <IconButton accessibilityLabel="Share" className="h-10 w-10">
+            <MaterialCommunityIcons
+              name="share-variant"
+              size={20}
+              color={
+                themeColors[theme as keyof typeof themeColors]['text-main']
+              }
+            />
+          </IconButton>
 
-            {/* Playlist Settings */}
-            <View className="flex-row justify-center gap-4">
-              <View
-                style={{
-                  backgroundColor: `${themeColors[theme]['primary']}15`,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: themeColors[theme]['primary']
-                }}
-              >
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['primary']}
-                  type="bold"
-                >
-                  {playlist.visibility === 'public' ? 'Public' : 'Private'}
-                </TextCustom>
-              </View>
+          <IconButton accessibilityLabel="Download" className="h-10 w-10">
+            <MaterialCommunityIcons
+              name="download"
+              size={20}
+              color={
+                themeColors[theme as keyof typeof themeColors]['text-main']
+              }
+            />
+          </IconButton>
 
-              <View
-                style={{
-                  backgroundColor: `${themeColors[theme]['text-secondary']}15`,
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 16,
-                  borderWidth: 1,
-                  borderColor: themeColors[theme]['text-secondary']
-                }}
-              >
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                  type="bold"
-                >
-                  {playlist.editPermissions === 'everyone'
-                    ? 'All Can Edit'
-                    : 'Invited Only'}
-                </TextCustom>
-              </View>
-            </View>
+          <View
+            style={{
+              backgroundColor:
+                themeColors[theme as keyof typeof themeColors]['primary'],
+              borderRadius: 25,
+              width: 50,
+              height: 50,
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <MaterialCommunityIcons name="shuffle" size={24} color="white" />
           </View>
+        </View>
 
-          {/* Tracks Section */}
-          <View className="gap-4">
-            <TextCustom type="subtitle" className="text-center">
-              Tracks
-            </TextCustom>
-
+        {/* Tracks List */}
+        <View className="px-4">
+          {tracksLoading ? (
+            <View className="items-center py-8">
+              <MaterialCommunityIcons
+                name="loading"
+                size={24}
+                color={
+                  themeColors[theme as keyof typeof themeColors][
+                    'text-secondary'
+                  ]
+                }
+              />
+            </View>
+          ) : tracks && tracks.length > 0 ? (
+            tracks.map((track) => (
+              <TrackCard
+                key={track.id}
+                track={track}
+                isPlaying={false}
+                onPlay={(track) => {
+                  console.log('Play track:', track.title);
+                }}
+              />
+            ))
+          ) : (
             <View className="items-center py-8">
               <MaterialCommunityIcons
                 name="music-note"
                 size={48}
-                color={themeColors[theme]['text-secondary']}
+                color={
+                  themeColors[theme as keyof typeof themeColors][
+                    'text-secondary'
+                  ]
+                }
               />
               <TextCustom className="mt-4 text-center opacity-70">
                 No tracks added yet
@@ -442,66 +526,28 @@ const PlaylistDetailScreen = () => {
               <TextCustom
                 size="s"
                 className="mt-2 text-center opacity-50"
-                color={themeColors[theme]['text-secondary']}
+                color={
+                  themeColors[theme as keyof typeof themeColors][
+                    'text-secondary'
+                  ]
+                }
               >
                 Add tracks using the Deezer search
               </TextCustom>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
 
       {/* Invite Users Modal */}
-      <SwipeModal
-        title="Invite Users"
-        modalVisible={showInviteModal}
-        setVisible={setShowInviteModal}
+      <UserInviteComponent
+        visible={showInviteModal}
         onClose={handleCloseInviteModal}
-      >
-        <View className="flex-1 gap-4 px-4 py-4">
-          <TextCustom className="text-center opacity-70">
-            Search and select users to invite to this playlist
-          </TextCustom>
-
-          <UserInviteComponent
-            onUsersSelected={setSelectedUsers}
-            selectedUsers={selectedUsers}
-            excludeUserId={user?.uid}
-            placeholder="Search users by email or name..."
-            maxUsers={20}
-          />
-
-          {selectedUsers.length > 0 && (
-            <View className="mt-4">
-              <TextCustom
-                size="s"
-                className="text-center"
-                color={themeColors[theme]['text-secondary']}
-              >
-                {selectedUsers.length} user(s) will be invited
-              </TextCustom>
-            </View>
-          )}
-
-          {/* Actions */}
-          <View className="mt-4 flex-row gap-3">
-            <RippleButton
-              title="Cancel"
-              variant="outline"
-              onPress={handleCloseInviteModal}
-              className="flex-1"
-              disabled={isInviting}
-            />
-            <RippleButton
-              title="Send Invitations"
-              onPress={handleSendInvitations}
-              loading={isInviting}
-              className="flex-1"
-              disabled={selectedUsers.length === 0 || isInviting}
-            />
-          </View>
-        </View>
-      </SwipeModal>
+        onInvite={handleSendInvitations}
+        excludeUserId={user?.uid}
+        existingUsers={playlist.participants}
+        placeholder="Search users by email or name..."
+      />
     </View>
   );
 };

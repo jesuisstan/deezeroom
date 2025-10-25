@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
@@ -91,29 +92,9 @@ const ProfileScreen: FC = () => {
   };
 
   const Chip: FC<{ text: string }> = ({ text }) => (
-    <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-3 py-1">
+    <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-2 py-1">
       <TextCustom className="text-accent" size="s">
         {text}
-      </TextCustom>
-    </View>
-  );
-
-  const ArtistChip: FC<{ artist: DeezerArtist }> = ({ artist }) => (
-    <View className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-main px-2 py-1">
-      {artist.picture_small ? (
-        <Image
-          source={{ uri: artist.picture_small }}
-          className="mr-2 h-5 w-5 rounded-full"
-        />
-      ) : (
-        <View className="mr-2 h-5 w-5 items-center justify-center rounded-full bg-bg-secondary">
-          <TextCustom size="xs">
-            {(artist.name || '?').charAt(0).toUpperCase()}
-          </TextCustom>
-        </View>
-      )}
-      <TextCustom className="text-accent" size="s">
-        {artist.name || ''}
       </TextCustom>
     </View>
   );
@@ -255,17 +236,17 @@ const ProfileScreen: FC = () => {
               if (!items || items.length === 0)
                 return (
                   <TextCustom className="text-accent/60">
-                    No favorite artists yet
+                    No favorite artists added yet
                   </TextCustom>
                 );
               return (
-                <View className="mt-2 flex-row flex-wrap">
+                <View className="mt-2 flex-row flex-wrap gap-2">
                   {items.map((i, idx) => {
                     if (typeof i === 'string') {
                       return <Chip key={`${i}-${idx}`} text={i} />;
                     }
                     const a = i as DeezerArtist;
-                    return <ArtistChip key={a.id || idx} artist={a} />;
+                    return <ArtistLabel key={a.id || idx} artist={a} />;
                   })}
                 </View>
               );
