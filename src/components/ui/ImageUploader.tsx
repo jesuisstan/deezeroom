@@ -133,7 +133,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(
       try {
         const result = await ImagePicker.launchCameraAsync({
           allowsEditing: true,
-          aspect: shape === 'circle' ? [1, 1] : [4, 3],
+          aspect: [1, 1],
           quality: 0.8,
           base64: false
         });

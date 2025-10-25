@@ -71,7 +71,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
             }}
           >
             <TextCustom
-              type="bold"
+              type="semibold"
               size="l"
               numberOfLines={2}
               color={themeColors[theme]['text-main']}

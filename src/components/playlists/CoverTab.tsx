@@ -13,7 +13,7 @@ interface CoverTabProps {
 
 const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
-
+  console.log('playlist', playlist);
   return (
     <View style={{ width: '100%', aspectRatio: 1 }}>
       {playlist.coverImageUrl ? (
@@ -28,7 +28,9 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
             width: '100%',
             height: '100%',
             backgroundColor:
-              themeColors[theme as keyof typeof themeColors].primary,
+              playlist.visibility === 'public'
+                ? themeColors[theme].primary
+                : themeColors[theme]['intent-success'],
             alignItems: 'center',
             justifyContent: 'center'
           }}
@@ -36,7 +38,7 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
           <MaterialCommunityIcons
             name="playlist-music"
             size={64}
-            color="white"
+            color={themeColors[theme]['text-main']}
           />
         </View>
       )}

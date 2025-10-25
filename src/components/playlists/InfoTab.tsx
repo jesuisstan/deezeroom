@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -12,6 +12,14 @@ interface InfoTabProps {
 
 const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
+
+  const ownerParticipant = useMemo(() => {
+    if (!playlist) return undefined;
+    return (
+      playlist.participants?.find((p) => p.role === 'owner') ||
+      playlist.participants?.find((p) => p.userId === playlist.createdBy)
+    );
+  }, [playlist]);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -61,6 +69,26 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
 
       {/* Stats Section */}
       <View className="flex-col items-start justify-start gap-4">
+        <View className="items-start justify-start">
+          <TextCustom
+            type="bold"
+            size="m"
+            color={themeColors[theme as keyof typeof themeColors]['text-main']}
+          >
+            Created by
+          </TextCustom>
+          <TextCustom
+            size="m"
+            color={
+              themeColors[theme as keyof typeof themeColors]['text-secondary']
+            }
+          >
+            {ownerParticipant?.displayName ||
+              ownerParticipant?.email ||
+              'Owner'}
+          </TextCustom>
+        </View>
+
         <View className="items-start justify-start">
           <TextCustom
             type="bold"

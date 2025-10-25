@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dimensions, Pressable, ScrollView, View } from 'react-native';
 
-import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
@@ -48,14 +48,6 @@ const PlaylistDetailScreen = () => {
   const [trackIds, setTrackIds] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
-
-  const ownerParticipant = useMemo(() => {
-    if (!playlist) return undefined;
-    return (
-      playlist.participants?.find((p) => p.role === 'owner') ||
-      playlist.participants?.find((p) => p.userId === playlist.createdBy)
-    );
-  }, [playlist]);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -294,80 +286,6 @@ const PlaylistDetailScreen = () => {
         backgroundColor: themeColors[theme]['bg-main']
       }}
     >
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          backgroundColor: themeColors[theme]['bg-tertiary'],
-          borderBottomWidth: 1,
-          borderBottomColor: themeColors[theme].border,
-          shadowColor: themeColors[theme]['bg-inverse'],
-          shadowOffset: {
-            width: 0,
-            height: 2
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 4
-        }}
-      >
-        <View className="flex-row items-center justify-between">
-          <RippleButton
-            title="To playlists"
-            variant="outline"
-            size="sm"
-            onPress={handleBack}
-            leftIcon={
-              <Entypo
-                name="chevron-thin-left"
-                size={15}
-                color={themeColors[theme]['text-main']}
-              />
-            }
-          />
-
-          <View>
-            {playlist.createdBy === user?.uid && (
-              <View className="flex flex-row ">
-                <IconButton
-                  accessibilityLabel="Delete playlist"
-                  onPress={handleDeletePlaylist}
-                >
-                  <MaterialCommunityIcons
-                    name="delete-outline"
-                    size={20}
-                    color={themeColors[theme]['intent-error']}
-                  />
-                </IconButton>
-
-                <IconButton
-                  accessibilityLabel="Edit playlist"
-                  onPress={handleEditPlaylist}
-                >
-                  <MaterialCommunityIcons
-                    name="pencil-outline"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
-
-                <IconButton
-                  accessibilityLabel="Invite users"
-                  onPress={handleInviteUsers}
-                >
-                  <MaterialCommunityIcons
-                    name="account-plus-outline"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
-
       {/* Playlist Content */}
       <ScrollView
         showsVerticalScrollIndicator={true}
@@ -413,55 +331,44 @@ const PlaylistDetailScreen = () => {
           ))}
         </View>
 
-        {/* Playlist Title and Creator */}
-        <View className="px-4 py-4">
-          <TextCustom type="title">{playlist.name}</TextCustom>
-
-          <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
-            {ownerParticipant?.displayName ||
-              ownerParticipant?.email ||
-              'Owner'}
-          </TextCustom>
-        </View>
-
         {/* Action Buttons */}
         <View className="mb-4 flex-row items-center justify-center gap-4 px-4">
-          <IconButton accessibilityLabel="Search" className="h-10 w-10">
-            <MaterialCommunityIcons
-              name="magnify"
-              size={20}
-              color={themeColors[theme]['text-main']}
-            />
-          </IconButton>
+          {playlist.createdBy === user?.uid && (
+            <View className="flex flex-row ">
+              <IconButton
+                accessibilityLabel="Delete playlist"
+                onPress={handleDeletePlaylist}
+              >
+                <MaterialCommunityIcons
+                  name="delete-outline"
+                  size={20}
+                  color={themeColors[theme]['intent-error']}
+                />
+              </IconButton>
 
-          <IconButton accessibilityLabel="Share" className="h-10 w-10">
-            <MaterialCommunityIcons
-              name="share-variant"
-              size={20}
-              color={themeColors[theme]['text-main']}
-            />
-          </IconButton>
+              <IconButton
+                accessibilityLabel="Edit playlist"
+                onPress={handleEditPlaylist}
+              >
+                <MaterialCommunityIcons
+                  name="pencil-outline"
+                  size={20}
+                  color={themeColors[theme]['text-main']}
+                />
+              </IconButton>
 
-          <IconButton accessibilityLabel="Download" className="h-10 w-10">
-            <MaterialCommunityIcons
-              name="download"
-              size={20}
-              color={themeColors[theme]['text-main']}
-            />
-          </IconButton>
-
-          <View
-            style={{
-              backgroundColor: themeColors[theme]['primary'],
-              borderRadius: 25,
-              width: 50,
-              height: 50,
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <MaterialCommunityIcons name="shuffle" size={24} color="white" />
-          </View>
+              <IconButton
+                accessibilityLabel="Invite users"
+                onPress={handleInviteUsers}
+              >
+                <MaterialCommunityIcons
+                  name="account-plus-outline"
+                  size={20}
+                  color={themeColors[theme]['text-main']}
+                />
+              </IconButton>
+            </View>
+          )}
         </View>
 
         {/* Tracks List */}
