@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Dimensions, Pressable, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';

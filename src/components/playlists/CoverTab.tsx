@@ -13,7 +13,7 @@ interface CoverTabProps {
 
 const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
-  console.log('playlist', playlist);
+
   return (
     <View style={{ width: '100%', aspectRatio: 1 }}>
       {playlist.coverImageUrl ? (
