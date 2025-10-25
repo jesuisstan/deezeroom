@@ -23,7 +23,7 @@ import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
 
 const PlayerScreen = () => {
-  console.log('PlayerScreen render', new Date().toISOString());
+  console.log('PlayerScreen render', new Date().toISOString()); // debug
   const router = useRouter();
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -33,15 +33,6 @@ const PlayerScreen = () => {
   const { queue, currentTrack, currentIndex } = usePlaybackState();
   const { isPlaying, isLoading, error } = usePlaybackUI();
   const { playNext, playPrevious, togglePlayPause } = usePlaybackActions();
-
-  useEffect(() => {
-    console.log('✅ PlayerScreen mounted');
-
-    return () => {
-      console.log('❌ PlayerScreen unmounted');
-      console.countReset('🎬 PlayerScreen render');
-    };
-  }, []);
 
   const currentTrackId = currentTrack?.id;
   const isCurrentTrackFavorite = useMemo(() => {

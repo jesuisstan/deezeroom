@@ -52,7 +52,7 @@ const DEFAULTS: State = {
   position: 'bottom',
   duration: 3000,
   autoHide: true,
-  showProgress: true,
+  showProgress: false,
   visible: false
 };
 

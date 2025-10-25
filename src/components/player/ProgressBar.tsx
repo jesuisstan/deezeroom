@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import { memo, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, View } from 'react-native';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useAudioStatus, usePlaybackUI } from '@/providers/PlaybackProvider';
@@ -21,7 +21,8 @@ const formatTime = (valueInSeconds: number) => {
 
 const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
   const containerWidthRef = useRef(0);
-  const animatedWidth = useRef(new Animated.Value(0)).current;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const scaleX = useRef(new Animated.Value(0)).current; // 0..1 ratio
 
   // Subscribe to status directly in ProgressBar to avoid parent re-renders
   const { status } = useAudioStatus();
@@ -58,27 +59,27 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
     const safeDur = Number.isFinite(duration) ? Math.max(0, duration) : 0;
 
     if (width <= 0 || safeDur <= 0) {
-      animatedWidth.stopAnimation();
-      animatedWidth.setValue(0);
+      scaleX.stopAnimation();
+      scaleX.setValue(0);
       return;
     }
 
     const clampedStart = Math.min(Math.max(startSeconds, 0), safeDur);
     const startRatio =
       safeDur > 0 ? Math.min(Math.max(clampedStart / safeDur, 0), 1) : 0;
-    const startPx = width * startRatio;
 
-    animatedWidth.stopAnimation();
-    animatedWidth.setValue(startPx);
+    scaleX.stopAnimation();
+    scaleX.setValue(startRatio);
 
     if (!playingRef.current) {
       return;
     }
 
     const remainingSeconds = Math.max(0, safeDur - clampedStart);
-    Animated.timing(animatedWidth, {
-      toValue: width,
+    Animated.timing(scaleX, {
+      toValue: 1,
       duration: Math.round(remainingSeconds * 1000),
+      easing: Easing.linear,
       useNativeDriver: false
     }).start();
   }).current;
@@ -123,6 +124,7 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
           const w = e.nativeEvent.layout.width;
           if (w !== containerWidthRef.current) {
             containerWidthRef.current = w;
+            setContainerWidth(w);
             const duration = durationRef.current;
             const safeDur = Number.isFinite(duration)
               ? Math.max(0, duration)
@@ -130,7 +132,7 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
             const current = status?.currentTime ?? 0;
             const ratio =
               safeDur > 0 ? Math.min(Math.max(current / safeDur, 0), 1) : 0;
-            animatedWidth.setValue(w * ratio);
+            scaleX.setValue(ratio);
             // Restart animation from current position after layout change
             startAnimationFrom(current);
           }
@@ -139,7 +141,7 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
         <Animated.View
           className="h-2 rounded-full"
           style={{
-            width: animatedWidth,
+            width: Animated.multiply(scaleX, containerWidth || 1),
             backgroundColor: themeColors[theme]['primary']
           }}
         />
