@@ -21,9 +21,12 @@ interface PlaybackStateContextValue {
 }
 
 interface PlaybackStatusContextValue {
+  status: AudioStatus | null;
+}
+
+interface PlaybackUIStatusContextValue {
   isPlaying: boolean;
   isLoading: boolean;
-  status: AudioStatus | null;
   error: string | null;
 }
 
@@ -48,6 +51,10 @@ const PlaybackStatusContext = createContext<
 
 const PlaybackActionsContext = createContext<
   PlaybackActionsContextValue | undefined
+>(undefined);
+
+const PlaybackUIStatusContext = createContext<
+  PlaybackUIStatusContextValue | undefined
 >(undefined);
 
 const findNextPlayableIndex = (
@@ -395,12 +402,19 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   const statusValue: PlaybackStatusContextValue = useMemo(
     () => ({
+      status: status ?? null
+    }),
+    [status]
+  );
+
+  // UI-only status value that does NOT include `status` ticks
+  const uiStatusValue: PlaybackUIStatusContextValue = useMemo(
+    () => ({
       isPlaying,
       isLoading,
-      status: status ?? null,
       error
     }),
-    [isPlaying, isLoading, status, error]
+    [isPlaying, isLoading, error]
   );
 
   const actionsValue: PlaybackActionsContextValue = useMemo(
@@ -428,11 +442,13 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <PlaybackStateContext.Provider value={stateValue}>
-      <PlaybackStatusContext.Provider value={statusValue}>
-        <PlaybackActionsContext.Provider value={actionsValue}>
-          {children}
-        </PlaybackActionsContext.Provider>
-      </PlaybackStatusContext.Provider>
+      <PlaybackUIStatusContext.Provider value={uiStatusValue}>
+        <PlaybackStatusContext.Provider value={statusValue}>
+          <PlaybackActionsContext.Provider value={actionsValue}>
+            {children}
+          </PlaybackActionsContext.Provider>
+        </PlaybackStatusContext.Provider>
+      </PlaybackUIStatusContext.Provider>
     </PlaybackStateContext.Provider>
   );
 };
@@ -454,10 +470,22 @@ const usePlaybackState = () => {
  * Components using this hook will re-render on status changes (including progress updates).
  * Use sparingly for components that need real-time playback status.
  */
-const usePlaybackStatus = () => {
+const useAudioStatus = () => {
   const context = useContext(PlaybackStatusContext);
   if (!context) {
-    throw new Error('usePlaybackStatus must be used within a PlaybackProvider');
+    throw new Error('useAudioStatus must be used within a PlaybackProvider');
+  }
+  return context;
+};
+
+/**
+ * Hook for accessing UI playback status (isPlaying, isLoading, error only).
+ * Components using this hook will NOT re-render on position ticks.
+ */
+const usePlaybackUI = () => {
+  const context = useContext(PlaybackUIStatusContext);
+  if (!context) {
+    throw new Error('usePlaybackUI must be used within a PlaybackProvider');
   }
   return context;
 };
@@ -478,7 +506,8 @@ const usePlaybackActions = () => {
 
 export {
   PlaybackProvider,
+  useAudioStatus,
   usePlaybackActions,
   usePlaybackState,
-  usePlaybackStatus
+  usePlaybackUI
 };

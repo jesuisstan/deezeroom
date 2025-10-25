@@ -10,7 +10,7 @@ import { Track } from '@/graphql/schema';
 import {
   usePlaybackActions,
   usePlaybackState,
-  usePlaybackStatus
+  usePlaybackUI
 } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -22,7 +22,7 @@ const HomeScreen = () => {
 
   // Split into separate hooks to minimize re-renders
   const { currentTrack } = usePlaybackState();
-  const { isPlaying } = usePlaybackStatus();
+  const { isPlaying } = usePlaybackUI();
   const { startPlayback, togglePlayPause } = usePlaybackActions();
 
   const [searchResults, setSearchResults] = useState<Track[]>([]);

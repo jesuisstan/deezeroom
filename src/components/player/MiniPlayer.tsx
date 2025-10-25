@@ -18,7 +18,7 @@ import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import {
   usePlaybackActions,
   usePlaybackState,
-  usePlaybackStatus
+  usePlaybackUI
 } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -33,7 +33,7 @@ const MiniPlayer = () => {
 
   // Split into three separate hooks to minimize re-renders
   const { queue, currentIndex, currentTrack } = usePlaybackState();
-  const { isPlaying, isLoading } = usePlaybackStatus();
+  const { isPlaying, isLoading } = usePlaybackUI();
   const { togglePlayPause, playNext } = usePlaybackActions();
 
   const { theme } = useTheme();

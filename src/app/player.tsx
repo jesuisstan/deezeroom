@@ -16,14 +16,14 @@ import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import {
   usePlaybackActions,
   usePlaybackState,
-  usePlaybackStatus
+  usePlaybackUI
 } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
 
 const PlayerScreen = () => {
-  console.count('PlayerScreen render');
+  console.log('PlayerScreen render', new Date().toISOString());
   const router = useRouter();
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -31,7 +31,7 @@ const PlayerScreen = () => {
   // Split into three separate hooks to minimize re-renders
   // ProgressBar will handle status internally
   const { queue, currentTrack, currentIndex } = usePlaybackState();
-  const { isPlaying, isLoading, error } = usePlaybackStatus();
+  const { isPlaying, isLoading, error } = usePlaybackUI();
   const { playNext, playPrevious, togglePlayPause } = usePlaybackActions();
 
   useEffect(() => {
@@ -286,13 +286,6 @@ const PlayerScreen = () => {
               {queue.length > 0
                 ? `Track ${currentIndex + 1} of ${queue.length}`
                 : 'Search for tracks to start playback'}
-            </TextCustom>
-            <TextCustom
-              size="xs"
-              color={themeColors[theme]['text-secondary']}
-              className="opacity-60"
-            >
-              Queue management is coming soon
             </TextCustom>
           </View>
         </View>
