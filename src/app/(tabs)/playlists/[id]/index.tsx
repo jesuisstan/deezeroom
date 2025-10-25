@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, ScrollView, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Dimensions, Pressable, ScrollView, View } from 'react-native';
 
 import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { TabBar, TabView } from 'react-native-tab-view';
+import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
 import CoverTab from '@/components/playlists/CoverTab';
@@ -22,6 +22,7 @@ import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Playlist,
   PlaylistService
@@ -41,12 +42,20 @@ const PlaylistDetailScreen = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    { key: 'cover', title: 'Cover' },
+    { key: 'cover', title: 'QCover' },
     { key: 'info', title: 'Info' }
   ]);
   const [trackIds, setTrackIds] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
+
+  const ownerParticipant = useMemo(() => {
+    if (!playlist) return undefined;
+    return (
+      playlist.participants?.find((p) => p.role === 'owner') ||
+      playlist.participants?.find((p) => p.userId === playlist.createdBy)
+    );
+  }, [playlist]);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -262,16 +271,13 @@ const PlaylistDetailScreen = () => {
       <View
         className="flex-1 items-center justify-center px-4"
         style={{
-          backgroundColor:
-            themeColors[theme as keyof typeof themeColors]['bg-main']
+          backgroundColor: themeColors[theme]['bg-main']
         }}
       >
         <MaterialCommunityIcons
           name="alert-circle"
           size={48}
-          color={
-            themeColors[theme as keyof typeof themeColors]['text-secondary']
-          }
+          color={themeColors[theme]['text-secondary']}
         />
         <TextCustom className="mt-4 text-center opacity-70">
           {error || 'Playlist not found'}
@@ -285,8 +291,7 @@ const PlaylistDetailScreen = () => {
     <View
       className="flex-1"
       style={{
-        backgroundColor:
-          themeColors[theme as keyof typeof themeColors]['bg-main']
+        backgroundColor: themeColors[theme]['bg-main']
       }}
     >
       {/* Header */}
@@ -294,13 +299,10 @@ const PlaylistDetailScreen = () => {
         style={{
           paddingHorizontal: 16,
           paddingVertical: 8,
-          backgroundColor:
-            themeColors[theme as keyof typeof themeColors]['bg-tertiary'],
+          backgroundColor: themeColors[theme]['bg-tertiary'],
           borderBottomWidth: 1,
-          borderBottomColor:
-            themeColors[theme as keyof typeof themeColors].border,
-          shadowColor:
-            themeColors[theme as keyof typeof themeColors]['bg-inverse'],
+          borderBottomColor: themeColors[theme].border,
+          shadowColor: themeColors[theme]['bg-inverse'],
           shadowOffset: {
             width: 0,
             height: 2
@@ -320,9 +322,7 @@ const PlaylistDetailScreen = () => {
               <Entypo
                 name="chevron-thin-left"
                 size={15}
-                color={
-                  themeColors[theme as keyof typeof themeColors]['text-main']
-                }
+                color={themeColors[theme]['text-main']}
               />
             }
           />
@@ -337,11 +337,7 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="delete-outline"
                     size={20}
-                    color={
-                      themeColors[theme as keyof typeof themeColors][
-                        'intent-error'
-                      ]
-                    }
+                    color={themeColors[theme]['intent-error']}
                   />
                 </IconButton>
 
@@ -352,11 +348,7 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="pencil-outline"
                     size={20}
-                    color={
-                      themeColors[theme as keyof typeof themeColors][
-                        'text-main'
-                      ]
-                    }
+                    color={themeColors[theme]['text-main']}
                   />
                 </IconButton>
 
@@ -367,11 +359,7 @@ const PlaylistDetailScreen = () => {
                   <MaterialCommunityIcons
                     name="account-plus-outline"
                     size={20}
-                    color={
-                      themeColors[theme as keyof typeof themeColors][
-                        'text-main'
-                      ]
-                    }
+                    color={themeColors[theme]['text-main']}
                   />
                 </IconButton>
               </View>
@@ -384,56 +372,55 @@ const PlaylistDetailScreen = () => {
       <ScrollView
         showsVerticalScrollIndicator={true}
         contentContainerStyle={{
-          paddingBottom: 16
+          paddingBottom: 8,
+          ...containerWidthStyle
         }}
       >
-        {/* Swipeable Cover/Description/Stats Section */}
+        {/* Swipeable Cover/Description Section */}
         <TabView
           navigationState={{ index, routes }}
           renderScene={renderScene}
           onIndexChange={setIndex}
           initialLayout={{ width: Dimensions.get('window').width }}
-          renderTabBar={(props) => (
-            <TabBar
-              {...props}
-              indicatorStyle={{
-                backgroundColor:
-                  themeColors[theme as keyof typeof themeColors]['primary'],
-                height: 2
-              }}
-              style={{
-                backgroundColor:
-                  themeColors[theme as keyof typeof themeColors]['bg-main'],
-                elevation: 0,
-                shadowOpacity: 0
-              }}
-              tabStyle={{
-                paddingVertical: 8
-              }}
-              inactiveColor={
-                themeColors[theme as keyof typeof themeColors]['text-secondary']
-              }
-              activeColor={
-                themeColors[theme as keyof typeof themeColors]['primary']
-              }
-            />
-          )}
+          style={{ height: Dimensions.get('window').width }}
+          renderTabBar={() => null}
         />
 
-        {/* Playlist Title and Creator */}
-        <View style={{ paddingHorizontal: 16, paddingVertical: 16 }}>
-          <TextCustom type="title" className="text-center">
-            {playlist.name}
-          </TextCustom>
+        {/* Dots indicator under content (no labels) */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 4,
+            paddingVertical: 4
+          }}
+        >
+          {routes.map((r, i) => (
+            <Pressable
+              key={r.key}
+              onPress={() => setIndex(i)}
+              style={{
+                width: 15,
+                height: 4,
+                borderRadius: 3,
+                backgroundColor:
+                  i === index
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-secondary'] + '55'
+              }}
+            />
+          ))}
+        </View>
 
-          <TextCustom
-            size="m"
-            className="mt-2 text-center opacity-70"
-            color={
-              themeColors[theme as keyof typeof themeColors]['text-secondary']
-            }
-          >
-            Stanislav Krivtsov
+        {/* Playlist Title and Creator */}
+        <View className="px-4 py-4">
+          <TextCustom type="title">{playlist.name}</TextCustom>
+
+          <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+            {ownerParticipant?.displayName ||
+              ownerParticipant?.email ||
+              'Owner'}
           </TextCustom>
         </View>
 
@@ -443,9 +430,7 @@ const PlaylistDetailScreen = () => {
             <MaterialCommunityIcons
               name="magnify"
               size={20}
-              color={
-                themeColors[theme as keyof typeof themeColors]['text-main']
-              }
+              color={themeColors[theme]['text-main']}
             />
           </IconButton>
 
@@ -453,9 +438,7 @@ const PlaylistDetailScreen = () => {
             <MaterialCommunityIcons
               name="share-variant"
               size={20}
-              color={
-                themeColors[theme as keyof typeof themeColors]['text-main']
-              }
+              color={themeColors[theme]['text-main']}
             />
           </IconButton>
 
@@ -463,16 +446,13 @@ const PlaylistDetailScreen = () => {
             <MaterialCommunityIcons
               name="download"
               size={20}
-              color={
-                themeColors[theme as keyof typeof themeColors]['text-main']
-              }
+              color={themeColors[theme]['text-main']}
             />
           </IconButton>
 
           <View
             style={{
-              backgroundColor:
-                themeColors[theme as keyof typeof themeColors]['primary'],
+              backgroundColor: themeColors[theme]['primary'],
               borderRadius: 25,
               width: 50,
               height: 50,
@@ -491,11 +471,7 @@ const PlaylistDetailScreen = () => {
               <MaterialCommunityIcons
                 name="loading"
                 size={24}
-                color={
-                  themeColors[theme as keyof typeof themeColors][
-                    'text-secondary'
-                  ]
-                }
+                color={themeColors[theme]['text-secondary']}
               />
             </View>
           ) : tracks && tracks.length > 0 ? (
@@ -514,11 +490,7 @@ const PlaylistDetailScreen = () => {
               <MaterialCommunityIcons
                 name="music-note"
                 size={48}
-                color={
-                  themeColors[theme as keyof typeof themeColors][
-                    'text-secondary'
-                  ]
-                }
+                color={themeColors[theme]['text-secondary']}
               />
               <TextCustom className="mt-4 text-center opacity-70">
                 No tracks added yet
@@ -526,11 +498,7 @@ const PlaylistDetailScreen = () => {
               <TextCustom
                 size="s"
                 className="mt-2 text-center opacity-50"
-                color={
-                  themeColors[theme as keyof typeof themeColors][
-                    'text-secondary'
-                  ]
-                }
+                color={themeColors[theme]['text-secondary']}
               >
                 Add tracks using the Deezer search
               </TextCustom>

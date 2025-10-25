@@ -135,9 +135,7 @@ const TrackCard: FC<TrackCardProps> = ({
                 name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
                 size={18}
                 color={
-                  isCurrentTrackFavorite
-                    ? colors.intentError
-                    : colors.textSecondary
+                  isCurrentTrackFavorite ? colors.primary : colors.textSecondary
                 }
               />
             </IconButton>

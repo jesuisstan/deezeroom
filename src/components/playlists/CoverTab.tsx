@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, Image, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -13,15 +13,14 @@ interface CoverTabProps {
 
 const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
-  const { width } = Dimensions.get('window');
 
   return (
-    <View style={{ width, height: 200 }}>
+    <View style={{ width: '100%', aspectRatio: 1 }}>
       {playlist.coverImageUrl ? (
         <Image
           source={{ uri: playlist.coverImageUrl }}
           style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       ) : (
         <View

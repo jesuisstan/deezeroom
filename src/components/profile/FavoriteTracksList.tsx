@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { useClient } from 'urql';
 
-import FavoriteTrackCard from '@/components/profile/FavoriteTrackCard';
+import TrackCard from '@/components/search-tracks/TrackCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { LIMIT_DEFAULT } from '@/constants/deezer';
@@ -192,7 +192,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           removeClippedSubviews={true}
         >
           {loadedTracks.map((track, index) => (
-            <FavoriteTrackCard
+            <TrackCard
               key={`${track.id}-${index}`}
               track={track}
               isPlaying={currentPlayingTrackId === track.id}

@@ -98,7 +98,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
           allowsEditing: true,
-          aspect: shape === 'circle' ? [1, 1] : [4, 3],
+          aspect: [1, 1],
           quality: 0.5, // ~50% quality compression
           base64: false,
           presentationStyle:
