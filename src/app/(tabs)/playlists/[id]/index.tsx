@@ -1,18 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  View
+} from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
+import AddTrackButton from '@/components/playlists/AddTrackButton';
 import CoverTab from '@/components/playlists/CoverTab';
 import InfoTab from '@/components/playlists/InfoTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
+import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
@@ -40,6 +49,7 @@ const PlaylistDetailScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'cover', title: 'QCover' },
@@ -48,6 +58,7 @@ const PlaylistDetailScreen = () => {
   const [trackIds, setTrackIds] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
+  const [canEdit, setCanEdit] = useState(false);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -75,6 +86,14 @@ const PlaylistDetailScreen = () => {
       }
 
       setPlaylist(playlistData);
+
+      // Check if user can edit this playlist
+      const hasEditPermission = await PlaylistService.canUserEditPlaylist(
+        id,
+        user.uid
+      );
+      setCanEdit(hasEditPermission);
+
       setTrackIds((playlistData.tracks as string[]) || []);
     } catch (error) {
       Logger.error('Error loading playlist:', error);
@@ -243,6 +262,123 @@ const PlaylistDetailScreen = () => {
     setShowInviteModal(false);
   };
 
+  const handleAddTrack = () => {
+    if (!playlist || !user) return;
+
+    if (!canEdit) {
+      Notifier.shoot({
+        type: 'error',
+        title: 'Permission Denied',
+        message: 'You do not have permission to add tracks to this playlist'
+      });
+      return;
+    }
+
+    setShowSearchModal(true);
+  };
+
+  const handleCloseSearchModal = () => {
+    setShowSearchModal(false);
+  };
+
+  const handleSelectTrack = async (track: Track) => {
+    if (!playlist || !user) return;
+
+    try {
+      // Reload playlist to get latest state (check for concurrent updates)
+      const latestPlaylist = await PlaylistService.getPlaylist(playlist.id);
+      if (!latestPlaylist) {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Playlist not found'
+        });
+        return;
+      }
+
+      // Check if track is already in playlist
+      const isTrackAlreadyInPlaylist = latestPlaylist.tracks?.includes(
+        track.id
+      );
+
+      if (isTrackAlreadyInPlaylist) {
+        // Show alert asking if user wants to add anyway
+        Alert.confirm(
+          'Track Already Exists',
+          `"${track.title}" by ${track.artist.name} is already in this playlist. Do you want to add it again?`,
+          async () => {
+            // User confirmed - add anyway
+            await addTrackToPlaylist(track, latestPlaylist);
+          },
+          () => {
+            // User cancelled
+          }
+        );
+      } else {
+        // Track is not in playlist, add it
+        await addTrackToPlaylist(track, latestPlaylist);
+      }
+    } catch (error) {
+      Logger.error('Error selecting track:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to add track to playlist'
+      });
+    }
+  };
+
+  const addTrackToPlaylist = async (track: Track, latestPlaylist: Playlist) => {
+    if (!playlist || !user) return;
+
+    try {
+      // Add track to playlist
+      await PlaylistService.addTrackToPlaylist(
+        playlist.id,
+        track.id,
+        track.duration,
+        user.uid
+      );
+
+      Notifier.shoot({
+        type: 'success',
+        title: 'Track Added',
+        message: `"${track.title}" has been added to the playlist`
+      });
+
+      // Close search modal
+      setShowSearchModal(false);
+
+      // Reload playlist to get updated tracks
+      await loadPlaylist();
+    } catch (error) {
+      Logger.error('Error adding track to playlist:', error);
+
+      // Check for specific errors
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Permission Denied',
+            message: 'You do not have permission to add tracks to this playlist'
+          });
+        } else {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error.message
+          });
+        }
+      } else {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to add track to playlist'
+        });
+      }
+    }
+  };
+
   const renderScene = ({ route }: { route: { key: string } }) => {
     switch (route.key) {
       case 'cover':
@@ -294,47 +430,33 @@ const PlaylistDetailScreen = () => {
           ...containerWidthStyle
         }}
       >
-        {/* Swipeable Cover/Description Section */}
-        <TabView
-          navigationState={{ index, routes }}
-          renderScene={renderScene}
-          onIndexChange={setIndex}
-          initialLayout={{ width: Dimensions.get('window').width }}
-          style={{ height: Dimensions.get('window').width }}
-          renderTabBar={() => null}
-        />
+        {/* Swipeable Cover/Description Section with floating action buttons */}
+        <View style={{ position: 'relative' }}>
+          <TabView
+            navigationState={{ index, routes }}
+            renderScene={renderScene}
+            onIndexChange={setIndex}
+            initialLayout={{ width: Dimensions.get('window').width }}
+            style={{ height: Dimensions.get('window').width }}
+            renderTabBar={() => null}
+          />
 
-        {/* Dots indicator under content (no labels) */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 4,
-            paddingVertical: 4
-          }}
-        >
-          {routes.map((r, i) => (
-            <Pressable
-              key={r.key}
-              onPress={() => setIndex(i)}
-              style={{
-                width: 15,
-                height: 4,
-                borderRadius: 3,
-                backgroundColor:
-                  i === index
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['text-secondary'] + '55'
-              }}
-            />
-          ))}
-        </View>
-
-        {/* Action Buttons */}
-        <View className="mb-4 flex-row items-center justify-center gap-4 px-4">
           {playlist.createdBy === user?.uid && (
-            <View className="flex flex-row ">
+            <View
+              style={{
+                position: 'absolute',
+                zIndex: 10,
+                right: 12,
+                bottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderRadius: 12,
+                padding: 2,
+                backgroundColor: themeColors[theme]['bg-secondary'] + '99',
+                borderColor: themeColors[theme]['border'],
+                borderWidth: 1
+              }}
+            >
               <IconButton
                 accessibilityLabel="Delete playlist"
                 onPress={handleDeletePlaylist}
@@ -371,45 +493,59 @@ const PlaylistDetailScreen = () => {
           )}
         </View>
 
+        {/* Dots indicator under content (no labels) */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 4,
+            paddingVertical: 4
+          }}
+        >
+          {routes.map((r, i) => (
+            <Pressable
+              key={r.key}
+              onPress={() => setIndex(i)}
+              style={{
+                width: 15,
+                height: 4,
+                borderRadius: 3,
+                backgroundColor:
+                  i === index
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-secondary'] + '55'
+              }}
+            />
+          ))}
+        </View>
+
+        {/* Action Buttons moved to floating group above cover */}
+
+        {/* Add Track Button - only visible if user can edit */}
+        {canEdit && <AddTrackButton onPress={handleAddTrack} />}
+
         {/* Tracks List */}
-        <View className="px-4">
+        <View>
           {tracksLoading ? (
-            <View className="items-center py-8">
-              <MaterialCommunityIcons
-                name="loading"
-                size={24}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </View>
-          ) : tracks && tracks.length > 0 ? (
-            tracks.map((track) => (
+            <ActivityIndicator
+              size="small"
+              color={themeColors[theme]['primary']}
+              className="m-4"
+            />
+          ) : (
+            tracks &&
+            tracks.length > 0 &&
+            tracks.map((track, index) => (
               <TrackCard
-                key={track.id}
+                key={`${track.id}-${index}`}
                 track={track}
                 isPlaying={false}
-                onPlay={(track) => {
+                onPress={() => {
                   console.log('Play track:', track.title);
                 }}
               />
             ))
-          ) : (
-            <View className="items-center py-8">
-              <MaterialCommunityIcons
-                name="music-note"
-                size={48}
-                color={themeColors[theme]['text-secondary']}
-              />
-              <TextCustom className="mt-4 text-center opacity-70">
-                No tracks added yet
-              </TextCustom>
-              <TextCustom
-                size="s"
-                className="mt-2 text-center opacity-50"
-                color={themeColors[theme]['text-secondary']}
-              >
-                Add tracks using the Deezer search
-              </TextCustom>
-            </View>
           )}
         </View>
       </ScrollView>
@@ -423,6 +559,21 @@ const PlaylistDetailScreen = () => {
         existingUsers={playlist.participants}
         placeholder="Search users by email or name..."
       />
+
+      {/* Search Tracks Modal */}
+      <SwipeModal
+        modalVisible={showSearchModal}
+        setVisible={setShowSearchModal}
+        onClose={handleCloseSearchModal}
+        title="Search and Add Tracks"
+        size="full"
+        disableSwipe
+      >
+        <SearchTracksComponent
+          onPressTrack={handleSelectTrack}
+          currentPlayingTrackId={undefined}
+        />
+      </SwipeModal>
     </View>
   );
 };

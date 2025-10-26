@@ -1,4 +1,5 @@
 import { FC, memo, useCallback, useMemo } from 'react';
+import { GestureResponderEvent } from 'react-native';
 import { Image, View } from 'react-native';
 
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
@@ -17,13 +18,13 @@ import { getAlbumCover } from '@/utils/image-utils';
 interface TrackCardProps {
   track: Track;
   isPlaying?: boolean;
-  onPlay?: (track: Track) => void;
+  onPress?: (track: Track) => void;
 }
 
 const TrackCard: FC<TrackCardProps> = ({
   track,
   isPlaying = false,
-  onPlay
+  onPress
 }) => {
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -63,19 +64,24 @@ const TrackCard: FC<TrackCardProps> = ({
   }, [track.album]);
 
   // Memoize handle play
-  const handlePlay = useCallback(() => {
-    onPlay?.(track);
-  }, [onPlay, track]);
+  const handlePress = useCallback(() => {
+    onPress?.(track);
+  }, [onPress, track]);
 
   // Memoize handle toggle favorite
-  const handleToggleFavorite = useCallback(async () => {
-    await toggleFavoriteTrack(track.id);
-  }, [toggleFavoriteTrack, track.id]);
+  const handleToggleFavorite = useCallback(
+    async (event?: GestureResponderEvent) => {
+      // Prevent parent LineButton from handling this press on web and native
+      event?.stopPropagation?.();
+      await toggleFavoriteTrack(track.id);
+    },
+    [toggleFavoriteTrack, track.id]
+  );
 
   return (
     <Animated.View style={animatedStyle}>
-      <LineButton onPress={handlePlay}>
-        <View className="flex-row items-center gap-3 px-4 py-2">
+      <LineButton onPress={handlePress}>
+        <View className="flex-1 flex-row items-center gap-3 px-4 py-2">
           {albumCoverUrl && (
             <Image
               source={{ uri: albumCoverUrl }}
@@ -84,18 +90,19 @@ const TrackCard: FC<TrackCardProps> = ({
             />
           )}
           <View className="flex-1">
-            {/*<AnimatedTrackTitle
-            title={track.title}
-            textColor={themeColors[theme]['text-main']}
-          />*/}
             <TextCustom
               type="semibold"
               size="m"
               color={isPlaying ? colors.primary : colors.textMain}
+              numberOfLines={1}
             >
               {track.title}
             </TextCustom>
-            <TextCustom size="xs" color={colors.textSecondary}>
+            <TextCustom
+              size="xs"
+              color={colors.textSecondary}
+              numberOfLines={1}
+            >
               {track.artist.name}
             </TextCustom>
           </View>

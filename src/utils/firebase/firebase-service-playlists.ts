@@ -946,15 +946,27 @@ export class PlaylistService {
     // Owner can always edit
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant with edit rights
+    // Check if user is participant
     const participant = playlist.participants.find((p) => p.userId === userId);
-    if (!participant) return false;
+    const isParticipant = !!participant;
 
-    // Check edit permissions
-    if (playlist.editPermissions === 'everyone') {
-      return participant.role === 'editor' || participant.role === 'owner';
-    } else if (playlist.editPermissions === 'invited') {
-      return participant.role === 'editor' || participant.role === 'owner';
+    // PRIVATE playlists: only invited participants can edit
+    if (playlist.visibility === 'private') {
+      if (!isParticipant) return false;
+      // Check if participant has editor or owner role
+      return participant!.role === 'editor' || participant!.role === 'owner';
+    }
+
+    // PUBLIC playlists: depends on editPermissions
+    if (playlist.visibility === 'public') {
+      if (playlist.editPermissions === 'everyone') {
+        // Everyone can edit (even non-participants)
+        return true;
+      } else if (playlist.editPermissions === 'invited') {
+        // Only participants can edit
+        if (!isParticipant) return false;
+        return participant!.role === 'editor' || participant!.role === 'owner';
+      }
     }
 
     return false;
@@ -970,11 +982,29 @@ export class PlaylistService {
     // Owner can always invite
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant with edit rights (editors can invite)
+    // Check if user is participant
     const participant = playlist.participants.find((p) => p.userId === userId);
-    if (!participant) return false;
+    const isParticipant = !!participant;
 
-    return participant.role === 'editor' || participant.role === 'owner';
+    // PRIVATE playlists: only participants with editor/owner role can invite
+    if (playlist.visibility === 'private') {
+      if (!isParticipant) return false;
+      return participant!.role === 'editor' || participant!.role === 'owner';
+    }
+
+    // PUBLIC playlists: depends on editPermissions
+    if (playlist.visibility === 'public') {
+      if (playlist.editPermissions === 'everyone') {
+        // Everyone can invite in public playlists
+        return true;
+      } else if (playlist.editPermissions === 'invited') {
+        // Only participants can invite
+        if (!isParticipant) return false;
+        return participant!.role === 'editor' || participant!.role === 'owner';
+      }
+    }
+
+    return false;
   }
 
   static async canUserViewPlaylist(
