@@ -1,6 +1,7 @@
 import { FC, useEffect, useRef, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   TextInput,
@@ -57,6 +58,10 @@ const EditProfileScreen: FC = () => {
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
+  // Scrolling and layout refs
+  const scrollRef = useRef<ScrollView>(null);
+  const artistsSectionRef = useRef<View>(null);
+  const [artistsSectionY, setArtistsSectionY] = useState(0);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -422,14 +427,32 @@ const EditProfileScreen: FC = () => {
     }
   };
 
+  // When suggestions appear, scroll so the dropdown is visible
+  useEffect(() => {
+    if (artistResults.length > 0) {
+      const timeout = setTimeout(() => {
+        const y = Math.max(0, artistsSectionY - 12);
+        scrollRef.current?.scrollTo({ y, animated: true });
+      }, 50);
+      return () => clearTimeout(timeout);
+    }
+  }, [artistResults.length, artistsSectionY]);
+
   return !profile ? (
     <ActivityIndicatorScreen />
   ) : (
-    <ScrollView
-      className="flex-1 bg-bg-main px-4 py-4"
-      contentContainerStyle={contentStyle}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 8 : 0}
     >
-      <View className="w-full" style={[containerWidthStyle]}>
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1 bg-bg-main px-4 py-4"
+        contentContainerStyle={contentStyle}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="w-full" style={[containerWidthStyle]}>
         {/* Avatar */}
         <View className="w-full items-center gap-3 px-4 py-6">
           <ImageUploader
@@ -631,7 +654,11 @@ const EditProfileScreen: FC = () => {
         </View>
 
         {/* Music preferences */}
-        <View className="mb-6">
+        <View
+          className="mb-6"
+          ref={artistsSectionRef}
+          onLayout={(e) => setArtistsSectionY(e.nativeEvent.layout.y)}
+        >
           <TextCustom type="subtitle">Music preferences</TextCustom>
 
           {/* Favorite artists with search + chips */}
@@ -647,6 +674,13 @@ const EditProfileScreen: FC = () => {
                   : 'Start typing artist name'
               }
               editable={selectedArtists.length < 20}
+              onFocus={() => {
+                // Bring the input into view when keyboard opens
+                const y = Math.max(0, artistsSectionY - 12);
+                setTimeout(() => {
+                  scrollRef.current?.scrollTo({ y, animated: true });
+                }, 50);
+              }}
             />
             {artistSearching && (
               <TextCustom size="s" className="mt-2 opacity-60">
@@ -760,8 +794,9 @@ const EditProfileScreen: FC = () => {
           variant="primary"
           onPress={handleSave}
         />
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
