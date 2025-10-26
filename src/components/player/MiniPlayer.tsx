@@ -196,7 +196,7 @@ const MiniPlayer = () => {
           accessibilityLabel="Open full player"
           onPress={handleOpenFullPlayer}
         >
-          <View className="flex-row items-center gap-3 px-3 py-2">
+          <View className="flex-row items-center gap-3 px-2 py-2">
             <IconButton
               accessibilityLabel={
                 isPlaying ? 'Pause playback' : 'Start playback'
@@ -255,7 +255,7 @@ const MiniPlayer = () => {
                 size={20}
                 color={
                   isCurrentTrackFavorite
-                    ? themeColors[theme]['intent-error']
+                    ? themeColors[theme]['primary']
                     : themeColors[theme]['text-main']
                 }
               />

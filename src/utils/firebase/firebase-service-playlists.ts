@@ -271,7 +271,13 @@ export class PlaylistService {
       const currentTracks = Array.isArray(playlist.tracks)
         ? [...(playlist.tracks as string[])]
         : [];
-      currentTracks.push(trackId); // keep duplicates as in real playlists
+
+      // Check if track is already in playlist to prevent duplicates
+      if (currentTracks.includes(trackId)) {
+        throw new Error('Track is already in this playlist');
+      }
+
+      currentTracks.push(trackId);
       const newPosition = currentTracks.length; // 1-based position at end
 
       // Update playlist metadata and tracks array

@@ -76,11 +76,6 @@ const RippleButton: React.FC<RippleButtonProps> = ({
     opacity: rippleOpacity.value
   }));
 
-  // Animated style for overlay
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value
-  }));
-
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setSizeLayout({ width, height });

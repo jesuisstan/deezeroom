@@ -180,7 +180,7 @@ const PlayerScreen = () => {
                   size={24}
                   color={
                     isCurrentTrackFavorite
-                      ? themeColors[theme]['intent-error']
+                      ? themeColors[theme]['primary']
                       : themeColors[theme]['text-secondary']
                   }
                 />
