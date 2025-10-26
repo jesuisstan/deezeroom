@@ -93,7 +93,8 @@ const RegisterScreen: FC = () => {
       Notifier.shoot({
         type: 'error',
         title: 'Registration error',
-        message: errorMessage || 'Failed to create account. Please try again.'
+        message: errorMessage || 'Failed to create account. Please try again.',
+        position: 'top'
       });
     } finally {
       setLoading(false);
