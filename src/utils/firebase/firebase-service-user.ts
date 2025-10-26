@@ -67,7 +67,10 @@ export interface UserProfile {
   };
   musicPreferences?: {
     favoriteGenres: string[];
-    favoriteArtists: DeezerArtist[]; // Array of DeezerArtist (max 20)
+    // Store only IDs for source-of-truth freshness
+    favoriteArtistIds?: string[];
+    // Deprecated: kept for backward compatibility (render only)
+    favoriteArtists?: DeezerArtist[];
   };
   favoriteTracks?: string[]; // Array of track IDs
   authProviders?: {

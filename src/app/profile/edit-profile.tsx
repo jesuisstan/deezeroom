@@ -102,9 +102,36 @@ const EditProfileScreen: FC = () => {
         favoriteGenres:
           profile.musicPreferences?.favoriteGenres?.join(', ') || ''
       });
-      setSelectedArtists(
-        (profile.musicPreferences?.favoriteArtists as DeezerArtist[]) || []
-      );
+      // Load selected artists details by IDs (preferred), fallback to deprecated stored objects
+      const ids = (profile.musicPreferences as any)?.favoriteArtistIds as
+        | string[]
+        | undefined;
+      if (ids && ids.length) {
+        deezerService
+          .getArtistsByIdsViaGraphQL(ids)
+          .then((artists) => {
+            setSelectedArtists(
+              artists.map((a) => ({
+                id: a.id,
+                name: a.name,
+                link: a.link,
+                picture: a.picture,
+                picture_small: a.pictureSmall,
+                picture_medium: a.pictureMedium,
+                picture_big: a.pictureBig,
+                picture_xl: a.pictureXl,
+                type: 'artist'
+              }))
+            );
+          })
+          .catch(() => setSelectedArtists([]));
+      } else {
+        setSelectedArtists(
+          ((profile.musicPreferences as any)?.favoriteArtists as
+            | DeezerArtist[]
+            | undefined) || []
+        );
+      }
     }
   }, [profile]);
 
@@ -383,7 +410,7 @@ const EditProfileScreen: FC = () => {
             .split(',')
             .map((g) => g.trim())
             .filter((g) => g),
-          favoriteArtists: selectedArtists.slice(0, 20)
+          favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
         }
       } as any;
 
