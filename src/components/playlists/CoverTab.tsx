@@ -35,11 +35,20 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
             justifyContent: 'center'
           }}
         >
-          <MaterialCommunityIcons
-            name="playlist-music"
-            size={64}
-            color={themeColors[theme]['text-main']}
-          />
+          <View className="items-center justify-center rounded bg-bg-main px-4 shadow-lg">
+            <Image
+              source={
+                theme === 'dark'
+                  ? require('@/assets/images/logo/logo-text-white.png')
+                  : require('@/assets/images/logo/logo-text-black.png')
+              }
+              style={{
+                maxWidth: '80%',
+                height: 80,
+                resizeMode: 'contain'
+              }}
+            />
+          </View>
         </View>
       )}
     </View>

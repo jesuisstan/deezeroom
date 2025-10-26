@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Pressable,
+  RefreshControl,
   ScrollView,
   View
 } from 'react-native';
@@ -59,6 +60,7 @@ const PlaylistDetailScreen = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -281,6 +283,57 @@ const PlaylistDetailScreen = () => {
     setShowSearchModal(false);
   };
 
+  const handleRefresh = async () => {
+    if (!playlist || !user) return;
+
+    try {
+      setIsRefreshing(true);
+
+      // Reload playlist to get latest state (including participants and tracks)
+      const latestPlaylist = await PlaylistService.getPlaylist(playlist.id);
+
+      if (latestPlaylist) {
+        setPlaylist(latestPlaylist);
+        setTrackIds((latestPlaylist.tracks as string[]) || []);
+
+        // Re-check edit permissions
+        const hasEditPermission = await PlaylistService.canUserEditPlaylist(
+          playlist.id,
+          user.uid
+        );
+        setCanEdit(hasEditPermission);
+      }
+
+      // Reload tracks
+      const trackIdsToLoad = latestPlaylist?.tracks || [];
+      if (trackIdsToLoad.length > 0) {
+        const results = await Promise.all(
+          trackIdsToLoad.map((trackId) =>
+            urqlClient
+              .query(GET_TRACK, { id: trackId })
+              .toPromise()
+              .catch(() => ({ data: null }))
+          )
+        );
+        const loaded: Track[] = results
+          .map((res: any) => res?.data?.track)
+          .filter((t: any) => !!t);
+        setTracks(loaded);
+      } else {
+        setTracks([]);
+      }
+    } catch (error) {
+      Logger.error('Error refreshing playlist:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to refresh playlist'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleSelectTrack = async (track: Track) => {
     if (!playlist || !user) return;
 
@@ -425,6 +478,14 @@ const PlaylistDetailScreen = () => {
       {/* Playlist Content */}
       <ScrollView
         showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[themeColors[theme]['primary']]}
+            tintColor={themeColors[theme]['primary']}
+          />
+        }
         contentContainerStyle={{
           paddingBottom: 8,
           ...containerWidthStyle
@@ -464,7 +525,7 @@ const PlaylistDetailScreen = () => {
                 <MaterialCommunityIcons
                   name="delete-outline"
                   size={20}
-                  color={themeColors[theme]['intent-error']}
+                  color={themeColors[theme]['text-main']}
                 />
               </IconButton>
 

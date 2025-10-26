@@ -24,7 +24,6 @@ interface LineButtonProps {
   onPress?: (event: GestureResponderEvent) => void;
   disabled?: boolean;
   className?: string;
-  color?: string;
 }
 
 const baseClasses =
@@ -34,8 +33,7 @@ const LineButton: React.FC<LineButtonProps> = ({
   children,
   onPress,
   disabled = false,
-  className,
-  color
+  className
 }) => {
   const { theme } = useTheme();
   const [sizeLayout, setSizeLayout] = useState({ width: 0, height: 0 });
@@ -51,11 +49,6 @@ const LineButton: React.FC<LineButtonProps> = ({
   const rippleStyle = useAnimatedStyle(() => ({
     transform: [{ scale: rippleScale.value }],
     opacity: rippleOpacity.value
-  }));
-
-  // Animated style for overlay
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value
   }));
 
   const handleLayout = (e: LayoutChangeEvent) => {
