@@ -1,6 +1,5 @@
 import { FC, memo, useCallback, useMemo } from 'react';
-import { GestureResponderEvent } from 'react-native';
-import { Image, View } from 'react-native';
+import { Alert, GestureResponderEvent, Image, View } from 'react-native';
 
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -19,12 +18,14 @@ interface TrackCardProps {
   track: Track;
   isPlaying?: boolean;
   onPress?: (track: Track) => void;
+  onRemove?: (track: Track) => void;
 }
 
 const TrackCard: FC<TrackCardProps> = ({
   track,
   isPlaying = false,
-  onPress
+  onPress,
+  onRemove
 }) => {
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -78,6 +79,30 @@ const TrackCard: FC<TrackCardProps> = ({
     [toggleFavoriteTrack, track.id]
   );
 
+  // Memoize handle remove
+  const handleRemove = useCallback(
+    (event?: GestureResponderEvent) => {
+      event?.stopPropagation?.();
+
+      Alert.alert(
+        'Remove Track',
+        `Are you sure you want to remove "${track.title}" by ${track.artist.name} from this playlist?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => onRemove?.(track)
+          }
+        ]
+      );
+    },
+    [onRemove, track]
+  );
+
   return (
     <Animated.View style={animatedStyle}>
       <LineButton onPress={handlePress}>
@@ -90,62 +115,83 @@ const TrackCard: FC<TrackCardProps> = ({
             />
           )}
           <View className="flex-1">
-            <TextCustom
-              type="semibold"
-              size="m"
-              color={isPlaying ? colors.primary : colors.textMain}
-              numberOfLines={1}
-            >
-              {track.title}
-            </TextCustom>
-            <TextCustom
-              size="xs"
-              color={colors.textSecondary}
-              numberOfLines={1}
-            >
-              {track.artist.name}
-            </TextCustom>
+            <View className="flex-row items-center gap-1">
+              <TextCustom
+                type="semibold"
+                size="m"
+                color={isPlaying ? colors.primary : colors.textMain}
+                numberOfLines={1}
+                className="flex-1"
+              >
+                {track.title}
+              </TextCustom>
+              {isPlaying && (
+                <View className="animate-pulse">
+                  <AntDesign
+                    name="play-square"
+                    size={16}
+                    color={colors.primary}
+                  />
+                </View>
+              )}
+              {track.explicitLyrics && (
+                <MaterialIcons
+                  name="explicit"
+                  size={16}
+                  color={colors.intentWarning}
+                />
+              )}
+            </View>
+            <View className="flex-row items-center gap-2">
+              <TextCustom
+                size="xs"
+                color={colors.textSecondary}
+                numberOfLines={1}
+                className="flex-1"
+              >
+                {track.artist.name}
+              </TextCustom>
+              <TextCustom size="xs" color={colors.textSecondary}>
+                {formattedDuration}
+              </TextCustom>
+            </View>
           </View>
 
-          <View className="flex-row items-center gap-2">
-            {isPlaying && (
-              <View className="animate-pulse">
-                <AntDesign
-                  name="play-square"
-                  size={18}
-                  color={colors.primary}
+          <View className="flex-row items-center">
+            {/* Favorite Button or Remove Button */}
+            {onRemove ? (
+              <IconButton
+                accessibilityLabel="Remove track from playlist"
+                onPress={handleRemove}
+                className="h-9 w-9"
+              >
+                <MaterialIcons
+                  name="delete-outline"
+                  size={20}
+                  color={colors.intentError}
                 />
-              </View>
-            )}
-            {track.explicitLyrics && (
-              <MaterialIcons
-                name="explicit"
-                size={18}
-                color={colors.intentWarning}
-              />
-            )}
-            <TextCustom size="xs" color={colors.textSecondary}>
-              {formattedDuration}
-            </TextCustom>
-
-            {/* Favorite Button */}
-            <IconButton
-              accessibilityLabel={
-                isCurrentTrackFavorite
-                  ? 'Remove from favorites'
-                  : 'Add to favorites'
-              }
-              onPress={handleToggleFavorite}
-              className="h-9 w-9"
-            >
-              <FontAwesome
-                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                size={18}
-                color={
-                  isCurrentTrackFavorite ? colors.primary : colors.textSecondary
+              </IconButton>
+            ) : (
+              <IconButton
+                accessibilityLabel={
+                  isCurrentTrackFavorite
+                    ? 'Remove from favorites'
+                    : 'Add to favorites'
                 }
-              />
-            </IconButton>
+                onPress={handleToggleFavorite}
+                className="h-9 w-9"
+              >
+                <FontAwesome
+                  name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+                  size={18}
+                  color={
+                    isCurrentTrackFavorite
+                      ? colors.primary
+                      : colors.textSecondary
+                  }
+                />
+              </IconButton>
+            )}
           </View>
         </View>
       </LineButton>

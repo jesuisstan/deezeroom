@@ -496,6 +496,37 @@ const PlaylistDetailScreen = () => {
     }
   };
 
+  const handleRemoveTrack = async (track: Track) => {
+    if (!playlist || !user) return;
+
+    try {
+      await PlaylistService.removeTrackFromPlaylist(
+        playlist.id,
+        track.id,
+        user.uid
+      );
+
+      // Reload playlist to get updated tracks (silent mode to avoid flashing)
+      await loadPlaylist(true);
+    } catch (error) {
+      Logger.error('Error removing track:', error);
+
+      if (error instanceof Error) {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: error.message
+        });
+      } else {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to remove track from playlist'
+        });
+      }
+    }
+  };
+
   const renderScene = ({ route }: { route: { key: string } }) => {
     switch (route.key) {
       case 'cover':
@@ -680,6 +711,7 @@ const PlaylistDetailScreen = () => {
                 track={track}
                 isPlaying={currentTrack?.id === track.id && isPlaying}
                 onPress={handlePlayTrack}
+                onRemove={handleRemoveTrack}
               />
             ))
           )}
