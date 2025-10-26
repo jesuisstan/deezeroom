@@ -19,13 +19,13 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 interface SearchTracksComponentProps {
-  onPlayTrack?: (track: Track) => void;
+  onPressTrack?: (track: Track) => void;
   onSearchResults?: (tracks: Track[]) => void;
   currentPlayingTrackId?: string;
 }
 
 const SearchTracksComponent = ({
-  onPlayTrack,
+  onPressTrack,
   onSearchResults,
   currentPlayingTrackId
 }: SearchTracksComponentProps) => {
@@ -241,8 +241,8 @@ const SearchTracksComponent = ({
     }
   };
 
-  const handlePlayTrack = (track: Track) => {
-    onPlayTrack?.(track);
+  const handlePressTrack = (track: Track) => {
+    onPressTrack?.(track);
   };
 
   const handleShowPopularTracks = () => {
@@ -349,7 +349,7 @@ const SearchTracksComponent = ({
                 key={`${track.id}-${index}`}
                 track={track}
                 isPlaying={currentPlayingTrackId === track.id}
-                onPlay={handlePlayTrack}
+                onPress={handlePressTrack}
               />
             ))}
           </View>

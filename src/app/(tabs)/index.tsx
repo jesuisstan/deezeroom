@@ -118,7 +118,7 @@ const HomeScreen = () => {
             Music Search
           </TextCustom>
           <SearchTracksComponent
-            onPlayTrack={handlePlayTrack}
+            onPressTrack={handlePlayTrack}
             onSearchResults={handleSearchResults}
             currentPlayingTrackId={isPlaying ? currentTrack?.id : undefined}
           />

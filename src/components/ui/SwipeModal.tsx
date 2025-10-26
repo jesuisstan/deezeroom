@@ -92,7 +92,7 @@ const WebSwipeModal = (props: SwipeModalProps) => {
                 backgroundColor: themeColors[theme]['bg-main'],
                 borderRadius: 12,
                 marginHorizontal: 20,
-                maxWidth: Math.min(500, width - 40),
+                maxWidth: Math.min(900, width - 40),
                 width: '100%',
                 maxHeight: height * 0.9,
                 minHeight: 200,

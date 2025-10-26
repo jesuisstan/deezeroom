@@ -5,7 +5,8 @@ import {
   GestureResponderEvent,
   LayoutChangeEvent,
   Pressable,
-  View
+  View,
+  Platform
 } from 'react-native';
 
 import clsx from 'clsx';
@@ -170,81 +171,163 @@ const RippleButton: React.FC<RippleButtonProps> = ({
 
   return (
     <View className="overflow-hidden rounded-xl" style={getWidthStyle()}>
-      <Pressable
-        accessibilityRole="button"
-        hitSlop={8}
-        onPress={onPress}
-        onPressIn={startRipple}
-        onPressOut={endPress}
-        onLayout={handleLayout}
-        disabled={disabled || loading}
-        className={containerClasses}
-        // keep base backgroundColor here so nativewind classes are preserved
-        style={{ backgroundColor }}
-      >
-        {/* Overlay to darken the button while pressed.
-            Rendered BEFORE ripple so ripple appears on top of overlay. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            overlayStyle
-          ]}
-        />
-
-        {/* Ripple effect */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              top: sizeLayout.height / 2 - sizeLayout.height,
-              left: sizeLayout.width / 2 - sizeLayout.width,
-              width: sizeLayout.width * 2,
-              height: sizeLayout.height * 2,
-              borderRadius: sizeLayout.width,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            rippleStyle
-          ]}
-        />
-
-        {/* Left Icon */}
-        {leftIcon && <View className="mr-1.5">{leftIcon}</View>}
-
-        {/* Label or Loader */}
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={
-              variant === 'primary'
-                ? themeColors[theme].white
-                : themeColors[theme]['text-main']
+      {Platform.OS === 'web' ? (
+        <View
+          className={containerClasses}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={startRipple}
+          onResponderRelease={(e) => {
+            endPress();
+            if (!disabled && !loading) {
+              // @ts-expect-error onPress expects GestureResponderEvent
+              onPress?.(e);
             }
+          }}
+          onResponderTerminate={endPress}
+          onLayout={handleLayout}
+          // keep base backgroundColor here so nativewind classes are preserved
+          style={{ backgroundColor }}
+        >
+          {/* Overlay to darken the button while pressed.
+              Rendered BEFORE ripple so ripple appears on top of overlay. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              overlayStyle
+            ]}
           />
-        ) : (
-          <TextCustom
-            type="bold"
-            size={size === 'lg' ? 'l' : 'm'}
-            color={
-              disabled
-                ? themeColors[theme]['text-main']
-                : textColorByVariant[variant]
-            }
-          >
-            {title}
-          </TextCustom>
-        )}
 
-        {/* Right Icon */}
-        {rightIcon && <View className="ml-1.5">{rightIcon}</View>}
-      </Pressable>
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
+
+          {/* Left Icon */}
+          {leftIcon && <View className="mr-1.5">{leftIcon}</View>}
+
+          {/* Label or Loader */}
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={
+                variant === 'primary'
+                  ? themeColors[theme].white
+                  : themeColors[theme]['text-main']
+              }
+            />
+          ) : (
+            <TextCustom
+              type="bold"
+              size={size === 'lg' ? 'l' : 'm'}
+              color={
+                disabled
+                  ? themeColors[theme]['text-main']
+                  : textColorByVariant[variant]
+              }
+            >
+              {title}
+            </TextCustom>
+          )}
+
+          {/* Right Icon */}
+          {rightIcon && <View className="ml-1.5">{rightIcon}</View>}
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={8}
+          onPress={onPress}
+          onPressIn={startRipple}
+          onPressOut={endPress}
+          onLayout={handleLayout}
+          disabled={disabled || loading}
+          className={containerClasses}
+          // keep base backgroundColor here so nativewind classes are preserved
+          style={{ backgroundColor }}
+        >
+          {/* Overlay to darken the button while pressed.
+              Rendered BEFORE ripple so ripple appears on top of overlay. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              overlayStyle
+            ]}
+          />
+
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
+
+          {/* Left Icon */}
+          {leftIcon && <View className="mr-1.5">{leftIcon}</View>}
+
+          {/* Label or Loader */}
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={
+                variant === 'primary'
+                  ? themeColors[theme].white
+                  : themeColors[theme]['text-main']
+              }
+            />
+          ) : (
+            <TextCustom
+              type="bold"
+              size={size === 'lg' ? 'l' : 'm'}
+              color={
+                disabled
+                  ? themeColors[theme]['text-main']
+                  : textColorByVariant[variant]
+              }
+            >
+              {title}
+            </TextCustom>
+          )}
+
+          {/* Right Icon */}
+          {rightIcon && <View className="ml-1.5">{rightIcon}</View>}
+        </Pressable>
+      )}
     </View>
   );
 };
