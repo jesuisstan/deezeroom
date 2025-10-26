@@ -129,3 +129,18 @@ export const SEARCH_ARTISTS = `
     }
   }
 `;
+
+export const GET_ARTISTS_BY_IDS = `
+  query GetArtistsByIds($ids: [ID!]!) {
+    artistsByIds(ids: $ids) {
+      id
+      name
+      picture
+      pictureSmall
+      pictureMedium
+      pictureBig
+      pictureXl
+      link
+    }
+  }
+`;

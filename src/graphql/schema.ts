@@ -65,6 +65,7 @@ export const typeDefs = /* GraphQL */ `
       limit: Int = ${LIMIT_DEFAULT}
       index: Int = ${INDEX_DEFAULT}
     ): SearchArtistsResult!
+    artistsByIds(ids: [ID!]!): [Artist!]!
   }
 `;
 

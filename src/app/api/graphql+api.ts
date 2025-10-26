@@ -39,6 +39,14 @@ const schema = createSchema({
       ) => {
         const { query, limit = LIMIT_DEFAULT, index = INDEX_DEFAULT } = args;
         return await deezerService.searchArtists(query, limit, index);
+      },
+      artistsByIds: async (
+        _: any,
+        args: { ids: string[] },
+        ctx: APIContext
+      ) => {
+        const { ids } = args;
+        return await deezerService.getArtistsByIds(ids);
       }
     }
   }

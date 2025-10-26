@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useEffect, useState } from 'react';
 import { Image, Platform, ScrollView, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -17,6 +17,7 @@ import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
+import { deezerService } from '@/utils/deezer/deezer-service';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -108,33 +109,44 @@ const ProfileScreen: FC = () => {
     profile?.publicInfo?.location ||
     '';
 
+  // Load favorite artists by IDs to ensure fresh data
+  const [favoriteArtistsDetailed, setFavoriteArtistsDetailed] = useState<DeezerArtist[] | null>(null);
+  
+  useEffect(() => {
+    const ids = (profile?.musicPreferences as any)?.favoriteArtistIds as string[] | undefined;
+    if (ids && ids.length) {
+      (async () => {
+        try {
+          const artists = await deezerService.getArtistsByIdsViaGraphQL(ids);
+          const mapped: DeezerArtist[] = artists.map((a) => ({
+            id: a.id,
+            name: a.name,
+            link: a.link,
+            picture: a.picture,
+            picture_small: a.pictureSmall,
+            picture_medium: a.pictureMedium,
+            picture_big: a.pictureBig,
+            picture_xl: a.pictureXl,
+            type: 'artist'
+          }));
+          setFavoriteArtistsDetailed(mapped);
+        } catch {
+          setFavoriteArtistsDetailed([]);
+        }
+      })();
+    } else {
+      setFavoriteArtistsDetailed(null);
+    }
+  }, [profile?.musicPreferences]);
+
   return (
     <ScrollView
       className="flex-1 bg-bg-main px-4 py-4"
       contentContainerStyle={scrollContentStyle}
     >
-      <View className="w-full gap-4" style={[containerWidthStyle]}>
-        {/* Header card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
-          <View className="flex-row items-center gap-4">
-            {profile?.photoURL ? (
-              <Image
-                source={{
-                  uri: profile.photoURL || 'https://via.placeholder.com/100'
-                }}
-                className="h-24 w-24 rounded-full"
-              />
-            ) : (
-              <View className="h-24 w-24 items-center justify-center rounded-full border border-border bg-primary">
-                <TextCustom type="title">
-                  {(profile?.displayName || profile?.email || '?')
-                    .trim()
-                    .charAt(0)
-                    .toUpperCase()}
-                </TextCustom>
-              </View>
-            )}
-            <View className="flex-1">
+      <View style={containerWidthStyle} className="gap-4">
+        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+          <View className="flex-1">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 pr-2">
                   <TextCustom type="title" size="4xl">
@@ -178,7 +190,7 @@ const ProfileScreen: FC = () => {
               </View>
             </View>
           )}
-        </View>
+        
 
         {/* Basic information card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
@@ -230,21 +242,37 @@ const ProfileScreen: FC = () => {
               Favorite artists
             </TextCustom>
             {(() => {
-              const items = profile?.musicPreferences?.favoriteArtists as
-                | any[]
-                | undefined;
-              if (!items || items.length === 0)
+              const ids = (profile?.musicPreferences as any)?.favoriteArtistIds as string[] | undefined;
+              if (ids && ids.length) {
+                if (!favoriteArtistsDetailed) {
+                  return (
+                    <TextCustom className="text-accent/60">Loading…</TextCustom>
+                  );
+                }
+                if (favoriteArtistsDetailed.length === 0) {
+                  return (
+                    <TextCustom className="text-accent/60">No favorite artists found</TextCustom>
+                  );
+                }
                 return (
-                  <TextCustom className="text-accent/60">
-                    No favorite artists added yet
-                  </TextCustom>
+                  <View className="mt-2 flex-row flex-wrap gap-2">
+                    {favoriteArtistsDetailed.map((a, idx) => (
+                      <ArtistLabel key={a.id || idx} artist={a} />
+                    ))}
+                  </View>
                 );
+              }
+              // Backward-compat fallback
+              const items = (profile?.musicPreferences as any)?.favoriteArtists as any[] | undefined;
+              if (!items || items.length === 0) {
+                return (
+                  <TextCustom className="text-accent/60">No favorite artists added yet</TextCustom>
+                );
+              }
               return (
                 <View className="mt-2 flex-row flex-wrap gap-2">
                   {items.map((i, idx) => {
-                    if (typeof i === 'string') {
-                      return <Chip key={`${i}-${idx}`} text={i} />;
-                    }
+                    if (typeof i === 'string') return <Chip key={`${i}-${idx}`} text={i} />;
                     const a = i as DeezerArtist;
                     return <ArtistLabel key={a.id || idx} artist={a} />;
                   })}

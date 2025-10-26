@@ -1,5 +1,5 @@
 import { LIMIT_DEFAULT } from '@/constants/deezer';
-import { SEARCH_ARTISTS } from '@/graphql/queries';
+import { GET_ARTISTS_BY_IDS, SEARCH_ARTISTS } from '@/graphql/queries';
 import { Artist, Track } from '@/graphql/schema';
 import {
   DeezerArtist,
@@ -61,6 +61,37 @@ export class DeezerService {
   }
 
   /**
+   * Get single artist by ID from Deezer API (server-side)
+   */
+  async getArtistById(id: string): Promise<Artist> {
+    const url = `${DEEZER_API_BASE_URL}/artist/${encodeURIComponent(id)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Deezer API error: ${res.status} ${res.statusText}`);
+    }
+    const data: DeezerArtist = await res.json();
+    return this.transformDeezerArtist(data);
+  }
+
+  /**
+   * Get multiple artists by IDs from Deezer API (server-side)
+   */
+  async getArtistsByIds(ids: string[]): Promise<Artist[]> {
+    if (!Array.isArray(ids) || ids.length === 0) return [];
+    const unique = Array.from(new Set(ids.filter(Boolean)));
+    const results = await Promise.all(
+      unique.map(async (id) => {
+        try {
+          return await this.getArtistById(id);
+        } catch {
+          return null;
+        }
+      })
+    );
+    return results.filter(Boolean) as Artist[];
+  }
+
+  /**
    * Client-side helper to query our GraphQL route for artists search
    * This avoids direct calls to Deezer API from the app screens.
    */
@@ -93,6 +124,27 @@ export class DeezerService {
       hasMore: boolean;
     };
     return payload;
+  }
+
+  /**
+   * Client-side helper to fetch multiple artists by IDs via our GraphQL endpoint
+   */
+  async getArtistsByIdsViaGraphQL(ids: string[]): Promise<Artist[]> {
+    if (!ids || ids.length === 0) return [];
+    const res = await fetch('/api/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: GET_ARTISTS_BY_IDS,
+        variables: { ids }
+      })
+    });
+    if (!res.ok) throw new Error(`GraphQL request failed: ${res.status}`);
+    const json = await res.json();
+    if (json.errors?.length) {
+      throw new Error(json.errors[0]?.message || 'GraphQL error');
+    }
+    return (json.data.artistsByIds as Artist[]) || [];
   }
 
   // Get popular tracks from Deezer charts
