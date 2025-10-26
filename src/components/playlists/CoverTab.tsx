@@ -1,8 +1,6 @@
 import React from 'react';
 import { Image, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { Playlist } from '@/utils/firebase/firebase-service-playlists';
@@ -15,12 +13,12 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
 
   return (
-    <View style={{ width: '100%', aspectRatio: 1 }}>
+    <View style={{ width: '100%', aspectRatio: 1, overflow: 'hidden' }}>
       {playlist.coverImageUrl ? (
         <Image
           source={{ uri: playlist.coverImageUrl }}
           style={{ width: '100%', height: '100%' }}
-          resizeMode="contain"
+          resizeMode="cover"
         />
       ) : (
         <View
@@ -35,7 +33,7 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
             justifyContent: 'center'
           }}
         >
-          <View className="items-center justify-center rounded bg-bg-main px-4 shadow-lg">
+          <View className="max-w-96 items-center justify-center rounded bg-bg-main px-4 shadow-lg">
             <Image
               source={
                 theme === 'dark'

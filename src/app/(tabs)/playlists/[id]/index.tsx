@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -550,6 +551,19 @@ const PlaylistDetailScreen = () => {
                   color={themeColors[theme]['text-main']}
                 />
               </IconButton>
+
+              {Platform.OS === 'web' && (
+                <IconButton
+                  accessibilityLabel="Refresh playlist"
+                  onPress={handleRefresh}
+                >
+                  <MaterialCommunityIcons
+                    name="refresh"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
             </View>
           )}
         </View>
