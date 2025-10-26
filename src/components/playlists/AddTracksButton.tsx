@@ -12,7 +12,7 @@ interface AddTrackButtonProps {
   onPress: () => void;
 }
 
-const AddTrackButton: React.FC<AddTrackButtonProps> = ({ onPress }) => {
+const AddTracksButton: React.FC<AddTrackButtonProps> = ({ onPress }) => {
   const { theme } = useTheme();
 
   return (
@@ -37,4 +37,4 @@ const AddTrackButton: React.FC<AddTrackButtonProps> = ({ onPress }) => {
   );
 };
 
-export default memo(AddTrackButton);
+export default memo(AddTracksButton);

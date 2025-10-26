@@ -14,11 +14,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
-import AddTrackButton from '@/components/playlists/AddTrackButton';
+import AddTracksButton from '@/components/playlists/AddTracksButton';
+import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
 import InfoTab from '@/components/playlists/InfoTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
-import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -30,6 +30,11 @@ import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
+import {
+  usePlaybackActions,
+  usePlaybackState,
+  usePlaybackUI
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -62,6 +67,11 @@ const PlaylistDetailScreen = () => {
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
   const [canEdit, setCanEdit] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Playback hooks
+  const { currentTrack } = usePlaybackState();
+  const { isPlaying } = usePlaybackUI();
+  const { startPlayback, togglePlayPause, updateQueue } = usePlaybackActions();
 
   const loadPlaylist = useCallback(async () => {
     if (!id || !user) return;
@@ -143,6 +153,22 @@ const PlaylistDetailScreen = () => {
     };
     fetchTrackDetails();
   }, [trackIds, urqlClient]);
+
+  // Auto-update playback queue when tracks change (for real-time collaboration)
+  useEffect(() => {
+    if (tracks.length > 0) {
+      // Only update queue if we're currently playing tracks from this playlist
+      // Check if current track is in the tracks array (meaning we're playing this playlist)
+      const isPlayingThisPlaylist =
+        currentTrack && tracks.some((t) => t.id === currentTrack.id);
+
+      if (isPlayingThisPlaylist) {
+        // Update the queue with new tracks while preserving playback
+        updateQueue(tracks);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracks]);
 
   const handleBack = () => {
     router.back();
@@ -280,8 +306,22 @@ const PlaylistDetailScreen = () => {
     setShowSearchModal(true);
   };
 
-  const handleCloseSearchModal = () => {
+  const handleCloseSearchModal = useCallback(async () => {
+    // Stop any playing previews before closing
+    // (cleanup is handled in AddTracksToPlaylistComponent useEffect)
     setShowSearchModal(false);
+  }, []);
+
+  const handlePlayTrack = (track: Track) => {
+    // Check if this track is currently playing
+    if (currentTrack?.id === track.id) {
+      // If same track, toggle play/pause
+      togglePlayPause();
+      return;
+    }
+
+    // Start playback with tracks from this playlist
+    startPlayback(tracks, track.id);
   };
 
   const handleRefresh = async () => {
@@ -357,16 +397,9 @@ const PlaylistDetailScreen = () => {
 
       if (isTrackAlreadyInPlaylist) {
         // Show alert asking if user wants to add anyway
-        Alert.confirm(
+        Alert.alert(
           'Track Already Exists',
-          `"${track.title}" by ${track.artist.name} is already in this playlist. Do you want to add it again?`,
-          async () => {
-            // User confirmed - add anyway
-            await addTrackToPlaylist(track, latestPlaylist);
-          },
-          () => {
-            // User cancelled
-          }
+          `"${track.title}" by ${track.artist.name} is already in this playlist.`
         );
       } else {
         // Track is not in playlist, add it
@@ -400,9 +433,7 @@ const PlaylistDetailScreen = () => {
         message: `"${track.title}" has been added to the playlist`
       });
 
-      // Close search modal
-      setShowSearchModal(false);
-
+      // Don't close modal - allow user to continue adding tracks
       // Reload playlist to get updated tracks
       await loadPlaylist();
     } catch (error) {
@@ -410,7 +441,14 @@ const PlaylistDetailScreen = () => {
 
       // Check for specific errors
       if (error instanceof Error) {
-        if (error.message.includes('permission')) {
+        if (error.message.includes('already in this playlist')) {
+          // Track already exists - this is handled at UI level, but in case of race condition
+          Logger.info(
+            'Track already in playlist:',
+            error.message,
+            '🔥 PlaylistService'
+          );
+        } else if (error.message.includes('permission')) {
           Notifier.shoot({
             type: 'error',
             title: 'Permission Denied',
@@ -598,7 +636,7 @@ const PlaylistDetailScreen = () => {
         {/* Action Buttons moved to floating group above cover */}
 
         {/* Add Track Button - only visible if user can edit */}
-        {canEdit && <AddTrackButton onPress={handleAddTrack} />}
+        {canEdit && <AddTracksButton onPress={handleAddTrack} />}
 
         {/* Tracks List */}
         <View>
@@ -615,10 +653,8 @@ const PlaylistDetailScreen = () => {
               <TrackCard
                 key={`${track.id}-${index}`}
                 track={track}
-                isPlaying={false}
-                onPress={() => {
-                  console.log('Play track:', track.title);
-                }}
+                isPlaying={currentTrack?.id === track.id && isPlaying}
+                onPress={handlePlayTrack}
               />
             ))
           )}
@@ -644,10 +680,14 @@ const PlaylistDetailScreen = () => {
         size="full"
         disableSwipe
       >
-        <SearchTracksComponent
-          onPressTrack={handleSelectTrack}
-          currentPlayingTrackId={undefined}
-        />
+        {playlist && (
+          <AddTracksToPlaylistComponent
+            onAddTrack={handleSelectTrack}
+            onClose={handleCloseSearchModal}
+            currentPlaylistTracks={(playlist.tracks as string[]) || []}
+            isVisible={showSearchModal}
+          />
+        )}
       </SwipeModal>
     </View>
   );
