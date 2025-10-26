@@ -172,6 +172,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
               name={playlist.visibility === 'public' ? 'earth' : 'lock'}
               size={18}
               color={themeColors[theme]['text-secondary']}
+              className="mt-1"
             />
           </View>
 
@@ -201,7 +202,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
               }
               size={18}
               color={themeColors[theme]['text-secondary']}
-              className="text-right"
+              className="mt-1 text-right"
             />
           </View>
         </View>
