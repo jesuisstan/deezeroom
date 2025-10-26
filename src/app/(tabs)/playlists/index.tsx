@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,8 +10,10 @@ import PlaylistCard from '@/components/playlists/PlaylistCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -25,6 +27,7 @@ import { UserProfile } from '@/utils/firebase/firebase-service-user';
 const PlaylistsScreen = () => {
   const { theme } = useTheme();
   const { user, profile } = useUser();
+  const { currentTrack } = usePlaybackState();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -32,6 +35,11 @@ const PlaylistsScreen = () => {
   const [activeTab, setActiveTab] = useState<'my' | 'participating' | 'public'>(
     'my'
   );
+
+  // Add padding when mini player is visible
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   const loadPlaylists = useCallback(
     async (tab: 'my' | 'participating' | 'public') => {
@@ -167,7 +175,7 @@ const PlaylistsScreen = () => {
           />
         }
         contentContainerStyle={{
-          paddingBottom: 16,
+          paddingBottom: 16 + bottomPadding,
           paddingHorizontal: 16,
           paddingTop: 16,
           gap: 16,

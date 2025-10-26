@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { PanResponder, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
