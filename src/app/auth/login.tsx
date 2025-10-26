@@ -68,7 +68,8 @@ const LoginScreen: FC = () => {
       Notifier.shoot({
         type: 'error',
         title: 'Sign in error',
-        message: errorMessage || 'Failed to sign in. Please try again.'
+        message: errorMessage || 'Failed to sign in. Please try again.',
+        position: 'top'
       });
     } finally {
       setLoading(false);

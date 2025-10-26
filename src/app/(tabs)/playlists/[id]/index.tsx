@@ -73,53 +73,60 @@ const PlaylistDetailScreen = () => {
   const { isPlaying } = usePlaybackUI();
   const { startPlayback, togglePlayPause, updateQueue } = usePlaybackActions();
 
-  const loadPlaylist = useCallback(async () => {
-    if (!id || !user) return;
+  const loadPlaylist = useCallback(
+    async (silent = false) => {
+      if (!id || !user) return;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+      try {
+        if (!silent) {
+          setIsLoading(true);
+        }
+        setError(null);
 
-      const playlistData = await PlaylistService.getPlaylist(id);
+        const playlistData = await PlaylistService.getPlaylist(id);
 
-      if (!playlistData) {
-        setError('Playlist not found');
-        return;
+        if (!playlistData) {
+          setError('Playlist not found');
+          return;
+        }
+
+        // Check if user has access to this playlist
+        const hasAccess =
+          playlistData.visibility === 'public' ||
+          playlistData.createdBy === user.uid ||
+          playlistData.participants.some((p) => p.userId === user.uid);
+
+        if (!hasAccess) {
+          setError('You do not have access to this playlist');
+          return;
+        }
+
+        setPlaylist(playlistData);
+
+        // Check if user can edit this playlist
+        const hasEditPermission = await PlaylistService.canUserEditPlaylist(
+          id,
+          user.uid
+        );
+        setCanEdit(hasEditPermission);
+
+        setTrackIds((playlistData.tracks as string[]) || []);
+      } catch (error) {
+        Logger.error('Error loading playlist:', error);
+        setError('Failed to load playlist');
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to load playlist'
+        });
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
       }
-
-      // Check if user has access to this playlist
-      const hasAccess =
-        playlistData.visibility === 'public' ||
-        playlistData.createdBy === user.uid ||
-        playlistData.participants.some((p) => p.userId === user.uid);
-
-      if (!hasAccess) {
-        setError('You do not have access to this playlist');
-        return;
-      }
-
-      setPlaylist(playlistData);
-
-      // Check if user can edit this playlist
-      const hasEditPermission = await PlaylistService.canUserEditPlaylist(
-        id,
-        user.uid
-      );
-      setCanEdit(hasEditPermission);
-
-      setTrackIds((playlistData.tracks as string[]) || []);
-    } catch (error) {
-      Logger.error('Error loading playlist:', error);
-      setError('Failed to load playlist');
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to load playlist'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [id, user]);
+    },
+    [id, user]
+  );
 
   useEffect(() => {
     loadPlaylist();
@@ -375,6 +382,83 @@ const PlaylistDetailScreen = () => {
     }
   };
 
+  const addTrackToPlaylist = async (track: Track, latestPlaylist: Playlist) => {
+    if (!playlist || !user) return;
+
+    try {
+      // Add track to playlist
+      await PlaylistService.addTrackToPlaylist(
+        playlist.id,
+        track.id,
+        track.duration,
+        user.uid
+      );
+
+      // Reload playlist to get updated tracks (silent mode to keep modal open)
+      await loadPlaylist(true);
+    } catch (error) {
+      Logger.error('Error adding track to playlist:', error);
+
+      // Check for specific errors
+      if (error instanceof Error) {
+        if (error.message.includes('permission')) {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Permission Denied',
+            message: 'You do not have permission to add tracks to this playlist'
+          });
+        } else {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error.message
+          });
+        }
+      } else {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to add track to playlist'
+        });
+      }
+    }
+  };
+
+  const removeTrackFromPlaylist = async (
+    track: Track,
+    latestPlaylist: Playlist
+  ) => {
+    if (!playlist || !user) return;
+
+    try {
+      // Remove track from playlist
+      await PlaylistService.removeTrackFromPlaylist(
+        playlist.id,
+        track.id,
+        user.uid
+      );
+
+      // Reload playlist to get updated tracks (silent mode to keep modal open)
+      await loadPlaylist(true);
+    } catch (error) {
+      Logger.error('Error removing track from playlist:', error);
+
+      if (error instanceof Error) {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: error.message
+        });
+      } else {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to remove track from playlist'
+        });
+      }
+    }
+  };
+
   const handleSelectTrack = async (track: Track) => {
     if (!playlist || !user) return;
 
@@ -396,11 +480,8 @@ const PlaylistDetailScreen = () => {
       );
 
       if (isTrackAlreadyInPlaylist) {
-        // Show alert asking if user wants to add anyway
-        Alert.alert(
-          'Track Already Exists',
-          `"${track.title}" by ${track.artist.name} is already in this playlist.`
-        );
+        // Remove track from playlist
+        await removeTrackFromPlaylist(track, latestPlaylist);
       } else {
         // Track is not in playlist, add it
         await addTrackToPlaylist(track, latestPlaylist);
@@ -410,64 +491,8 @@ const PlaylistDetailScreen = () => {
       Notifier.shoot({
         type: 'error',
         title: 'Error',
-        message: 'Failed to add track to playlist'
+        message: 'Failed to update playlist'
       });
-    }
-  };
-
-  const addTrackToPlaylist = async (track: Track, latestPlaylist: Playlist) => {
-    if (!playlist || !user) return;
-
-    try {
-      // Add track to playlist
-      await PlaylistService.addTrackToPlaylist(
-        playlist.id,
-        track.id,
-        track.duration,
-        user.uid
-      );
-
-      Notifier.shoot({
-        type: 'success',
-        title: 'Track Added',
-        message: `"${track.title}" has been added to the playlist`
-      });
-
-      // Don't close modal - allow user to continue adding tracks
-      // Reload playlist to get updated tracks
-      await loadPlaylist();
-    } catch (error) {
-      Logger.error('Error adding track to playlist:', error);
-
-      // Check for specific errors
-      if (error instanceof Error) {
-        if (error.message.includes('already in this playlist')) {
-          // Track already exists - this is handled at UI level, but in case of race condition
-          Logger.info(
-            'Track already in playlist:',
-            error.message,
-            '🔥 PlaylistService'
-          );
-        } else if (error.message.includes('permission')) {
-          Notifier.shoot({
-            type: 'error',
-            title: 'Permission Denied',
-            message: 'You do not have permission to add tracks to this playlist'
-          });
-        } else {
-          Notifier.shoot({
-            type: 'error',
-            title: 'Error',
-            message: error.message
-          });
-        }
-      } else {
-        Notifier.shoot({
-          type: 'error',
-          title: 'Error',
-          message: 'Failed to add track to playlist'
-        });
-      }
     }
   };
 

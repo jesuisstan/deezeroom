@@ -60,7 +60,9 @@ const ResetPasswordScreen: FC = () => {
       Notifier.shoot({
         type: 'error',
         title: 'Error',
-        message: errorMessage || 'Failed to send reset email. Please try again.'
+        message:
+          errorMessage || 'Failed to send reset email. Please try again.',
+        position: 'top'
       });
     } finally {
       setLoading(false);
