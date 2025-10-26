@@ -14,7 +14,8 @@ module.exports = () => ({
       bundleIdentifier: 'com.krivtsoff.deezeroom',
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
-        './credentials/ios/GoogleService-Info.plist'
+        './credentials/ios/GoogleService-Info.plist',
+      backgroundModes: ['audio']
     },
     android: {
       package: 'com.krivtsoff.deezeroom',

@@ -9,7 +9,11 @@ import React, {
 } from 'react';
 
 import type { AudioStatus } from 'expo-audio';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus
+} from 'expo-audio';
 
 import { Track } from '@/graphql/schema';
 import { Notifier } from '@/modules/notifier';
@@ -100,6 +104,17 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   // Use playbackIntent as the source of truth for UI to avoid delays
   // This provides instant feedback without waiting for expo-audio status updates
   const isPlaying = playbackIntent;
+
+  useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'mixWithOthers',
+      interruptionModeAndroid: 'duckOthers'
+    }).catch((audioModeError) => {
+      console.warn('Failed to configure audio session', audioModeError);
+    });
+  }, []);
 
   useEffect(() => {
     currentTrackRef.current = currentTrack;
