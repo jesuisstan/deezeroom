@@ -277,8 +277,8 @@ export class PlaylistService {
         throw new Error('Track is already in this playlist');
       }
 
-      currentTracks.push(trackId);
-      const newPosition = currentTracks.length; // 1-based position at end
+      currentTracks.unshift(trackId);
+      const newPosition = 1; // 1-based position at start
 
       // Update playlist metadata and tracks array
       transaction.update(playlistRef, {

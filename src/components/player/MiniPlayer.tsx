@@ -29,7 +29,7 @@ const MiniPlayer = () => {
   const router = useRouter();
   const pathname = usePathname();
   // Keep the mini player floating above the tab bar with a small gap.
-  const baseBottomOffset = Platform.select({ ios: 80, default: 68 });
+  const baseBottomOffset = Platform.select({ ios: 80, default: 70 });
 
   // Split into three separate hooks to minimize re-renders
   const { queue, currentIndex, currentTrack } = usePlaybackState();
@@ -173,7 +173,7 @@ const MiniPlayer = () => {
         position: 'absolute',
         left: 16,
         right: 16,
-        bottom: baseBottomOffset ?? 68,
+        bottom: baseBottomOffset ?? 70,
         transform: [{ translateY }, { translateX: swipeTranslateX }],
         opacity
       }}
