@@ -4,23 +4,23 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ExpoLocation from 'expo-location';
 import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import IconButton from '@/components/ui/buttons/IconButton';
+import LineButton from '@/components/ui/buttons/LineButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import ImageUploader, {
   ImageUploaderHandle
 } from '@/components/ui/ImageUploader';
+import InputCustom from '@/components/ui/InputCustom';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import type { Artist as GqlArtist } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
@@ -70,8 +70,7 @@ const EditProfileScreen: FC = () => {
     locationName: '',
     locationCoords: null as null | { lat: number; lng: number },
     phone: '',
-    birthDate: '',
-    favoriteGenres: ''
+    birthDate: ''
   });
 
   // Artist selection state
@@ -84,11 +83,19 @@ const EditProfileScreen: FC = () => {
 
   // Loading state for location detection
   const [locLoading, setLocLoading] = useState(false);
-  const [showBirthPicker, setShowBirthPicker] = useState(false);
+  // Modals visibility
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [showBioModal, setShowBioModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showBirthModal, setShowBirthModal] = useState(false);
+  const [showArtistsModal, setShowArtistsModal] = useState(false);
 
   const contentStyle: ViewStyle = {
     ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
-    paddingBottom: insets.bottom + 32
+    paddingBottom: insets.bottom + 32,
+    // Make ScrollView content fill the viewport height so we can push the save button down
+    flexGrow: 1
   };
 
   // Initialize form data from profile
@@ -103,9 +110,7 @@ const EditProfileScreen: FC = () => {
           '',
         locationCoords: (profile.publicInfo as any)?.locationCoords || null,
         phone: profile.privateInfo?.phone || '',
-        birthDate: profile.privateInfo?.birthDate || '',
-        favoriteGenres:
-          profile.musicPreferences?.favoriteGenres?.join(', ') || ''
+        birthDate: profile.privateInfo?.birthDate || ''
       });
       // Load selected artists details by IDs (preferred), fallback to deprecated stored objects
       const ids = (profile.musicPreferences as any)?.favoriteArtistIds as
@@ -146,7 +151,7 @@ const EditProfileScreen: FC = () => {
   };
 
   const handleBirthDateChange = (_: any, date?: Date) => {
-    setShowBirthPicker(false);
+    setShowBirthModal(false);
     if (date) {
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -408,13 +413,9 @@ const EditProfileScreen: FC = () => {
         },
         privateInfo: {
           phone: formData.phone,
-          birthDate: formData.birthDate
+          birthDate: formData.birthDate,
         },
         musicPreferences: {
-          favoriteGenres: formData.favoriteGenres
-            .split(',')
-            .map((g) => g.trim())
-            .filter((g) => g),
           favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
         }
       } as any;
@@ -442,7 +443,7 @@ const EditProfileScreen: FC = () => {
     <ActivityIndicatorScreen />
   ) : (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: themeColors[theme]['bg-main'] }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 8 : 0}
     >
@@ -452,235 +453,318 @@ const EditProfileScreen: FC = () => {
         contentContainerStyle={contentStyle}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="w-full" style={[containerWidthStyle]}>
-        {/* Avatar */}
-        <View className="w-full items-center gap-3 px-4 py-6">
-          <ImageUploader
-            ref={uploaderRef}
-            currentImageUrl={profile?.photoURL}
-            onImageUploaded={handleImageUploaded}
-            shape="circle"
-            placeholder="Add Photo"
-            size="lg"
-          />
-          <View className="flex-row gap-3">
-            <RippleButton
-              title="Change photo"
-              size="sm"
-              variant="primary"
-              onPress={() => uploaderRef.current?.open()}
-            />
-            <RippleButton
-              title="Remove"
-              size="sm"
-              variant="outline"
-              onPress={() => uploaderRef.current?.remove()}
-              disabled={!profile?.photoURL}
-            />
-          </View>
-          <TextCustom size="xs" className="opacity-60">
-            JPG or PNG, up to 5 MB. Tip: use a square image for best fit.
-          </TextCustom>
-        </View>
-        <Divider />
-
-        {/* Basic information */}
-        <View className="mt-4">
-          <TextCustom type="subtitle">Basic information</TextCustom>
-
-          <View className="mb-4 mt-3">
-            <TextCustom type="bold">Name</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.displayName}
-              onChangeText={(text) =>
-                setFormData({ ...formData, displayName: text })
-              }
-              placeholder="Enter your name"
-            />
-          </View>
-
-          <View className="mb-4">
-            <TextCustom type="bold">About me</TextCustom>
-            <TextInput
-              className="mt-1 h-20 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.bio}
-              onChangeText={(text) => setFormData({ ...formData, bio: text })}
-              placeholder="Tell me about yourself"
-              multiline
-            />
-          </View>
-
-          {/* Location (read-only) */}
-          <View className="mb-4">
-            <TextCustom type="bold">Location</TextCustom>
-            <View className="flex-row items-center gap-2">
-              <View>
-                {formData.locationCoords ? (
-                  <TextCustom color={themeColors[theme]['text-main']}>
-                    {(() => {
-                      const { lat, lng } = formData.locationCoords!;
-                      const nm = (formData.locationName || '').trim();
-                      const looksLikeCoords =
-                        /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(
-                          nm
-                        );
-                      return `${nm && !looksLikeCoords ? `${nm}` : ''}`;
-                    })()}
-                  </TextCustom>
-                ) : (
-                  <TextCustom color={themeColors[theme]['text-secondary']}>
-                    Not set
-                  </TextCustom>
-                )}
-              </View>
-              <IconButton
-                accessibilityLabel="Detect location"
-                onPress={detectLocation}
-                disabled={locLoading}
-                loading={locLoading}
-                className="h-8 w-8 border border-border"
-              >
-                <MaterialCommunityIcons
-                  name="map-marker"
-                  size={18}
-                  color={themeColors[theme]['text-main']}
+        <View
+          className="w-full flex-1"
+          style={[containerWidthStyle, { justifyContent: 'space-between' }]}
+        >
+          {/* Content group (top) */}
+          <View>
+            {/* Avatar */}
+            <View className="w-full items-center gap-3 px-4 py-6">
+              <ImageUploader
+                ref={uploaderRef}
+                currentImageUrl={profile?.photoURL}
+                onImageUploaded={handleImageUploaded}
+                shape="circle"
+                placeholder="Add Photo"
+                size="lg"
+              />
+              <RippleButton
+                title="Update picture"
+                size="sm"
+                variant="primary"
+                onPress={() => uploaderRef.current?.open()}
+              />
+              {!!profile?.photoURL && (
+                <RippleButton
+                  title="Remove"
+                  size="sm"
+                  variant="outline"
+                  onPress={() => uploaderRef.current?.remove()}
                 />
-              </IconButton>
-              {formData.locationCoords && (
-                <IconButton
-                  accessibilityLabel="Clear location"
-                  onPress={() =>
-                    setFormData({
-                      ...formData,
-                      locationCoords: null,
-                      locationName: ''
-                    })
-                  }
-                  className="h-8 w-8 border border-border"
-                >
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={18}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
               )}
+            </View>
+            <Divider />
+
+            {/* Personal information as line buttons */}
+            <View className="mt-2">
+              <TextCustom type="subtitle">Personal information</TextCustom>
+
+              {/* Username */}
+              <LineButton onPress={() => setShowNameModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    My Username
+                  </TextCustom>
+                  <TextCustom className="text-primary">
+                    {formData.displayName || 'Not set'}
+                  </TextCustom>
+                </View>
+              </LineButton>
+              <Divider />
+
+              {/* Date of Birth */}
+              <LineButton onPress={() => setShowBirthModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    Date of Birth
+                  </TextCustom>
+                  <TextCustom className="text-primary">
+                    {formData.birthDate || 'Not set'}
+                  </TextCustom>
+                </View>
+              </LineButton>
+              <Divider />
+
+              {/* About me */}
+              <LineButton onPress={() => setShowBioModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    About me
+                  </TextCustom>
+                  <TextCustom numberOfLines={1} className="text-primary">
+                    {formData.bio || 'Tap to write'}
+                  </TextCustom>
+                </View>
+              </LineButton>
+              <Divider />
+
+              {/* Location */}
+              <LineButton onPress={() => setShowLocationModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    Location
+                  </TextCustom>
+                  <TextCustom className="text-primary">
+                    {formData.locationName || 'Not set'}
+                  </TextCustom>
+                </View>
+              </LineButton>
+              <Divider />
+
+              {/* Phone */}
+              <LineButton onPress={() => setShowPhoneModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    Phone
+                  </TextCustom>
+                  <TextCustom className="text-primary">
+                    {formData.phone || 'Not set'}
+                  </TextCustom>
+                </View>
+              </LineButton>
+            </View>
+
+            <Divider className="my-4" />
+
+            {/* Music preferences */}
+            <View className="mt-2">
+              <TextCustom type="subtitle">Music preferences</TextCustom>
+
+              {/* Favorite artists */}
+              <LineButton onPress={() => setShowArtistsModal(true)}>
+                <View className="w-full py-4">
+                  <TextCustom size="s" className="opacity-60">
+                    Favorite artists
+                  </TextCustom>
+                  <TextCustom className="text-primary">
+                    {selectedArtists.length > 0
+                      ? `${selectedArtists.length} selected`
+                      : 'None'}
+                  </TextCustom>
+                </View>
+              </LineButton>
             </View>
           </View>
 
-          <View className="mb-4">
-            <TextCustom type="subtitle">Private information</TextCustom>
-            <TextCustom type="bold">Phone</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
+          {/* Save (bottom) */}
+          <View className="mt-6">
+            <RippleButton
+              title="Save"
+              size="md"
+              variant="primary"
+              onPress={handleSave}
             />
           </View>
+        </View>
+      </ScrollView>
 
-          <View className="mb-4">
-            <TextCustom type="bold">Birth date</TextCustom>
-            {Platform.OS === 'web' ? (
-              <>
-                <TextInput
-                  className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-                  value={formData.birthDate}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, birthDate: text })
+      {/* Modals */}
+      {/* Name Modal */}
+      {showNameModal && (
+        <SwipeModal
+          title="My Username"
+          modalVisible={showNameModal}
+          setVisible={setShowNameModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Enter your name"
+              value={formData.displayName}
+              onChangeText={(text) =>
+                setFormData((p) => ({ ...p, displayName: text }))
+              }
+            />
+            <RippleButton title="Done" onPress={() => setShowNameModal(false)} />
+          </View>
+        </SwipeModal>
+      )}
+
+      {/* Bio Modal */}
+      {showBioModal && (
+        <SwipeModal
+          title="About me"
+          modalVisible={showBioModal}
+          setVisible={setShowBioModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Tell about yourself"
+              value={formData.bio}
+              onChangeText={(text) => setFormData((p) => ({ ...p, bio: text }))}
+              multiline
+            />
+            <RippleButton title="Done" onPress={() => setShowBioModal(false)} />
+          </View>
+        </SwipeModal>
+      )}
+
+      {/* Location Modal */}
+      {showLocationModal && (
+        <SwipeModal
+          title="Location"
+          modalVisible={showLocationModal}
+          setVisible={setShowLocationModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="City, Region, Country"
+              value={formData.locationName}
+              onChangeText={(text) =>
+                setFormData((p) => ({ ...p, locationName: text }))
+              }
+            />
+            <View className="flex-row gap-3">
+              <RippleButton
+                title={locLoading ? 'Detecting…' : 'Detect location'}
+                onPress={detectLocation}
+                loading={locLoading}
+              />
+              {formData.locationCoords && (
+                <RippleButton
+                  title="Clear"
+                  variant="outline"
+                  onPress={() =>
+                    setFormData((p) => ({
+                      ...p,
+                      locationCoords: null,
+                      locationName: ''
+                    }))
                   }
-                  placeholder="YYYY-MM-DD"
                 />
-                <TextCustom
-                  color={themeColors[theme]['text-secondary']}
-                  className="mt-2"
-                >
-                  Temporary input on web (react-datepicker not installed).
-                </TextCustom>
-              </>
+              )}
+            </View>
+            <RippleButton
+              title="Done"
+              onPress={() => setShowLocationModal(false)}
+            />
+          </View>
+        </SwipeModal>
+      )}
+
+      {/* Phone Modal */}
+      {showPhoneModal && (
+        <SwipeModal
+          title="Phone"
+          modalVisible={showPhoneModal}
+          setVisible={setShowPhoneModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Enter your phone"
+              value={formData.phone}
+              onChangeText={(text) =>
+                setFormData((p) => ({ ...p, phone: text }))
+              }
+              keyboardType="phone-pad"
+            />
+            <RippleButton title="Done" onPress={() => setShowPhoneModal(false)} />
+          </View>
+        </SwipeModal>
+      )}
+
+      {/* Birth date Modal */}
+      {showBirthModal && (
+        <SwipeModal
+          title="Date of Birth"
+          modalVisible={showBirthModal}
+          setVisible={setShowBirthModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            {Platform.OS === 'web' && ReactDatePicker ? (
+              <View className="w-full">
+                {/* @ts-ignore dynamic import style handled in file head */}
+                <ReactDatePicker
+                  selected={parseDate(formData.birthDate) || new Date()}
+                  onChange={(date: Date | null) =>
+                    date &&
+                    setFormData((p) => ({ ...p, birthDate: formatDate(date) }))
+                  }
+                  withPortal
+                  portalId="react-datepicker-portal"
+                  popperPlacement="bottom"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  scrollableYearDropdown
+                  yearDropdownItemNumber={120}
+                  maxDate={new Date()}
+                  dateFormat="yyyy-MM-dd"
+                  className="w-full rounded-md border border-border bg-bg-secondary p-3"
+                />
+              <View className="mt-3 flex-row gap-3">
+              {formData.birthDate ? (
+                <RippleButton
+                  title="Clear"
+                  variant="outline"
+                  onPress={() => setFormData((p) => ({ ...p, birthDate: '' }))}
+                />
+              ) : null}
+              <RippleButton title="Done" onPress={() => setShowBirthModal(false)} />
+            </View>
+              </View>
             ) : (
-              <>
-                {showBirthPicker && RNDateTimePicker && (
-                  <RNDateTimePicker
-                    value={parseDate(formData.birthDate) || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={handleBirthDateChange}
-                    style={{ width: '100%' }}
-                  />
-                )}
-                <View className="flex-row items-center gap-2">
-                  {formData.birthDate ? (
-                    <TextCustom color={themeColors[theme]['text-main']}>
-                      {formatDate(parseDate(formData.birthDate)!)}
-                    </TextCustom>
-                  ) : (
-                    <TextCustom color={themeColors[theme]['text-secondary']}>
-                      Not set
-                    </TextCustom>
-                  )}
-                  <IconButton
-                    accessibilityLabel="Select birth date"
-                    onPress={() => setShowBirthPicker(true)}
-                    className="h-8 w-8 border border-border"
-                  >
-                    <MaterialCommunityIcons
-                      name="calendar"
-                      size={18}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </IconButton>
-                  {formData.birthDate && (
-                    <IconButton
-                      accessibilityLabel="Clear birth date"
-                      onPress={() =>
-                        setFormData({ ...formData, birthDate: '' })
-                      }
-                      className="h-8 w-8 border border-border"
-                    >
-                      <MaterialCommunityIcons
-                        name="close"
-                        size={18}
-                        color={themeColors[theme]['text-main']}
-                      />
-                    </IconButton>
-                  )}
-                </View>
-              </>
+              <RNDateTimePicker
+                value={parseDate(formData.birthDate) || new Date()}
+                mode="date"
+                display="default"
+                onChange={handleBirthDateChange}
+                style={{ width: '100%' }}
+              />
             )}
           </View>
-        </View>
+        </SwipeModal>
+      )}
 
-        {/* Music preferences */}
-        <View
-          className="mb-6"
-          ref={artistsSectionRef}
-          onLayout={(e) => setArtistsSectionY(e.nativeEvent.layout.y)}
+      {/* Artists Modal */}
+      {showArtistsModal && (
+        <SwipeModal
+          title="Favorite artists"
+          modalVisible={showArtistsModal}
+          setVisible={setShowArtistsModal}
         >
-          <TextCustom type="subtitle">Music preferences</TextCustom>
-
-          {/* Favorite artists with search + chips */}
-          <View className="mb-2">
-            <TextCustom>Favorite artists</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={artistQuery}
-              onChangeText={searchArtists}
+          <View className="flex-1 px-4 pb-6">
+            <TextCustom className="mb-2 opacity-70">
+              Select up to 20 artists
+            </TextCustom>
+            <InputCustom
               placeholder={
                 selectedArtists.length >= 20
                   ? 'Maximum 20 selected'
                   : 'Start typing artist name'
               }
-              editable={selectedArtists.length < 20}
-              onFocus={() => {
-                // Bring the input into view when keyboard opens
-                const y = Math.max(0, artistsSectionY - 12);
-                setTimeout(() => {
-                  scrollRef.current?.scrollTo({ y, animated: true });
-                }, 50);
-              }}
+              value={artistQuery}
+              onChangeText={searchArtists}
             />
             {artistSearching && (
               <TextCustom size="s" className="mt-2 opacity-60">
@@ -727,75 +811,73 @@ const EditProfileScreen: FC = () => {
                 </ScrollView>
               </View>
             )}
-          </View>
 
-          {/* Selected artists chips */}
-          <View className="mt-2">
-            <View className="mb-2 flex-row items-center justify-between">
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-                Selected
-              </TextCustom>
-              <TextCustom size="s" className="opacity-60">
-                {selectedArtists.length}/20
-              </TextCustom>
-            </View>
-            {selectedArtists.length === 0 ? (
-              <TextCustom className="opacity-60">
-                No artists selected yet
-              </TextCustom>
-            ) : (
-              <View className="flex-row flex-wrap">
-                {selectedArtists.map((a) => (
-                  <View
-                    key={a.id}
-                    className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
-                  >
-                    {a.picture_small ? (
-                      <Image
-                        source={{ uri: a.picture_small }}
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          marginRight: 6
-                        }}
-                      />
-                    ) : (
-                      <View
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          marginRight: 6
-                        }}
-                        className="items-center justify-center bg-bg-main"
-                      >
-                        <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
-                      </View>
-                    )}
-                    <TextCustom size="s">{a.name}</TextCustom>
-                    <TouchableOpacity
-                      onPress={() => removeArtist(a.id)}
-                      className="ml-2 rounded-full bg-bg-main px-2 py-1"
-                    >
-                      <TextCustom size="xs">×</TextCustom>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+            {/* Selected chips */}
+            <View className="mt-3">
+              <View className="mb-2 flex-row items-center justify-between">
+                <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+                  Selected
+                </TextCustom>
+                <TextCustom size="s" className="opacity-60">
+                  {selectedArtists.length}/20
+                </TextCustom>
               </View>
-            )}
-          </View>
-        </View>
+              {selectedArtists.length === 0 ? (
+                <TextCustom className="opacity-60">
+                  No artists selected yet
+                </TextCustom>
+              ) : (
+                <View className="flex-row flex-wrap">
+                  {selectedArtists.map((a) => (
+                    <View
+                      key={a.id}
+                      className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
+                    >
+                      {a.picture_small ? (
+                        <Image
+                          source={{ uri: a.picture_small }}
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 10,
+                            marginRight: 6
+                          }}
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: 10,
+                            marginRight: 6
+                          }}
+                          className="items-center justify-center bg-bg-main"
+                        >
+                          <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
+                        </View>
+                      )}
+                      <TextCustom size="s">{a.name}</TextCustom>
+                      <TouchableOpacity
+                        onPress={() => removeArtist(a.id)}
+                        className="ml-2 rounded-full bg-bg-main px-2 py-1"
+                      >
+                        <TextCustom size="xs">×</TextCustom>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
 
-        {/* Save */}
-        <RippleButton
-          title="Save"
-          size="md"
-          variant="primary"
-          onPress={handleSave}
-        />
-        </View>
-      </ScrollView>
+            <View className="mt-4">
+              <RippleButton
+                title="Done"
+                onPress={() => setShowArtistsModal(false)}
+              />
+            </View>
+          </View>
+        </SwipeModal>
+      )}
     </KeyboardAvoidingView>
   );
 };
