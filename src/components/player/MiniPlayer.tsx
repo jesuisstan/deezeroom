@@ -14,6 +14,7 @@ import { usePathname, useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import {
   usePlaybackActions,
@@ -182,13 +183,13 @@ const MiniPlayer = () => {
         className="overflow-hidden rounded-3xl"
         style={{
           backgroundColor: themeColors[theme]['bg-secondary'],
-          borderColor: themeColors[theme]['bg-tertiary'],
-          borderWidth: 1,
           shadowColor: themeColors[theme]['bg-inverse'],
           shadowOpacity: 0.15,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: 4 },
-          elevation: 8
+          elevation: 2,
+          height: MINI_PLAYER_HEIGHT,
+          justifyContent: 'center'
         }}
       >
         <Pressable

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -25,6 +25,7 @@ import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
@@ -48,6 +49,7 @@ import { UserProfile } from '@/utils/firebase/firebase-service-user';
 const PlaylistDetailScreen = () => {
   const { theme } = useTheme();
   const { user } = useUser();
+  const { currentTrack } = usePlaybackState();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const urqlClient = useClient();
@@ -69,9 +71,13 @@ const PlaylistDetailScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Playback hooks
-  const { currentTrack } = usePlaybackState();
   const { isPlaying } = usePlaybackUI();
   const { startPlayback, togglePlayPause, updateQueue } = usePlaybackActions();
+
+  // Add padding when mini player is visible
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   const loadPlaylist = useCallback(
     async (silent = false) => {
@@ -582,7 +588,7 @@ const PlaylistDetailScreen = () => {
           />
         }
         contentContainerStyle={{
-          paddingBottom: 8,
+          paddingBottom: 8 + bottomPadding,
           ...containerWidthStyle
         }}
       >
