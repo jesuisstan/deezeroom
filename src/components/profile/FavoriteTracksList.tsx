@@ -19,11 +19,14 @@ import { themeColors } from '@/style/color-theme';
 interface FavoriteTracksListProps {
   onPlayTrack?: (track: Track) => void;
   currentPlayingTrackId?: string;
+  // Optional explicit list of track IDs to render favorites for another user
+  trackIdsOverride?: string[];
 }
 
 const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   onPlayTrack,
-  currentPlayingTrackId
+  currentPlayingTrackId,
+  trackIdsOverride
 }) => {
   const { theme } = useTheme();
   const { profile } = useUser();
@@ -35,10 +38,12 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const favoriteTrackIds = useMemo(
-    () => profile?.favoriteTracks || [],
-    [profile?.favoriteTracks]
-  );
+  const favoriteTrackIds = useMemo(() => {
+    if (trackIdsOverride && trackIdsOverride.length >= 0) {
+      return trackIdsOverride;
+    }
+    return profile?.favoriteTracks || [];
+  }, [trackIdsOverride, profile?.favoriteTracks]);
   const hasMore = currentIndex < favoriteTrackIds.length;
 
   // Load initial batch of tracks
