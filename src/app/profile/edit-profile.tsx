@@ -1,4 +1,4 @@
-import { FC, useEffect, useRef, useState } from 'react';
+import { FC, useEffect, useRef, useState, forwardRef } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -50,6 +50,31 @@ if (Platform.OS === 'web') {
     require('react-datepicker/dist/react-datepicker.css');
   } catch {}
 }
+
+// Web-only: custom input for ReactDatePicker that renders TextCustom inside
+// to guarantee proper contrast in dark theme.
+const DateInputButton = forwardRef<HTMLButtonElement, {
+  value?: string;
+  onClick?: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+}>(function DateInputButton({ value, onClick, placeholder, disabled }, ref) {
+  return (
+    // Use a real <button> so the datepicker can focus/anchor it correctly
+    <button
+      type="button"
+      onClick={onClick}
+      ref={ref as any}
+      disabled={disabled}
+      className="w-full rounded-md border border-border bg-bg-secondary p-3 text-left"
+      style={{ cursor: 'pointer' }}
+    >
+      <TextCustom className={value ? '' : 'opacity-60'}>
+        {value || placeholder || 'Select date'}
+      </TextCustom>
+    </button>
+  );
+});
 
 const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
@@ -496,7 +521,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     My Username
                   </TextCustom>
-                  <TextCustom className="text-primary">
+                  <TextCustom>
                     {formData.displayName || 'Not set'}
                   </TextCustom>
                 </View>
@@ -509,7 +534,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     Date of Birth
                   </TextCustom>
-                  <TextCustom className="text-primary">
+                  <TextCustom>
                     {formData.birthDate || 'Not set'}
                   </TextCustom>
                 </View>
@@ -522,7 +547,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     About me
                   </TextCustom>
-                  <TextCustom numberOfLines={1} className="text-primary">
+                  <TextCustom numberOfLines={1}>
                     {formData.bio || 'Tap to write'}
                   </TextCustom>
                 </View>
@@ -535,7 +560,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     Location
                   </TextCustom>
-                  <TextCustom className="text-primary">
+                  <TextCustom>
                     {formData.locationName || 'Not set'}
                   </TextCustom>
                 </View>
@@ -548,7 +573,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     Phone
                   </TextCustom>
-                  <TextCustom className="text-primary">
+                  <TextCustom>
                     {formData.phone || 'Not set'}
                   </TextCustom>
                 </View>
@@ -567,7 +592,7 @@ const EditProfileScreen: FC = () => {
                   <TextCustom size="s" className="opacity-60">
                     Favorite artists
                   </TextCustom>
-                  <TextCustom className="text-primary">
+                  <TextCustom>
                     {selectedArtists.length > 0
                       ? `${selectedArtists.length} selected`
                       : 'None'}
@@ -720,7 +745,9 @@ const EditProfileScreen: FC = () => {
                   yearDropdownItemNumber={120}
                   maxDate={new Date()}
                   dateFormat="yyyy-MM-dd"
-                  className="w-full rounded-md border border-border bg-bg-secondary p-3"
+                  calendarClassName="bg-bg-secondary text-[--color-text-main] border border-border"
+                  popperClassName="z-50"
+                  customInput={<DateInputButton placeholder="yyyy-mm-dd" />}
                 />
               <View className="mt-3 flex-row gap-3">
               {formData.birthDate ? (
@@ -772,7 +799,7 @@ const EditProfileScreen: FC = () => {
               </TextCustom>
             )}
             {!!artistError && (
-              <TextCustom size="s" className="mt-2 text-accent">
+              <TextCustom size="s" className="mt-2">
                 {artistError}
               </TextCustom>
             )}
