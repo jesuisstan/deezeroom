@@ -10,7 +10,6 @@ interface NotificationPayload {
   data?: Record<string, any>;
   badge?: number;
   sound?: 'default' | null;
-  priority?: 'default' | 'normal' | 'high';
 }
 
 /**
@@ -26,8 +25,7 @@ export async function sendPushNotification(
     title: payload.title,
     body: payload.body,
     data: payload.data || {},
-    badge: payload.badge,
-    priority: payload.priority || 'high'
+    badge: payload.badge
   };
 
   try {

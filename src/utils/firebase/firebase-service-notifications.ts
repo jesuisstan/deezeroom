@@ -3,20 +3,10 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 import { Logger } from '@/modules/logger';
 import { auth, db } from '@/utils/firebase/firebase-init';
-
-export interface NotificationChannel {
-  id: string;
-  name: string;
-  description?: string;
-  importance: Notifications.AndroidImportance;
-  enableVibrate: boolean;
-  enableLights: boolean;
-  lightColor?: string;
-}
 
 export interface PushToken {
   expoPushToken?: string;
@@ -85,9 +75,9 @@ class NotificationService {
   }
 
   /**
-   * Get Expo Push Token
+   * Get Expo Push Token (internal use only)
    */
-  public async getExpoPushToken(): Promise<string | null> {
+  private async getExpoPushToken(): Promise<string | null> {
     try {
       if (!Device.isDevice) {
         Logger.warn('Expo Push tokens only work on physical devices');
@@ -117,9 +107,9 @@ class NotificationService {
   }
 
   /**
-   * Get Native Device Push Token (FCM for Android, APNs for iOS)
+   * Get Native Device Push Token (FCM for Android, APNs for iOS) (internal use only)
    */
-  public async getDevicePushToken(): Promise<string | null> {
+  private async getDevicePushToken(): Promise<string | null> {
     try {
       if (!Device.isDevice) {
         return null;
@@ -235,106 +225,6 @@ class NotificationService {
   }
 
   /**
-   * Get user's push token from Firestore
-   */
-  public async getUserPushToken(userId: string): Promise<PushToken | null> {
-    try {
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
-
-      if (!userDoc.exists()) {
-        return null;
-      }
-
-      const userData = userDoc.data();
-      return userData.pushTokens || null;
-    } catch (error) {
-      Logger.error('Error getting user push token:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Get all push tokens for multiple users
-   */
-  public async getUserPushTokens(
-    userIds: string[]
-  ): Promise<{ userId: string; token: PushToken }[]> {
-    try {
-      const results: { userId: string; token: PushToken }[] = [];
-
-      for (const userId of userIds) {
-        const token = await this.getUserPushToken(userId);
-        if (token) {
-          results.push({ userId, token });
-        }
-      }
-
-      return results;
-    } catch (error) {
-      Logger.error('Error getting user push tokens:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Schedule a local notification
-   */
-  public async scheduleLocalNotification(
-    title: string,
-    body: string,
-    data?: Record<string, any>,
-    seconds: number = 0
-  ): Promise<string> {
-    try {
-      const identifier = await Notifications.scheduleNotificationAsync({
-        content: {
-          title,
-          body,
-          data: data || {},
-          sound: true,
-          priority: Notifications.AndroidNotificationPriority.HIGH
-        },
-        trigger:
-          seconds > 0
-            ? {
-                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                seconds
-              }
-            : null
-      });
-
-      return identifier;
-    } catch (error) {
-      Logger.error('Error scheduling local notification:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Cancel all scheduled notifications
-   */
-  public async cancelAllNotifications(): Promise<void> {
-    try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      Logger.info('All notifications cancelled');
-    } catch (error) {
-      Logger.error('Error cancelling notifications:', error);
-    }
-  }
-
-  /**
-   * Cancel a specific notification
-   */
-  public async cancelNotification(identifier: string): Promise<void> {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(identifier);
-    } catch (error) {
-      Logger.error('Error cancelling notification:', error);
-    }
-  }
-
-  /**
    * Get badge count
    */
   public async getBadgeCount(): Promise<number> {
@@ -354,17 +244,6 @@ class NotificationService {
       await Notifications.setBadgeCountAsync(count);
     } catch (error) {
       Logger.error('Error setting badge count:', error);
-    }
-  }
-
-  /**
-   * Dismiss all presented notifications
-   */
-  public async dismissAllNotifications(): Promise<void> {
-    try {
-      await Notifications.dismissAllNotificationsAsync();
-    } catch (error) {
-      Logger.error('Error dismissing notifications:', error);
     }
   }
 }
