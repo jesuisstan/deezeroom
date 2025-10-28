@@ -6,14 +6,14 @@ import { useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useInvitations } from '@/hooks/useInvitations';
+import { useNotifications } from '@/providers/NotificationsProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const NotificationsButton = () => {
   const router = useRouter();
   const { theme } = useTheme();
-  const { unreadCount } = useInvitations();
+  const { badgeCount } = useNotifications();
 
   return (
     <View style={{ position: 'relative' }}>
@@ -22,14 +22,14 @@ const NotificationsButton = () => {
         onPress={() => router.push('/notifications')}
       >
         <MaterialCommunityIcons
-          name={unreadCount > 0 ? 'bell' : 'bell-outline'}
+          name={badgeCount > 0 ? 'bell' : 'bell-outline'}
           size={22}
           color={themeColors[theme]['text-main']}
         />
       </IconButton>
 
       {/* Badge for unread notifications */}
-      {unreadCount > 0 && (
+      {badgeCount > 0 && (
         <View
           style={{
             position: 'absolute',
@@ -45,7 +45,7 @@ const NotificationsButton = () => {
           }}
         >
           <TextCustom size="xs" color={themeColors[theme]['text-main']}>
-            {unreadCount > 99 ? '99+' : unreadCount.toString()}
+            {badgeCount > 99 ? '99+' : badgeCount.toString()}
           </TextCustom>
         </View>
       )}
