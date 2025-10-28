@@ -14,7 +14,10 @@ module.exports = () => ({
       bundleIdentifier: 'com.krivtsoff.deezeroom',
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
-        './credentials/ios/GoogleService-Info.plist'
+        './credentials/ios/GoogleService-Info.plist',
+      infoPlist: {
+        UIBackgroundModes: ['remote-notification']
+      }
     },
     android: {
       package: 'com.krivtsoff.deezeroom',
@@ -27,7 +30,8 @@ module.exports = () => ({
       softwareKeyboardLayoutMode: 'pan',
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
-        './credentials/android/google-services.json'
+        './credentials/android/google-services.json',
+      permissions: ['POST_NOTIFICATIONS']
     },
     web: {
       bundler: 'metro',
@@ -86,6 +90,15 @@ module.exports = () => ({
         {
           locationWhenInUsePermission:
             'Allow Deezeroom to use your location to show your city on profile.'
+        }
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './src/assets/images/icon.png',
+          color: '#a238ff',
+          sounds: [],
+          mode: 'production'
         }
       ]
     ],

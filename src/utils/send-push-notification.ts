@@ -1,0 +1,56 @@
+/**
+ * Client-side function to send push notifications via Expo Push API
+ * This is used for sending notifications when user performs an action
+ */
+
+interface NotificationPayload {
+  to: string;
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  badge?: number;
+  sound?: 'default' | null;
+  priority?: 'default' | 'normal' | 'high';
+}
+
+/**
+ * Send a push notification via Expo Push Notification Service
+ * This runs on the client side, so it should only be called after user authentication
+ */
+export async function sendPushNotification(
+  payload: NotificationPayload
+): Promise<void> {
+  const message = {
+    to: payload.to,
+    sound: payload.sound || 'default',
+    title: payload.title,
+    body: payload.body,
+    data: payload.data || {},
+    badge: payload.badge,
+    priority: payload.priority || 'high'
+  };
+
+  try {
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(message)
+    });
+
+    const result = await response.json();
+
+    if (result.data?.status === 'error') {
+      console.error('Error sending push notification:', result.data.message);
+      throw new Error(result.data.message);
+    }
+
+    console.log('Push notification sent successfully:', result);
+  } catch (error) {
+    console.error('Failed to send push notification:', error);
+    throw error;
+  }
+}

@@ -18,6 +18,7 @@ import {
 
 import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
+import { sendPushNotification } from '@/utils/send-push-notification';
 
 import { parseFirestoreDate } from './firestore-date-utils';
 
@@ -412,6 +413,47 @@ export class PlaylistService {
       collection(db, this.collection, playlistId, this.invitationsCollection),
       invitationData
     );
+
+    // Send push notification to invited user
+    try {
+      // Get invited user's push token
+      const inviteeRef = doc(db, 'users', userId);
+      const inviteeDoc = await getDoc(inviteeRef);
+
+      if (inviteeDoc.exists()) {
+        const inviteeData = inviteeDoc.data();
+        const pushToken = inviteeData?.pushTokens;
+
+        if (pushToken?.expoPushToken) {
+          // Get inviter name
+          const inviterRef = doc(db, 'users', invitedBy);
+          const inviterDoc = await getDoc(inviterRef);
+          const inviterData = inviterDoc.data();
+          const inviterName =
+            inviterData?.displayName ||
+            inviterData?.email?.split('@')[0] ||
+            'Someone';
+
+          // Send push notification
+          await sendPushNotification({
+            to: pushToken.expoPushToken,
+            title: 'New Playlist Invitation',
+            body: `${inviterName} invited you to collaborate on "${playlistName || 'a playlist'}"`,
+            data: {
+              type: 'invitation',
+              playlistId,
+              invitationId: docRef.id
+            },
+            badge: 1
+          });
+
+          Logger.info('Push notification sent to invited user');
+        }
+      }
+    } catch (error) {
+      Logger.error('Error sending push notification:', error);
+      // Don't throw - invitation is created, notification is optional
+    }
 
     return docRef.id;
   }
