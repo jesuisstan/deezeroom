@@ -97,6 +97,7 @@ module.exports = () => ({
         {
           icon: './src/assets/images/icon.png',
           color: '#a238ff',
+          defaultChannel: 'default',
           sounds: [],
           mode: 'production'
         }
