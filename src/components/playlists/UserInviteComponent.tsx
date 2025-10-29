@@ -401,7 +401,6 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       {/* No Results */}
       {showResults &&
         searchResults.length === 0 &&
-        !isSearching &&
         searchQuery.trim().length >= 2 && (
           <View className="items-center rounded-md border border-border bg-bg-secondary p-2">
             <MaterialCommunityIcons
@@ -413,7 +412,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
               className="mt-2"
               color={themeColors[theme]['text-secondary']}
             >
-              No users found
+              {!isSearching ? 'No users found' : 'Searching...'}
             </TextCustom>
           </View>
         )}

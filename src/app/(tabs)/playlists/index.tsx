@@ -186,13 +186,13 @@ const PlaylistsScreen = () => {
         {isLoading ? (
           <ActivityIndicatorScreen />
         ) : playlists.length === 0 ? (
-          <View className="flex-1 items-center justify-center py-20">
+          <View className="flex-1 items-center justify-center gap-4 py-20">
             <MaterialCommunityIcons
               name="playlist-music"
-              size={48}
+              size={42}
               color={themeColors[theme]['text-secondary']}
             />
-            <TextCustom className="mt-4 text-center opacity-70">
+            <TextCustom className="text-center">
               {activeTab === 'my' && 'You have no playlists yet'}
               {activeTab === 'participating' &&
                 'You are not participating in any playlists'}
@@ -201,8 +201,8 @@ const PlaylistsScreen = () => {
             {activeTab === 'my' && (
               <RippleButton
                 title="Create First Playlist"
+                size="md"
                 onPress={() => setShowCreateModal(true)}
-                className="mt-4"
               />
             )}
           </View>
