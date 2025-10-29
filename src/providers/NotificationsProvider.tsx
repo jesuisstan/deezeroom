@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Logger } from '@/modules/logger';
 import { useUser } from '@/providers/UserProvider';
 import { notificationService } from '@/utils/firebase/firebase-service-notifications';
+import { PlaylistService } from '@/utils/firebase/firebase-service-playlists';
 
 interface NotificationsContextType {
   expoPushToken: string | null;
@@ -76,11 +77,11 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     }
   };
 
-  // Clear badge count
+  // Clear badge count - resets both UI badge and native badge
   const clearBadge = async () => {
     try {
-      await notificationService.setBadgeCount(0);
       setBadgeCount(0);
+      await notificationService.setBadgeCount(0);
     } catch (error) {
       Logger.error('Error clearing badge:', error);
     }
@@ -91,6 +92,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (user && !isRegistered) {
       registerForPushNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isRegistered]);
 
   // Setup notification listeners
@@ -132,30 +134,44 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
   }, [router]);
 
-  // Update badge count periodically
+  // Update badge count based on all pending notifications (invitations, responses, etc.)
   useEffect(() => {
-    const updateBadgeCount = async () => {
+    const updateNotificationsCount = async () => {
+      if (!user) return;
+
       try {
-        const count = await notificationService.getBadgeCount();
-        setBadgeCount(count);
+        // Get all pending invitations for the user (playlist invitations they received)
+        const invitations = await PlaylistService.getUserInvitations(user.uid);
+
+        // Get all invitations that user sent (to track responses)
+        const sentInvitationsResponses =
+          await PlaylistService.getUserSentInvitationsResponses(user.uid);
+
+        // Calculate total unread count
+        let unreadCount = invitations.length;
+        unreadCount += sentInvitationsResponses.length;
+
+        setBadgeCount(unreadCount);
+
+        // Update native badge
+        await notificationService.setBadgeCount(unreadCount);
       } catch (error) {
-        Logger.error('Error updating badge count:', error);
+        Logger.error('Error updating notifications count:', error);
       }
     };
 
-    updateBadgeCount();
-    const interval = setInterval(updateBadgeCount, 5000); // Update every 5 seconds
+    updateNotificationsCount();
+
+    // Update every 10 seconds
+    const interval = setInterval(updateNotificationsCount, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
-  // Update badge when user views notifications
+  // Reset badge when user opens notifications screen
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      const currentBadge = badgeCount;
-      if (currentBadge > 0) {
-        notificationService.setBadgeCount(currentBadge);
-      }
+    if (Platform.OS !== 'web' && badgeCount > 0) {
+      notificationService.setBadgeCount(badgeCount);
     }
   }, [badgeCount]);
 

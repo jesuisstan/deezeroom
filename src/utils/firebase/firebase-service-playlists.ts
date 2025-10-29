@@ -628,6 +628,71 @@ export class PlaylistService {
     }
   }
 
+  // Get all sent invitations that received responses (accepted or declined)
+  // Returns only recent responses (within last 7 days) for badge count
+  static async getUserSentInvitationsResponses(
+    userId: string,
+    sinceDaysAgo: number = 7
+  ): Promise<PlaylistInvitation[]> {
+    try {
+      // Get all playlists to find sent invitations
+      const playlistsQuery = query(collection(db, this.collection));
+      const playlistsSnapshot = await getDocs(playlistsQuery);
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
+
+      const allResponses: PlaylistInvitation[] = [];
+
+      for (const playlistDoc of playlistsSnapshot.docs) {
+        const playlistId = playlistDoc.id;
+
+        // Get invitations where user is the inviter and status is accepted or declined
+        const invitationsQuery = query(
+          collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          ),
+          where('invitedBy', '==', userId)
+        );
+
+        const invitationsSnapshot = await getDocs(invitationsQuery);
+
+        invitationsSnapshot.docs.forEach((invitationDoc) => {
+          const invitation = {
+            id: invitationDoc.id,
+            playlistId,
+            ...invitationDoc.data()
+          } as PlaylistInvitation;
+
+          // Only include accepted or declined invitations from recent period
+          if (
+            (invitation.status === 'accepted' ||
+              invitation.status === 'declined') &&
+            invitation.invitedAt
+          ) {
+            const invitedAt = parseFirestoreDate(invitation.invitedAt);
+            if (invitedAt >= cutoffDate) {
+              allResponses.push(invitation);
+            }
+          }
+        });
+      }
+
+      // Sort by invitedAt in memory (descending) - most recent first
+      return allResponses.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } catch (error) {
+      Logger.error('Error getting sent invitations responses:', error);
+      return [];
+    }
+  }
+
   // Accept an invitation
   static async acceptInvitation(
     playlistId: string,
@@ -717,6 +782,41 @@ export class PlaylistService {
         });
       });
 
+      // Send push notification to inviter
+      try {
+        const inviterRef = doc(db, 'users', invitation.invitedBy);
+        const inviterDoc = await getDoc(inviterRef);
+
+        if (inviterDoc.exists()) {
+          const inviterData = inviterDoc.data();
+          const pushToken = inviterData?.pushTokens;
+
+          if (pushToken?.expoPushToken) {
+            const accepterName =
+              invitation.displayName ||
+              invitation.email?.split('@')[0] ||
+              'Someone';
+
+            await sendPushNotification({
+              to: pushToken.expoPushToken,
+              title: 'Invitation Accepted',
+              body: `${accepterName} accepted your invitation to "${playlist?.name || 'playlist'}"`,
+              data: {
+                type: 'invitation_accepted',
+                playlistId,
+                userId
+              },
+              badge: 1
+            });
+
+            Logger.info('Push notification sent to inviter');
+          }
+        }
+      } catch (error) {
+        Logger.error('Error sending push notification to inviter:', error);
+        // Don't throw - invitation is accepted, notification is optional
+      }
+
       return { success: true, message: 'Invitation accepted successfully' };
     } catch (error) {
       Logger.error('Error accepting invitation:', error);
@@ -785,6 +885,42 @@ export class PlaylistService {
       await updateDoc(invitationRef, {
         status: 'declined'
       });
+
+      // Send push notification to inviter
+      try {
+        const playlist = await this.getPlaylist(playlistId);
+        const inviterRef = doc(db, 'users', invitation.invitedBy);
+        const inviterDoc = await getDoc(inviterRef);
+
+        if (inviterDoc.exists()) {
+          const inviterData = inviterDoc.data();
+          const pushToken = inviterData?.pushTokens;
+
+          if (pushToken?.expoPushToken) {
+            const declinerName =
+              invitation.displayName ||
+              invitation.email?.split('@')[0] ||
+              'Someone';
+
+            await sendPushNotification({
+              to: pushToken.expoPushToken,
+              title: 'Invitation Declined',
+              body: `${declinerName} declined your invitation to "${playlist?.name || 'playlist'}"`,
+              data: {
+                type: 'invitation_declined',
+                playlistId,
+                userId
+              },
+              badge: 1
+            });
+
+            Logger.info('Push notification sent to inviter');
+          }
+        }
+      } catch (error) {
+        Logger.error('Error sending push notification to inviter:', error);
+        // Don't throw - invitation is declined, notification is optional
+      }
 
       return { success: true, message: 'Invitation declined' };
     } catch (error) {
@@ -949,6 +1085,88 @@ export class PlaylistService {
       unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
       unsubscribeFunctions = [];
       allInvitations = [];
+    };
+  }
+
+  // Subscribe to user sent invitations responses (real-time)
+  static subscribeToUserSentInvitationsResponses(
+    userId: string,
+    callback: (responses: PlaylistInvitation[]) => void,
+    sinceDaysAgo: number = 7
+  ): () => void {
+    let unsubscribeFunctions: (() => void)[] = [];
+    let allResponses: PlaylistInvitation[] = [];
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
+
+    const updateResponses = () => {
+      const filteredResponses = allResponses.filter((response) => {
+        if (
+          (response.status === 'accepted' || response.status === 'declined') &&
+          response.invitedAt
+        ) {
+          const invitedAt = parseFirestoreDate(response.invitedAt);
+          return invitedAt >= cutoffDate;
+        }
+        return false;
+      });
+
+      const sortedResponses = filteredResponses.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+      callback(sortedResponses);
+    };
+
+    const setupSubscriptions = async () => {
+      try {
+        const playlistsQuery = query(collection(db, this.collection));
+        const playlistsSnapshot = await getDocs(playlistsQuery);
+
+        for (const playlistDoc of playlistsSnapshot.docs) {
+          const playlistId = playlistDoc.id;
+
+          const invitationsQuery = query(
+            collection(
+              db,
+              this.collection,
+              playlistId,
+              this.invitationsCollection
+            ),
+            where('invitedBy', '==', userId)
+          );
+
+          const unsubscribe = onSnapshot(invitationsQuery, (querySnapshot) => {
+            allResponses = [];
+            querySnapshot.docs.forEach((invitationDoc) => {
+              const invitation = {
+                id: invitationDoc.id,
+                playlistId,
+                ...invitationDoc.data()
+              } as PlaylistInvitation;
+              allResponses.push(invitation);
+            });
+            updateResponses();
+          });
+
+          unsubscribeFunctions.push(unsubscribe);
+        }
+      } catch (error) {
+        Logger.error(
+          'Error setting up sent invitations responses subscriptions:',
+          error
+        );
+      }
+    };
+
+    setupSubscriptions();
+
+    return () => {
+      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      unsubscribeFunctions = [];
+      allResponses = [];
     };
   }
 
