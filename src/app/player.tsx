@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { PanResponder, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
@@ -180,7 +180,7 @@ const PlayerScreen = () => {
                   size={24}
                   color={
                     isCurrentTrackFavorite
-                      ? themeColors[theme]['intent-error']
+                      ? themeColors[theme]['primary']
                       : themeColors[theme]['text-secondary']
                   }
                 />

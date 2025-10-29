@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   GestureResponderEvent,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   View
 } from 'react-native';
@@ -107,61 +108,122 @@ const IconButton = ({
         backgroundColor: backgroundColor || themeColors[theme]['transparent']
       }}
     >
-      <Pressable
-        className="flex-1 items-center justify-center"
-        onPress={onPress}
-        onPressIn={startRipple}
-        onPressOut={endPress}
-        onLayout={handleLayout}
-        hitSlop={16}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        disabled={disabled || loading}
-        style={{ opacity: disabled || loading ? 0.6 : 1 }}
-      >
-        {/* Overlay to darken the button while pressed.
-            Rendered BEFORE ripple so ripple appears on top of overlay. */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            overlayStyle
-          ]}
-        />
-
-        {/* Ripple effect */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              top: sizeLayout.height / 2 - sizeLayout.height,
-              left: sizeLayout.width / 2 - sizeLayout.width,
-              width: sizeLayout.width * 2,
-              height: sizeLayout.height * 2,
-              borderRadius: sizeLayout.width,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            rippleStyle
-          ]}
-        />
-
-        {/* Content: Loading indicator or children */}
-        {loading ? (
-          <ActivityIndicator
-            size="small"
-            color={themeColors[theme]['primary']}
+      {Platform.OS === 'web' ? (
+        <View
+          className="flex-1 cursor-pointer items-center justify-center"
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={startRipple}
+          onResponderRelease={(e) => {
+            endPress();
+            if (!disabled && !loading) {
+              onPress?.(e);
+            }
+          }}
+          onResponderTerminate={endPress}
+          onLayout={handleLayout}
+          // emulate disabled visual state
+          style={{ opacity: disabled || loading ? 0.6 : 1, cursor: 'pointer' }}
+          aria-label={accessibilityLabel}
+        >
+          {/* Overlay to darken the button while pressed. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              overlayStyle
+            ]}
           />
-        ) : (
-          children
-        )}
-      </Pressable>
+
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
+
+          {/* Content: Loading indicator or children */}
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={themeColors[theme]['primary']}
+            />
+          ) : (
+            children
+          )}
+        </View>
+      ) : (
+        <Pressable
+          className="flex-1 items-center justify-center"
+          onPress={onPress}
+          onPressIn={startRipple}
+          onPressOut={endPress}
+          onLayout={handleLayout}
+          hitSlop={16}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          disabled={disabled || loading}
+          style={{ opacity: disabled || loading ? 0.6 : 1 }}
+        >
+          {/* Overlay to darken the button while pressed.
+              Rendered BEFORE ripple so ripple appears on top of overlay. */}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              overlayStyle
+            ]}
+          />
+
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
+
+          {/* Content: Loading indicator or children */}
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={themeColors[theme]['primary']}
+            />
+          ) : (
+            children
+          )}
+        </Pressable>
+      )}
     </View>
   );
 };

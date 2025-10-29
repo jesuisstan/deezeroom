@@ -18,6 +18,7 @@ import {
 
 import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
+import { sendPushNotification } from '@/utils/send-push-notification';
 
 import { parseFirestoreDate } from './firestore-date-utils';
 
@@ -271,8 +272,14 @@ export class PlaylistService {
       const currentTracks = Array.isArray(playlist.tracks)
         ? [...(playlist.tracks as string[])]
         : [];
-      currentTracks.push(trackId); // keep duplicates as in real playlists
-      const newPosition = currentTracks.length; // 1-based position at end
+
+      // Check if track is already in playlist to prevent duplicates
+      if (currentTracks.includes(trackId)) {
+        throw new Error('Track is already in this playlist');
+      }
+
+      currentTracks.unshift(trackId);
+      const newPosition = 1; // 1-based position at start
 
       // Update playlist metadata and tracks array
       transaction.update(playlistRef, {
@@ -406,6 +413,47 @@ export class PlaylistService {
       collection(db, this.collection, playlistId, this.invitationsCollection),
       invitationData
     );
+
+    // Send push notification to invited user
+    try {
+      // Get invited user's push token
+      const inviteeRef = doc(db, 'users', userId);
+      const inviteeDoc = await getDoc(inviteeRef);
+
+      if (inviteeDoc.exists()) {
+        const inviteeData = inviteeDoc.data();
+        const pushToken = inviteeData?.pushTokens;
+
+        if (pushToken?.expoPushToken) {
+          // Get inviter name
+          const inviterRef = doc(db, 'users', invitedBy);
+          const inviterDoc = await getDoc(inviterRef);
+          const inviterData = inviterDoc.data();
+          const inviterName =
+            inviterData?.displayName ||
+            inviterData?.email?.split('@')[0] ||
+            'Someone';
+
+          // Send push notification
+          await sendPushNotification({
+            to: pushToken.expoPushToken,
+            title: 'New Playlist Invitation',
+            body: `${inviterName} invited you to collaborate on "${playlistName || 'a playlist'}"`,
+            data: {
+              type: 'invitation',
+              playlistId,
+              invitationId: docRef.id
+            },
+            badge: 1
+          });
+
+          Logger.info('Push notification sent to invited user');
+        }
+      }
+    } catch (error) {
+      Logger.error('Error sending push notification:', error);
+      // Don't throw - invitation is created, notification is optional
+    }
 
     return docRef.id;
   }
@@ -580,6 +628,71 @@ export class PlaylistService {
     }
   }
 
+  // Get all sent invitations that received responses (accepted or declined)
+  // Returns only recent responses (within last 7 days) for badge count
+  static async getUserSentInvitationsResponses(
+    userId: string,
+    sinceDaysAgo: number = 7
+  ): Promise<PlaylistInvitation[]> {
+    try {
+      // Get all playlists to find sent invitations
+      const playlistsQuery = query(collection(db, this.collection));
+      const playlistsSnapshot = await getDocs(playlistsQuery);
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
+
+      const allResponses: PlaylistInvitation[] = [];
+
+      for (const playlistDoc of playlistsSnapshot.docs) {
+        const playlistId = playlistDoc.id;
+
+        // Get invitations where user is the inviter and status is accepted or declined
+        const invitationsQuery = query(
+          collection(
+            db,
+            this.collection,
+            playlistId,
+            this.invitationsCollection
+          ),
+          where('invitedBy', '==', userId)
+        );
+
+        const invitationsSnapshot = await getDocs(invitationsQuery);
+
+        invitationsSnapshot.docs.forEach((invitationDoc) => {
+          const invitation = {
+            id: invitationDoc.id,
+            playlistId,
+            ...invitationDoc.data()
+          } as PlaylistInvitation;
+
+          // Only include accepted or declined invitations from recent period
+          if (
+            (invitation.status === 'accepted' ||
+              invitation.status === 'declined') &&
+            invitation.invitedAt
+          ) {
+            const invitedAt = parseFirestoreDate(invitation.invitedAt);
+            if (invitedAt >= cutoffDate) {
+              allResponses.push(invitation);
+            }
+          }
+        });
+      }
+
+      // Sort by invitedAt in memory (descending) - most recent first
+      return allResponses.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } catch (error) {
+      Logger.error('Error getting sent invitations responses:', error);
+      return [];
+    }
+  }
+
   // Accept an invitation
   static async acceptInvitation(
     playlistId: string,
@@ -669,6 +782,41 @@ export class PlaylistService {
         });
       });
 
+      // Send push notification to inviter
+      try {
+        const inviterRef = doc(db, 'users', invitation.invitedBy);
+        const inviterDoc = await getDoc(inviterRef);
+
+        if (inviterDoc.exists()) {
+          const inviterData = inviterDoc.data();
+          const pushToken = inviterData?.pushTokens;
+
+          if (pushToken?.expoPushToken) {
+            const accepterName =
+              invitation.displayName ||
+              invitation.email?.split('@')[0] ||
+              'Someone';
+
+            await sendPushNotification({
+              to: pushToken.expoPushToken,
+              title: 'Invitation Accepted',
+              body: `${accepterName} accepted your invitation to "${playlist?.name || 'playlist'}"`,
+              data: {
+                type: 'invitation_accepted',
+                playlistId,
+                userId
+              },
+              badge: 1
+            });
+
+            Logger.info('Push notification sent to inviter');
+          }
+        }
+      } catch (error) {
+        Logger.error('Error sending push notification to inviter:', error);
+        // Don't throw - invitation is accepted, notification is optional
+      }
+
       return { success: true, message: 'Invitation accepted successfully' };
     } catch (error) {
       Logger.error('Error accepting invitation:', error);
@@ -737,6 +885,42 @@ export class PlaylistService {
       await updateDoc(invitationRef, {
         status: 'declined'
       });
+
+      // Send push notification to inviter
+      try {
+        const playlist = await this.getPlaylist(playlistId);
+        const inviterRef = doc(db, 'users', invitation.invitedBy);
+        const inviterDoc = await getDoc(inviterRef);
+
+        if (inviterDoc.exists()) {
+          const inviterData = inviterDoc.data();
+          const pushToken = inviterData?.pushTokens;
+
+          if (pushToken?.expoPushToken) {
+            const declinerName =
+              invitation.displayName ||
+              invitation.email?.split('@')[0] ||
+              'Someone';
+
+            await sendPushNotification({
+              to: pushToken.expoPushToken,
+              title: 'Invitation Declined',
+              body: `${declinerName} declined your invitation to "${playlist?.name || 'playlist'}"`,
+              data: {
+                type: 'invitation_declined',
+                playlistId,
+                userId
+              },
+              badge: 1
+            });
+
+            Logger.info('Push notification sent to inviter');
+          }
+        }
+      } catch (error) {
+        Logger.error('Error sending push notification to inviter:', error);
+        // Don't throw - invitation is declined, notification is optional
+      }
 
       return { success: true, message: 'Invitation declined' };
     } catch (error) {
@@ -904,6 +1088,88 @@ export class PlaylistService {
     };
   }
 
+  // Subscribe to user sent invitations responses (real-time)
+  static subscribeToUserSentInvitationsResponses(
+    userId: string,
+    callback: (responses: PlaylistInvitation[]) => void,
+    sinceDaysAgo: number = 7
+  ): () => void {
+    let unsubscribeFunctions: (() => void)[] = [];
+    let allResponses: PlaylistInvitation[] = [];
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
+
+    const updateResponses = () => {
+      const filteredResponses = allResponses.filter((response) => {
+        if (
+          (response.status === 'accepted' || response.status === 'declined') &&
+          response.invitedAt
+        ) {
+          const invitedAt = parseFirestoreDate(response.invitedAt);
+          return invitedAt >= cutoffDate;
+        }
+        return false;
+      });
+
+      const sortedResponses = filteredResponses.sort((a, b) => {
+        const dateA = parseFirestoreDate(a.invitedAt);
+        const dateB = parseFirestoreDate(b.invitedAt);
+        return dateB.getTime() - dateA.getTime();
+      });
+      callback(sortedResponses);
+    };
+
+    const setupSubscriptions = async () => {
+      try {
+        const playlistsQuery = query(collection(db, this.collection));
+        const playlistsSnapshot = await getDocs(playlistsQuery);
+
+        for (const playlistDoc of playlistsSnapshot.docs) {
+          const playlistId = playlistDoc.id;
+
+          const invitationsQuery = query(
+            collection(
+              db,
+              this.collection,
+              playlistId,
+              this.invitationsCollection
+            ),
+            where('invitedBy', '==', userId)
+          );
+
+          const unsubscribe = onSnapshot(invitationsQuery, (querySnapshot) => {
+            allResponses = [];
+            querySnapshot.docs.forEach((invitationDoc) => {
+              const invitation = {
+                id: invitationDoc.id,
+                playlistId,
+                ...invitationDoc.data()
+              } as PlaylistInvitation;
+              allResponses.push(invitation);
+            });
+            updateResponses();
+          });
+
+          unsubscribeFunctions.push(unsubscribe);
+        }
+      } catch (error) {
+        Logger.error(
+          'Error setting up sent invitations responses subscriptions:',
+          error
+        );
+      }
+    };
+
+    setupSubscriptions();
+
+    return () => {
+      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
+      unsubscribeFunctions = [];
+      allResponses = [];
+    };
+  }
+
   // Update participant data (when user profile changes)
   static async updateParticipantData(
     playlistId: string,
@@ -946,15 +1212,27 @@ export class PlaylistService {
     // Owner can always edit
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant with edit rights
+    // Check if user is participant
     const participant = playlist.participants.find((p) => p.userId === userId);
-    if (!participant) return false;
+    const isParticipant = !!participant;
 
-    // Check edit permissions
-    if (playlist.editPermissions === 'everyone') {
-      return participant.role === 'editor' || participant.role === 'owner';
-    } else if (playlist.editPermissions === 'invited') {
-      return participant.role === 'editor' || participant.role === 'owner';
+    // PRIVATE playlists: only invited participants can edit
+    if (playlist.visibility === 'private') {
+      if (!isParticipant) return false;
+      // Check if participant has editor or owner role
+      return participant!.role === 'editor' || participant!.role === 'owner';
+    }
+
+    // PUBLIC playlists: depends on editPermissions
+    if (playlist.visibility === 'public') {
+      if (playlist.editPermissions === 'everyone') {
+        // Everyone can edit (even non-participants)
+        return true;
+      } else if (playlist.editPermissions === 'invited') {
+        // Only participants can edit
+        if (!isParticipant) return false;
+        return participant!.role === 'editor' || participant!.role === 'owner';
+      }
     }
 
     return false;
@@ -970,11 +1248,29 @@ export class PlaylistService {
     // Owner can always invite
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant with edit rights (editors can invite)
+    // Check if user is participant
     const participant = playlist.participants.find((p) => p.userId === userId);
-    if (!participant) return false;
+    const isParticipant = !!participant;
 
-    return participant.role === 'editor' || participant.role === 'owner';
+    // PRIVATE playlists: only participants with editor/owner role can invite
+    if (playlist.visibility === 'private') {
+      if (!isParticipant) return false;
+      return participant!.role === 'editor' || participant!.role === 'owner';
+    }
+
+    // PUBLIC playlists: depends on editPermissions
+    if (playlist.visibility === 'public') {
+      if (playlist.editPermissions === 'everyone') {
+        // Everyone can invite in public playlists
+        return true;
+      } else if (playlist.editPermissions === 'invited') {
+        // Only participants can invite
+        if (!isParticipant) return false;
+        return participant!.role === 'editor' || participant!.role === 'owner';
+      }
+    }
+
+    return false;
   }
 
   static async canUserViewPlaylist(

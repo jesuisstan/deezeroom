@@ -9,12 +9,12 @@ type PlayerArtworkProps = {
 
 const PlayerArtwork = memo(
   ({ artworkSource, albumCoverUrl, albumTitle }: PlayerArtworkProps) => {
-    console.log('🖼️ Props:', {
-      artworkSourceType: typeof artworkSource,
-      artworkSourceUri: artworkSource?.uri,
-      albumCoverUrl,
-      albumTitle
-    });
+    //console.log('🖼️ Props:', {
+    //  artworkSourceType: typeof artworkSource,
+    //  artworkSourceUri: artworkSource?.uri,
+    //  albumCoverUrl,
+    //  albumTitle
+    //});
 
     return (
       <View className="flex-1 items-center justify-center">

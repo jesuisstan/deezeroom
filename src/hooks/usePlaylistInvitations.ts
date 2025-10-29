@@ -10,7 +10,7 @@ import {
 } from '@/utils/firebase/firebase-service-playlists';
 import { parseFirestoreDate } from '@/utils/firebase/firestore-date-utils';
 
-export interface UseInvitationsReturn {
+export interface UsePlaylistInvitationsReturn {
   invitations: PlaylistInvitation[];
   unreadCount: number;
   isLoading: boolean;
@@ -26,7 +26,7 @@ export interface UseInvitationsReturn {
   }>;
 }
 
-export const useInvitations = (): UseInvitationsReturn => {
+export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
   const { user, profile } = useUser();
   const [invitations, setInvitations] = useState<PlaylistInvitation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

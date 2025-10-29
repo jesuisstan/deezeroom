@@ -19,13 +19,13 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 interface SearchTracksComponentProps {
-  onPlayTrack?: (track: Track) => void;
+  onPressTrack?: (track: Track) => void;
   onSearchResults?: (tracks: Track[]) => void;
   currentPlayingTrackId?: string;
 }
 
 const SearchTracksComponent = ({
-  onPlayTrack,
+  onPressTrack,
   onSearchResults,
   currentPlayingTrackId
 }: SearchTracksComponentProps) => {
@@ -241,8 +241,8 @@ const SearchTracksComponent = ({
     }
   };
 
-  const handlePlayTrack = (track: Track) => {
-    onPlayTrack?.(track);
+  const handlePressTrack = (track: Track) => {
+    onPressTrack?.(track);
   };
 
   const handleShowPopularTracks = () => {
@@ -265,7 +265,7 @@ const SearchTracksComponent = ({
   return (
     <View className="w-full">
       {/* Search input and buttons */}
-      <View className="mb-2 flex-row items-center gap-2 px-4">
+      <View className="mb-2 flex-row items-center gap-1 px-4">
         <InputCustom
           placeholder="Search tracks..."
           value={searchQuery}
@@ -276,39 +276,41 @@ const SearchTracksComponent = ({
           showClearButton
           onClear={() => setSearchQuery('')}
         />
-        <IconButton
-          accessibilityLabel="Search"
-          onPress={handleSearch}
-          loading={fetching || isSearching}
-          className={`h-12 w-12 ${
-            !showPopularTracks && searchQuery.trim() ? 'bg-primary/20' : ''
-          }`}
-        >
-          <Feather
-            name="search"
-            size={18}
-            color={
-              !showPopularTracks && searchQuery.trim()
-                ? themeColors[theme]['primary']
-                : themeColors[theme]['accent']
-            }
-          />
-        </IconButton>
-        <IconButton
-          accessibilityLabel="Show Popular Tracks"
-          onPress={handleShowPopularTracks}
-          className={`h-12 w-12 ${showPopularTracks ? 'bg-primary/20' : ''}`}
-        >
-          <Feather
-            name="trending-up"
-            size={18}
-            color={
-              showPopularTracks
-                ? themeColors[theme]['primary']
-                : themeColors[theme]['accent']
-            }
-          />
-        </IconButton>
+        <View className="flex-row items-center">
+          <IconButton
+            accessibilityLabel="Search"
+            onPress={handleSearch}
+            loading={fetching || isSearching}
+            className={`h-12 w-12 ${
+              !showPopularTracks && searchQuery.trim() ? 'bg-primary/20' : ''
+            }`}
+          >
+            <Feather
+              name="search"
+              size={18}
+              color={
+                !showPopularTracks && searchQuery.trim()
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['accent']
+              }
+            />
+          </IconButton>
+          <IconButton
+            accessibilityLabel="Show Popular Tracks"
+            onPress={handleShowPopularTracks}
+            className={`h-12 w-12 ${showPopularTracks ? 'bg-primary/20' : ''}`}
+          >
+            <Feather
+              name="trending-up"
+              size={18}
+              color={
+                showPopularTracks
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['accent']
+              }
+            />
+          </IconButton>
+        </View>
       </View>
 
       {/* Offline indicator */}
@@ -349,7 +351,7 @@ const SearchTracksComponent = ({
                 key={`${track.id}-${index}`}
                 track={track}
                 isPlaying={currentPlayingTrackId === track.id}
-                onPlay={handlePlayTrack}
+                onPress={handlePressTrack}
               />
             ))}
           </View>

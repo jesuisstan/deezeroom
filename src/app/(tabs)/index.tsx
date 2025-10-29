@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
 import FeatureTile from '@/components/ui/FeatureTile';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
 import {
   usePlaybackActions,
@@ -48,10 +49,18 @@ const HomeScreen = () => {
     router.push('/(tabs)/playlists');
   };
 
+  // Add padding when mini player is visible
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={true}
-      contentContainerStyle={{ flexGrow: 1 }}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingBottom: bottomPadding
+      }}
       className="bg-bg-main"
     >
       <View
@@ -118,7 +127,7 @@ const HomeScreen = () => {
             Music Search
           </TextCustom>
           <SearchTracksComponent
-            onPlayTrack={handlePlayTrack}
+            onPressTrack={handlePlayTrack}
             onSearchResults={handleSearchResults}
             currentPlayingTrackId={isPlaying ? currentTrack?.id : undefined}
           />

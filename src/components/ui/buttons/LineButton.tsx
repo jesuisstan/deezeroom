@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   GestureResponderEvent,
   LayoutChangeEvent,
+  Platform,
   Pressable,
   View
 } from 'react-native';
@@ -23,7 +24,6 @@ interface LineButtonProps {
   onPress?: (event: GestureResponderEvent) => void;
   disabled?: boolean;
   className?: string;
-  color?: string;
 }
 
 const baseClasses =
@@ -33,8 +33,7 @@ const LineButton: React.FC<LineButtonProps> = ({
   children,
   onPress,
   disabled = false,
-  className,
-  color
+  className
 }) => {
   const { theme } = useTheme();
   const [sizeLayout, setSizeLayout] = useState({ width: 0, height: 0 });
@@ -50,11 +49,6 @@ const LineButton: React.FC<LineButtonProps> = ({
   const rippleStyle = useAnimatedStyle(() => ({
     transform: [{ scale: rippleScale.value }],
     opacity: rippleOpacity.value
-  }));
-
-  // Animated style for overlay
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value
   }));
 
   const handleLayout = (e: LayoutChangeEvent) => {
@@ -109,52 +103,71 @@ const LineButton: React.FC<LineButtonProps> = ({
 
   return (
     <View className="w-full overflow-hidden rounded-none">
-      <Pressable
-        accessibilityRole="button"
-        hitSlop={40}
-        onPress={onPress}
-        onPressIn={startRipple}
-        onPressOut={endPress}
-        onLayout={handleLayout}
-        disabled={disabled}
-        className={containerClasses}
-        style={{ backgroundColor: 'transparent' }}
-      >
-        {/* Overlay to darken the button while pressed */}
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            {
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            overlayStyle
-          ]}
-        />
+      {Platform.OS === 'web' ? (
+        <View
+          // Use responder system to emulate press behavior without rendering a <button/>
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={startRipple}
+          onResponderRelease={(e) => {
+            endPress();
+            onPress?.(e);
+          }}
+          onResponderTerminate={endPress}
+          onLayout={handleLayout}
+          className={containerClasses}
+          style={{ backgroundColor: 'transparent', cursor: 'pointer' }}
+        >
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
 
-        {/* Ripple effect */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              top: sizeLayout.height / 2 - sizeLayout.height,
-              left: sizeLayout.width / 2 - sizeLayout.width,
-              width: sizeLayout.width * 2,
-              height: sizeLayout.height * 2,
-              borderRadius: sizeLayout.width,
-              backgroundColor: themeColors[theme]['bg-inverse']
-            },
-            rippleStyle
-          ]}
-        />
+          {/* Children content */}
+          {children}
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={40}
+          onPress={onPress}
+          onPressIn={startRipple}
+          onPressOut={endPress}
+          onLayout={handleLayout}
+          disabled={disabled}
+          className={containerClasses}
+          style={{ backgroundColor: 'transparent' }}
+        >
+          {/* Ripple effect */}
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                top: sizeLayout.height / 2 - sizeLayout.height,
+                left: sizeLayout.width / 2 - sizeLayout.width,
+                width: sizeLayout.width * 2,
+                height: sizeLayout.height * 2,
+                borderRadius: sizeLayout.width,
+                backgroundColor: themeColors[theme]['bg-inverse']
+              },
+              rippleStyle
+            ]}
+          />
 
-        {/* Children content */}
-        {children}
-      </Pressable>
+          {/* Children content */}
+          {children}
+        </Pressable>
+      )}
     </View>
   );
 };

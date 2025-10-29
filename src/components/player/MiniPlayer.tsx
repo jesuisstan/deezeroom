@@ -14,6 +14,7 @@ import { usePathname, useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import {
   usePlaybackActions,
@@ -29,7 +30,7 @@ const MiniPlayer = () => {
   const router = useRouter();
   const pathname = usePathname();
   // Keep the mini player floating above the tab bar with a small gap.
-  const baseBottomOffset = Platform.select({ ios: 80, default: 68 });
+  const baseBottomOffset = Platform.select({ ios: 80, default: 70 });
 
   // Split into three separate hooks to minimize re-renders
   const { queue, currentIndex, currentTrack } = usePlaybackState();
@@ -173,7 +174,7 @@ const MiniPlayer = () => {
         position: 'absolute',
         left: 16,
         right: 16,
-        bottom: baseBottomOffset ?? 68,
+        bottom: baseBottomOffset ?? 70,
         transform: [{ translateY }, { translateX: swipeTranslateX }],
         opacity
       }}
@@ -182,13 +183,13 @@ const MiniPlayer = () => {
         className="overflow-hidden rounded-3xl"
         style={{
           backgroundColor: themeColors[theme]['bg-secondary'],
-          borderColor: themeColors[theme]['bg-tertiary'],
-          borderWidth: 1,
           shadowColor: themeColors[theme]['bg-inverse'],
           shadowOpacity: 0.15,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: 4 },
-          elevation: 8
+          elevation: 2,
+          height: MINI_PLAYER_HEIGHT,
+          justifyContent: 'center'
         }}
       >
         <Pressable
@@ -196,7 +197,7 @@ const MiniPlayer = () => {
           accessibilityLabel="Open full player"
           onPress={handleOpenFullPlayer}
         >
-          <View className="flex-row items-center gap-3 px-3 py-2">
+          <View className="flex-row items-center gap-3 px-2 py-2">
             <IconButton
               accessibilityLabel={
                 isPlaying ? 'Pause playback' : 'Start playback'
@@ -255,7 +256,7 @@ const MiniPlayer = () => {
                 size={20}
                 color={
                   isCurrentTrackFavorite
-                    ? themeColors[theme]['intent-error']
+                    ? themeColors[theme]['primary']
                     : themeColors[theme]['text-main']
                 }
               />

@@ -40,8 +40,8 @@ export const SEARCH_TRACKS = `
 `;
 
 export const GET_POPULAR_TRACKS = `
-  query GetPopularTracks($limit: Int = ${LIMIT_DEFAULT}) {
-    getPopularTracks(limit: $limit) {
+  query GetPopularTracks($limit: Int = ${LIMIT_DEFAULT}, $index: Int = ${INDEX_DEFAULT}) {
+    getPopularTracks(limit: $limit, index: $index) {
       tracks {
         id
         title

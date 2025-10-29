@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '1.54.1',
+    version: '1.54.3',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
@@ -15,7 +15,10 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
         './credentials/ios/GoogleService-Info.plist',
-      backgroundModes: ['audio']
+      backgroundModes: ['audio'],
+      infoPlist: {
+        UIBackgroundModes: ['remote-notification']
+      }
     },
     android: {
       package: 'com.krivtsoff.deezeroom',
@@ -28,7 +31,8 @@ module.exports = () => ({
       softwareKeyboardLayoutMode: 'pan',
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
-        './credentials/android/google-services.json'
+        './credentials/android/google-services.json',
+      permissions: ['POST_NOTIFICATIONS']
     },
     web: {
       bundler: 'metro',
@@ -87,6 +91,16 @@ module.exports = () => ({
         {
           locationWhenInUsePermission:
             'Allow Deezeroom to use your location to show your city on profile.'
+        }
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './src/assets/images/icon.png',
+          color: '#a238ff',
+          defaultChannel: 'default',
+          sounds: [],
+          mode: 'production'
         }
       ]
     ],

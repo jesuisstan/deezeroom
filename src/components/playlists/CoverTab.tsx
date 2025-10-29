@@ -1,7 +1,5 @@
 import React from 'react';
-import { Dimensions, Image, View } from 'react-native';
-
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image, View } from 'react-native';
 
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -13,10 +11,9 @@ interface CoverTabProps {
 
 const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
-  const { width } = Dimensions.get('window');
 
   return (
-    <View style={{ width, height: 200 }}>
+    <View style={{ width: '100%', aspectRatio: 1, overflow: 'hidden' }}>
       {playlist.coverImageUrl ? (
         <Image
           source={{ uri: playlist.coverImageUrl }}
@@ -29,16 +26,27 @@ const CoverTab: React.FC<CoverTabProps> = ({ playlist }) => {
             width: '100%',
             height: '100%',
             backgroundColor:
-              themeColors[theme as keyof typeof themeColors].primary,
+              playlist.visibility === 'public'
+                ? themeColors[theme].primary
+                : themeColors[theme]['intent-success'],
             alignItems: 'center',
             justifyContent: 'center'
           }}
         >
-          <MaterialCommunityIcons
-            name="playlist-music"
-            size={64}
-            color="white"
-          />
+          <View className="max-w-96 items-center justify-center rounded bg-bg-main px-4 shadow-lg">
+            <Image
+              source={
+                theme === 'dark'
+                  ? require('@/assets/images/logo/logo-text-white.png')
+                  : require('@/assets/images/logo/logo-text-black.png')
+              }
+              style={{
+                maxWidth: '80%',
+                height: 80,
+                resizeMode: 'contain'
+              }}
+            />
+          </View>
         </View>
       )}
     </View>

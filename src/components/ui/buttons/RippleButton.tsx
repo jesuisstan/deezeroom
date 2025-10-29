@@ -76,11 +76,6 @@ const RippleButton: React.FC<RippleButtonProps> = ({
     opacity: rippleOpacity.value
   }));
 
-  // Animated style for overlay
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value
-  }));
-
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setSizeLayout({ width, height });
@@ -182,9 +177,9 @@ const RippleButton: React.FC<RippleButtonProps> = ({
         // keep base backgroundColor here so nativewind classes are preserved
         style={{ backgroundColor }}
       >
-        {/* Overlay to darken the button while pressed.
+        {/*Overlay to darken the button while pressed.
             Rendered BEFORE ripple so ripple appears on top of overlay. */}
-        <Animated.View
+        {/*<Animated.View
           pointerEvents="none"
           style={[
             {
@@ -197,7 +192,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
             },
             overlayStyle
           ]}
-        />
+        />*/}
 
         {/* Ripple effect */}
         <Animated.View

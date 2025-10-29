@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, Image, Pressable, View } from 'react-native';
+import { Dimensions, Image, Platform, Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -71,7 +71,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
             }}
           >
             <TextCustom
-              type="bold"
+              type="semibold"
               size="l"
               numberOfLines={2}
               color={themeColors[theme]['text-main']}
@@ -135,7 +135,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
               >
                 <MaterialCommunityIcons
                   name={playlist.visibility === 'public' ? 'earth' : 'lock'}
-                  size={18}
+                  size={Platform.OS === 'web' ? 42 : 18}
                   color={themeColors[theme]['white']}
                 />
               </View>
@@ -158,7 +158,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
                       ? 'account-group'
                       : 'account-plus'
                   }
-                  size={18}
+                  size={Platform.OS === 'web' ? 42 : 18}
                   color={themeColors[theme]['white']}
                 />
               </View>

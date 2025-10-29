@@ -76,6 +76,10 @@ Push secret file (like `google-services.json`) to cloud builder:
 npx eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./credentials/android/google-services.json
 ```
 
+```bash
+npx eas env:create --scope project --name FIREBASE_ADMINSDK_JSON --type file --value ./credentials/android/deezeroom-1bc3c-firebase-adminsdk-fbsvc-e2b4ace5e3.json
+```
+
 ## 🏗 Application Architecture
 
 ### Navigation Flow
