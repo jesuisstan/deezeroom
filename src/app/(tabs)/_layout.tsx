@@ -5,6 +5,7 @@ import { Tabs, useRouter } from 'expo-router';
 
 import NotificationsButton from '@/components/notifications/NotificationsButton';
 import MiniPlayer from '@/components/player/MiniPlayer';
+import WebPlayerBar from '@/components/player/WebPlayerBar';
 import ProfileButton from '@/components/profile/ProfileButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -122,7 +123,7 @@ const TabLayout = () => {
           }}
         />
       </Tabs>
-      <MiniPlayer />
+      {Platform.OS === 'web' ? <WebPlayerBar /> : <MiniPlayer />}
     </View>
   );
 };

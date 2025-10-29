@@ -15,12 +15,7 @@ import { usePathname, useRouter } from 'expo-router';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
-import {
-  usePlaybackActions,
-  usePlaybackState,
-  usePlaybackUI
-} from '@/providers/PlaybackProvider';
+import useCompactPlayerControls from '@/hooks/useCompactPlayerControls';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -32,13 +27,19 @@ const MiniPlayer = () => {
   // Keep the mini player floating above the tab bar with a small gap.
   const baseBottomOffset = Platform.select({ ios: 80, default: 70 });
 
-  // Split into three separate hooks to minimize re-renders
-  const { queue, currentIndex, currentTrack } = usePlaybackState();
-  const { isPlaying, isLoading } = usePlaybackUI();
-  const { togglePlayPause, playNext } = usePlaybackActions();
+  const {
+    currentTrack,
+    currentTrackId,
+    isPlaying,
+    isLoading,
+    togglePlayPause,
+    playNext,
+    isCurrentTrackFavorite,
+    hasNext,
+    toggleFavorite
+  } = useCompactPlayerControls();
 
   const { theme } = useTheme();
-  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
 
   const [isRendered, setIsRendered] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
@@ -47,14 +48,6 @@ const MiniPlayer = () => {
 
   const isOnFullPlayer = pathname === '/player';
   const shouldShow = !!currentTrack && !isOnFullPlayer && !isDismissed;
-
-  const currentTrackId = currentTrack?.id;
-  const isCurrentTrackFavorite = useMemo(() => {
-    if (!currentTrackId) {
-      return false;
-    }
-    return isTrackFavorite(currentTrackId);
-  }, [currentTrackId, isTrackFavorite]);
 
   useEffect(() => {
     if (shouldShow) {
@@ -140,13 +133,6 @@ const MiniPlayer = () => {
     [handleDismissMini, swipeTranslateX]
   );
 
-  const hasNext = useMemo(() => {
-    if (currentIndex < 0) {
-      return false;
-    }
-    return queue.slice(currentIndex + 1).some((track) => track.preview);
-  }, [currentIndex, queue]);
-
   const handleOpenFullPlayer = () => {
     router.push('/player');
   };
@@ -154,12 +140,9 @@ const MiniPlayer = () => {
   const handleToggleFavorite = useCallback(
     async (event: GestureResponderEvent) => {
       event.stopPropagation();
-      if (!currentTrackId) {
-        return;
-      }
-      await toggleFavoriteTrack(currentTrackId);
+      await toggleFavorite();
     },
-    [currentTrackId, toggleFavoriteTrack]
+    [toggleFavorite]
   );
 
   if (!isRendered) {
