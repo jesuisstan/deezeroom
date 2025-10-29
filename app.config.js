@@ -101,7 +101,8 @@ module.exports = () => ({
           sounds: [],
           mode: 'production'
         }
-      ]
+      ],
+      ['expo-asset']
     ],
     experiments: {
       typedRoutes: true,
