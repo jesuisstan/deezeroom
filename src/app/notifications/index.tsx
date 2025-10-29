@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
 
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -26,6 +35,132 @@ interface NotificationItem {
   isUnread?: boolean;
 }
 
+interface SwipeableNotificationProps {
+  notification: NotificationItem;
+  onDismiss: () => void;
+  isResponse: boolean;
+  processingInvitations: Set<string>;
+  handleAcceptInvitation: (invitation: PlaylistInvitation) => void;
+  handleDeclineInvitation: (invitation: PlaylistInvitation) => void;
+  theme: 'light' | 'dark';
+}
+
+const SwipeableNotification = ({
+  notification,
+  onDismiss,
+  isResponse,
+  processingInvitations,
+  handleAcceptInvitation,
+  handleDeclineInvitation,
+  theme
+}: SwipeableNotificationProps) => {
+  const invitation = notification.invitation;
+  const translateX = useSharedValue(0);
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = event.translationX;
+    })
+    .onEnd((event) => {
+      const swipeLeft = event.translationX < -100 || event.velocityX < -500;
+      const swipeRight = event.translationX > 100 || event.velocityX > 500;
+
+      if ((swipeLeft || swipeRight) && isResponse) {
+        const direction = swipeLeft ? -1000 : 1000;
+        translateX.value = withTiming(direction, { duration: 200 }, () => {
+          runOnJS(onDismiss)();
+        });
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: translateX.value }]
+    };
+  });
+
+  return (
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={animatedStyle}>
+        <View
+          className="mb-2 rounded-lg border px-4 py-3"
+          style={{
+            backgroundColor: themeColors[theme]['bg-secondary'],
+            borderColor: themeColors[theme]['border']
+          }}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons
+                  name={isResponse ? 'email' : 'account-plus'}
+                  size={18}
+                  color={
+                    isResponse
+                      ? invitation.status === 'accepted'
+                        ? themeColors[theme]['intent-success']
+                        : themeColors[theme]['intent-error']
+                      : themeColors[theme]['primary']
+                  }
+                  style={{ marginRight: 8 }}
+                />
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-main']}
+                  style={{ fontWeight: '500' }}
+                >
+                  {isResponse
+                    ? invitation.status === 'accepted'
+                      ? 'Accepted'
+                      : 'Declined'
+                    : 'Playlist Invitation'}
+                </TextCustom>
+              </View>
+
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+                className="mt-1"
+                numberOfLines={2}
+              >
+                {isResponse
+                  ? invitation.status === 'accepted'
+                    ? `${invitation.displayName || invitation.email || 'Someone'} accepted your invitation`
+                    : `${invitation.displayName || invitation.email || 'Someone'} declined your invitation`
+                  : `You've been invited to collaborate on "${invitation.playlistName || ''}" playlist`}
+              </TextCustom>
+            </View>
+          </View>
+
+          {!isResponse && (
+            <View className="mt-2 flex-row gap-2">
+              <RippleButton
+                title="Accept"
+                size="sm"
+                loading={processingInvitations.has(invitation.id)}
+                disabled={processingInvitations.has(invitation.id)}
+                onPress={() => handleAcceptInvitation(invitation)}
+                className="flex-1"
+              />
+              <RippleButton
+                title="Decline"
+                size="sm"
+                variant="outline"
+                loading={processingInvitations.has(invitation.id)}
+                disabled={processingInvitations.has(invitation.id)}
+                onPress={() => handleDeclineInvitation(invitation)}
+                className="flex-1"
+              />
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    </GestureDetector>
+  );
+};
+
 const NotificationsScreen = () => {
   const { theme } = useTheme();
   const { user } = useUser();
@@ -44,10 +179,52 @@ const NotificationsScreen = () => {
     PlaylistInvitation[]
   >([]);
   const [isLoadingResponses, setIsLoadingResponses] = useState(true);
+  const [viewedResponseIds, setViewedResponseIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const [processingInvitations, setProcessingInvitations] = useState<
     Set<string>
   >(new Set());
+
+  // Load viewed response IDs from storage
+  useEffect(() => {
+    const loadViewedResponseIds = async () => {
+      if (!user) return;
+
+      try {
+        const key = `viewed_responses_${user.uid}`;
+        const stored = await AsyncStorage.getItem(key);
+        if (stored) {
+          const ids = JSON.parse(stored) as string[];
+          setViewedResponseIds(new Set(ids));
+        }
+      } catch (error) {
+        Logger.error('Error loading viewed response IDs:', error);
+      }
+    };
+
+    loadViewedResponseIds();
+  }, [user]);
+
+  // Function to mark a response as viewed (will be called on swipe)
+  const markResponseAsViewed = useCallback(
+    async (responseId: string) => {
+      if (!user) return;
+
+      try {
+        const updated = new Set(viewedResponseIds);
+        updated.add(responseId);
+        setViewedResponseIds(updated);
+
+        const key = `viewed_responses_${user.uid}`;
+        await AsyncStorage.setItem(key, JSON.stringify([...updated]));
+      } catch (error) {
+        Logger.error('Error saving viewed response IDs:', error);
+      }
+    },
+    [user, viewedResponseIds]
+  );
 
   // Clear badge when screen is mounted (user is viewing notifications)
   useEffect(() => {
@@ -100,14 +277,19 @@ const NotificationsScreen = () => {
     }
   };
 
-  // Combine all notifications
+  // Filter out viewed responses
+  const unviewedResponses = sentInvitationsResponses.filter(
+    (inv) => !viewedResponseIds.has(inv.id)
+  );
+
+  // Combine all notifications (only unviewed responses)
   const allNotifications: NotificationItem[] = [
     ...invitations.map((inv) => ({
       id: inv.id,
       type: 'invitation' as const,
       invitation: inv
     })),
-    ...sentInvitationsResponses.map((inv) => ({
+    ...unviewedResponses.map((inv) => ({
       id: `response-${inv.id}`,
       type: 'response' as const,
       invitation: inv
@@ -237,83 +419,23 @@ const NotificationsScreen = () => {
         </View>
 
         {sortedNotifications.map((notification) => {
-          const invitation = notification.invitation;
           const isResponse = notification.type === 'response';
 
           return (
-            <View
-              key={invitation.id}
-              className="mb-2 rounded-lg border px-4 py-3"
-              style={{
-                backgroundColor: themeColors[theme]['bg-secondary'],
-                borderColor: themeColors[theme]['border']
+            <SwipeableNotification
+              key={notification.id}
+              notification={notification}
+              onDismiss={() => {
+                if (isResponse) {
+                  markResponseAsViewed(notification.invitation.id);
+                }
               }}
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <View className="flex-row items-center">
-                    <MaterialCommunityIcons
-                      name={isResponse ? 'email' : 'account-plus'}
-                      size={18}
-                      color={
-                        isResponse
-                          ? invitation.status === 'accepted'
-                            ? themeColors[theme]['intent-success']
-                            : themeColors[theme]['intent-error']
-                          : themeColors[theme]['primary']
-                      }
-                      style={{ marginRight: 8 }}
-                    />
-                    <TextCustom
-                      size="s"
-                      color={themeColors[theme]['text-main']}
-                      style={{ fontWeight: '500' }}
-                    >
-                      {isResponse
-                        ? invitation.status === 'accepted'
-                          ? 'Accepted'
-                          : 'Declined'
-                        : 'Playlist Invitation'}
-                    </TextCustom>
-                  </View>
-
-                  <TextCustom
-                    size="s"
-                    color={themeColors[theme]['text-secondary']}
-                    className="mt-1"
-                    numberOfLines={2}
-                  >
-                    {isResponse
-                      ? invitation.status === 'accepted'
-                        ? `${invitation.displayName || invitation.email || 'Someone'} accepted your invitation`
-                        : `${invitation.displayName || invitation.email || 'Someone'} declined your invitation`
-                      : `You've been invited to collaborate on "${invitation.playlistName || ''}" playlist`}
-                  </TextCustom>
-                </View>
-              </View>
-
-              {!isResponse && (
-                <View className="mt-2 flex-row gap-2">
-                  <RippleButton
-                    title="Accept"
-                    size="sm"
-                    loading={processingInvitations.has(invitation.id)}
-                    disabled={processingInvitations.has(invitation.id)}
-                    onPress={() => handleAcceptInvitation(invitation)}
-                    className="flex-1"
-                  />
-                  <RippleButton
-                    title="Decline"
-                    size="sm"
-                    variant="outline"
-                    loading={processingInvitations.has(invitation.id)}
-                    disabled={processingInvitations.has(invitation.id)}
-                    onPress={() => handleDeclineInvitation(invitation)}
-                    className="flex-1"
-                  />
-                </View>
-              )}
-            </View>
+              isResponse={isResponse}
+              processingInvitations={processingInvitations}
+              handleAcceptInvitation={handleAcceptInvitation}
+              handleDeclineInvitation={handleDeclineInvitation}
+              theme={theme}
+            />
           );
         })}
       </View>
