@@ -18,6 +18,7 @@ import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
 import InfoTab from '@/components/playlists/InfoTab';
+import ParticipantsTab from '@/components/playlists/ParticipantsTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -61,8 +62,9 @@ const PlaylistDetailScreen = () => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    { key: 'cover', title: 'QCover' },
-    { key: 'info', title: 'Info' }
+    { key: 'cover', title: 'Cover' },
+    { key: 'info', title: 'Info' },
+    { key: 'participants', title: 'Participants' }
   ]);
   const [trackIds, setTrackIds] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -611,6 +613,8 @@ const PlaylistDetailScreen = () => {
         return <CoverTab playlist={playlist!} />;
       case 'info':
         return <InfoTab playlist={playlist!} />;
+      case 'participants':
+        return <ParticipantsTab playlist={playlist!} />;
       default:
         return null;
     }
