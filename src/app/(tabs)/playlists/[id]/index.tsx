@@ -134,8 +134,55 @@ const PlaylistDetailScreen = () => {
     [id, user]
   );
 
+  // Initial load and real-time subscription
   useEffect(() => {
+    if (!id || !user) return;
+
+    // Initial load to check access and set up UI
     loadPlaylist();
+
+    // Subscribe to real-time updates
+    const unsubscribe = PlaylistService.subscribeToPlaylist(
+      id,
+      (updatedPlaylist) => {
+        if (!updatedPlaylist) {
+          // Playlist was deleted
+          setError('Playlist not found');
+          setPlaylist(null);
+          return;
+        }
+
+        // Check if user still has access
+        const hasAccess =
+          updatedPlaylist.visibility === 'public' ||
+          updatedPlaylist.createdBy === user.uid ||
+          updatedPlaylist.participants.some((p) => p.userId === user.uid);
+
+        if (!hasAccess) {
+          setError('You do not have access to this playlist');
+          setPlaylist(null);
+          return;
+        }
+
+        // Update playlist state
+        setPlaylist(updatedPlaylist);
+        setError(null);
+
+        // Update track IDs (this will trigger track details fetch)
+        setTrackIds((updatedPlaylist.tracks as string[]) || []);
+
+        // Update edit permissions
+        PlaylistService.canUserEditPlaylist(id, user.uid).then(
+          (hasEditPermission) => {
+            setCanEdit(hasEditPermission);
+          }
+        );
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, [id, user, loadPlaylist]);
 
   useEffect(() => {
