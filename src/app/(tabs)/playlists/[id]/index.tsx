@@ -17,7 +17,9 @@ import { useClient } from 'urql';
 import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
+import EditPlaylistModal from '@/components/playlists/EditPlaylistModal';
 import InfoTab from '@/components/playlists/InfoTab';
+import ParticipantsTab from '@/components/playlists/ParticipantsTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -59,10 +61,12 @@ const PlaylistDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
-    { key: 'cover', title: 'QCover' },
-    { key: 'info', title: 'Info' }
+    { key: 'cover', title: 'Cover' },
+    { key: 'info', title: 'Info' },
+    { key: 'participants', title: 'Participants' }
   ]);
   const [trackIds, setTrackIds] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -134,8 +138,55 @@ const PlaylistDetailScreen = () => {
     [id, user]
   );
 
+  // Initial load and real-time subscription
   useEffect(() => {
+    if (!id || !user) return;
+
+    // Initial load to check access and set up UI
     loadPlaylist();
+
+    // Subscribe to real-time updates
+    const unsubscribe = PlaylistService.subscribeToPlaylist(
+      id,
+      (updatedPlaylist) => {
+        if (!updatedPlaylist) {
+          // Playlist was deleted
+          setError('Playlist not found');
+          setPlaylist(null);
+          return;
+        }
+
+        // Check if user still has access
+        const hasAccess =
+          updatedPlaylist.visibility === 'public' ||
+          updatedPlaylist.createdBy === user.uid ||
+          updatedPlaylist.participants.some((p) => p.userId === user.uid);
+
+        if (!hasAccess) {
+          setError('You do not have access to this playlist');
+          setPlaylist(null);
+          return;
+        }
+
+        // Update playlist state
+        setPlaylist(updatedPlaylist);
+        setError(null);
+
+        // Update track IDs (this will trigger track details fetch)
+        setTrackIds((updatedPlaylist.tracks as string[]) || []);
+
+        // Update edit permissions
+        PlaylistService.canUserEditPlaylist(id, user.uid).then(
+          (hasEditPermission) => {
+            setCanEdit(hasEditPermission);
+          }
+        );
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, [id, user, loadPlaylist]);
 
   useEffect(() => {
@@ -218,12 +269,37 @@ const PlaylistDetailScreen = () => {
   };
 
   const handleEditPlaylist = () => {
-    // TODO: Implement edit playlist functionality
-    Notifier.shoot({
-      type: 'info',
-      title: 'Coming Soon',
-      message: 'Edit playlist functionality will be available soon'
-    });
+    if (!playlist || !user) return;
+
+    // Check if user can edit (owner or editor)
+    const participant = playlist.participants.find(
+      (p) => p.userId === user.uid
+    );
+    const canEditPlaylist =
+      playlist.createdBy === user.uid ||
+      participant?.role === 'owner' ||
+      participant?.role === 'editor';
+
+    if (!canEditPlaylist) {
+      Notifier.shoot({
+        type: 'error',
+        title: 'Permission Denied',
+        message: 'You do not have permission to edit this playlist'
+      });
+      return;
+    }
+
+    setShowEditModal(true);
+  };
+
+  const handlePlaylistUpdated = async () => {
+    // Reload playlist after update
+    await loadPlaylist(true);
+  };
+
+  const handleLeavePlaylist = () => {
+    // Navigate back to playlists screen
+    router.replace('/(tabs)/playlists');
   };
 
   const handleInviteUsers = () => {
@@ -413,6 +489,19 @@ const PlaylistDetailScreen = () => {
             title: 'Permission Denied',
             message: 'You do not have permission to add tracks to this playlist'
           });
+        } else if (
+          error.message.includes('Playlist not found') ||
+          error.message.includes('not found')
+        ) {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Playlist Deleted',
+            message: 'This playlist has been deleted by the owner'
+          });
+          // Close modal and navigate back after a short delay
+          setTimeout(() => {
+            router.back();
+          }, 2000);
         } else {
           Notifier.shoot({
             type: 'error',
@@ -427,6 +516,8 @@ const PlaylistDetailScreen = () => {
           message: 'Failed to add track to playlist'
         });
       }
+      // Re-throw to let parent handle if needed
+      throw error;
     }
   };
 
@@ -472,11 +563,12 @@ const PlaylistDetailScreen = () => {
       // Reload playlist to get latest state (check for concurrent updates)
       const latestPlaylist = await PlaylistService.getPlaylist(playlist.id);
       if (!latestPlaylist) {
-        Notifier.shoot({
-          type: 'error',
-          title: 'Error',
-          message: 'Playlist not found'
-        });
+        Alert.error('Error', 'Playlist deleted by the owner');
+        // Close modal and navigate back after a short delay
+        setTimeout(() => {
+          setShowSearchModal(false);
+          router.back();
+        }, 2000);
         return;
       }
 
@@ -493,12 +585,21 @@ const PlaylistDetailScreen = () => {
         await addTrackToPlaylist(track, latestPlaylist);
       }
     } catch (error) {
-      Logger.error('Error selecting track:', error);
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to update playlist'
-      });
+      // Errors are already handled in addTrackToPlaylist/removeTrackFromPlaylist
+      // Only log if it's an unexpected error
+      if (
+        error instanceof Error &&
+        !error.message.includes('Playlist not found') &&
+        !error.message.includes('not found') &&
+        !error.message.includes('permission')
+      ) {
+        Logger.error('Unexpected error in handleSelectTrack:', error);
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to update playlist'
+        });
+      }
     }
   };
 
@@ -539,6 +640,8 @@ const PlaylistDetailScreen = () => {
         return <CoverTab playlist={playlist!} />;
       case 'info':
         return <InfoTab playlist={playlist!} />;
+      case 'participants':
+        return <ParticipantsTab playlist={playlist!} />;
       default:
         return null;
     }
@@ -564,7 +667,12 @@ const PlaylistDetailScreen = () => {
         <TextCustom className="mt-4 text-center opacity-70">
           {error || 'Playlist not found'}
         </TextCustom>
-        <RippleButton title="Go Back" onPress={handleBack} className="mt-4" />
+        <RippleButton
+          title="Go Back"
+          size="sm"
+          onPress={handleBack}
+          className="mt-4"
+        />
       </View>
     );
   }
@@ -603,7 +711,12 @@ const PlaylistDetailScreen = () => {
             renderTabBar={() => null}
           />
 
-          {playlist.createdBy === user?.uid && (
+          {/* Action buttons - visible for owner and editor */}
+          {(canEdit ||
+            playlist.createdBy === user?.uid ||
+            playlist.participants.some(
+              (p) => p.userId === user?.uid && p.role === 'editor'
+            )) && (
             <View
               style={{
                 position: 'absolute',
@@ -619,16 +732,18 @@ const PlaylistDetailScreen = () => {
                 borderWidth: 1
               }}
             >
-              <IconButton
-                accessibilityLabel="Delete playlist"
-                onPress={handleDeletePlaylist}
-              >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              {playlist.createdBy === user?.uid && (
+                <IconButton
+                  accessibilityLabel="Delete playlist"
+                  onPress={handleDeletePlaylist}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
 
               <IconButton
                 accessibilityLabel="Edit playlist"
@@ -641,16 +756,18 @@ const PlaylistDetailScreen = () => {
                 />
               </IconButton>
 
-              <IconButton
-                accessibilityLabel="Invite users"
-                onPress={handleInviteUsers}
-              >
-                <MaterialCommunityIcons
-                  name="account-plus-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              {(canEdit || playlist.createdBy === user?.uid) && (
+                <IconButton
+                  accessibilityLabel="Invite users"
+                  onPress={handleInviteUsers}
+                >
+                  <MaterialCommunityIcons
+                    name="account-plus-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
 
               {Platform.OS === 'web' && (
                 <IconButton
@@ -752,6 +869,17 @@ const PlaylistDetailScreen = () => {
           />
         )}
       </SwipeModal>
+
+      {/* Edit Playlist Modal */}
+      {playlist && (
+        <EditPlaylistModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          playlist={playlist}
+          onPlaylistUpdated={handlePlaylistUpdated}
+          onLeavePlaylist={handleLeavePlaylist}
+        />
+      )}
     </View>
   );
 };

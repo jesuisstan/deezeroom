@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -20,7 +22,16 @@ const RouterBackButton = ({ onPress }: RouterBackButtonProps) => {
     if (onPress) {
       onPress();
     } else {
-      router.back();
+      // On web, use window.history.back() to avoid triggering router.back()
+      // The global error handler above will suppress badgin errors
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+          window.history.back();
+        }
+      } else {
+        // On mobile platforms, use router.back() as normal
+        router.back();
+      }
     }
   };
 
