@@ -354,8 +354,17 @@ export class PlaylistService {
   static async reorderTrack(
     playlistId: string,
     fromIndex: number,
-    toIndex: number
+    toIndex: number,
+    userId: string
   ): Promise<void> {
+    // Check if user has permission to reorder tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, userId);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to reorder tracks in this playlist'
+      );
+    }
+
     await runTransaction(db, async (transaction) => {
       const playlistRef = doc(db, this.collection, playlistId);
       const playlistDoc = await transaction.get(playlistRef);
@@ -378,12 +387,18 @@ export class PlaylistService {
         throw new Error('Invalid reorder indexes');
       }
 
+      // If indices are the same, no need to update
+      if (fromIndex === toIndex) {
+        return;
+      }
+
       const [moved] = currentTracks.splice(fromIndex, 1);
       currentTracks.splice(toIndex, 0, moved);
 
       transaction.update(playlistRef, {
         tracks: currentTracks,
         updatedAt: serverTimestamp(),
+        lastModifiedBy: userId,
         version: increment(1)
       });
     });

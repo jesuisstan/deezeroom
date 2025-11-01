@@ -11,17 +11,18 @@ import {
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSharedValue } from 'react-native-reanimated';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
 import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
+import DraggableTracksList from '@/components/playlists/DraggableTracksList';
 import EditPlaylistModal from '@/components/playlists/EditPlaylistModal';
 import InfoTab from '@/components/playlists/InfoTab';
 import ParticipantsTab from '@/components/playlists/ParticipantsTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
-import TrackCard from '@/components/search-tracks/TrackCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -73,6 +74,10 @@ const PlaylistDetailScreen = () => {
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
   const [canEdit, setCanEdit] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Drag and drop state
+  const draggedIndex = useSharedValue<number | null>(null);
+  const offsetY = useSharedValue(0);
 
   // Playback hooks
   const { isPlaying } = usePlaybackUI();
@@ -172,8 +177,23 @@ const PlaylistDetailScreen = () => {
         setPlaylist(updatedPlaylist);
         setError(null);
 
-        // Update track IDs (this will trigger track details fetch)
-        setTrackIds((updatedPlaylist.tracks as string[]) || []);
+        // Update track IDs only if they actually changed (not just reordered)
+        // Use functional update to access current trackIds without dependency
+        setTrackIds((currentTrackIds) => {
+          const newTrackIds = (updatedPlaylist.tracks as string[]) || [];
+          const currentTrackIdsStr = currentTrackIds.join(',');
+          const newTrackIdsStr = newTrackIds.join(',');
+
+          // Only update if IDs changed (tracks added/removed), not just reordered
+          if (
+            currentTrackIdsStr !== newTrackIdsStr ||
+            currentTrackIds.length !== newTrackIds.length
+          ) {
+            return newTrackIds;
+          }
+          // Return same reference to prevent useEffect from triggering
+          return currentTrackIds;
+        });
 
         // Update edit permissions
         PlaylistService.canUserEditPlaylist(id, user.uid).then(
@@ -208,7 +228,36 @@ const PlaylistDetailScreen = () => {
         const loaded: Track[] = results
           .map((res: any) => res?.data?.track)
           .filter((t: any) => !!t);
-        setTracks(loaded);
+
+        // Check if this is just a reorder vs actual change
+        setTracks((currentTracks) => {
+          // If we have no tracks yet, use loaded tracks
+          if (currentTracks.length === 0) {
+            return loaded;
+          }
+
+          const currentTrackIdsStr = currentTracks.map((t) => t.id).join(',');
+          const newTrackIdsStr = trackIds.join(',');
+
+          // If only order changed, preserve existing track objects and reorder
+          if (
+            currentTrackIdsStr === newTrackIdsStr &&
+            currentTracks.length === trackIds.length &&
+            currentTracks.length > 0
+          ) {
+            const trackMap = new Map(currentTracks.map((t) => [t.id, t]));
+            const reorderedTracks = trackIds
+              .map((id) => trackMap.get(id))
+              .filter((t): t is Track => t !== undefined);
+
+            // Always update to reflect new order (even if it's the same visually)
+            // This ensures the state matches trackIds order
+            return reorderedTracks;
+          }
+
+          // IDs changed (tracks added/removed), use loaded tracks
+          return loaded;
+        });
       } catch (e) {
         Logger.error('Error loading playlist tracks', e);
       } finally {
@@ -634,6 +683,79 @@ const PlaylistDetailScreen = () => {
     }
   };
 
+  const handleReorderTrack = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (!playlist || !user) return;
+
+      // Clamp indices to valid range
+      const maxIndex = tracks.length - 1;
+      const clampedFromIndex = Math.max(0, Math.min(fromIndex, maxIndex));
+      const clampedToIndex = Math.max(0, Math.min(toIndex, maxIndex));
+
+      if (clampedFromIndex === clampedToIndex) {
+        return; // No change needed
+      }
+
+      // Optimistically update tracks IMMEDIATELY to prevent flash
+      // This ensures visual position matches new array order
+      setTracks((currentTracks) => {
+        const newTracks = [...currentTracks];
+        const [moved] = newTracks.splice(clampedFromIndex, 1);
+        newTracks.splice(clampedToIndex, 0, moved);
+        return newTracks;
+      });
+
+      try {
+        // Update Firebase with transaction (handles conflicts)
+        await PlaylistService.reorderTrack(
+          playlist.id,
+          clampedFromIndex,
+          clampedToIndex,
+          user.uid
+        );
+
+        // DON'T update trackIds here - let Firebase subscription handle it naturally
+        // Updating trackIds would trigger useEffect and cause full screen refresh
+        // The subscription will update trackIds when Firebase confirms, and useEffect
+        // will detect it's just a reorder and skip the reload
+
+        // Reset drag state AFTER React has rendered with new tracks order
+        // Use a longer delay to ensure Samsung devices have time to render
+        // Keep draggedIndex set to maintain visual position during render
+        setTimeout(() => {
+          // After tracks array has updated in React, reset drag state
+          // This allows the visual position to smoothly transition to new array position
+          draggedIndex.value = null;
+          offsetY.value = 0;
+        }, 100);
+      } catch (error) {
+        Logger.error('Error reordering track:', error);
+
+        // Revert optimistic update on error by reloading
+        await loadPlaylist(true);
+
+        if (error instanceof Error) {
+          // Don't show error for permission denied or playlist not found
+          // These are handled by other parts of the UI
+          if (
+            !error.message.includes('permission') &&
+            !error.message.includes('not found') &&
+            !error.message.includes('Invalid reorder')
+          ) {
+            Notifier.shoot({
+              type: 'error',
+              title: 'Error',
+              message: 'Failed to reorder track. Please try again.'
+            });
+          }
+        }
+      }
+    },
+    // draggedIndex and offsetY are SharedValues, not React state, so they don't need to be in dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [playlist, user, tracks, loadPlaylist]
+  );
+
   const renderScene = ({ route }: { route: { key: string } }) => {
     switch (route.key) {
       case 'cover':
@@ -825,19 +947,20 @@ const PlaylistDetailScreen = () => {
               color={themeColors[theme]['primary']}
               className="m-4"
             />
-          ) : (
-            tracks &&
-            tracks.length > 0 &&
-            tracks.map((track, index) => (
-              <TrackCard
-                key={`${track.id}-${index}`}
-                track={track}
-                isPlaying={currentTrack?.id === track.id && isPlaying}
-                onPress={handlePlayTrack}
-                onRemove={handleRemoveTrack}
-              />
-            ))
-          )}
+          ) : tracks && tracks.length > 0 ? (
+            <DraggableTracksList
+              tracks={tracks}
+              currentTrackId={currentTrack?.id}
+              isPlaying={isPlaying}
+              onPress={handlePlayTrack}
+              onRemove={handleRemoveTrack}
+              onReorder={handleReorderTrack}
+              canEdit={canEdit}
+              draggedIndex={draggedIndex}
+              offsetY={offsetY}
+              tracksCount={tracks.length}
+            />
+          ) : null}
         </View>
       </ScrollView>
 
