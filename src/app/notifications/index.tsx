@@ -62,12 +62,8 @@ const SwipeableNotification = ({
       translateX.value = event.translationX;
     })
     .onEnd((event) => {
-      const swipeLeft = event.translationX < -100 || event.velocityX < -500;
-      const swipeRight = event.translationX > 100 || event.velocityX > 500;
-
-      if ((swipeLeft || swipeRight) && isResponse) {
-        const direction = swipeLeft ? -1000 : 1000;
-        translateX.value = withTiming(direction, { duration: 200 }, () => {
+      if ((event.translationX < -100 || event.velocityX < -500) && isResponse) {
+        translateX.value = withTiming(-1000, { duration: 200 }, () => {
           runOnJS(onDismiss)();
         });
       } else {

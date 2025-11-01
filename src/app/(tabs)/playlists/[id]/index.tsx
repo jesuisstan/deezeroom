@@ -413,6 +413,19 @@ const PlaylistDetailScreen = () => {
             title: 'Permission Denied',
             message: 'You do not have permission to add tracks to this playlist'
           });
+        } else if (
+          error.message.includes('Playlist not found') ||
+          error.message.includes('not found')
+        ) {
+          Notifier.shoot({
+            type: 'error',
+            title: 'Playlist Deleted',
+            message: 'This playlist has been deleted by the owner'
+          });
+          // Close modal and navigate back after a short delay
+          setTimeout(() => {
+            router.back();
+          }, 2000);
         } else {
           Notifier.shoot({
             type: 'error',
@@ -427,6 +440,8 @@ const PlaylistDetailScreen = () => {
           message: 'Failed to add track to playlist'
         });
       }
+      // Re-throw to let parent handle if needed
+      throw error;
     }
   };
 
@@ -472,11 +487,12 @@ const PlaylistDetailScreen = () => {
       // Reload playlist to get latest state (check for concurrent updates)
       const latestPlaylist = await PlaylistService.getPlaylist(playlist.id);
       if (!latestPlaylist) {
-        Notifier.shoot({
-          type: 'error',
-          title: 'Error',
-          message: 'Playlist not found'
-        });
+        Alert.error('Error', 'Playlist deleted by the owner');
+        // Close modal and navigate back after a short delay
+        setTimeout(() => {
+          setShowSearchModal(false);
+          router.back();
+        }, 2000);
         return;
       }
 
@@ -493,12 +509,21 @@ const PlaylistDetailScreen = () => {
         await addTrackToPlaylist(track, latestPlaylist);
       }
     } catch (error) {
-      Logger.error('Error selecting track:', error);
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to update playlist'
-      });
+      // Errors are already handled in addTrackToPlaylist/removeTrackFromPlaylist
+      // Only log if it's an unexpected error
+      if (
+        error instanceof Error &&
+        !error.message.includes('Playlist not found') &&
+        !error.message.includes('not found') &&
+        !error.message.includes('permission')
+      ) {
+        Logger.error('Unexpected error in handleSelectTrack:', error);
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to update playlist'
+        });
+      }
     }
   };
 
@@ -564,7 +589,12 @@ const PlaylistDetailScreen = () => {
         <TextCustom className="mt-4 text-center opacity-70">
           {error || 'Playlist not found'}
         </TextCustom>
-        <RippleButton title="Go Back" onPress={handleBack} className="mt-4" />
+        <RippleButton
+          title="Go Back"
+          size="sm"
+          onPress={handleBack}
+          className="mt-4"
+        />
       </View>
     );
   }

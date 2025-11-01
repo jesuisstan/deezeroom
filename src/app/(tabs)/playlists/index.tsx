@@ -115,7 +115,7 @@ const PlaylistsScreen = () => {
       case 'my':
         return 'My';
       case 'participating':
-        return 'Shared';
+        return 'Invited';
       case 'public':
         return 'Public';
     }
