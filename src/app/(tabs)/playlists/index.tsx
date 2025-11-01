@@ -93,18 +93,56 @@ const PlaylistsScreen = () => {
     loadPlaylists(activeTab);
   };
 
+  // Initial load and real-time subscription
   useEffect(() => {
-    if (user) {
-      loadPlaylists(activeTab);
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    if (!user) return;
 
-  // Refresh data when screen comes into focus (e.g., after deleting a playlist)
+    // Initial load
+    loadPlaylists(activeTab);
+    setIsLoading(false);
+
+    // Subscribe to real-time updates (only creation/deletion, not track changes)
+    let unsubscribe: (() => void) | undefined;
+
+    switch (activeTab) {
+      case 'my':
+        unsubscribe = PlaylistService.subscribeToUserPlaylists(
+          user.uid,
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+      case 'participating':
+        unsubscribe = PlaylistService.subscribeToUserParticipatingPlaylists(
+          user.uid,
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+      case 'public':
+        unsubscribe = PlaylistService.subscribeToPublicPlaylists(
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user, activeTab, loadPlaylists]);
+
+  // Refresh data when screen comes into focus (e.g., after creating a playlist from another screen)
   useFocusEffect(
     useCallback(() => {
       if (user) {
+        // Only reload if needed (subscription handles real-time updates)
+        // This ensures fresh data when returning to the screen
         loadPlaylists(activeTab);
       }
     }, [user, activeTab, loadPlaylists])

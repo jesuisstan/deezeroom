@@ -978,6 +978,143 @@ export class PlaylistService {
     });
   }
 
+  // Subscribe to user's own playlists (real-time, only creation/deletion)
+  static subscribeToUserPlaylists(
+    userId: string,
+    callback: (playlists: Playlist[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      orderBy('updatedAt', 'desc')
+    );
+
+    const previousIdsRef = { current: new Set<string>() };
+    let isFirstCall = true;
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const allPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Filter playlists where user is the creator
+        const userPlaylists = allPlaylists.filter(
+          (playlist) => playlist.createdBy === userId
+        );
+
+        // Get current IDs
+        const currentIds = new Set(userPlaylists.map((p) => p.id));
+
+        // Always trigger on first call, then only if IDs changed (creation/deletion)
+        if (
+          isFirstCall ||
+          previousIdsRef.current.size !== currentIds.size ||
+          [...previousIdsRef.current].some((id) => !currentIds.has(id)) ||
+          [...currentIds].some((id) => !previousIdsRef.current.has(id))
+        ) {
+          isFirstCall = false;
+          previousIdsRef.current = currentIds;
+          callback(userPlaylists);
+        }
+      },
+      (error) => {
+        Logger.error('Error in subscribeToUserPlaylists:', error);
+      }
+    );
+  }
+
+  // Subscribe to user's participating playlists (real-time, only creation/deletion)
+  static subscribeToUserParticipatingPlaylists(
+    userId: string,
+    callback: (playlists: Playlist[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      orderBy('updatedAt', 'desc')
+    );
+
+    const previousIdsRef = { current: new Set<string>() };
+    let isFirstCall = true;
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const allPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Filter playlists where user is participant but not owner
+        const participatingPlaylists = allPlaylists.filter(
+          (playlist) =>
+            playlist.participants.some((p) => p.userId === userId) &&
+            playlist.createdBy !== userId
+        );
+
+        // Get current IDs
+        const currentIds = new Set(participatingPlaylists.map((p) => p.id));
+
+        // Always trigger on first call, then only if IDs changed (creation/deletion)
+        if (
+          isFirstCall ||
+          previousIdsRef.current.size !== currentIds.size ||
+          [...previousIdsRef.current].some((id) => !currentIds.has(id)) ||
+          [...currentIds].some((id) => !previousIdsRef.current.has(id))
+        ) {
+          isFirstCall = false;
+          previousIdsRef.current = currentIds;
+          callback(participatingPlaylists);
+        }
+      },
+      (error) => {
+        Logger.error('Error in subscribeToUserParticipatingPlaylists:', error);
+      }
+    );
+  }
+
+  // Subscribe to public playlists (real-time, only creation/deletion)
+  static subscribeToPublicPlaylists(
+    callback: (playlists: Playlist[]) => void,
+    limitCount: number = 20
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      where('visibility', '==', 'public'),
+      orderBy('updatedAt', 'desc'),
+      limit(limitCount)
+    );
+
+    const previousIdsRef = { current: new Set<string>() };
+    let isFirstCall = true;
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const publicPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Get current IDs
+        const currentIds = new Set(publicPlaylists.map((p) => p.id));
+
+        // Always trigger on first call, then only if IDs changed (creation/deletion)
+        if (
+          isFirstCall ||
+          previousIdsRef.current.size !== currentIds.size ||
+          [...previousIdsRef.current].some((id) => !currentIds.has(id)) ||
+          [...currentIds].some((id) => !previousIdsRef.current.has(id))
+        ) {
+          isFirstCall = false;
+          previousIdsRef.current = currentIds;
+          callback(publicPlaylists);
+        }
+      },
+      (error) => {
+        Logger.error('Error in subscribeToPublicPlaylists:', error);
+      }
+    );
+  }
+
   static subscribeToPlaylistInvitations(
     playlistId: string,
     callback: (invitations: PlaylistInvitation[]) => void
