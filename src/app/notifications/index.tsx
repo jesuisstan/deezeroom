@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Image, RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,24 +24,46 @@ import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import {
+  acceptFriendship,
+  deleteFriendship,
+  listPendingConnectionsFor,
+  rejectFriendship
+} from '@/utils/firebase/firebase-service-connections';
+import {
   PlaylistInvitation,
   PlaylistService
 } from '@/utils/firebase/firebase-service-playlists';
+import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 
-interface NotificationItem {
-  id: string;
-  type: 'invitation' | 'response';
-  invitation: PlaylistInvitation;
-  isUnread?: boolean;
-}
+type NotificationItem =
+  | {
+      id: string;
+      type: 'invitation' | 'response';
+      invitation: PlaylistInvitation;
+      isUnread?: boolean;
+    }
+  | {
+      id: string; // connection id
+      type: 'friend-request';
+      request: {
+        id: string; // connection id
+        otherUid: string;
+        displayName: string;
+        photoURL?: string;
+        createdAtMs?: number;
+      };
+    };
 
 interface SwipeableNotificationProps {
   notification: NotificationItem;
   onDismiss: () => void;
   isResponse: boolean;
   processingInvitations: Set<string>;
+  processingFriendRequests: Set<string>;
   handleAcceptInvitation: (invitation: PlaylistInvitation) => void;
   handleDeclineInvitation: (invitation: PlaylistInvitation) => void;
+  handleAcceptFriendRequest: (requestId: string, otherUid: string) => void;
+  handleDeclineFriendRequest: (requestId: string, otherUid: string) => void;
   theme: 'light' | 'dark';
 }
 
@@ -50,11 +72,15 @@ const SwipeableNotification = ({
   onDismiss,
   isResponse,
   processingInvitations,
+  processingFriendRequests,
   handleAcceptInvitation,
   handleDeclineInvitation,
+  handleAcceptFriendRequest,
+  handleDeclineFriendRequest,
   theme
 }: SwipeableNotificationProps) => {
-  const invitation = notification.invitation;
+  const isFriendRequest = notification.type === 'friend-request';
+  const invitation = notification.type !== 'friend-request' ? notification.invitation : undefined;
   const translateX = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
@@ -95,10 +121,18 @@ const SwipeableNotification = ({
             <View className="flex-1">
               <View className="flex-row items-center">
                 <MaterialCommunityIcons
-                  name={isResponse ? 'email' : 'account-plus'}
+                  name={
+                    isFriendRequest
+                      ? 'account-plus'
+                      : isResponse
+                      ? 'email'
+                      : 'account-plus'
+                  }
                   size={18}
                   color={
-                    isResponse
+                    isFriendRequest
+                      ? themeColors[theme]['primary']
+                      : isResponse && invitation
                       ? invitation.status === 'accepted'
                         ? themeColors[theme]['intent-success']
                         : themeColors[theme]['intent-error']
@@ -111,7 +145,9 @@ const SwipeableNotification = ({
                   color={themeColors[theme]['text-main']}
                   style={{ fontWeight: '500' }}
                 >
-                  {isResponse
+                  {isFriendRequest
+                    ? 'Friend Request'
+                    : isResponse && invitation
                     ? invitation.status === 'accepted'
                       ? 'Accepted'
                       : 'Declined'
@@ -125,16 +161,51 @@ const SwipeableNotification = ({
                 className="mt-1"
                 numberOfLines={2}
               >
-                {isResponse
+                {isFriendRequest
+                  ? `${notification.request.displayName || 'Someone'} sent you a friend request`
+                  : isResponse && invitation
                   ? invitation.status === 'accepted'
                     ? `${invitation.displayName || invitation.email || 'Someone'} accepted your invitation`
                     : `${invitation.displayName || invitation.email || 'Someone'} declined your invitation`
-                  : `You've been invited to collaborate on "${invitation.playlistName || ''}" playlist`}
+                  : invitation
+                  ? `You've been invited to collaborate on "${invitation.playlistName || ''}" playlist`
+                  : ''}
               </TextCustom>
             </View>
           </View>
 
-          {!isResponse && (
+          {isFriendRequest ? (
+            <View className="mt-2 flex-row gap-2">
+              <RippleButton
+                title="Accept"
+                size="sm"
+                loading={processingFriendRequests.has(notification.request.id)}
+                disabled={processingFriendRequests.has(notification.request.id)}
+                onPress={() =>
+                  handleAcceptFriendRequest(
+                    notification.request.id,
+                    notification.request.otherUid
+                  )
+                }
+                className="flex-1"
+              />
+              <RippleButton
+                title="Decline"
+                size="sm"
+                variant="outline"
+                loading={processingFriendRequests.has(notification.request.id)}
+                disabled={processingFriendRequests.has(notification.request.id)}
+                onPress={() =>
+                  handleDeclineFriendRequest(
+                    notification.request.id,
+                    notification.request.otherUid
+                  )
+                }
+                className="flex-1"
+              />
+            </View>
+          ) : (
+            !isResponse && invitation && (
             <View className="mt-2 flex-row gap-2">
               <RippleButton
                 title="Accept"
@@ -154,6 +225,7 @@ const SwipeableNotification = ({
                 className="flex-1"
               />
             </View>
+            )
           )}
         </View>
       </Animated.View>
@@ -186,6 +258,21 @@ const NotificationsScreen = () => {
   const [processingInvitations, setProcessingInvitations] = useState<
     Set<string>
   >(new Set());
+  const [processingFriendRequests, setProcessingFriendRequests] = useState<
+    Set<string>
+  >(new Set());
+
+  // Friend requests state
+  const [incomingFriends, setIncomingFriends] = useState<
+    { otherUid: string; id: string; requestedBy?: string | undefined; createdAtMs?: number }[]
+  >([]);
+  const [outgoingFriends, setOutgoingFriends] = useState<
+    { otherUid: string; id: string; requestedBy?: string | undefined }[]
+  >([]);
+  const [people, setPeople] = useState<
+    Record<string, { displayName?: string; photoURL?: string }>
+  >({});
+  const [loadingFriends, setLoadingFriends] = useState<boolean>(true);
 
   // Load viewed response IDs from storage
   useEffect(() => {
@@ -218,13 +305,61 @@ const NotificationsScreen = () => {
         setViewedResponseIds(updated);
 
         const key = `viewed_responses_${user.uid}`;
-        await AsyncStorage.setItem(key, JSON.stringify([...updated]));
+        await AsyncStorage.setItem(key, JSON.stringify(Array.from(updated)));
       } catch (error) {
         Logger.error('Error saving viewed response IDs:', error);
       }
     },
     [user, viewedResponseIds]
   );
+
+  // Load friend requests (incoming/outgoing) and public profiles
+  const loadFriendRequests = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLoadingFriends(true);
+      const items = await listPendingConnectionsFor(user.uid);
+      const inc = items
+        .filter((c) => c.requestedBy && c.requestedBy !== user.uid)
+        .map((c) => ({
+          id: c.id,
+          requestedBy: c.requestedBy,
+          otherUid: c.userA === user.uid ? c.userB : c.userA,
+          createdAtMs:
+            typeof c.createdAt?.toMillis === 'function'
+              ? c.createdAt.toMillis()
+              : undefined
+        }));
+      const out = items
+        .filter((c) => !c.requestedBy || c.requestedBy === user.uid)
+        .map((c) => ({
+          id: c.id,
+          requestedBy: c.requestedBy,
+          otherUid: c.userA === user.uid ? c.userB : c.userA
+        }));
+      setIncomingFriends(inc);
+      setOutgoingFriends(out);
+
+      const uids = Array.from(new Set([...inc, ...out].map((i) => i.otherUid)));
+      const tuples = await Promise.all(
+        uids.map(async (uid) => {
+          const p = await getPublicProfileDoc(uid);
+          return [
+            uid,
+            { displayName: p?.displayName, photoURL: p?.photoURL }
+          ] as const;
+        })
+      );
+      const map: Record<string, { displayName?: string; photoURL?: string }> =
+        {};
+      tuples.forEach(([k, v]) => (map[k] = v));
+      setPeople(map);
+    } catch (error) {
+      Logger.error('Error loading friend requests:', error);
+    } finally {
+      setLoadingFriends(false);
+    }
+  }, [user]);
 
   // Clear badge when screen is mounted (user is viewing notifications)
   useEffect(() => {
@@ -266,10 +401,17 @@ const NotificationsScreen = () => {
     };
   }, [user]);
 
+  // Initial load of friend requests
+  useEffect(() => {
+    loadFriendRequests();
+  }, [loadFriendRequests]);
+
   // Mark notifications as read only when user actively interacts with the screen
   const handleRefresh = async () => {
     await refreshInvitations();
     await loadSentInvitationsResponses();
+    // Refresh friend requests too
+    await loadFriendRequests();
     // Mark as read when user actively refreshes
     if (unreadCount > 0) {
       markAsRead();
@@ -282,8 +424,12 @@ const NotificationsScreen = () => {
     (inv) => !viewedResponseIds.has(inv.id)
   );
 
-  // Combine all notifications (only unviewed responses)
-  const allNotifications: NotificationItem[] = [
+  // Combine all notifications (only unviewed responses) – playlist-only here
+  type PlaylistNotification = Extract<
+    NotificationItem,
+    { type: 'invitation' | 'response' }
+  >;
+  const allNotifications: PlaylistNotification[] = [
     ...invitations.map((inv) => ({
       id: inv.id,
       type: 'invitation' as const,
@@ -353,17 +499,22 @@ const NotificationsScreen = () => {
     }
   };
 
-  if (isLoading || isLoadingResponses) {
+  if (isLoading || isLoadingResponses || loadingFriends) {
     return <ActivityIndicatorScreen />;
   }
 
-  if (sortedNotifications.length === 0) {
+  const friendRequestsCount = incomingFriends.length + outgoingFriends.length;
+
+  if (sortedNotifications.length === 0 && friendRequestsCount === 0) {
     return (
       <ScrollView
         className="flex-1"
         style={{ backgroundColor: themeColors[theme]['bg-main'] }}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={isLoading || isLoadingResponses || loadingFriends}
+            onRefresh={handleRefresh}
+          />
         }
       >
         <View
@@ -393,16 +544,22 @@ const NotificationsScreen = () => {
       className="flex-1 p-3"
       style={{ backgroundColor: themeColors[theme]['bg-main'] }}
       refreshControl={
-        <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
+        <RefreshControl
+          refreshing={isLoading || isLoadingResponses || loadingFriends}
+          onRefresh={handleRefresh}
+        />
       }
     >
       <View style={containerWidthStyle}>
+        {/* Friend requests are merged into the unified list below */}
         <View className="mb-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <TextCustom size="xs" color={themeColors[theme]['text-main']}>
                 {invitations.length} invitation(s) •{' '}
                 {sentInvitationsResponses.length} response(s)
+                {friendRequestsCount > 0 &&
+                  ` • ${friendRequestsCount} friend request(s)`}
                 {unreadCount > 0 && ` • ${unreadCount} new`}
               </TextCustom>
             </View>
@@ -418,7 +575,43 @@ const NotificationsScreen = () => {
           </View>
         </View>
 
-        {sortedNotifications.map((notification) => {
+        {/* Build a unified list: playlist notifications + friend requests */}
+        {(
+          [
+            ...sortedNotifications,
+            // Append friend request notifications (incoming only)
+            ...incomingFriends.map((req) => {
+              const person = people[req.otherUid] || {};
+              const displayName = person.displayName || 'User';
+              const photoURL = person.photoURL;
+              const createdAtMs = req.createdAtMs ?? 0;
+              const item: NotificationItem = {
+                id: req.id,
+                type: 'friend-request',
+                request: {
+                  id: req.id,
+                  otherUid: req.otherUid,
+                  displayName,
+                  photoURL,
+                  createdAtMs
+                }
+              };
+              return item;
+            })
+          ]
+            // Re-sort by date descending
+            .sort((a, b) => {
+              const aTime =
+                a.type === 'friend-request'
+                  ? a.request.createdAtMs || 0
+                  : new Date(a.invitation.invitedAt).getTime();
+              const bTime =
+                b.type === 'friend-request'
+                  ? b.request.createdAtMs || 0
+                  : new Date(b.invitation.invitedAt).getTime();
+              return bTime - aTime;
+            })
+        ).map((notification) => {
           const isResponse = notification.type === 'response';
 
           return (
@@ -426,14 +619,53 @@ const NotificationsScreen = () => {
               key={notification.id}
               notification={notification}
               onDismiss={() => {
-                if (isResponse) {
+                if (notification.type === 'response') {
                   markResponseAsViewed(notification.invitation.id);
                 }
               }}
               isResponse={isResponse}
               processingInvitations={processingInvitations}
+              processingFriendRequests={processingFriendRequests}
               handleAcceptInvitation={handleAcceptInvitation}
               handleDeclineInvitation={handleDeclineInvitation}
+              handleAcceptFriendRequest={async (requestId, otherUid) => {
+                if (!user) return;
+                setProcessingFriendRequests((prev) => new Set(prev).add(requestId));
+                try {
+                  const res = await acceptFriendship(user.uid, otherUid, user.uid);
+                  if (res.success) {
+                    Notifier.shoot({ type: 'success', message: 'Friend request accepted' });
+                    setIncomingFriends((prev) => prev.filter((r) => r.id !== requestId));
+                  } else {
+                    Notifier.shoot({ type: 'error', message: res.message || 'Failed to accept' });
+                  }
+                } finally {
+                  setProcessingFriendRequests((prev) => {
+                    const s = new Set(prev);
+                    s.delete(requestId);
+                    return s;
+                  });
+                }
+              }}
+              handleDeclineFriendRequest={async (requestId, otherUid) => {
+                if (!user) return;
+                setProcessingFriendRequests((prev) => new Set(prev).add(requestId));
+                try {
+                  const res = await rejectFriendship(user.uid, otherUid, user.uid);
+                  if (res.success) {
+                    Notifier.shoot({ type: 'info', message: 'Friend request rejected' });
+                    setIncomingFriends((prev) => prev.filter((r) => r.id !== requestId));
+                  } else {
+                    Notifier.shoot({ type: 'error', message: res.message || 'Failed to reject' });
+                  }
+                } finally {
+                  setProcessingFriendRequests((prev) => {
+                    const s = new Set(prev);
+                    s.delete(requestId);
+                    return s;
+                  });
+                }
+              }}
               theme={theme}
             />
           );

@@ -12,28 +12,26 @@ import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { deezerService } from '@/utils/deezer/deezer-service';
+import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import {
+  type ConnectionStatus,
+  deleteFriendship,
+  getConnectionBetween,
+  isFriends,
+  requestFriendship
+} from '@/utils/firebase/firebase-service-connections';
+import {
+  FriendsProfileDoc,
   getFriendsProfileDoc,
   getPublicProfileDoc,
-  FriendsProfileDoc,
   PublicProfileDoc
 } from '@/utils/firebase/firebase-service-profiles';
-import {
-  isFriends,
-  getConnectionBetween,
-  requestFriendship,
-  deleteFriendship,
-  acceptFriendship,
-  rejectFriendship,
-  type ConnectionStatus
-} from '@/utils/firebase/firebase-service-connections';
-import { Notifier } from '@/modules/notifier';
 
 // Access level based on identity and friendship
 type AccessLevel = 'owner' | 'friends' | 'public';
@@ -52,13 +50,7 @@ const ProfileScreen: FC = () => {
   const [remoteLoading, setRemoteLoading] = useState<boolean>(false);
   const [connStatus, setConnStatus] = useState<ConnectionStatus | null>(null);
   const [connBusy, setConnBusy] = useState<boolean>(false);
-  const [incoming, setIncoming] = useState<
-    { otherUid: string; id: string; requestedBy?: string | undefined }[]
-  >([]);
-  const [outgoing, setOutgoing] = useState<
-    { otherUid: string; id: string; requestedBy?: string | undefined }[]
-  >([]);
-  const [people, setPeople] = useState<Record<string, { displayName?: string; photoURL?: string }>>({});
+  // Friend requests are now shown in Notifications screen
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
     string | undefined
   >();
@@ -114,51 +106,7 @@ const ProfileScreen: FC = () => {
     };
   }, [targetUid, user, isOwner]);
 
-  // Owner: load pending friend requests
-  useEffect(() => {
-    let cancelled = false;
-    const loadPending = async () => {
-      if (!user || !isOwner) return;
-      const { listPendingConnectionsFor } = await import(
-        '@/utils/firebase/firebase-service-connections'
-      );
-      const items = await listPendingConnectionsFor(user.uid);
-      if (cancelled) return;
-      const inc = items
-        .filter((c) => c.requestedBy && c.requestedBy !== user.uid)
-        .map((c) => ({
-          id: c.id,
-          requestedBy: c.requestedBy,
-          otherUid: c.userA === user.uid ? c.userB : c.userA
-        }));
-      const out = items
-        .filter((c) => !c.requestedBy || c.requestedBy === user.uid)
-        .map((c) => ({
-          id: c.id,
-          requestedBy: c.requestedBy,
-          otherUid: c.userA === user.uid ? c.userB : c.userA
-        }));
-      setIncoming(inc);
-      setOutgoing(out);
-
-      // Load public names/avatars for counterparties
-      const uids = Array.from(new Set([...inc, ...out].map((i) => i.otherUid)));
-      const proms = uids.map(async (uid) => {
-        const p = await getPublicProfileDoc(uid);
-        return [uid, { displayName: p?.displayName, photoURL: p?.photoURL }] as const;
-      });
-      const tuples = await Promise.all(proms);
-      if (!cancelled) {
-        const map: Record<string, { displayName?: string; photoURL?: string }> = {};
-        tuples.forEach(([k, v]) => (map[k] = v));
-        setPeople(map);
-      }
-    };
-    loadPending();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, isOwner]);
+  // Friend requests UI and data moved to Notifications screen
 
   const handlePlayTrack = (track: Track) => {
     setCurrentPlayingTrackId(track.id);
@@ -171,14 +119,16 @@ const ProfileScreen: FC = () => {
   };
 
   // Load favorite artists by IDs to ensure fresh data
-  const [favoriteArtistsDetailed, setFavoriteArtistsDetailed] = useState<DeezerArtist[] | null>(null);
-  
+  const [favoriteArtistsDetailed, setFavoriteArtistsDetailed] = useState<
+    DeezerArtist[] | null
+  >(null);
+
   useEffect(() => {
-    const ids = (accessLevel === 'owner'
-      ? (profile?.musicPreferences as any)?.favoriteArtistIds
-      : (publicDoc?.musicPreferences as any)?.favoriteArtistIds) as
-      | string[]
-      | undefined;
+    const ids = (
+      accessLevel === 'owner'
+        ? (profile?.musicPreferences as any)?.favoriteArtistIds
+        : (publicDoc?.musicPreferences as any)?.favoriteArtistIds
+    ) as string[] | undefined;
     if (ids && ids.length) {
       (async () => {
         try {
@@ -205,7 +155,10 @@ const ProfileScreen: FC = () => {
   }, [accessLevel, profile?.musicPreferences, publicDoc?.musicPreferences]);
 
   // Loading state: use provider loading for owner, or local for remote
-  if ((isOwner && profileLoading) || (!isOwner && remoteLoading && !publicDoc)) {
+  if (
+    (isOwner && profileLoading) ||
+    (!isOwner && remoteLoading && !publicDoc)
+  ) {
     return <ActivityIndicatorScreen />;
   }
 
@@ -265,7 +218,6 @@ const ProfileScreen: FC = () => {
     return '';
   })();
 
-
   return (
     <ScrollView
       className="flex-1 bg-bg-main px-4 py-4"
@@ -278,8 +230,13 @@ const ProfileScreen: FC = () => {
             <View className="flex-1 flex-row items-center pr-2">
               {(() => {
                 const displayName =
-                  (accessLevel === 'owner' ? profile?.displayName : publicDoc?.displayName) || 'User';
-                const avatarUrl = accessLevel === 'owner' ? profile?.photoURL : publicDoc?.photoURL;
+                  (accessLevel === 'owner'
+                    ? profile?.displayName
+                    : publicDoc?.displayName) || 'User';
+                const avatarUrl =
+                  accessLevel === 'owner'
+                    ? profile?.photoURL
+                    : publicDoc?.photoURL;
                 if (avatarUrl) {
                   return (
                     <Image
@@ -298,10 +255,14 @@ const ProfileScreen: FC = () => {
               })()}
               <View className="flex-1">
                 <TextCustom type="title" size="4xl">
-                  {(accessLevel === 'owner' ? profile?.displayName : publicDoc?.displayName) || 'User'}
+                  {(accessLevel === 'owner'
+                    ? profile?.displayName
+                    : publicDoc?.displayName) || 'User'}
                 </TextCustom>
                 {accessLevel === 'owner' && profile?.email ? (
-                  <TextCustom className="text-accent">{profile.email}</TextCustom>
+                  <TextCustom className="text-accent">
+                    {profile.email}
+                  </TextCustom>
                 ) : null}
               </View>
             </View>
@@ -324,14 +285,23 @@ const ProfileScreen: FC = () => {
                         if (!user || !targetUid) return;
                         try {
                           setConnBusy(true);
-                          const res = await deleteFriendship(user.uid, targetUid);
+                          const res = await deleteFriendship(
+                            user.uid,
+                            targetUid
+                          );
                           if (res.success) {
                             setFriendsWithTarget(false);
                             setConnStatus(null);
                             setFriendsDoc(null);
-                            Notifier.shoot({ type: 'info', message: 'Removed from friends' });
+                            Notifier.shoot({
+                              type: 'info',
+                              message: 'Removed from friends'
+                            });
                           } else {
-                            Notifier.shoot({ type: 'error', message: res.message || 'Failed to remove friend' });
+                            Notifier.shoot({
+                              type: 'error',
+                              message: res.message || 'Failed to remove friend'
+                            });
                           }
                         } finally {
                           setConnBusy(false);
@@ -344,8 +314,8 @@ const ProfileScreen: FC = () => {
                         connStatus === 'PENDING'
                           ? 'Friend request sent'
                           : connStatus === 'REJECTED'
-                          ? 'Send friend request again'
-                          : 'Add friend'
+                            ? 'Send friend request again'
+                            : 'Add friend'
                       }
                       size="sm"
                       disabled={connBusy || connStatus === 'PENDING'}
@@ -354,12 +324,21 @@ const ProfileScreen: FC = () => {
                         if (!user || !targetUid) return;
                         try {
                           setConnBusy(true);
-                          const res = await requestFriendship(user.uid, targetUid);
+                          const res = await requestFriendship(
+                            user.uid,
+                            targetUid
+                          );
                           if (res.success) {
                             setConnStatus('PENDING');
-                            Notifier.shoot({ type: 'success', message: 'Friend request sent' });
+                            Notifier.shoot({
+                              type: 'success',
+                              message: 'Friend request sent'
+                            });
                           } else {
-                            Notifier.shoot({ type: 'warn', message: res.message || 'Failed to send request' });
+                            Notifier.shoot({
+                              type: 'warn',
+                              message: res.message || 'Failed to send request'
+                            });
                           }
                         } finally {
                           setConnBusy(false);
@@ -373,31 +352,29 @@ const ProfileScreen: FC = () => {
           </View>
         </View>
 
-          {/* Owner actions */}
-          {accessLevel === 'owner' && (
-            <View className="mt-4 flex-row items-center gap-2">
-              <View className="flex-1">
-                <RippleButton
-                  width="full"
-                  title="Edit profile"
-                  size="sm"
-                  variant="outline"
-                  onPress={() => router.push('/profile/edit-profile')}
-                />
-              </View>
-              <View className="flex-1">
-                <RippleButton
-                  width="full"
-                  title="Settings"
-                  size="sm"
-                  variant="outline"
-                  onPress={() => router.push('/profile/settings')}
-                />
-              </View>
+        {/* Owner actions */}
+        {accessLevel === 'owner' && (
+          <View className="mt-4 flex-row items-center gap-2">
+            <View className="flex-1">
+              <RippleButton
+                width="full"
+                title="Edit profile"
+                size="sm"
+                variant="outline"
+                onPress={() => router.push('/profile/edit-profile')}
+              />
             </View>
-          )}
-          
-        
+            <View className="flex-1">
+              <RippleButton
+                width="full"
+                title="Settings"
+                size="sm"
+                variant="outline"
+                onPress={() => router.push('/profile/settings')}
+              />
+            </View>
+          </View>
+        )}
 
         {/* Basic information card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
@@ -452,137 +429,7 @@ const ProfileScreen: FC = () => {
             </>
           </View>
         )}
-        {accessLevel === 'owner' && (
-          <View className="rounded-2xl border border-border bg-bg-secondary p-4">
-            <View className="mb-2 flex-row items-center justify-between">
-              <TextCustom type="subtitle">Friend requests</TextCustom>
-              <RippleButton
-                size="sm"
-                title="Refresh"
-                variant="outline"
-                onPress={() => {
-                  // retrigger effect
-                  if (user) {
-                    (async () => {
-                      const { listPendingConnectionsFor } = await import(
-                        '@/utils/firebase/firebase-service-connections'
-                      );
-                      const items = await listPendingConnectionsFor(user.uid);
-                      const inc = items
-                        .filter((c) => c.requestedBy && c.requestedBy !== user.uid)
-                        .map((c) => ({ id: c.id, requestedBy: c.requestedBy, otherUid: c.userA === user.uid ? c.userB : c.userA }));
-                      const out = items
-                        .filter((c) => !c.requestedBy || c.requestedBy === user.uid)
-                        .map((c) => ({ id: c.id, requestedBy: c.requestedBy, otherUid: c.userA === user.uid ? c.userB : c.userA }));
-                      setIncoming(inc);
-                      setOutgoing(out);
-                    })();
-                  }
-                }}
-              />
-            </View>
-            {/* Incoming */}
-            <View className="mb-3">
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">Incoming</TextCustom>
-              {incoming.length === 0 ? (
-                <TextCustom className="text-accent/60">No incoming requests</TextCustom>
-              ) : (
-                incoming.map((req) => {
-                  const person = people[req.otherUid] || {};
-                  const displayName = person.displayName || 'User';
-                  const photoURL = person.photoURL;
-                  return (
-                    <View key={req.id} className="mt-2 flex-row items-center justify-between">
-                      <View className="flex-1 flex-row items-center">
-                        {photoURL ? (
-                          <Image source={{ uri: photoURL }} className="mr-3 h-10 w-10 rounded-full border border-border" />
-                        ) : (
-                          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-main">
-                            <TextCustom>{displayName[0]?.toUpperCase() || 'U'}</TextCustom>
-                          </View>
-                        )}
-                        <TextCustom>{displayName}</TextCustom>
-                      </View>
-                      <View className="flex-row items-center gap-2">
-                        <RippleButton
-                          title="Accept"
-                          size="sm"
-                          onPress={async () => {
-                            if (!user) return;
-                            const res = await acceptFriendship(user.uid, req.otherUid, user.uid);
-                            if (res.success) {
-                              Notifier.shoot({ type: 'success', message: 'Friend request accepted' });
-                              setIncoming((prev) => prev.filter((r) => r.id !== req.id));
-                            } else {
-                              Notifier.shoot({ type: 'error', message: res.message || 'Failed to accept' });
-                            }
-                          }}
-                        />
-                        <RippleButton
-                          title="Reject"
-                          size="sm"
-                          variant="outline"
-                          onPress={async () => {
-                            if (!user) return;
-                            const res = await rejectFriendship(user.uid, req.otherUid, user.uid);
-                            if (res.success) {
-                              Notifier.shoot({ type: 'info', message: 'Friend request rejected' });
-                              setIncoming((prev) => prev.filter((r) => r.id !== req.id));
-                            } else {
-                              Notifier.shoot({ type: 'error', message: res.message || 'Failed to reject' });
-                            }
-                          }}
-                        />
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-            {/* Outgoing */}
-            <View>
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">Sent</TextCustom>
-              {outgoing.length === 0 ? (
-                <TextCustom className="text-accent/60">No sent requests</TextCustom>
-              ) : (
-                outgoing.map((req) => {
-                  const person = people[req.otherUid] || {};
-                  const displayName = person.displayName || 'User';
-                  const photoURL = person.photoURL;
-                  return (
-                    <View key={req.id} className="mt-2 flex-row items-center justify-between">
-                      <View className="flex-1 flex-row items-center">
-                        {photoURL ? (
-                          <Image source={{ uri: photoURL }} className="mr-3 h-10 w-10 rounded-full border border-border" />
-                        ) : (
-                          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-main">
-                            <TextCustom>{displayName[0]?.toUpperCase() || 'U'}</TextCustom>
-                          </View>
-                        )}
-                        <TextCustom>{displayName}</TextCustom>
-                      </View>
-                      <RippleButton
-                        title="Cancel"
-                        size="sm"
-                        variant="outline"
-                        onPress={async () => {
-                          if (!user) return;
-                          const res = await deleteFriendship(user.uid, req.otherUid);
-                          if (res.success) {
-                            Notifier.shoot({ type: 'info', message: 'Request cancelled' });
-                            setOutgoing((prev) => prev.filter((r) => r.id !== req.id));
-                          } else {
-                            Notifier.shoot({ type: 'error', message: res.message || 'Failed to cancel' });
-                          }
-                        }}
-                      />
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          </View>
-        )}
+        {/* Friend requests section moved to Notifications screen */}
 
         {/* Music preferences card */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
@@ -592,11 +439,11 @@ const ProfileScreen: FC = () => {
               Favorite artists
             </TextCustom>
             {(() => {
-              const ids = (accessLevel === 'owner'
-                ? (profile?.musicPreferences as any)?.favoriteArtistIds
-                : (publicDoc?.musicPreferences as any)?.favoriteArtistIds) as
-                | string[]
-                | undefined;
+              const ids = (
+                accessLevel === 'owner'
+                  ? (profile?.musicPreferences as any)?.favoriteArtistIds
+                  : (publicDoc?.musicPreferences as any)?.favoriteArtistIds
+              ) as string[] | undefined;
               if (ids && ids.length) {
                 if (!favoriteArtistsDetailed) {
                   return (
@@ -605,7 +452,9 @@ const ProfileScreen: FC = () => {
                 }
                 if (favoriteArtistsDetailed.length === 0) {
                   return (
-                    <TextCustom className="text-accent/60">No favorite artists found</TextCustom>
+                    <TextCustom className="text-accent/60">
+                      No favorite artists found
+                    </TextCustom>
                   );
                 }
                 return (
@@ -617,20 +466,24 @@ const ProfileScreen: FC = () => {
                 );
               }
               // Backward-compat fallback
-              const items = (accessLevel === 'owner'
-                ? ((profile?.musicPreferences as any)?.favoriteArtists as
-                    | any[]
-                    | undefined)
-                : undefined);
+              const items =
+                accessLevel === 'owner'
+                  ? ((profile?.musicPreferences as any)?.favoriteArtists as
+                      | any[]
+                      | undefined)
+                  : undefined;
               if (!items || items.length === 0) {
                 return (
-                  <TextCustom className="text-accent/60">No favorite artists added yet</TextCustom>
+                  <TextCustom className="text-accent/60">
+                    No favorite artists added yet
+                  </TextCustom>
                 );
               }
               return (
                 <View className="mt-2 flex-row flex-wrap gap-2">
                   {items.map((i, idx) => {
-                    if (typeof i === 'string') return <Chip key={`${i}-${idx}`} text={i} />;
+                    if (typeof i === 'string')
+                      return <Chip key={`${i}-${idx}`} text={i} />;
                     const a = i as DeezerArtist;
                     return <ArtistLabel key={a.id || idx} artist={a} />;
                   })}
