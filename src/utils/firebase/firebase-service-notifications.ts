@@ -18,6 +18,8 @@ export interface PushToken {
 class NotificationService {
   private static instance: NotificationService;
   private currentExpoPushToken: string | null = null;
+  // Base document title for web badge rendering
+  private baseWebTitle: string | null = null;
 
   private constructor() {}
 
@@ -229,6 +231,14 @@ class NotificationService {
    */
   public async getBadgeCount(): Promise<number> {
     try {
+      if (Platform.OS === 'web') {
+        if (typeof document !== 'undefined') {
+          const title = document.title || '';
+          const match = title.match(/^\((\d+)\)\s*/);
+          return match ? parseInt(match[1], 10) : 0;
+        }
+        return 0;
+      }
       return await Notifications.getBadgeCountAsync();
     } catch (error) {
       Logger.error('Error getting badge count:', error);
@@ -241,6 +251,17 @@ class NotificationService {
    */
   public async setBadgeCount(count: number): Promise<void> {
     try {
+      if (Platform.OS === 'web') {
+        if (typeof document !== 'undefined') {
+          if (this.baseWebTitle == null) {
+            this.baseWebTitle = document.title || '';
+          }
+          const base = (this.baseWebTitle || '').replace(/^\(\d+\)\s*/, '');
+          const nextTitle = count > 0 ? `(${count}) ${base}` : base;
+          document.title = nextTitle;
+        }
+        return;
+      }
       await Notifications.setBadgeCountAsync(count);
     } catch (error) {
       Logger.error('Error setting badge count:', error);
