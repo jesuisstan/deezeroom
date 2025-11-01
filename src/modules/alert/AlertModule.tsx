@@ -19,6 +19,17 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
+// Use React Portal for web to render above Modal portals
+let createPortal: any = null;
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    createPortal = require('react-dom').createPortal;
+  } catch {
+    // react-dom not available
+  }
+}
+
 // Types for alert functionality
 export type AlertButton = {
   text: string;
@@ -170,7 +181,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
     }
   };
 
-  return (
+  const alertContent = (
     <Animated.View
       style={[
         {
@@ -180,7 +191,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
           right: 0,
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          zIndex: 9999,
+          zIndex: Platform.OS === 'web' ? 999999 : 99999, // Very high zIndex for web to appear above Modal portals
           alignItems: 'center',
           justifyContent: 'center',
           padding: 20
@@ -221,7 +232,8 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
               shadowRadius: 6,
               elevation: 8,
               borderWidth: 1,
-              borderColor: colors['border']
+              borderColor: colors['border'],
+              ...(Platform.OS === 'web' && { zIndex: 999999 })
             },
             modalAnimatedStyle
           ]}
@@ -264,6 +276,17 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
       </Pressable>
     </Animated.View>
   );
+
+  // Use Portal on web to render above Modal portals
+  if (
+    Platform.OS === 'web' &&
+    createPortal &&
+    typeof document !== 'undefined'
+  ) {
+    return createPortal(alertContent, document.body);
+  }
+
+  return alertContent;
 });
 
 AlertModule.displayName = 'AlertModule';

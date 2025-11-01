@@ -2,7 +2,6 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
-  Keyboard,
   Modal,
   PanResponder,
   Platform,
@@ -158,12 +157,9 @@ const WebSwipeModal = (props: SwipeModalProps) => {
                 }}
                 showsVerticalScrollIndicator={Platform.OS !== 'web'}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
               >
-                <TouchableWithoutFeedback
-                  onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}
-                >
-                  <View style={{ flex: 1 }}>{props.children}</View>
-                </TouchableWithoutFeedback>
+                <View style={{ flex: 1 }}>{props.children}</View>
               </ScrollView>
             </View>
           </TouchableWithoutFeedback>
@@ -403,12 +399,10 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
               flexGrow: 1
             }}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
-            <TouchableWithoutFeedback
-              onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}
-            >
-              <View style={{ flex: 1 }}>{props.children}</View>
-            </TouchableWithoutFeedback>
+            <View style={{ flex: 1 }}>{props.children}</View>
           </ScrollView>
         </Animated.View>
       </Animated.View>
