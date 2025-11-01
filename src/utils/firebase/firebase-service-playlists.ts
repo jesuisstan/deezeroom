@@ -138,8 +138,19 @@ export class PlaylistService {
   ): Promise<void> {
     const playlistRef = doc(db, this.collection, playlistId);
 
+    // Remove undefined values (Firestore doesn't support undefined)
+    const cleanUpdates = Object.entries(updates).reduce(
+      (acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      },
+      {} as Record<string, any>
+    );
+
     await updateDoc(playlistRef, {
-      ...updates,
+      ...cleanUpdates,
       updatedAt: serverTimestamp(),
       version: increment(1)
     });
@@ -577,6 +588,125 @@ export class PlaylistService {
     });
   }
 
+  // Leave playlist - if owner, transfer ownership or delete if only participant
+  static async leavePlaylist(
+    playlistId: string,
+    userId: string,
+    leavingUserData?: { displayName?: string; email?: string }
+  ): Promise<{ success: boolean; deleted?: boolean; newOwnerId?: string }> {
+    try {
+      return await runTransaction(db, async (transaction) => {
+        const playlistRef = doc(db, this.collection, playlistId);
+        const playlistDoc = await transaction.get(playlistRef);
+
+        if (!playlistDoc.exists()) {
+          throw new Error('Playlist not found');
+        }
+
+        const playlist = playlistDoc.data() as Playlist;
+        const participant = playlist.participants.find(
+          (p) => p.userId === userId
+        );
+
+        if (!participant) {
+          throw new Error('User is not a participant of this playlist');
+        }
+
+        const isOwner =
+          participant.role === 'owner' || playlist.createdBy === userId;
+        const otherParticipants = playlist.participants.filter(
+          (p) => p.userId !== userId
+        );
+
+        // If owner is leaving and they're the only participant, delete playlist
+        if (isOwner && otherParticipants.length === 0) {
+          transaction.delete(playlistRef);
+          return { success: true, deleted: true };
+        }
+
+        // If owner is leaving and there are other participants, transfer ownership
+        if (isOwner && otherParticipants.length > 0) {
+          // Transfer to first participant (prioritize editors, then viewers)
+          const newOwner =
+            otherParticipants.find((p) => p.role === 'editor') ||
+            otherParticipants.find((p) => p.role === 'viewer') ||
+            otherParticipants[0];
+
+          const updatedParticipants = otherParticipants.map((p) =>
+            p.userId === newOwner.userId ? { ...p, role: 'owner' as const } : p
+          );
+
+          transaction.update(playlistRef, {
+            participants: updatedParticipants,
+            createdBy: newOwner.userId,
+            lastModifiedBy: newOwner.userId,
+            updatedAt: serverTimestamp(),
+            version: increment(1)
+          });
+
+          // Send push notification to new owner
+          try {
+            const newOwnerRef = doc(db, 'users', newOwner.userId);
+            const newOwnerDoc = await getDoc(newOwnerRef);
+
+            if (newOwnerDoc.exists()) {
+              const newOwnerData = newOwnerDoc.data();
+              const pushToken = newOwnerData?.pushTokens;
+
+              if (pushToken?.expoPushToken) {
+                const leavingUserName =
+                  leavingUserData?.displayName ||
+                  leavingUserData?.email?.split('@')[0] ||
+                  'The previous owner';
+
+                await sendPushNotification({
+                  to: pushToken.expoPushToken,
+                  title: 'You are now the owner',
+                  body: `${leavingUserName} left "${playlist.name}" and you are now the owner`,
+                  data: {
+                    type: 'playlist_ownership_transferred',
+                    playlistId,
+                    previousOwnerId: userId
+                  },
+                  badge: 1
+                });
+
+                Logger.info('Push notification sent to new owner');
+              }
+            }
+          } catch (error) {
+            Logger.error(
+              'Error sending push notification to new owner:',
+              error
+            );
+            // Don't throw - ownership is transferred, notification is optional
+          }
+
+          return {
+            success: true,
+            deleted: false,
+            newOwnerId: newOwner.userId
+          };
+        }
+
+        // If not owner, just remove participant
+        const updatedParticipants = otherParticipants;
+
+        transaction.update(playlistRef, {
+          participants: updatedParticipants,
+          lastModifiedBy: userId,
+          updatedAt: serverTimestamp(),
+          version: increment(1)
+        });
+
+        return { success: true, deleted: false };
+      });
+    } catch (error) {
+      Logger.error('Error leaving playlist:', error);
+      throw error;
+    }
+  }
+
   // ===== USER INVITATIONS =====
 
   // Get all invitations for a specific user
@@ -976,6 +1106,98 @@ export class PlaylistService {
       const ids = (data.tracks as string[]) || [];
       callback(ids);
     });
+  }
+
+  // Subscribe to user's own playlists (real-time, includes field updates)
+  static subscribeToUserPlaylists(
+    userId: string,
+    callback: (playlists: Playlist[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      orderBy('updatedAt', 'desc')
+    );
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const allPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Filter playlists where user is the creator
+        const userPlaylists = allPlaylists.filter(
+          (playlist) => playlist.createdBy === userId
+        );
+
+        // Always update to get field changes (name, description, etc.)
+        callback(userPlaylists);
+      },
+      (error) => {
+        Logger.error('Error in subscribeToUserPlaylists:', error);
+      }
+    );
+  }
+
+  // Subscribe to user's participating playlists (real-time, includes field updates)
+  static subscribeToUserParticipatingPlaylists(
+    userId: string,
+    callback: (playlists: Playlist[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      orderBy('updatedAt', 'desc')
+    );
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const allPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Filter playlists where user is participant but not owner
+        const participatingPlaylists = allPlaylists.filter(
+          (playlist) =>
+            playlist.participants.some((p) => p.userId === userId) &&
+            playlist.createdBy !== userId
+        );
+
+        // Always update to get field changes (name, description, etc.)
+        callback(participatingPlaylists);
+      },
+      (error) => {
+        Logger.error('Error in subscribeToUserParticipatingPlaylists:', error);
+      }
+    );
+  }
+
+  // Subscribe to public playlists (real-time, includes field updates)
+  static subscribeToPublicPlaylists(
+    callback: (playlists: Playlist[]) => void,
+    limitCount: number = 20
+  ): () => void {
+    const q = query(
+      collection(db, this.collection),
+      where('visibility', '==', 'public'),
+      orderBy('updatedAt', 'desc'),
+      limit(limitCount)
+    );
+
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const publicPlaylists = querySnapshot.docs.map(
+          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
+        );
+
+        // Always update to get field changes (name, description, etc.)
+        callback(publicPlaylists);
+      },
+      (error) => {
+        Logger.error('Error in subscribeToPublicPlaylists:', error);
+      }
+    );
   }
 
   static subscribeToPlaylistInvitations(

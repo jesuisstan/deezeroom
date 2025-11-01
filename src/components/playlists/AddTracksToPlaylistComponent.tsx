@@ -207,9 +207,14 @@ const AddTracksToPlaylistComponent: React.FC<
   };
 
   const handleAddTrack = useCallback(
-    (track: Track) => {
+    async (track: Track) => {
       // Add track in background without closing modal
-      onAddTrack(track);
+      try {
+        await onAddTrack(track);
+      } catch (error) {
+        // Error is handled in parent component
+        Logger.error('Error in handleAddTrack:', error);
+      }
     },
     [onAddTrack]
   );
@@ -419,7 +424,7 @@ const AddTracksToPlaylistComponent: React.FC<
             color={themeColors[theme]['text-secondary']}
           />
           <TextCustom className="mt-4 text-center opacity-70">
-            {searchQuery
+            {searchQuery && !isSearching && !isShowingPopular
               ? 'No tracks found'
               : 'Search for tracks or load popular tracks'}
           </TextCustom>

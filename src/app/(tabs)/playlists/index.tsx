@@ -1,5 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  View
+} from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +15,7 @@ import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Logger } from '@/modules/logger';
@@ -35,6 +42,12 @@ const PlaylistsScreen = () => {
   const [activeTab, setActiveTab] = useState<'my' | 'participating' | 'public'>(
     'my'
   );
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Add padding when mini player is visible
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
@@ -93,18 +106,56 @@ const PlaylistsScreen = () => {
     loadPlaylists(activeTab);
   };
 
+  // Initial load and real-time subscription
   useEffect(() => {
-    if (user) {
-      loadPlaylists(activeTab);
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+    if (!user) return;
 
-  // Refresh data when screen comes into focus (e.g., after deleting a playlist)
+    // Initial load
+    loadPlaylists(activeTab);
+    setIsLoading(false);
+
+    // Subscribe to real-time updates (only creation/deletion, not track changes)
+    let unsubscribe: (() => void) | undefined;
+
+    switch (activeTab) {
+      case 'my':
+        unsubscribe = PlaylistService.subscribeToUserPlaylists(
+          user.uid,
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+      case 'participating':
+        unsubscribe = PlaylistService.subscribeToUserParticipatingPlaylists(
+          user.uid,
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+      case 'public':
+        unsubscribe = PlaylistService.subscribeToPublicPlaylists(
+          (updatedPlaylists) => {
+            setPlaylists(updatedPlaylists);
+          }
+        );
+        break;
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user, activeTab, loadPlaylists]);
+
+  // Refresh data when screen comes into focus (e.g., after creating a playlist from another screen)
   useFocusEffect(
     useCallback(() => {
       if (user) {
+        // Only reload if needed (subscription handles real-time updates)
+        // This ensures fresh data when returning to the screen
         loadPlaylists(activeTab);
       }
     }, [user, activeTab, loadPlaylists])
@@ -115,11 +166,23 @@ const PlaylistsScreen = () => {
       case 'my':
         return 'My';
       case 'participating':
-        return 'Shared';
+        return 'Invited';
       case 'public':
         return 'Public';
     }
   };
+
+  // Filter playlists based on search query
+  const filteredPlaylists = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return playlists;
+    }
+
+    const query = searchQuery.trim().toLowerCase();
+    return playlists.filter((playlist) =>
+      playlist.name.toLowerCase().includes(query)
+    );
+  }, [playlists, searchQuery]);
 
   return (
     <View
@@ -164,60 +227,89 @@ const PlaylistsScreen = () => {
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={true}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[themeColors[theme]['primary']]}
-            tintColor={themeColors[theme]['primary']}
-          />
-        }
-        contentContainerStyle={{
-          paddingBottom: 16 + bottomPadding,
-          paddingHorizontal: 16,
-          paddingTop: 16,
-          gap: 16,
-          flexGrow: 1
-        }}
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {/* Playlists List */}
-        {isLoading ? (
-          <ActivityIndicatorScreen />
-        ) : playlists.length === 0 ? (
-          <View className="flex-1 items-center justify-center gap-4 py-20">
-            <MaterialCommunityIcons
-              name="playlist-music"
-              size={42}
-              color={themeColors[theme]['text-secondary']}
+        <ScrollView
+          showsVerticalScrollIndicator={true}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[themeColors[theme]['primary']]}
+              tintColor={themeColors[theme]['primary']}
             />
-            <TextCustom className="text-center">
-              {activeTab === 'my' && 'You have no playlists yet'}
-              {activeTab === 'participating' &&
-                'You are not participating in any playlists'}
-              {activeTab === 'public' && 'No public playlists available'}
-            </TextCustom>
-            {activeTab === 'my' && (
-              <RippleButton
-                title="Create First Playlist"
-                size="md"
-                onPress={() => setShowCreateModal(true)}
+          }
+          contentContainerStyle={{
+            paddingBottom: 16 + bottomPadding,
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            gap: 16,
+            flexGrow: 1
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {/* Search Input */}
+          <View>
+            <InputCustom
+              placeholder="Search playlists..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              leftIconName="search"
+              onClear={() => setSearchQuery('')}
+            />
+          </View>
+
+          {/* Playlists List */}
+          {isLoading ? (
+            <ActivityIndicatorScreen />
+          ) : filteredPlaylists.length === 0 ? (
+            <View className="items-center gap-4 pt-8">
+              <MaterialCommunityIcons
+                name="playlist-music"
+                size={42}
+                color={themeColors[theme]['text-secondary']}
               />
-            )}
-          </View>
-        ) : (
-          <View
-            className="flex-row flex-wrap justify-center gap-2"
-            style={containerWidthStyle}
-          >
-            <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
-            {playlists.map((playlist) => (
-              <PlaylistCard key={playlist.id} playlist={playlist} />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+              <TextCustom className="text-center">
+                {searchQuery.trim()
+                  ? 'No playlists found matching your search'
+                  : activeTab === 'my' && 'You have no playlists yet'}
+                {searchQuery.trim()
+                  ? ''
+                  : activeTab === 'participating' &&
+                    'You are not participating in any playlists'}
+                {searchQuery.trim()
+                  ? ''
+                  : activeTab === 'public' && 'No public playlists available'}
+              </TextCustom>
+              {activeTab === 'my' && (
+                <RippleButton
+                  title="Create First Playlist"
+                  size="md"
+                  onPress={() => setShowCreateModal(true)}
+                />
+              )}
+            </View>
+          ) : (
+            <View
+              className="flex-row flex-wrap justify-center gap-2"
+              style={containerWidthStyle}
+            >
+              {activeTab === 'my' && (
+                <CreatePlaylistButton
+                  onPress={() => setShowCreateModal(true)}
+                />
+              )}
+              {filteredPlaylists.map((playlist) => (
+                <PlaylistCard key={playlist.id} playlist={playlist} />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Create Playlist Modal */}
       {user && (

@@ -406,6 +406,85 @@ const NotificationsScreen = () => {
     loadFriendRequests();
   }, [loadFriendRequests]);
 
+  // Load viewed response IDs from storage
+  useEffect(() => {
+    const loadViewedResponseIds = async () => {
+      if (!user) return;
+
+      try {
+        const key = `viewed_responses_${user.uid}`;
+        const stored = await AsyncStorage.getItem(key);
+        if (stored) {
+          const ids = JSON.parse(stored) as string[];
+          setViewedResponseIds(new Set(ids));
+        }
+      } catch (error) {
+        Logger.error('Error loading viewed response IDs:', error);
+      }
+    };
+
+    loadViewedResponseIds();
+  }, [user]);
+
+  // Function to mark a response as viewed (will be called on swipe)
+  const markResponseAsViewed = useCallback(
+    async (responseId: string) => {
+      if (!user) return;
+
+      try {
+        const updated = new Set(viewedResponseIds);
+        updated.add(responseId);
+        setViewedResponseIds(updated);
+
+        const key = `viewed_responses_${user.uid}`;
+        await AsyncStorage.setItem(key, JSON.stringify([...updated]));
+      } catch (error) {
+        Logger.error('Error saving viewed response IDs:', error);
+      }
+    },
+    [user, viewedResponseIds]
+  );
+
+  // Clear badge when screen is mounted (user is viewing notifications)
+  useEffect(() => {
+    clearBadge();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load sent invitations responses
+  const loadSentInvitationsResponses = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setIsLoadingResponses(true);
+      const responses = await PlaylistService.getUserSentInvitationsResponses(
+        user.uid
+      );
+      setSentInvitationsResponses(responses);
+    } catch (error) {
+      Logger.error('Error loading sent invitations responses:', error);
+    } finally {
+      setIsLoadingResponses(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    setIsLoadingResponses(true);
+
+    const unsubscribe = PlaylistService.subscribeToUserSentInvitationsResponses(
+      user.uid,
+      (responses) => {
+        setSentInvitationsResponses(responses);
+        setIsLoadingResponses(false);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
   // Mark notifications as read only when user actively interacts with the screen
   const handleRefresh = async () => {
     await refreshInvitations();
@@ -551,7 +630,6 @@ const NotificationsScreen = () => {
       }
     >
       <View style={containerWidthStyle}>
-        {/* Friend requests are merged into the unified list below */}
         <View className="mb-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-1">

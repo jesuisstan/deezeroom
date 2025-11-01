@@ -16,9 +16,12 @@ const PlaylistHeaderTitle: React.FC = () => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
 
   useEffect(() => {
+    if (!id) return;
+
     let isMounted = true;
+
+    // Initial load
     const load = async () => {
-      if (!id) return;
       try {
         const data = await PlaylistService.getPlaylist(id);
         if (isMounted) setPlaylist(data);
@@ -26,9 +29,22 @@ const PlaylistHeaderTitle: React.FC = () => {
         // swallow
       }
     };
+
     load();
+
+    // Subscribe to real-time updates
+    const unsubscribe = PlaylistService.subscribeToPlaylist(
+      id,
+      (updatedPlaylist) => {
+        if (isMounted && updatedPlaylist) {
+          setPlaylist(updatedPlaylist);
+        }
+      }
+    );
+
     return () => {
       isMounted = false;
+      unsubscribe();
     };
   }, [id]);
 
