@@ -1,12 +1,5 @@
 import { FC, useEffect, useRef, useState, forwardRef } from 'react';
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import * as ExpoLocation from 'expo-location';
 import type { ViewStyle } from 'react-native';
@@ -22,7 +15,6 @@ import ImageUploader, {
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import type { Artist as GqlArtist } from '@/graphql/schema';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -32,6 +24,7 @@ import { containerWidthStyle } from '@/style/container-width-style';
 import { deezerService } from '@/utils/deezer/deezer-service';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { updateAvatar } from '@/utils/profile-utils';
+import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
 
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
@@ -83,10 +76,8 @@ const EditProfileScreen: FC = () => {
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
-  // Scrolling and layout refs
+  // Scrolling ref
   const scrollRef = useRef<ScrollView>(null);
-  const artistsSectionRef = useRef<View>(null);
-  const [artistsSectionY, setArtistsSectionY] = useState(0);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -100,11 +91,7 @@ const EditProfileScreen: FC = () => {
 
   // Artist selection state
   const [selectedArtists, setSelectedArtists] = useState<DeezerArtist[]>([]);
-  const [artistQuery, setArtistQuery] = useState('');
-  const [artistResults, setArtistResults] = useState<GqlArtist[]>([]);
-  const [artistSearching, setArtistSearching] = useState(false);
-  const [artistError, setArtistError] = useState<string | null>(null);
-  const [debounceId, setDebounceId] = useState<any>(null);
+  // Artist picker state is managed inside reusable component. Keep only selected here.
 
   // Loading state for location detection
   const [locLoading, setLocLoading] = useState(false);
@@ -373,59 +360,6 @@ const EditProfileScreen: FC = () => {
     }
   };
 
-  const mapGqlArtistToDeezer = (a: GqlArtist): DeezerArtist => ({
-    id: a.id,
-    name: a.name,
-    link: a.link,
-    picture: a.picture,
-    picture_small: a.pictureSmall,
-    picture_medium: a.pictureMedium,
-    picture_big: a.pictureBig,
-    picture_xl: a.pictureXl,
-    type: 'artist'
-  });
-
-  const searchArtists = (q: string) => {
-    setArtistQuery(q);
-    setArtistError(null);
-    if (debounceId) clearTimeout(debounceId);
-
-    if (!q || q.trim().length < 2) {
-      setArtistResults([]);
-      return;
-    }
-
-    const id = setTimeout(async () => {
-      try {
-        setArtistSearching(true);
-        const res = await deezerService.searchArtistsViaGraphQL(q, 8, 0);
-        setArtistResults(res.artists || []);
-      } catch (e: any) {
-        Logger.error('Artist search failed', e, 'EditProfile');
-        setArtistError('Failed to search');
-      } finally {
-        setArtistSearching(false);
-      }
-    }, 300);
-    setDebounceId(id);
-  };
-
-  const addArtist = (artist: GqlArtist) => {
-    const toAdd = mapGqlArtistToDeezer(artist);
-    setArtistQuery('');
-    setArtistResults([]);
-    setSelectedArtists((prev) => {
-      // no duplicates and max 20
-      if (prev.find((a) => a.id === toAdd.id)) return prev;
-      if (prev.length >= 20) return prev;
-      return [...prev, toAdd];
-    });
-  };
-
-  const removeArtist = (id: string) => {
-    setSelectedArtists((prev) => prev.filter((a) => a.id !== id));
-  };
-
   const handleSave = async () => {
     if (!user) return;
     try {
@@ -452,17 +386,6 @@ const EditProfileScreen: FC = () => {
       Alert.alert('Error', 'Failed to update profile');
     }
   };
-
-  // When suggestions appear, scroll so the dropdown is visible
-  useEffect(() => {
-    if (artistResults.length > 0) {
-      const timeout = setTimeout(() => {
-        const y = Math.max(0, artistsSectionY - 12);
-        scrollRef.current?.scrollTo({ y, animated: true });
-      }, 50);
-      return () => clearTimeout(timeout);
-    }
-  }, [artistResults.length, artistsSectionY]);
 
   return !profile ? (
     <ActivityIndicatorScreen />
@@ -780,129 +703,13 @@ const EditProfileScreen: FC = () => {
           modalVisible={showArtistsModal}
           setVisible={setShowArtistsModal}
         >
-          <View className="flex-1 px-4 pb-6">
-            <TextCustom className="mb-2 opacity-70">
-              Select up to 20 artists
-            </TextCustom>
-            <InputCustom
-              placeholder={
-                selectedArtists.length >= 20
-                  ? 'Maximum 20 selected'
-                  : 'Start typing artist name'
-              }
-              value={artistQuery}
-              onChangeText={searchArtists}
-            />
-            {artistSearching && (
-              <TextCustom size="s" className="mt-2 opacity-60">
-                Searching…
-              </TextCustom>
-            )}
-            {!!artistError && (
-              <TextCustom size="s" className="mt-2">
-                {artistError}
-              </TextCustom>
-            )}
-            {artistResults.length > 0 && (
-              <View
-                className="mt-2 rounded-xl border border-border bg-bg-secondary"
-                style={{ borderRadius: 12, overflow: 'hidden' }}
-              >
-                <ScrollView
-                  style={{ maxHeight: 256 }}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                >
-                  {artistResults.map((a) => (
-                    <TouchableOpacity
-                      key={a.id}
-                      className="flex-row items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
-                      onPress={() => addArtist(a)}
-                    >
-                      {a.pictureSmall ? (
-                        <Image
-                          source={{ uri: a.pictureSmall }}
-                          style={{ width: 32, height: 32, borderRadius: 16 }}
-                        />
-                      ) : (
-                        <View
-                          style={{ width: 32, height: 32, borderRadius: 16 }}
-                          className="items-center justify-center bg-bg-main"
-                        >
-                          <TextCustom size="s">{a.name.charAt(0)}</TextCustom>
-                        </View>
-                      )}
-                      <TextCustom className="flex-1">{a.name}</TextCustom>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Selected chips */}
-            <View className="mt-3">
-              <View className="mb-2 flex-row items-center justify-between">
-                <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-                  Selected
-                </TextCustom>
-                <TextCustom size="s" className="opacity-60">
-                  {selectedArtists.length}/20
-                </TextCustom>
-              </View>
-              {selectedArtists.length === 0 ? (
-                <TextCustom className="opacity-60">
-                  No artists selected yet
-                </TextCustom>
-              ) : (
-                <View className="flex-row flex-wrap">
-                  {selectedArtists.map((a) => (
-                    <View
-                      key={a.id}
-                      className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
-                    >
-                      {a.picture_small ? (
-                        <Image
-                          source={{ uri: a.picture_small }}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 10,
-                            marginRight: 6
-                          }}
-                        />
-                      ) : (
-                        <View
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 10,
-                            marginRight: 6
-                          }}
-                          className="items-center justify-center bg-bg-main"
-                        >
-                          <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
-                        </View>
-                      )}
-                      <TextCustom size="s">{a.name}</TextCustom>
-                      <TouchableOpacity
-                        onPress={() => removeArtist(a.id)}
-                        className="ml-2 rounded-full bg-bg-main px-2 py-1"
-                      >
-                        <TextCustom size="xs">×</TextCustom>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            <View className="mt-4">
-              <RippleButton
-                title="Done"
-                onPress={() => setShowArtistsModal(false)}
-              />
-            </View>
-          </View>
+          <ArtistsPickerComponent
+            selected={selectedArtists}
+            onChange={setSelectedArtists}
+            max={20}
+            isVisible={showArtistsModal}
+            onDone={() => setShowArtistsModal(false)}
+          />
         </SwipeModal>
       )}
     </KeyboardAvoidingView>
