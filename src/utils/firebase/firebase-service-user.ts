@@ -1,6 +1,7 @@
 import { User } from 'firebase/auth';
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -263,11 +264,15 @@ export class UserService {
             user.displayName ?? (user.email ? user.email.split('@')[0] : '');
           const finalPhotoURL =
             (userData as any).photoURL ?? existingData?.photoURL ?? user.photoURL ?? '';
+          const finalEmail =
+            (userData as any).email ?? existingData?.email ?? user.email ?? '';
           const finalMusic =
             (userData as any).musicPreferences ?? existingData?.musicPreferences;
 
           await setPublicProfileDoc(user.uid, removeUndefinedDeep({
             displayName: finalDisplayName,
+            displayNameLowercase: typeof finalDisplayName === 'string' ? finalDisplayName.toLowerCase() : undefined,
+            email: typeof finalEmail === 'string' ? finalEmail.toLowerCase() : undefined,
             photoURL: finalPhotoURL,
             musicPreferences: finalMusic
               ? {
@@ -333,7 +338,13 @@ export class UserService {
     // Mirror updates into public/friends subdocs as needed
     try {
       const toPublic: any = {};
-      if (typeof data.displayName !== 'undefined') toPublic.displayName = data.displayName;
+      if (typeof data.displayName !== 'undefined') {
+        toPublic.displayName = data.displayName;
+        toPublic.displayNameLowercase = typeof data.displayName === 'string' ? data.displayName.toLowerCase() : undefined;
+      }
+      if (typeof data.email !== 'undefined') {
+        toPublic.email = typeof data.email === 'string' ? data.email.toLowerCase() : undefined;
+      }
       if (typeof data.photoURL !== 'undefined') toPublic.photoURL = data.photoURL;
       if (typeof data.musicPreferences !== 'undefined') {
         toPublic.musicPreferences = {
@@ -994,54 +1005,90 @@ export class UserService {
     excludeUserId?: string
   ): Promise<UserProfile[]> {
     try {
-      if (!searchQuery.trim()) return [];
+      const trimmed = searchQuery.trim();
+      if (!trimmed) return [];
 
-      const searchTerm = searchQuery.trim().toLowerCase();
+      const termLower = trimmed.toLowerCase();
 
-      // Search by email (exact match)
+      // IMPORTANT: Root /users docs are private by rules; search public profile subdocs instead
+      // Primary: search by lowercase display name (if present)
+      const lowerNameQuery = query(
+        collectionGroup(db, 'public'),
+        where('displayNameLowercase', '>=', termLower),
+        where('displayNameLowercase', '<=', termLower + '\uf8ff'),
+        limit(limitCount)
+      );
+
+      // Fallback: search by raw displayName for older docs without lowercase field
+      const rawNameQuery = query(
+        collectionGroup(db, 'public'),
+        where('displayName', '>=', trimmed),
+        where('displayName', '<=', trimmed + '\uf8ff'),
+        limit(limitCount)
+      );
+
+      // Email exact match in public profile
       const emailQuery = query(
-        collection(db, this.collection),
-        where('email', '==', searchTerm),
+        collectionGroup(db, 'public'),
+        where('email', '==', termLower),
         limit(limitCount)
       );
 
-      // Search by display name (contains)
-      const nameQuery = query(
-        collection(db, this.collection),
-        where('displayName', '>=', searchTerm),
-        where('displayName', '<=', searchTerm + '\uf8ff'),
-        limit(limitCount)
-      );
-
-      const [emailResults, nameResults] = await Promise.all([
-        getDocs(emailQuery),
-        getDocs(nameQuery)
-      ]);
-
-      // Combine and deduplicate results
-      const allUsers = new Map<string, UserProfile>();
-
-      emailResults.docs.forEach((doc) => {
-        const docData = doc.data();
-        if (docData) {
-          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
-          if (!excludeUserId || userData.uid !== excludeUserId) {
-            allUsers.set(userData.uid, userData);
-          }
+      // Run lowercase query first; if index is missing, fall back gracefully
+      let lowerSnap: any = { docs: [] };
+      try {
+        lowerSnap = await getDocs(lowerNameQuery);
+      } catch (e: any) {
+        // If index missing or not ready, proceed with fallback only
+        if (e?.code === 'failed-precondition') {
+        } else {
+          throw e;
         }
-      });
+      }
 
-      nameResults.docs.forEach((doc) => {
-        const docData = doc.data();
-        if (docData) {
-          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
-          if (!excludeUserId || userData.uid !== excludeUserId) {
-            allUsers.set(userData.uid, userData);
-          }
-        }
-      });
+      let rawSnap: any = { docs: [] };
+      try {
+        rawSnap = await getDocs(rawNameQuery);
+      } catch (e) {
+        // Propagate non-index errors
+        throw e;
+      }
 
-      return Array.from(allUsers.values()).slice(0, limitCount);
+      let emailSnap: any = { docs: [] };
+      try {
+        emailSnap = await getDocs(emailQuery);
+      } catch (e) {
+        // Ignore if index missing; fallback queries will handle
+      }
+
+      const results = new Map<string, UserProfile>();
+
+      const collect = (d: any) => {
+        const data = d.data();
+        const uid = d.ref.parent.parent?.id as string | undefined;
+        if (!uid) return;
+        if (excludeUserId && uid === excludeUserId) return;
+
+        const user: any = {
+          uid,
+          email: data?.email || '',
+          displayName: data?.displayName || '',
+          photoURL: data?.photoURL,
+          // Optional extras for UI; rest of fields omitted for privacy
+          musicPreferences: data?.musicPreferences,
+          createdAt: null,
+          updatedAt: null,
+          emailVerified: false
+        };
+
+        results.set(uid, user as UserProfile);
+      };
+
+      lowerSnap.docs.forEach(collect);
+      rawSnap.docs.forEach(collect);
+  emailSnap.docs.forEach(collect);
+
+      return Array.from(results.values()).slice(0, limitCount);
     } catch (error) {
       Logger.error('Error searching users', error, '🔥 Firebase UserService');
       return [];

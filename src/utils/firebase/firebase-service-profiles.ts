@@ -5,6 +5,10 @@ import { db } from '@/utils/firebase/firebase-init';
 
 export interface PublicProfileDoc {
   displayName?: string;
+  // Lowercased display name for case-insensitive search
+  displayNameLowercase?: string;
+  // Public email for invitation lookup (lowercased). Visible to all by rules.
+  email?: string;
   photoURL?: string;
   musicPreferences?: {
     favoriteGenres?: string[];
