@@ -527,7 +527,7 @@ const ProfileScreen: FC = () => {
           <View className="mt-3">
             <RippleButton
               width="full"
-              title={`Open ${profile?.displayName} Playlists`}
+              title={`Open ${(accessLevel === 'owner' ? profile?.displayName : publicDoc?.displayName) || 'User'} Playlists`}
               onPress={() => router.push('/(tabs)/playlists')} //TODO: pass uid param
             />
           </View>
