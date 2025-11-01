@@ -551,7 +551,6 @@ const NotificationsScreen = () => {
       }
     >
       <View style={containerWidthStyle}>
-        {/* Friend requests are merged into the unified list below */}
         <View className="mb-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-1">

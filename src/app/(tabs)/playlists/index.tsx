@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-
 import {
   KeyboardAvoidingView,
   Platform,
@@ -7,6 +6,7 @@ import {
   ScrollView,
   View
 } from 'react-native';
+
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -221,6 +221,7 @@ const PlaylistsScreen = () => {
           ))}
         </View>
       </View>
+
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

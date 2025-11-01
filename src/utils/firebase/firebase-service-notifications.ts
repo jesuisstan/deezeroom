@@ -239,7 +239,6 @@ class NotificationService {
         }
         return 0;
       }
-
       return await Notifications.getBadgeCountAsync();
     } catch (error) {
       Logger.error('Error getting badge count:', error);
