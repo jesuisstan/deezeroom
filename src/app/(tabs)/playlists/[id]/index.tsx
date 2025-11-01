@@ -17,6 +17,7 @@ import { useClient } from 'urql';
 import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
+import EditPlaylistModal from '@/components/playlists/EditPlaylistModal';
 import InfoTab from '@/components/playlists/InfoTab';
 import ParticipantsTab from '@/components/playlists/ParticipantsTab';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
@@ -60,6 +61,7 @@ const PlaylistDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
@@ -267,12 +269,37 @@ const PlaylistDetailScreen = () => {
   };
 
   const handleEditPlaylist = () => {
-    // TODO: Implement edit playlist functionality
-    Notifier.shoot({
-      type: 'info',
-      title: 'Coming Soon',
-      message: 'Edit playlist functionality will be available soon'
-    });
+    if (!playlist || !user) return;
+
+    // Check if user can edit (owner or editor)
+    const participant = playlist.participants.find(
+      (p) => p.userId === user.uid
+    );
+    const canEditPlaylist =
+      playlist.createdBy === user.uid ||
+      participant?.role === 'owner' ||
+      participant?.role === 'editor';
+
+    if (!canEditPlaylist) {
+      Notifier.shoot({
+        type: 'error',
+        title: 'Permission Denied',
+        message: 'You do not have permission to edit this playlist'
+      });
+      return;
+    }
+
+    setShowEditModal(true);
+  };
+
+  const handlePlaylistUpdated = async () => {
+    // Reload playlist after update
+    await loadPlaylist(true);
+  };
+
+  const handleLeavePlaylist = () => {
+    // Navigate back to playlists screen
+    router.replace('/(tabs)/playlists');
   };
 
   const handleInviteUsers = () => {
@@ -684,7 +711,12 @@ const PlaylistDetailScreen = () => {
             renderTabBar={() => null}
           />
 
-          {playlist.createdBy === user?.uid && (
+          {/* Action buttons - visible for owner and editor */}
+          {(canEdit ||
+            playlist.createdBy === user?.uid ||
+            playlist.participants.some(
+              (p) => p.userId === user?.uid && p.role === 'editor'
+            )) && (
             <View
               style={{
                 position: 'absolute',
@@ -700,16 +732,18 @@ const PlaylistDetailScreen = () => {
                 borderWidth: 1
               }}
             >
-              <IconButton
-                accessibilityLabel="Delete playlist"
-                onPress={handleDeletePlaylist}
-              >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              {playlist.createdBy === user?.uid && (
+                <IconButton
+                  accessibilityLabel="Delete playlist"
+                  onPress={handleDeletePlaylist}
+                >
+                  <MaterialCommunityIcons
+                    name="delete-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
 
               <IconButton
                 accessibilityLabel="Edit playlist"
@@ -722,16 +756,18 @@ const PlaylistDetailScreen = () => {
                 />
               </IconButton>
 
-              <IconButton
-                accessibilityLabel="Invite users"
-                onPress={handleInviteUsers}
-              >
-                <MaterialCommunityIcons
-                  name="account-plus-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              {(canEdit || playlist.createdBy === user?.uid) && (
+                <IconButton
+                  accessibilityLabel="Invite users"
+                  onPress={handleInviteUsers}
+                >
+                  <MaterialCommunityIcons
+                    name="account-plus-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
 
               {Platform.OS === 'web' && (
                 <IconButton
@@ -833,6 +869,17 @@ const PlaylistDetailScreen = () => {
           />
         )}
       </SwipeModal>
+
+      {/* Edit Playlist Modal */}
+      {playlist && (
+        <EditPlaylistModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          playlist={playlist}
+          onPlaylistUpdated={handlePlaylistUpdated}
+          onLeavePlaylist={handleLeavePlaylist}
+        />
+      )}
     </View>
   );
 };
