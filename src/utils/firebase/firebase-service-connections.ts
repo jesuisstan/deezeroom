@@ -11,6 +11,7 @@ import {
   where
 } from 'firebase/firestore';
 
+import { FirebaseError } from 'firebase/app';
 import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 
@@ -42,7 +43,11 @@ export async function getConnectionBetween(
     if (!snap.exists()) return null;
     return snap.data() as ConnectionDoc;
   } catch (error) {
-    Logger.error('getConnectionBetween error', error, '🤝 Connections');
+    // Permission-denied is expected for non-existing docs under strict rules.
+    const err = error as FirebaseError;
+    if (err?.code != 'permission-denied') {
+      Logger.error('getConnectionBetween error', error, '🤝 Connections');
+    }
     return null;
   }
 }
@@ -70,6 +75,12 @@ export async function listPendingConnectionsFor(
     sb.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
     return Array.from(map.values());
   } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      // If rules restrict listing, return empty silently
+      Logger.debug('listPendingConnectionsFor: permission denied (returning empty)', null, '🤝 Connections');
+      return [];
+    }
     Logger.error('listPendingConnectionsFor error', error, '🤝 Connections');
     return [];
   }
@@ -96,6 +107,11 @@ export async function requestFriendship(
     await setDoc(ref, payload, { merge: true });
     return { success: true };
   } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      Logger.warn('requestFriendship permission denied by rules', error, '🤝 Connections');
+      return { success: false, message: 'Not allowed by security rules' };
+    }
     Logger.error('requestFriendship error', error, '🤝 Connections');
     return { success: false, message: 'Failed to request friendship' };
   }
@@ -116,6 +132,11 @@ export async function acceptFriendship(
     });
     return { success: true };
   } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      Logger.warn('acceptFriendship permission denied by rules', error, '🤝 Connections');
+      return { success: false, message: 'Not allowed by security rules' };
+    }
     Logger.error('acceptFriendship error', error, '🤝 Connections');
     return { success: false, message: 'Failed to accept friendship' };
   }
@@ -136,6 +157,11 @@ export async function rejectFriendship(
     });
     return { success: true };
   } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      Logger.warn('rejectFriendship permission denied by rules', error, '🤝 Connections');
+      return { success: false, message: 'Not allowed by security rules' };
+    }
     Logger.error('rejectFriendship error', error, '🤝 Connections');
     return { success: false, message: 'Failed to reject friendship' };
   }
@@ -151,6 +177,11 @@ export async function deleteFriendship(
     await deleteDoc(ref);
     return { success: true };
   } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      Logger.warn('deleteFriendship permission denied by rules', error, '🤝 Connections');
+      return { success: false, message: 'Not allowed by security rules' };
+    }
     Logger.error('deleteFriendship error', error, '🤝 Connections');
     return { success: false, message: 'Failed to remove friend' };
   }
