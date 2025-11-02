@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
+import { useAudioPlayer } from 'expo-audio';
 import { useClient } from 'urql';
 
 import TrackCard from '@/components/search-tracks/TrackCard';
@@ -19,11 +20,14 @@ import { themeColors } from '@/style/color-theme';
 interface FavoriteTracksListProps {
   onPlayTrack?: (track: Track) => void;
   currentPlayingTrackId?: string;
+  // Optional explicit list of track IDs to render favorites for another user
+  trackIdsOverride?: string[];
 }
 
 const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   onPlayTrack,
-  currentPlayingTrackId
+  currentPlayingTrackId,
+  trackIdsOverride
 }) => {
   const { theme } = useTheme();
   const { profile } = useUser();
@@ -34,11 +38,24 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const favoriteTrackIds = useMemo(
-    () => profile?.favoriteTracks || [],
-    [profile?.favoriteTracks]
+  const [currentPreviewTrackId, setCurrentPreviewTrackId] = useState<
+    string | null
+  >(null);
+  const [currentPreviewUrl, setCurrentPreviewUrl] = useState<string | null>(
+    null
   );
+
+  // Audio player for preview - recreated when URL changes
+  const previewPlayer = useAudioPlayer(
+    currentPreviewUrl ? { uri: currentPreviewUrl } : undefined
+  );
+
+  const favoriteTrackIds = useMemo(() => {
+    if (trackIdsOverride && trackIdsOverride.length >= 0) {
+      return trackIdsOverride;
+    }
+    return profile?.favoriteTracks || [];
+  }, [trackIdsOverride, profile?.favoriteTracks]);
   const hasMore = currentIndex < favoriteTrackIds.length;
 
   // Load initial batch of tracks
@@ -140,11 +157,70 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   }, [hasMore, isLoadingMore, isLoading, currentIndex, loadTracksBatch]);
 
   const handlePlayTrack = useCallback(
-    (track: Track) => {
-      onPlayTrack?.(track);
+    async (track: Track) => {
+      if (!track.preview) {
+        Notifier.warn('Preview is not available for this track');
+        return;
+      }
+
+      // Toggle pause if tapping the same track
+      if (currentPreviewTrackId === track.id) {
+        try {
+          previewPlayer.pause();
+          setCurrentPreviewTrackId(null);
+          setCurrentPreviewUrl(null);
+        } catch (error) {
+          Logger.error('Error stopping preview:', error);
+        }
+        return;
+      }
+
+      try {
+        // Stop any current preview
+        if (currentPreviewTrackId) {
+          await previewPlayer.pause();
+        }
+        // Set new preview URL and start later via effect
+        setCurrentPreviewUrl(track.preview);
+        setCurrentPreviewTrackId(track.id);
+        // Notify parent about selected track (optional)
+        onPlayTrack?.(track);
+      } catch (error) {
+        Logger.error('Error playing preview:', error);
+        Notifier.warn('Failed to play preview');
+        setCurrentPreviewTrackId(null);
+        setCurrentPreviewUrl(null);
+      }
     },
-    [onPlayTrack]
+    [currentPreviewTrackId, onPlayTrack, previewPlayer]
   );
+
+  // Auto-play when preview URL changes
+  useEffect(() => {
+    if (currentPreviewTrackId && currentPreviewUrl && previewPlayer) {
+      const playPreview = async () => {
+        try {
+          await previewPlayer.play();
+        } catch (error) {
+          Logger.error('Error auto-playing preview:', error);
+        }
+      };
+      const timeoutId = setTimeout(playPreview, 50);
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPreviewUrl, currentPreviewTrackId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      try {
+        previewPlayer.pause();
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
 
   if (favoriteTrackIds.length === 0) {
     return (
@@ -171,16 +247,19 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
     <View className="w-full">
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="bg-intent-warning/10 mb-2 rounded-lg p-3">
+        <View className="rounded-lg bg-bg-secondary p-4">
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached favorite tracks only
           </TextCustom>
         </View>
       )}
 
-      <View className="mb-2 flex-row items-center justify-between">
-        <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-          Favorite Tracks ({loadedTracks.length} of {favoriteTrackIds.length})
+      <View className="flex-row items-center justify-between px-4 py-4">
+        <TextCustom type="semibold" size="xl">
+          Favorite Tracks{' '}
+          <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+            ({loadedTracks.length} of {favoriteTrackIds.length})
+          </TextCustom>
         </TextCustom>
       </View>
 
@@ -191,25 +270,24 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           nestedScrollEnabled
           removeClippedSubviews={true}
         >
-          {loadedTracks.map((track, index) => (
-            <TrackCard
-              key={`${track.id}-${index}`}
-              track={track}
-              isPlaying={currentPlayingTrackId === track.id}
-              onPlay={handlePlayTrack}
-            />
-          ))}
+          {loadedTracks.map((track, index) => {
+            const activeId = currentPlayingTrackId ?? currentPreviewTrackId;
+            return (
+              <TrackCard
+                key={`${track.id}-${index}`}
+                track={track}
+                isPlaying={activeId === track.id}
+                onPress={handlePlayTrack}
+              />
+            );
+          })}
         </ScrollView>
       )}
 
       {/* Load more button */}
       {hasMore && (
-        <View className="mt-2 items-center">
-          <TextCustom
-            size="xs"
-            color={themeColors[theme]['text-secondary']}
-            className="mb-2"
-          >
+        <View className="items-center gap-2 px-4 py-4">
+          <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
             Loaded {loadedTracks.length} of {favoriteTrackIds.length} tracks
           </TextCustom>
           <RippleButton
@@ -224,13 +302,15 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
 
       {/* End of list indicator */}
       {!hasMore && loadedTracks.length > 0 && (
-        <TextCustom
-          size="xs"
-          color={themeColors[theme]['text-secondary']}
-          className="mt-2 text-center"
-        >
-          All favorite tracks loaded
-        </TextCustom>
+        <View className="items-center px-4 py-4">
+          <TextCustom
+            size="xs"
+            color={themeColors[theme]['text-secondary']}
+            className="text-center"
+          >
+            All favorite tracks loaded
+          </TextCustom>
+        </View>
       )}
 
       {/* Loading state */}
