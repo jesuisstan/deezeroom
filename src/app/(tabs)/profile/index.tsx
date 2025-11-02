@@ -276,18 +276,6 @@ const ProfileScreen: FC = () => {
             </View>
           </View>
         )}
-
-        {/* Playlists card */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle">Playlists</TextCustom>
-          <View className="mt-3">
-            <RippleButton
-              width="full"
-              title={`Open ${profile?.displayName} Playlists`}
-              onPress={() => router.push('/(tabs)/playlists')} //TODO: pass uid param
-            />
-          </View>
-        </View>
       </View>
     </ScrollView>
   );

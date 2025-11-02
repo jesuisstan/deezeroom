@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useMemo } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
 import ChangePasswordSection from '@/components/profile/ChangePasswordSection';
@@ -8,7 +8,9 @@ import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import LineButton from '@/components/ui/buttons/LineButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import useContactSupport from '@/hooks/useContactSupport';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useUser } from '@/providers/UserProvider';
 import { containerWidthStyle } from '@/style/container-width-style';
 
@@ -16,11 +18,24 @@ const ProfileSettingsScreen: FC = () => {
   const { profile } = useUser();
   const { handleContactSupport } = useContactSupport();
 
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
+
   return !profile ? (
     <ActivityIndicatorScreen />
   ) : (
-    <ScrollView className="bg-bg-main py-4">
-      <View style={containerWidthStyle}>
+    <ScrollView
+      showsVerticalScrollIndicator={true}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingBottom: bottomPadding
+      }}
+      className="bg-bg-main"
+    >
+      <View style={containerWidthStyle} className="py-4 ">
         <View className="mb-4 flex-row items-center gap-4 px-4">
           {profile?.photoURL ? (
             <Image
@@ -48,7 +63,7 @@ const ProfileSettingsScreen: FC = () => {
         <View className="mb-4 mt-4 px-4">
           <ConnectedAccountsSection profile={profile} />
         </View>
-        <View className="mb-4 px-4">
+        <View className="mb-4">
           <Divider />
 
           {!profile?.authProviders?.emailPassword?.linked ? null : (
@@ -59,7 +74,7 @@ const ProfileSettingsScreen: FC = () => {
           )}
 
           <LineButton onPress={handleContactSupport}>
-            <View className="w-full items-start py-4">
+            <View className="w-full items-start px-4 py-4">
               <TextCustom size="m" type="semibold">
                 Contact support
               </TextCustom>

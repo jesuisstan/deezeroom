@@ -107,7 +107,7 @@ const ChangePasswordSection: FC<ChangePasswordSectionProps> = ({ profile }) => {
   return (
     <View>
       <LineButton onPress={() => setShowChangePasswordModal(true)}>
-        <View className="w-full items-start py-4">
+        <View className="w-full items-start px-4 py-4">
           <TextCustom size="m" type="semibold">
             Change password
           </TextCustom>
