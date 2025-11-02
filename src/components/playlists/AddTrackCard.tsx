@@ -55,54 +55,74 @@ const AddTrackCard: FC<AddTrackCardProps> = ({
 
   return (
     <LineButton onPress={handlePress}>
-      <View className="flex-row items-center gap-3 px-4 py-2">
-        {albumCoverUrl && (
-          <Image
-            source={{ uri: albumCoverUrl }}
-            className="h-16 w-16 rounded"
-            resizeMode="cover"
-          />
-        )}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <TextCustom
-              type="semibold"
-              size="m"
-              color={
-                isPlaying
-                  ? themeColors[theme]['primary']
-                  : themeColors[theme]['text-main']
-              }
-            >
-              {track.title}
-            </TextCustom>
-          </View>
-          <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
-            {track.artist.name}
-          </TextCustom>
-        </View>
-
-        <View className="flex-row items-center gap-2">
-          {isPlaying && (
-            <View className="animate-pulse">
-              <AntDesign
-                name="play-square"
-                size={18}
-                color={themeColors[theme]['primary']}
-              />
-            </View>
-          )}
-          {track.explicitLyrics && (
-            <MaterialIcons
-              name="explicit"
-              size={18}
-              color={themeColors[theme]['intent-warning']}
+      <View className="flex-1 flex-row items-center justify-between gap-2 px-4 py-2">
+        <View
+          id="track-info-group"
+          className="flex-1 flex-row items-center gap-4"
+        >
+          {albumCoverUrl && (
+            <Image
+              source={{ uri: albumCoverUrl }}
+              className="h-16 w-16 rounded"
+              resizeMode="cover"
             />
           )}
-          <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
-            {formattedDuration()}
-          </TextCustom>
+          <View className="flex-1">
+            <View className="mr-4 flex-row items-center gap-2">
+              <TextCustom
+                type="semibold"
+                size="m"
+                numberOfLines={1}
+                color={
+                  isPlaying
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-main']
+                }
+              >
+                {track.title}
+              </TextCustom>
+              {track.explicitLyrics && (
+                <MaterialIcons
+                  name="explicit"
+                  size={18}
+                  color={themeColors[theme]['intent-warning']}
+                />
+              )}
+              {isPlaying && (
+                <View className="animate-pulse">
+                  <AntDesign
+                    name="play-square"
+                    size={18}
+                    color={themeColors[theme]['primary']}
+                  />
+                </View>
+              )}
+            </View>
+            <View className="mr-4 flex-row items-center gap-2">
+              <TextCustom
+                size="xs"
+                color={themeColors[theme]['text-secondary']}
+                numberOfLines={1}
+              >
+                {track.artist.name}
+              </TextCustom>
+              <TextCustom
+                size="xs"
+                color={themeColors[theme]['text-secondary']}
+              >
+                •
+              </TextCustom>
+              <TextCustom
+                size="xs"
+                color={themeColors[theme]['text-secondary']}
+              >
+                {formattedDuration()}
+              </TextCustom>
+            </View>
+          </View>
+        </View>
 
+        <View id="action-buttons-group" className="flex-row items-center gap-2">
           {/* Add/Remove button */}
           <IconButton
             accessibilityLabel={

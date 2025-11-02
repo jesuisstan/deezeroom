@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
-import InputCustom from '@/components/ui/InputCustom';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import type { Artist as GqlArtist } from '@/graphql/schema';
 import { Logger } from '@/modules/logger/LoggerModule';
-import { themeColors } from '@/style/color-theme';
 import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/style/color-theme';
 import { deezerService } from '@/utils/deezer/deezer-service';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 
@@ -104,13 +104,12 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
 
   return (
     <View className="flex-1 px-4 pb-6">
-      <TextCustom className="mb-2 opacity-70">
-        Select up to {max} artists
-      </TextCustom>
-
       <InputCustom
+        label={`Select up to ${max} artists`}
         placeholder={
-          selected.length >= max ? `Maximum ${max} selected` : 'Start typing artist name'
+          selected.length >= max
+            ? `Maximum ${max} selected`
+            : 'Start typing artist name'
         }
         value={query}
         onChangeText={handleSearch}
@@ -123,7 +122,11 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
       />
 
       {searching && (
-        <TextCustom size="s" className="mt-2 opacity-60">
+        <TextCustom
+          size="s"
+          className="mt-2"
+          color={themeColors[theme]['text-secondary']}
+        >
           Searching…
         </TextCustom>
       )}
@@ -139,7 +142,11 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
           className="mt-2 rounded-xl border border-border bg-bg-secondary"
           style={{ borderRadius: 12, overflow: 'hidden' }}
         >
-          <ScrollView style={{ maxHeight: 256 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+          <ScrollView
+            style={{ maxHeight: 256 }}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
             {results.map((a) => (
               <TouchableOpacity
                 key={a.id}
@@ -147,9 +154,15 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
                 onPress={() => addArtist(a)}
               >
                 {a.pictureSmall ? (
-                  <Image source={{ uri: a.pictureSmall }} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                  <Image
+                    source={{ uri: a.pictureSmall }}
+                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                  />
                 ) : (
-                  <View style={{ width: 32, height: 32, borderRadius: 16 }} className="items-center justify-center bg-bg-main">
+                  <View
+                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                    className="items-center justify-center bg-bg-main"
+                  >
                     <TextCustom size="s">{a.name.charAt(0)}</TextCustom>
                   </View>
                 )}
@@ -163,13 +176,17 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
       {/* Selected chips */}
       <View className="mt-3">
         <View className="mb-2 flex-row items-center justify-between">
-          <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">Selected</TextCustom>
-          <TextCustom size="s" className="opacity-60">
+          <TextCustom type="semibold" size="l">
+            Selected
+          </TextCustom>
+          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
             {selected.length}/{max}
           </TextCustom>
         </View>
         {selected.length === 0 ? (
-          <TextCustom className="opacity-60">No artists selected yet</TextCustom>
+          <TextCustom color={themeColors[theme]['text-secondary']}>
+            No artists selected yet
+          </TextCustom>
         ) : (
           <View className="flex-row flex-wrap">
             {selected.map((a) => (
@@ -180,18 +197,31 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
                 {a.picture_small ? (
                   <Image
                     source={{ uri: a.picture_small }}
-                    style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      marginRight: 6
+                    }}
                   />
                 ) : (
                   <View
-                    style={{ width: 20, height: 20, borderRadius: 10, marginRight: 6 }}
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      marginRight: 6
+                    }}
                     className="items-center justify-center bg-bg-main"
                   >
                     <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
                   </View>
                 )}
                 <TextCustom size="s">{a.name}</TextCustom>
-                <TouchableOpacity onPress={() => removeArtist(a.id)} className="ml-2 rounded-full bg-bg-main px-2 py-1">
+                <TouchableOpacity
+                  onPress={() => removeArtist(a.id)}
+                  className="ml-2 rounded-full bg-bg-main px-2 py-1"
+                >
                   <TextCustom size="xs">×</TextCustom>
                 </TouchableOpacity>
               </View>

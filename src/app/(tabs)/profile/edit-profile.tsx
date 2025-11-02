@@ -1,10 +1,11 @@
-import { FC, useEffect, useRef, useState, forwardRef } from 'react';
+import { FC, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import * as ExpoLocation from 'expo-location';
 import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import LineButton from '@/components/ui/buttons/LineButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -15,8 +16,10 @@ import ImageUploader, {
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -24,7 +27,6 @@ import { containerWidthStyle } from '@/style/container-width-style';
 import { deezerService } from '@/utils/deezer/deezer-service';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { updateAvatar } from '@/utils/profile-utils';
-import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
 
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
@@ -46,12 +48,15 @@ if (Platform.OS === 'web') {
 
 // Web-only: custom input for ReactDatePicker that renders TextCustom inside
 // to guarantee proper contrast in dark theme.
-const DateInputButton = forwardRef<HTMLButtonElement, {
-  value?: string;
-  onClick?: () => void;
-  placeholder?: string;
-  disabled?: boolean;
-}>(function DateInputButton({ value, onClick, placeholder, disabled }, ref) {
+const DateInputButton = forwardRef<
+  HTMLButtonElement,
+  {
+    value?: string;
+    onClick?: () => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }
+>(function DateInputButton({ value, onClick, placeholder, disabled }, ref) {
   return (
     // Use a real <button> so the datepicker can focus/anchor it correctly
     <button
@@ -73,6 +78,12 @@ const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
@@ -102,13 +113,6 @@ const EditProfileScreen: FC = () => {
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showBirthModal, setShowBirthModal] = useState(false);
   const [showArtistsModal, setShowArtistsModal] = useState(false);
-
-  const contentStyle: ViewStyle = {
-    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
-    paddingBottom: insets.bottom + 32,
-    // Make ScrollView content fill the viewport height so we can push the save button down
-    flexGrow: 1
-  };
 
   // Initialize form data from profile
   useEffect(() => {
@@ -372,7 +376,7 @@ const EditProfileScreen: FC = () => {
         },
         privateInfo: {
           phone: formData.phone,
-          birthDate: formData.birthDate,
+          birthDate: formData.birthDate
         },
         musicPreferences: {
           favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
@@ -397,18 +401,21 @@ const EditProfileScreen: FC = () => {
     >
       <ScrollView
         ref={scrollRef}
-        className="flex-1 bg-bg-main px-4 py-4"
-        contentContainerStyle={contentStyle}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: bottomPadding
+        }}
+        className="bg-bg-main"
         keyboardShouldPersistTaps="handled"
       >
         <View
-          className="w-full flex-1"
-          style={[containerWidthStyle, { justifyContent: 'space-between' }]}
+          className="w-full flex-1 justify-between py-4"
+          style={containerWidthStyle}
         >
           {/* Content group (top) */}
-          <View>
+          <View className="gap-4">
             {/* Avatar */}
-            <View className="w-full items-center gap-3 px-4 py-6">
+            <View className="w-full items-center gap-2 px-4">
               <ImageUploader
                 ref={uploaderRef}
                 currentImageUrl={profile?.photoURL}
@@ -435,39 +442,46 @@ const EditProfileScreen: FC = () => {
             <Divider />
 
             {/* Personal information as line buttons */}
-            <View className="mt-2">
-              <TextCustom type="subtitle">Personal information</TextCustom>
+            <View>
+              <TextCustom type="semibold" size="xl" className="px-4">
+                Personal information
+              </TextCustom>
 
               {/* Username */}
               <LineButton onPress={() => setShowNameModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     My Username
                   </TextCustom>
-                  <TextCustom>
-                    {formData.displayName || 'Not set'}
-                  </TextCustom>
+                  <TextCustom>{formData.displayName || 'Not set'}</TextCustom>
                 </View>
               </LineButton>
               <Divider />
 
               {/* Date of Birth */}
               <LineButton onPress={() => setShowBirthModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     Date of Birth
                   </TextCustom>
-                  <TextCustom>
-                    {formData.birthDate || 'Not set'}
-                  </TextCustom>
+                  <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
                 </View>
               </LineButton>
               <Divider />
 
               {/* About me */}
               <LineButton onPress={() => setShowBioModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     About me
                   </TextCustom>
                   <TextCustom numberOfLines={1}>
@@ -479,40 +493,46 @@ const EditProfileScreen: FC = () => {
 
               {/* Location */}
               <LineButton onPress={() => setShowLocationModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     Location
                   </TextCustom>
-                  <TextCustom>
-                    {formData.locationName || 'Not set'}
-                  </TextCustom>
+                  <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
                 </View>
               </LineButton>
               <Divider />
 
               {/* Phone */}
               <LineButton onPress={() => setShowPhoneModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     Phone
                   </TextCustom>
-                  <TextCustom>
-                    {formData.phone || 'Not set'}
-                  </TextCustom>
+                  <TextCustom>{formData.phone || 'Not set'}</TextCustom>
                 </View>
               </LineButton>
+              <Divider />
             </View>
 
-            <Divider className="my-4" />
-
             {/* Music preferences */}
-            <View className="mt-2">
-              <TextCustom type="subtitle">Music preferences</TextCustom>
+            <View>
+              <TextCustom type="semibold" size="xl" className="px-4">
+                Music preferences
+              </TextCustom>
 
               {/* Favorite artists */}
               <LineButton onPress={() => setShowArtistsModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
+                <View className="w-full px-4 py-4">
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
                     Favorite artists
                   </TextCustom>
                   <TextCustom>
@@ -526,7 +546,7 @@ const EditProfileScreen: FC = () => {
           </View>
 
           {/* Save (bottom) */}
-          <View className="mt-6">
+          <View className="mt-2 px-4">
             <RippleButton
               title="Save"
               size="md"
@@ -553,7 +573,10 @@ const EditProfileScreen: FC = () => {
                 setFormData((p) => ({ ...p, displayName: text }))
               }
             />
-            <RippleButton title="Done" onPress={() => setShowNameModal(false)} />
+            <RippleButton
+              title="Done"
+              onPress={() => setShowNameModal(false)}
+            />
           </View>
         </SwipeModal>
       )}
@@ -636,7 +659,10 @@ const EditProfileScreen: FC = () => {
               }
               keyboardType="phone-pad"
             />
-            <RippleButton title="Done" onPress={() => setShowPhoneModal(false)} />
+            <RippleButton
+              title="Done"
+              onPress={() => setShowPhoneModal(false)}
+            />
           </View>
         </SwipeModal>
       )}
@@ -672,16 +698,21 @@ const EditProfileScreen: FC = () => {
                   popperClassName="z-50"
                   customInput={<DateInputButton placeholder="yyyy-mm-dd" />}
                 />
-              <View className="mt-3 flex-row gap-3">
-              {formData.birthDate ? (
-                <RippleButton
-                  title="Clear"
-                  variant="outline"
-                  onPress={() => setFormData((p) => ({ ...p, birthDate: '' }))}
-                />
-              ) : null}
-              <RippleButton title="Done" onPress={() => setShowBirthModal(false)} />
-            </View>
+                <View className="mt-3 flex-row gap-3">
+                  {formData.birthDate ? (
+                    <RippleButton
+                      title="Clear"
+                      variant="outline"
+                      onPress={() =>
+                        setFormData((p) => ({ ...p, birthDate: '' }))
+                      }
+                    />
+                  ) : null}
+                  <RippleButton
+                    title="Done"
+                    onPress={() => setShowBirthModal(false)}
+                  />
+                </View>
               </View>
             ) : (
               <RNDateTimePicker
