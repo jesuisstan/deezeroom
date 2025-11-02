@@ -705,6 +705,11 @@ const PlaylistDetailScreen = () => {
         return newTracks;
       });
 
+      // CRITICAL: Update draggedIndex to new position IMMEDIATELY after array update
+      // This tells the animation system the track is now at the new index,
+      // preventing flash to old position when offsetY is reset
+      draggedIndex.value = clampedToIndex;
+
       try {
         // Update Firebase with transaction (handles conflicts)
         await PlaylistService.reorderTrack(
@@ -719,15 +724,19 @@ const PlaylistDetailScreen = () => {
         // The subscription will update trackIds when Firebase confirms, and useEffect
         // will detect it's just a reorder and skip the reload
 
-        // Reset drag state AFTER React has rendered with new tracks order
-        // Use a longer delay to ensure Samsung devices have time to render
-        // Keep draggedIndex set to maintain visual position during render
-        setTimeout(() => {
-          // After tracks array has updated in React, reset drag state
-          // This allows the visual position to smoothly transition to new array position
-          draggedIndex.value = null;
-          offsetY.value = 0;
-        }, 100);
+        // Use multiple requestAnimationFrame to ensure React has rendered
+        // with the new tracks array order before resetting offsetY
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              // Reset offsetY after React has rendered with new order
+              // draggedIndex is already at new position, so offsetY=0 means track stays in place
+              offsetY.value = 0;
+              // Finally reset draggedIndex after offsetY is reset
+              draggedIndex.value = null;
+            });
+          });
+        });
       } catch (error) {
         Logger.error('Error reordering track:', error);
 
