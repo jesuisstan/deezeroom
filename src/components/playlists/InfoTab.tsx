@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -44,16 +44,63 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
     return null;
   };
 
-  const formatUpdatedDate = (value: any): string => {
-    const date = toDate(value);
+  // Current time state - updates every minute for relative time display
+  const [currentMinute, setCurrentMinute] = useState(() =>
+    Math.floor(Date.now() / 60000)
+  );
+
+  // Update current minute every minute (only when component is mounted)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentMinute(Math.floor(Date.now() / 60000));
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Memoized formatted date - shows relative time for recent updates, actual time for older ones
+  const formattedDate = useMemo(() => {
+    const date = toDate(playlist.updatedAt);
     if (!date) return '—';
-    const now = new Date();
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInHours = Math.max(0, Math.floor(diffInMs / (1000 * 60 * 60)));
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
+
+    const dateMinute = Math.floor(date.getTime() / 60000);
+    const diffInMinutes = currentMinute - dateMinute;
+    const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} days ago`;
-  };
+
+    // For very recent updates (< 60 minutes), show relative time
+    if (diffInMinutes < 60) {
+      if (diffInMinutes < 1) {
+        // For updates less than 1 minute ago, show actual time
+        return date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      return diffInMinutes === 1
+        ? '1 minute ago'
+        : `${diffInMinutes} minutes ago`;
+    }
+
+    // For updates less than 24 hours, show relative time
+    if (diffInHours < 24) {
+      return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+    }
+
+    // For older updates, show date and time
+    if (diffInDays < 7) {
+      return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    }
+
+    // For very old updates, show full date and time
+    return date.toLocaleString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }, [currentMinute, playlist.updatedAt]);
 
   return (
     <View
@@ -111,7 +158,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
               color={themeColors[theme]['text-secondary']}
               className="text-right"
             >
-              {formatUpdatedDate(playlist.updatedAt)}
+              {formattedDate}
             </TextCustom>
           </View>
         </View>

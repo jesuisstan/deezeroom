@@ -1,51 +1,33 @@
-import { Platform, View } from 'react-native';
+import { Image, Platform, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 
 import NotificationsButton from '@/components/notifications/NotificationsButton';
 import MiniPlayer from '@/components/player/MiniPlayer';
 import WebPlayerBar from '@/components/player/WebPlayerBar';
-import ProfileButton from '@/components/profile/ProfileButton';
+import SignOutButton from '@/components/profile/SignOutButton';
 import ThemeToggler from '@/components/ThemeToggler';
-import IconButton from '@/components/ui/buttons/IconButton';
 import { HapticTab } from '@/components/ui/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 
 const HeaderRight = () => {
-  const router = useRouter();
-  const { theme } = useTheme();
-
   return (
     <View className="mx-2 flex-row items-center gap-2">
-      <IconButton
-        accessibilityLabel="Open player"
-        onPress={() => router.push('/player')}
-      >
-        <MaterialCommunityIcons
-          name="music-note-eighth"
-          size={22}
-          color={themeColors[theme]['text-main']}
-        />
-      </IconButton>
       <ThemeToggler />
       <NotificationsButton />
-    </View>
-  );
-};
-
-const HeaderLeft = () => {
-  return (
-    <View className="mx-2 flex-row items-center gap-2">
-      <ProfileButton />
+      <SignOutButton />
     </View>
   );
 };
 
 const TabLayout = () => {
   const { theme } = useTheme();
+  const { profile } = useUser();
 
   return (
     <View className="flex-1">
@@ -88,8 +70,7 @@ const TabLayout = () => {
                 color={color}
               />
             ),
-            headerRight: () => <HeaderRight />,
-            headerLeft: () => <HeaderLeft />
+            headerRight: () => <HeaderRight />
           }}
         />
         <Tabs.Screen
@@ -103,8 +84,7 @@ const TabLayout = () => {
                 color={color}
               />
             ),
-            headerRight: () => <HeaderRight />,
-            headerLeft: () => <HeaderLeft />
+            headerRight: () => <HeaderRight />
           }}
         />
         <Tabs.Screen
@@ -118,8 +98,34 @@ const TabLayout = () => {
                 color={color}
               />
             ),
-            headerRight: () => <HeaderRight />,
-            headerLeft: () => <HeaderLeft />
+            headerRight: () => <HeaderRight />
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) =>
+              profile?.photoURL ? (
+                <Image
+                  source={{ uri: profile.photoURL }}
+                  className="h-8 w-8 rounded-full"
+                  accessibilityRole="imagebutton"
+                />
+              ) : (
+                <View
+                  className="h-8 w-8 items-center justify-center rounded-full border"
+                  style={{ borderColor: color }}
+                >
+                  <TextCustom>
+                    {(profile?.displayName || profile?.email || '?')
+                      .trim()
+                      .charAt(0)
+                      .toUpperCase()}
+                  </TextCustom>
+                </View>
+              ),
+            headerRight: () => <HeaderRight />
           }}
         />
       </Tabs>

@@ -182,7 +182,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
         <Pressable
           onPress={() => {}}
           style={{
-            width: '90%'
+            width: '90%',
+            zIndex: 9999
           }}
         >
           <View
@@ -205,7 +206,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               shadowOpacity: 0.3,
               shadowRadius: 6,
               elevation: 8, // Increased for Android to ensure visibility
-              backgroundColor: themeColors[theme]['bg-inverse'],
+              backgroundColor: themeColors[theme]['primary'] + '80',
               opacity: 0.85
             }}
           >
@@ -216,7 +217,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
                   width: 32,
                   height: 32,
                   borderRadius: 16,
-                  //backgroundColor: bgByType,
+                  backgroundColor: themeColors[theme]['text-inverse'],
                   marginRight: 12,
                   justifyContent: 'center',
                   alignItems: 'center'
@@ -236,14 +237,14 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
                 {state.title ? (
                   <TextCustom
                     type="bold"
-                    color={themeColors[theme]['text-inverse']}
+                    color={themeColors[theme]['text-main']}
                   >
                     {state.title}
                   </TextCustom>
                 ) : null}
                 <TextCustom
                   type="default"
-                  color={themeColors[theme]['text-inverse']}
+                  color={themeColors[theme]['text-main']}
                 >
                   {state.message}
                 </TextCustom>

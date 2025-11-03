@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { Platform } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 
@@ -134,38 +135,70 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
   }, [router]);
 
-  // Update badge count based on all pending notifications (invitations, responses, etc.)
+  // Real-time badge count updates
   useEffect(() => {
-    const updateNotificationsCount = async () => {
-      if (!user) return;
+    if (!user) return;
 
+    let unsubscribeInvitations: (() => void) | undefined;
+    let unsubscribeResponses: (() => void) | undefined;
+
+    let currentInvitations: any[] = [];
+    let currentResponses: any[] = [];
+
+    const calculateBadgeCount = async () => {
       try {
-        // Get all pending invitations for the user (playlist invitations they received)
-        const invitations = await PlaylistService.getUserInvitations(user.uid);
+        // Get viewed response IDs from storage
+        const key = `viewed_responses_${user.uid}`;
+        const viewedIdsJson = await AsyncStorage.getItem(key);
+        const viewedIds = viewedIdsJson
+          ? (JSON.parse(viewedIdsJson) as string[])
+          : [];
 
-        // Get all invitations that user sent (to track responses)
-        const sentInvitationsResponses =
-          await PlaylistService.getUserSentInvitationsResponses(user.uid);
+        // Filter out viewed responses
+        const unviewedResponses = currentResponses.filter(
+          (inv) => !viewedIds.includes(inv.id)
+        );
 
         // Calculate total unread count
-        let unreadCount = invitations.length;
-        unreadCount += sentInvitationsResponses.length;
+        let unreadCount = currentInvitations.length;
+        unreadCount += unviewedResponses.length;
 
         setBadgeCount(unreadCount);
 
         // Update native badge
         await notificationService.setBadgeCount(unreadCount);
       } catch (error) {
-        Logger.error('Error updating notifications count:', error);
+        Logger.error('Error calculating badge count:', error);
       }
     };
 
-    updateNotificationsCount();
+    // Subscribe to incoming invitations (real-time)
+    unsubscribeInvitations = PlaylistService.subscribeToUserInvitations(
+      user.uid,
+      (invitations) => {
+        currentInvitations = invitations;
+        calculateBadgeCount();
+      }
+    );
 
-    // Update every 10 seconds
-    const interval = setInterval(updateNotificationsCount, 10000);
+    // Subscribe to sent invitations responses (real-time)
+    unsubscribeResponses =
+      PlaylistService.subscribeToUserSentInvitationsResponses(
+        user.uid,
+        (responses) => {
+          currentResponses = responses;
+          calculateBadgeCount();
+        }
+      );
 
-    return () => clearInterval(interval);
+    return () => {
+      if (unsubscribeInvitations) {
+        unsubscribeInvitations();
+      }
+      if (unsubscribeResponses) {
+        unsubscribeResponses();
+      }
+    };
   }, [user]);
 
   // Reset badge when user opens notifications screen

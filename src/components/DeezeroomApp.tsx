@@ -49,13 +49,6 @@ const DeezeroomApp = () => {
           />
 
           <Stack.Screen
-            name="profile"
-            options={{
-              headerShown: false
-            }}
-          />
-
-          <Stack.Screen
             name="notifications"
             options={{
               headerShown: false

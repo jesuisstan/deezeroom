@@ -1,7 +1,7 @@
 {
   "name": "deezeroom",
   "main": "expo-router/entry",
-  "version": "1.54.3",
+  "version": "1.54.5",
   "scripts": {
     "before": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
     "start": "expo start",
@@ -38,6 +38,7 @@
     "@react-navigation/native": "^7.1.8",
     "clsx": "^2.1.1",
     "expo": "54.0.21",
+    "expo-asset": "~12.0.9",
     "expo-audio": "~1.0.14",
     "expo-auth-session": "~7.0.8",
     "expo-blur": "~15.0.7",
@@ -74,6 +75,7 @@
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
+    "react-native-pager-view": "6.9.1",
     "react-native-reanimated": "~4.1.0",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
