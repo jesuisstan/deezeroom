@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   GestureResponderEvent,
-  PanResponder,
   Platform,
   Pressable,
   View
@@ -42,12 +41,10 @@ const MiniPlayer = () => {
   const { theme } = useTheme();
 
   const [isRendered, setIsRendered] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
-  const swipeTranslateX = useRef(new Animated.Value(0)).current;
 
   const isOnFullPlayer = pathname === '/player';
-  const shouldShow = !!currentTrack && !isOnFullPlayer && !isDismissed;
+  const shouldShow = !!currentTrack && !isOnFullPlayer;
 
   useEffect(() => {
     if (shouldShow) {
@@ -65,73 +62,12 @@ const MiniPlayer = () => {
     });
   }, [animation, shouldShow]);
 
-  useEffect(() => {
-    if (shouldShow) {
-      swipeTranslateX.setValue(0);
-    }
-  }, [shouldShow, swipeTranslateX]);
-
-  useEffect(() => {
-    if (!currentTrackId) {
-      return;
-    }
-    setIsDismissed(false);
-  }, [currentTrackId]);
-
   const translateY = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [80, 0]
   });
 
   const opacity = animation;
-
-  const handleDismissMini = useCallback(() => {
-    Animated.timing(swipeTranslateX, {
-      toValue: 420,
-      duration: 180,
-      useNativeDriver: true
-    }).start(() => {
-      swipeTranslateX.setValue(0);
-      setIsDismissed(true);
-    });
-  }, [swipeTranslateX]);
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          if (gestureState.dx <= 0) {
-            return false;
-          }
-          const horizontalSwipe =
-            Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-          return horizontalSwipe && gestureState.dx > 12;
-        },
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dx >= 0) {
-            swipeTranslateX.setValue(gestureState.dx);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          const shouldDismiss = gestureState.dx > 80 || gestureState.vx > 0.4;
-          if (shouldDismiss) {
-            handleDismissMini();
-            return;
-          }
-          Animated.spring(swipeTranslateX, {
-            toValue: 0,
-            useNativeDriver: true
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(swipeTranslateX, {
-            toValue: 0,
-            useNativeDriver: true
-          }).start();
-        }
-      }),
-    [handleDismissMini, swipeTranslateX]
-  );
 
   const handleOpenFullPlayer = () => {
     router.push('/player');
@@ -151,14 +87,13 @@ const MiniPlayer = () => {
 
   return (
     <Animated.View
-      {...panResponder.panHandlers}
       pointerEvents={shouldShow ? 'auto' : 'none'}
       style={{
         position: 'absolute',
         left: 16,
         right: 16,
         bottom: baseBottomOffset ?? 70,
-        transform: [{ translateY }, { translateX: swipeTranslateX }],
+        transform: [{ translateY }],
         opacity
       }}
     >
