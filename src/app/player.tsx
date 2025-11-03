@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { PanResponder, Platform, View } from 'react-native';
+import { Dimensions, Platform, View } from 'react-native';
 
 import { FontAwesome } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -7,6 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import PlayerArtwork from '@/components/player/PlayerArtwork';
 import ProgressBar from '@/components/player/ProgressBar';
@@ -23,7 +30,6 @@ import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
 
 const PlayerScreen = () => {
-  console.log('PlayerScreen render', new Date().toISOString()); // debug
   const router = useRouter();
   const { theme } = useTheme();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
@@ -76,41 +82,61 @@ const PlayerScreen = () => {
     }
   }, [router]);
 
-  const swipeResponder = useMemo(
+  const translateY = useSharedValue(0);
+  const screenHeight = Dimensions.get('window').height;
+  const dismissThreshold = screenHeight * 0.35;
+
+  const animatedContainerStyle = useAnimatedStyle(() => {
+    const progress = Math.min(1, translateY.value / screenHeight);
+    return {
+      transform: [{ translateY: translateY.value }],
+      opacity: 1 - progress * 0.2
+    };
+  }, [screenHeight]);
+
+  const panGesture = useMemo(
     () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          const { dx, dy } = gestureState;
-          const isVerticalSwipe = Math.abs(dy) > Math.abs(dx) && dy > 12;
-          return isVerticalSwipe;
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          const { dy, vy } = gestureState;
-          const enoughDistance = dy > 80;
-          const enoughVelocity = vy > 0.6;
-          if (enoughDistance || enoughVelocity) {
-            scheduleOnRN(dismissPlayer);
+      Gesture.Pan()
+        .onUpdate((event) => {
+          translateY.value = Math.max(0, event.translationY);
+        })
+        .onEnd((event) => {
+          const shouldDismiss =
+            translateY.value > dismissThreshold || event.velocityY > 1200;
+
+          if (shouldDismiss) {
+            translateY.value = withTiming(
+              screenHeight,
+              { duration: 220 },
+              (finished) => {
+                if (finished) {
+                  scheduleOnRN(dismissPlayer);
+                }
+              }
+            );
+          } else {
+            translateY.value = withSpring(0, {
+              damping: 18,
+              stiffness: 180
+            });
           }
-        }
-      }),
-    [dismissPlayer]
+        }),
+    [dismissPlayer, dismissThreshold, screenHeight, translateY]
   );
 
   return (
-    <SafeAreaView
-      className="flex-1"
-      edges={['top', 'bottom']}
-      {...swipeResponder.panHandlers}
-    >
-      <LinearGradient
-        colors={[
-          themeColors[theme]['bg-main'],
-          themeColors[theme]['bg-secondary']
-        ]}
-        style={{ flex: 1 }}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[{ flex: 1 }, animatedContainerStyle]}>
+        <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+          <LinearGradient
+            colors={[
+              themeColors[theme]['bg-main'],
+              themeColors[theme]['bg-secondary']
+            ]}
+            style={{ flex: 1 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
         <View className="flex-1 gap-6 px-6 py-6">
           <View className="flex-row items-center justify-between">
             <IconButton
@@ -280,8 +306,10 @@ const PlayerScreen = () => {
             </TextCustom>
           </View>
         </View>
-      </LinearGradient>
-    </SafeAreaView>
+          </LinearGradient>
+        </SafeAreaView>
+      </Animated.View>
+    </GestureDetector>
   );
 };
 
