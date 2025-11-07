@@ -45,7 +45,8 @@ import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Playlist,
-  PlaylistService
+  PlaylistService,
+  PlaylistTrackPosition
 } from '@/utils/firebase/firebase-service-playlists';
 import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
@@ -538,10 +539,7 @@ const PlaylistDetailScreen = () => {
             title: 'Permission Denied',
             message: 'You do not have permission to add tracks to this playlist'
           });
-        } else if (
-          error.message.includes('Playlist not found') ||
-          error.message.includes('not found')
-        ) {
+        } else if (error.message.includes('Playlist not found')) {
           Notifier.shoot({
             type: 'error',
             title: 'Playlist Deleted',
@@ -554,8 +552,8 @@ const PlaylistDetailScreen = () => {
         } else {
           Notifier.shoot({
             type: 'error',
-            title: 'Error',
-            message: error.message
+            title: 'Failed to add track',
+            message: error instanceof Error ? error.message : 'Unknown error'
           });
         }
       } else {
@@ -639,7 +637,6 @@ const PlaylistDetailScreen = () => {
       if (
         error instanceof Error &&
         !error.message.includes('Playlist not found') &&
-        !error.message.includes('not found') &&
         !error.message.includes('permission')
       ) {
         Logger.error('Unexpected error in handleSelectTrack:', error);
@@ -684,38 +681,80 @@ const PlaylistDetailScreen = () => {
   };
 
   const handleReorderTrack = useCallback(
-    async (fromIndex: number, toIndex: number) => {
+    async (trackId: string, targetPosition: PlaylistTrackPosition) => {
       if (!playlist || !user) return;
 
-      // Clamp indices to valid range
-      const maxIndex = tracks.length - 1;
-      const clampedFromIndex = Math.max(0, Math.min(fromIndex, maxIndex));
-      const clampedToIndex = Math.max(0, Math.min(toIndex, maxIndex));
-
-      if (clampedFromIndex === clampedToIndex) {
-        return; // No change needed
+      const trackToMove = tracks.find((t) => t.id === trackId);
+      if (!trackToMove) {
+        Logger.error('Track not found in local state:', trackId);
+        return;
       }
 
-      // Optimistically update tracks IMMEDIATELY to prevent flash
-      // This ensures visual position matches new array order
-      setTracks((currentTracks) => {
-        const newTracks = [...currentTracks];
-        const [moved] = newTracks.splice(clampedFromIndex, 1);
-        newTracks.splice(clampedToIndex, 0, moved);
-        return newTracks;
-      });
+      const remainingTracks = tracks.filter((t) => t.id !== trackId);
 
-      // CRITICAL: Update draggedIndex to new position IMMEDIATELY after array update
-      // This tells the animation system the track is now at the new index,
-      // preventing flash to old position when offsetY is reset
-      draggedIndex.value = clampedToIndex;
+      if (remainingTracks.length !== tracks.length - 1) {
+        Logger.error('Unexpected tracks state during reorder');
+      }
+
+      let insertionIndex = remainingTracks.length;
+
+      switch (targetPosition.placement) {
+        case 'start':
+          insertionIndex = 0;
+          break;
+        case 'end':
+          insertionIndex = remainingTracks.length;
+          break;
+        case 'after': {
+          const referenceIndex = remainingTracks.findIndex(
+            (t) => t.id === targetPosition.referenceId
+          );
+          if (referenceIndex === -1) {
+            insertionIndex = remainingTracks.length;
+          } else {
+            insertionIndex = referenceIndex + 1;
+          }
+          break;
+        }
+        default:
+          return;
+      }
+
+      const clampedInsertionIndex = Math.max(
+        0,
+        Math.min(insertionIndex, remainingTracks.length)
+      );
+
+      const optimisticTracks = [...remainingTracks];
+      optimisticTracks.splice(clampedInsertionIndex, 0, trackToMove);
+
+      const isOrderUnchanged =
+        optimisticTracks.length === tracks.length &&
+        optimisticTracks.every((t, idx) => t.id === tracks[idx]?.id);
+
+      if (isOrderUnchanged) {
+        requestAnimationFrame(() => {
+          offsetY.value = 0;
+          draggedIndex.value = null;
+        });
+        return;
+      }
+
+      setTracks(optimisticTracks);
+      draggedIndex.value = Math.max(
+        0,
+        Math.min(clampedInsertionIndex, optimisticTracks.length - 1)
+      );
 
       try {
-        // Update Firebase with transaction (handles conflicts)
+        // Update Firebase with transaction using relative positioning
+        // This is more reliable for concurrent modifications:
+        // - "after track X" works even if new tracks are added before X
+        // - "before track Y" works even if tracks are removed before Y
         await PlaylistService.reorderTrack(
           playlist.id,
-          clampedFromIndex,
-          clampedToIndex,
+          trackId,
+          targetPosition,
           user.uid
         );
 
@@ -748,21 +787,19 @@ const PlaylistDetailScreen = () => {
           // These are handled by other parts of the UI
           if (
             !error.message.includes('permission') &&
-            !error.message.includes('not found') &&
-            !error.message.includes('Invalid reorder')
+            !error.message.includes('playlist not found') &&
+            !error.message.includes('Invalid')
           ) {
             Notifier.shoot({
               type: 'error',
-              title: 'Error',
-              message: 'Failed to reorder track. Please try again.'
+              title: 'Failed to reorder tracks',
+              message: error instanceof Error ? error.message : 'Unknown error'
             });
           }
         }
       }
     },
-    // draggedIndex and offsetY are SharedValues, not React state, so they don't need to be in dependencies
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [playlist, user, tracks, loadPlaylist]
+    [playlist, user, tracks, loadPlaylist, offsetY, draggedIndex]
   );
 
   const renderScene = ({ route }: { route: { key: string } }) => {
@@ -807,7 +844,6 @@ const PlaylistDetailScreen = () => {
       </View>
     );
   }
-
   return (
     <View
       className="flex-1"
@@ -967,7 +1003,6 @@ const PlaylistDetailScreen = () => {
               canEdit={canEdit}
               draggedIndex={draggedIndex}
               offsetY={offsetY}
-              tracksCount={tracks.length}
             />
           ) : null}
         </View>

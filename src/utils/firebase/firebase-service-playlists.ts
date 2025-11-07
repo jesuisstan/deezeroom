@@ -75,6 +75,11 @@ export interface Playlist {
   coverImageUrl?: string;
 }
 
+export type PlaylistTrackPosition =
+  | { placement: 'start' }
+  | { placement: 'end' }
+  | { placement: 'after'; referenceId: string };
+
 export class PlaylistService {
   private static collection = 'playlists';
   private static tracksCollection = 'tracks';
@@ -353,8 +358,8 @@ export class PlaylistService {
 
   static async reorderTrack(
     playlistId: string,
-    fromIndex: number,
-    toIndex: number,
+    trackId: string,
+    targetPosition: PlaylistTrackPosition,
     userId: string
   ): Promise<void> {
     // Check if user has permission to reorder tracks
@@ -378,25 +383,52 @@ export class PlaylistService {
         ? [...(playlist.tracks as string[])]
         : [];
 
-      if (
-        fromIndex < 0 ||
-        fromIndex >= currentTracks.length ||
-        toIndex < 0 ||
-        toIndex >= currentTracks.length
-      ) {
-        throw new Error('Invalid reorder indexes');
+      const fromIndex = currentTracks.findIndex((id) => id === trackId);
+      if (fromIndex === -1) {
+        throw new Error(`Track ${trackId} not found in playlist`);
       }
 
-      // If indices are the same, no need to update
-      if (fromIndex === toIndex) {
+      const remainingTracks = currentTracks.filter((id) => id !== trackId);
+
+      let insertionIndex = remainingTracks.length; // default to end
+
+      switch (targetPosition.placement) {
+        case 'start':
+          insertionIndex = 0;
+          break;
+        case 'end':
+          insertionIndex = remainingTracks.length;
+          break;
+        case 'after': {
+          const referenceIndex = remainingTracks.findIndex(
+            (id) => id === targetPosition.referenceId
+          );
+
+          if (referenceIndex === -1) {
+            // Reference track might have been removed concurrently; place at end
+            insertionIndex = remainingTracks.length;
+          } else {
+            insertionIndex = referenceIndex + 1;
+          }
+          break;
+        }
+        default:
+          throw new Error('Invalid target position for track reorder');
+      }
+
+      const newOrder = [...remainingTracks];
+      newOrder.splice(insertionIndex, 0, trackId);
+
+      // If order remains unchanged, skip update
+      if (
+        currentTracks.length === newOrder.length &&
+        currentTracks.every((id, idx) => id === newOrder[idx])
+      ) {
         return;
       }
 
-      const [moved] = currentTracks.splice(fromIndex, 1);
-      currentTracks.splice(toIndex, 0, moved);
-
       transaction.update(playlistRef, {
-        tracks: currentTracks,
+        tracks: newOrder,
         updatedAt: serverTimestamp(),
         lastModifiedBy: userId,
         version: increment(1)

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { LayoutChangeEvent, View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -15,6 +15,7 @@ import TrackCard from '@/components/search-tracks/TrackCard';
 import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+import { PlaylistTrackPosition } from '@/utils/firebase/firebase-service-playlists';
 
 const SEPARATOR_HEIGHT = 0; // No gap between tracks in playlist
 
@@ -24,41 +25,51 @@ interface DraggableTracksListProps {
   isPlaying: boolean;
   onPress: (track: Track) => void;
   onRemove: (track: Track) => void;
-  onReorder: (fromIndex: number, toIndex: number) => Promise<void>;
+  onReorder: (
+    trackId: string,
+    targetPosition: PlaylistTrackPosition
+  ) => Promise<void>;
   canEdit: boolean;
   draggedIndex: SharedValue<number | null>;
   offsetY: SharedValue<number>;
-  tracksCount: number; // Total number of tracks for clamping
 }
 
 interface DraggableTrackItemProps {
   track: Track;
   index: number;
+  tracks: Track[]; // Full tracks array to determine relative position
   currentTrackId?: string;
   isPlaying: boolean;
   onPress: (track: Track) => void;
   onRemove: (track: Track) => void;
-  onReorder: (fromIndex: number, toIndex: number) => Promise<void>;
+  onReorder: (
+    trackId: string,
+    targetPosition: PlaylistTrackPosition
+  ) => Promise<void>;
   canEdit: boolean;
   draggedIndex: SharedValue<number | null>;
   offsetY: SharedValue<number>;
-  tracksCount: number;
 }
 
 const useDraggableTrackItem = ({
   index,
+  trackId,
+  tracks,
   draggedIndex,
   offsetY,
   onReorder,
-  canEdit,
-  tracksCount
+  canEdit
 }: {
   index: number;
+  trackId: string;
+  tracks: Track[];
   draggedIndex: SharedValue<number | null>;
   offsetY: SharedValue<number>;
-  onReorder: (fromIndex: number, toIndex: number) => Promise<void>;
+  onReorder: (
+    trackId: string,
+    targetPosition: PlaylistTrackPosition
+  ) => Promise<void>;
   canEdit: boolean;
-  tracksCount: number;
 }) => {
   const itemHeight = useSharedValue(0);
   const startY = useSharedValue(0);
@@ -104,26 +115,70 @@ const useDraggableTrackItem = ({
 
     if (draggedIndex.value === null) return index;
 
+    const totalCount = tracks.length;
     const initialDraggedY =
       draggedIndex.value * (itemHeight.value + SEPARATOR_HEIGHT);
 
     const calculatedIndex = Math.round(
       (initialDraggedY + offsetY.value) / (itemHeight.value + SEPARATOR_HEIGHT)
     );
-    return Math.max(0, Math.min(calculatedIndex, tracksCount - 1));
+    return Math.max(0, Math.min(calculatedIndex, totalCount));
   });
 
   const handleReorder = useCallback(
-    async (fromIndex: number, toIndex: number) => {
-      if (fromIndex === toIndex) return;
+    async (targetIndex: number) => {
+      const totalCount = tracks.length;
+
+      if (totalCount <= 1) {
+        return;
+      }
+
+      const clampedTarget = Math.max(0, Math.min(targetIndex, totalCount));
+      const desiredIndex =
+        clampedTarget >= totalCount
+          ? Math.max(totalCount - 1, 0)
+          : clampedTarget;
+
+      if (desiredIndex === index) {
+        return;
+      }
+
+      const tracksWithoutCurrent = tracks.filter((_, idx) => idx !== index);
+
+      if (tracksWithoutCurrent.length !== totalCount - 1) {
+        return;
+      }
+
+      const insertionIndex = Math.max(
+        0,
+        Math.min(desiredIndex, tracksWithoutCurrent.length)
+      );
+
+      let targetPosition: PlaylistTrackPosition;
+
+      if (tracksWithoutCurrent.length === 0 || insertionIndex <= 0) {
+        targetPosition = { placement: 'start' };
+      } else if (insertionIndex >= tracksWithoutCurrent.length) {
+        targetPosition = { placement: 'end' };
+      } else {
+        const beforeTrack = tracksWithoutCurrent[insertionIndex - 1];
+        if (!beforeTrack) {
+          return;
+        }
+        targetPosition = {
+          placement: 'after',
+          referenceId: beforeTrack.id
+        };
+      }
+
       try {
-        await onReorder(fromIndex, toIndex);
+        await onReorder(trackId, targetPosition);
       } catch (error) {
         // Error is handled by parent component
         console.error('Error reordering track:', error);
       }
     },
-    [onReorder]
+    [tracks, index, onReorder, trackId]
   );
 
   const panGesture = Gesture.Pan()
@@ -159,7 +214,8 @@ const useDraggableTrackItem = ({
         });
 
         // Call reorder immediately (optimistic update will maintain position)
-        runOnJS(handleReorder)(sourceIndex, targetIndex);
+        // Pass trackId instead of sourceIndex for more reliable conflict handling
+        runOnJS(handleReorder)(targetIndex);
       } else {
         // Reset if no change
         draggedIndex.value = null;
@@ -208,6 +264,7 @@ const useDraggableTrackItem = ({
 const DraggableTrackItem: React.FC<DraggableTrackItemProps> = ({
   track,
   index,
+  tracks,
   currentTrackId,
   isPlaying,
   onPress,
@@ -215,17 +272,17 @@ const DraggableTrackItem: React.FC<DraggableTrackItemProps> = ({
   onReorder,
   canEdit,
   draggedIndex,
-  offsetY,
-  tracksCount
+  offsetY
 }) => {
   const { theme } = useTheme();
   const { animatedStyle, onLayout, panGesture } = useDraggableTrackItem({
     index,
+    trackId: track.id,
+    tracks,
     draggedIndex,
     offsetY,
     onReorder,
-    canEdit,
-    tracksCount
+    canEdit
   });
 
   const isDragging = useDerivedValue(() => draggedIndex.value === index);
@@ -263,7 +320,7 @@ const DraggableTrackItem: React.FC<DraggableTrackItemProps> = ({
               style={[
                 {
                   width: 32,
-                  paddingLeft: 4,
+                  //paddingLeft: 4,
                   paddingRight: 8,
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -305,8 +362,7 @@ const DraggableTracksList: React.FC<DraggableTracksListProps> = ({
   onReorder,
   canEdit,
   draggedIndex,
-  offsetY,
-  tracksCount
+  offsetY
 }) => {
   return (
     <View>
@@ -315,6 +371,7 @@ const DraggableTracksList: React.FC<DraggableTracksListProps> = ({
           key={track.id}
           track={track}
           index={index}
+          tracks={tracks}
           currentTrackId={currentTrackId}
           isPlaying={isPlaying}
           onPress={onPress}
@@ -323,7 +380,6 @@ const DraggableTracksList: React.FC<DraggableTracksListProps> = ({
           canEdit={canEdit}
           draggedIndex={draggedIndex}
           offsetY={offsetY}
-          tracksCount={tracksCount}
         />
       ))}
     </View>
