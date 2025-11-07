@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { LayoutChangeEvent, View } from 'react-native';
+import { Dimensions, LayoutChangeEvent, View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -18,6 +18,9 @@ import { themeColors } from '@/style/color-theme';
 import { PlaylistTrackPosition } from '@/utils/firebase/firebase-service-playlists';
 
 const SEPARATOR_HEIGHT = 0; // No gap between tracks in playlist
+const AUTO_SCROLL_THRESHOLD = 80;
+const AUTO_SCROLL_STEP = 18;
+const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 interface DraggableTracksListProps {
   tracks: Track[];
@@ -32,6 +35,8 @@ interface DraggableTracksListProps {
   canEdit: boolean;
   draggedIndex: SharedValue<number | null>;
   offsetY: SharedValue<number>;
+  autoScroll?: (delta: number) => void;
+  scrollOffsetY?: SharedValue<number>;
 }
 
 interface DraggableTrackItemProps {
@@ -49,6 +54,8 @@ interface DraggableTrackItemProps {
   canEdit: boolean;
   draggedIndex: SharedValue<number | null>;
   offsetY: SharedValue<number>;
+  autoScroll?: (delta: number) => void;
+  scrollOffsetY?: SharedValue<number>;
 }
 
 const useDraggableTrackItem = ({
@@ -58,7 +65,9 @@ const useDraggableTrackItem = ({
   draggedIndex,
   offsetY,
   onReorder,
-  canEdit
+  canEdit,
+  autoScroll,
+  scrollOffsetY
 }: {
   index: number;
   trackId: string;
@@ -70,17 +79,18 @@ const useDraggableTrackItem = ({
     targetPosition: PlaylistTrackPosition
   ) => Promise<void>;
   canEdit: boolean;
+  autoScroll?: (delta: number) => void;
+  scrollOffsetY?: SharedValue<number>;
 }) => {
   const itemHeight = useSharedValue(0);
-  const startY = useSharedValue(0);
+  const startScrollOffset = useSharedValue(0);
 
   const getUpdatedOffsetY = useCallback(
     (translationY: number) => {
       'worklet';
-
       return Math.max(
         -index * (itemHeight.value + SEPARATOR_HEIGHT),
-        translationY + startY.value
+        translationY
       );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,6 +134,19 @@ const useDraggableTrackItem = ({
     );
     return Math.max(0, Math.min(calculatedIndex, totalCount));
   });
+
+  const handleAutoScroll = useCallback(
+    (absoluteY: number) => {
+      if (!autoScroll) return;
+
+      if (absoluteY < AUTO_SCROLL_THRESHOLD) {
+        autoScroll(-AUTO_SCROLL_STEP);
+      } else if (absoluteY > WINDOW_HEIGHT - AUTO_SCROLL_THRESHOLD) {
+        autoScroll(AUTO_SCROLL_STEP);
+      }
+    },
+    [autoScroll]
+  );
 
   const handleReorder = useCallback(
     async (targetIndex: number) => {
@@ -186,9 +209,18 @@ const useDraggableTrackItem = ({
     .enabled(canEdit) // Only allow dragging if user can edit
     .onBegin(() => {
       draggedIndex.value = index;
+      startScrollOffset.value = scrollOffsetY?.value ?? 0;
     })
     .onUpdate((e) => {
-      offsetY.value = getUpdatedOffsetY(e.translationY);
+      const currentScroll = scrollOffsetY?.value ?? 0;
+      const scrollDelta = currentScroll - startScrollOffset.value;
+      const translationWithScroll = e.translationY + scrollDelta;
+
+      offsetY.value = getUpdatedOffsetY(translationWithScroll);
+
+      if (autoScroll) {
+        runOnJS(handleAutoScroll)(e.absoluteY);
+      }
     })
     .onEnd(() => {
       if (draggedIndex.value === null) return;
@@ -272,7 +304,9 @@ const DraggableTrackItem: React.FC<DraggableTrackItemProps> = ({
   onReorder,
   canEdit,
   draggedIndex,
-  offsetY
+  offsetY,
+  autoScroll,
+  scrollOffsetY
 }) => {
   const { theme } = useTheme();
   const { animatedStyle, onLayout, panGesture } = useDraggableTrackItem({
@@ -282,7 +316,9 @@ const DraggableTrackItem: React.FC<DraggableTrackItemProps> = ({
     draggedIndex,
     offsetY,
     onReorder,
-    canEdit
+    canEdit,
+    autoScroll,
+    scrollOffsetY
   });
 
   const isDragging = useDerivedValue(() => draggedIndex.value === index);
@@ -362,7 +398,9 @@ const DraggableTracksList: React.FC<DraggableTracksListProps> = ({
   onReorder,
   canEdit,
   draggedIndex,
-  offsetY
+  offsetY,
+  autoScroll,
+  scrollOffsetY
 }) => {
   return (
     <View>
@@ -380,6 +418,8 @@ const DraggableTracksList: React.FC<DraggableTracksListProps> = ({
           canEdit={canEdit}
           draggedIndex={draggedIndex}
           offsetY={offsetY}
+          autoScroll={autoScroll}
+          scrollOffsetY={scrollOffsetY}
         />
       ))}
     </View>

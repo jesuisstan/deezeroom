@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 import { Entypo } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+import { Logger } from '@/components/modules/logger';
 import IconButton from '@/components/ui/buttons/IconButton';
-import { Logger } from '@/modules/logger';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 

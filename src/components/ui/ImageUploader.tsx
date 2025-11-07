@@ -4,13 +4,13 @@ import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+import { Alert } from '@/components/modules/alert';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import LineButton from '@/components/ui/buttons/LineButton';
 import Divider from '@/components/ui/Divider';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Alert } from '@/modules/alert';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 

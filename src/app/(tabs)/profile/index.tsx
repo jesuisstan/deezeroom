@@ -46,8 +46,8 @@ const ProfileScreen: FC = () => {
     return 'owner' as const; // default for now
   })();
 
-  const handlePlayTrack = (track: Track) => {
-    setCurrentPlayingTrackId(track.id);
+  const handlePlayTrack = (track: Track | null) => {
+    setCurrentPlayingTrackId(track?.id);
   };
 
   // Safe-area aware padding so the last items are not cut off by tab bar/home indicator

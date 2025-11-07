@@ -10,6 +10,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import CreatePlaylistButton from '@/components/playlists/CreatePlaylistButton';
 import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
@@ -18,8 +20,6 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';

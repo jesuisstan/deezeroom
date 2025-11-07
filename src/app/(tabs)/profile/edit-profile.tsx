@@ -13,6 +13,8 @@ import * as ExpoLocation from 'expo-location';
 import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Alert } from '@/components/modules/alert';
+import { Logger } from '@/components/modules/logger/LoggerModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -22,8 +24,6 @@ import ImageUploader, {
 } from '@/components/ui/ImageUploader';
 import { TextCustom } from '@/components/ui/TextCustom';
 import type { Artist as GqlArtist } from '@/graphql/schema';
-import { Alert } from '@/modules/alert';
-import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';

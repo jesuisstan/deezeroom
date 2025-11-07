@@ -2,11 +2,11 @@ import { FC, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import PasswordRequirements from '@/components/auth/PasswordRequirements';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';

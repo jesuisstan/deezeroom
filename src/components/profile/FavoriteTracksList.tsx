@@ -4,21 +4,25 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { useClient } from 'urql';
 
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { LIMIT_DEFAULT } from '@/constants/deezer';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import { useNetwork } from '@/providers/NetworkProvider';
+import {
+  usePlaybackActions,
+  usePlaybackUI
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 
 interface FavoriteTracksListProps {
-  onPlayTrack?: (track: Track) => void;
+  onPlayTrack?: (track: Track | null) => void;
   currentPlayingTrackId?: string;
   // Optional explicit list of track IDs to render favorites for another user
   trackIdsOverride?: string[];
@@ -33,6 +37,8 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
   const { profile } = useUser();
   const { isOnline } = useNetwork();
   const client = useClient();
+  const { isPlaying: isGlobalPlaybackActive } = usePlaybackUI();
+  const { pause: pauseGlobalPlayback } = usePlaybackActions();
 
   const [loadedTracks, setLoadedTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +175,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           previewPlayer.pause();
           setCurrentPreviewTrackId(null);
           setCurrentPreviewUrl(null);
+          onPlayTrack?.(null);
         } catch (error) {
           Logger.error('Error stopping preview:', error);
         }
@@ -176,6 +183,10 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
       }
 
       try {
+        if (isGlobalPlaybackActive) {
+          pauseGlobalPlayback();
+        }
+
         // Stop any current preview
         if (currentPreviewTrackId) {
           await previewPlayer.pause();
@@ -183,6 +194,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         // Set new preview URL and start later via effect
         setCurrentPreviewUrl(track.preview);
         setCurrentPreviewTrackId(track.id);
+        onPlayTrack?.(track);
         // Notify parent about selected track (optional)
         onPlayTrack?.(track);
       } catch (error) {
@@ -190,9 +202,16 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         Notifier.warn('Failed to play preview');
         setCurrentPreviewTrackId(null);
         setCurrentPreviewUrl(null);
+        onPlayTrack?.(null);
       }
     },
-    [currentPreviewTrackId, onPlayTrack, previewPlayer]
+    [
+      currentPreviewTrackId,
+      isGlobalPlaybackActive,
+      onPlayTrack,
+      pauseGlobalPlayback,
+      previewPlayer
+    ]
   );
 
   // Auto-play when preview URL changes

@@ -1,7 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -15,6 +24,9 @@ import { useSharedValue } from 'react-native-reanimated';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
+import { Alert } from '@/components/modules/alert';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
@@ -31,9 +43,6 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
-import { Alert } from '@/modules/alert';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import {
   usePlaybackActions,
   usePlaybackState,
@@ -79,6 +88,58 @@ const PlaylistDetailScreen = () => {
   // Drag and drop state
   const draggedIndex = useSharedValue<number | null>(null);
   const offsetY = useSharedValue(0);
+  const scrollOffsetY = useSharedValue(0);
+
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const scrollMetricsRef = useRef({
+    offset: 0,
+    contentHeight: 0,
+    containerHeight: 0
+  });
+
+  const autoScroll = useCallback(
+    (delta: number) => {
+      const ref = scrollViewRef.current;
+      if (!ref) return;
+
+      const metrics = scrollMetricsRef.current;
+      if (metrics.contentHeight <= metrics.containerHeight) return;
+
+      const maxOffset = Math.max(
+        0,
+        metrics.contentHeight - metrics.containerHeight
+      );
+
+      const nextOffset = Math.max(
+        0,
+        Math.min(metrics.offset + delta, maxOffset)
+      );
+
+      if (nextOffset === metrics.offset) return;
+
+      metrics.offset = nextOffset;
+      scrollOffsetY.value = nextOffset;
+      ref.scrollTo({ y: nextOffset, animated: false });
+    },
+    [scrollOffsetY]
+  );
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const currentOffset = event.nativeEvent.contentOffset.y;
+      scrollMetricsRef.current.offset = currentOffset;
+      scrollOffsetY.value = currentOffset;
+    },
+    [scrollOffsetY]
+  );
+
+  const handleContentSizeChange = useCallback((_: number, height: number) => {
+    scrollMetricsRef.current.contentHeight = height;
+  }, []);
+
+  const handleScrollViewLayout = useCallback((event: LayoutChangeEvent) => {
+    scrollMetricsRef.current.containerHeight = event.nativeEvent.layout.height;
+  }, []);
 
   // Playback hooks
   const { isPlaying } = usePlaybackUI();
@@ -853,6 +914,7 @@ const PlaylistDetailScreen = () => {
     >
       {/* Playlist Content */}
       <ScrollView
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl
@@ -862,6 +924,10 @@ const PlaylistDetailScreen = () => {
             tintColor={themeColors[theme]['primary']}
           />
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        onContentSizeChange={handleContentSizeChange}
+        onLayout={handleScrollViewLayout}
         contentContainerStyle={{
           paddingBottom: 8 + bottomPadding,
           ...containerWidthStyle
@@ -1003,6 +1069,8 @@ const PlaylistDetailScreen = () => {
               canEdit={canEdit}
               draggedIndex={draggedIndex}
               offsetY={offsetY}
+              autoScroll={autoScroll}
+              scrollOffsetY={scrollOffsetY}
             />
           ) : null}
         </View>

@@ -14,8 +14,8 @@ import {
   User
 } from 'firebase/auth';
 
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import { auth } from '@/utils/firebase/firebase-init';
 import {
   UserProfile,

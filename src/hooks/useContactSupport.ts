@@ -1,6 +1,6 @@
 import { Alert, Linking } from 'react-native';
 
-import { Logger } from '@/modules/logger/LoggerModule';
+import { Logger } from '@/components/modules/logger/LoggerModule';
 import { useUser } from '@/providers/UserProvider';
 
 const SUPPORT_EMAIL =
