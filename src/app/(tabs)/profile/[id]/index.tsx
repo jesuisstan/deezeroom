@@ -6,6 +6,7 @@ import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
+import ArtistLabel from '@/components/ui/ArtistLabel';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -15,6 +16,8 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
+import type { DeezerArtist } from '@/utils/deezer/deezer-types';
+import { DeezerService } from '@/utils/deezer/deezer-service';
 import {
   getFriendsProfileDoc,
   getPublicProfileDoc,
@@ -49,6 +52,7 @@ const OtherProfileScreen: FC = () => {
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<string | undefined>();
   const [connection, setConnection] = useState<ConnectionDoc | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
 
   const scrollContentStyle: ViewStyle = useMemo(
     () => ({
@@ -107,6 +111,38 @@ const OtherProfileScreen: FC = () => {
       active = false;
     };
   }, [id, user?.uid]);
+
+  // Load favorite artists (public) by IDs and transform to DeezerArtist shape for ArtistLabel
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const ids = publicDoc?.musicPreferences?.favoriteArtistIds;
+        if (!ids || ids.length === 0) {
+          setFavoriteArtists([]);
+          return;
+        }
+        const svc = DeezerService.getInstance();
+        const artists = await svc.getArtistsByIdsViaGraphQL(ids.slice(0, 20));
+        if (!active) return;
+        const deezerLike = artists.map((a) => ({
+          id: a.id,
+          name: a.name,
+          picture: a.picture,
+          picture_small: a.pictureSmall,
+          picture_medium: a.pictureMedium,
+          picture_big: a.pictureBig,
+          picture_xl: a.pictureXl
+        })) as DeezerArtist[];
+        setFavoriteArtists(deezerLike);
+      } catch (e) {
+        Logger.warn('Failed to load favorite artists', e, '👤 OtherProfile');
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [publicDoc?.musicPreferences?.favoriteArtistIds]);
 
   const handlePlayTrack = (track: Track | null) => {
     setCurrentPlayingTrackId(track?.id);
@@ -375,6 +411,23 @@ const OtherProfileScreen: FC = () => {
         {/* Music preferences - basic public info */}
         <View className="rounded-2xl border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
+          {/* Favorite artists */}
+          <View className="mt-4">
+            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+              Favorite artists
+            </TextCustom>
+            {favoriteArtists.length === 0 ? (
+              <TextCustom className="text-accent/60">
+                No favorite artists added yet
+              </TextCustom>
+            ) : (
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                {favoriteArtists.map((a) => (
+                  <ArtistLabel key={a.id} artist={a} />
+                ))}
+              </View>
+            )}
+          </View>
           <View className="mt-4">
             <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
               Favorite genres
