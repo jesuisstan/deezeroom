@@ -247,8 +247,6 @@ const EventsScreen = () => {
               <EventCard key={event.id} event={event} />
             ))
           )}
-
-          <Divider />
         </View>
       </ScrollView>
 
