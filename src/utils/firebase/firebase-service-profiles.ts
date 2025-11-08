@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
 
 export interface PublicProfileDoc {

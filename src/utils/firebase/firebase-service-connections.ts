@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 
 import { FirebaseError } from 'firebase/app';
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
 
 export type ConnectionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
