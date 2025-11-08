@@ -86,6 +86,31 @@ export async function listPendingConnectionsFor(
   }
 }
 
+// List accepted (friends) connections for a user
+export async function listAcceptedConnectionsFor(
+  uid: string
+): Promise<ConnectionWithId[]> {
+  try {
+    const col = collection(db, COLLECTION);
+    const qA = query(col, where('userA', '==', uid), where('status', '==', 'ACCEPTED'));
+    const qB = query(col, where('userB', '==', uid), where('status', '==', 'ACCEPTED'));
+
+    const [sa, sb] = await Promise.all([getDocs(qA), getDocs(qB)]);
+    const map = new Map<string, ConnectionWithId>();
+    sa.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
+    sb.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
+    return Array.from(map.values());
+  } catch (error) {
+    const err = error as FirebaseError;
+    if (err?.code === 'permission-denied') {
+      Logger.debug('listAcceptedConnectionsFor: permission denied (returning empty)', null, '🤝 Connections');
+      return [];
+    }
+    Logger.error('listAcceptedConnectionsFor error', error, '🤝 Connections');
+    return [];
+  }
+}
+
 export async function requestFriendship(
   fromUid: string,
   toUid: string

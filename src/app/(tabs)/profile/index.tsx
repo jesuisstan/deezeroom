@@ -1,5 +1,5 @@
-import { FC, useState } from 'react';
-import { Image, Platform, ScrollView, View } from 'react-native';
+import { FC, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { useRouter } from 'expo-router';
 import type { ViewStyle } from 'react-native';
@@ -17,6 +17,8 @@ import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
+import { listAcceptedConnectionsFor } from '@/utils/firebase/firebase-service-connections';
+import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 
 // Access level scaffolding for future privacy controls
 // TODO: Replace with real determination based on viewer and profile privacy/friendship
@@ -29,6 +31,10 @@ const ProfileScreen: FC = () => {
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
     string | undefined
   >();
+  const [friendsLoading, setFriendsLoading] = useState(false);
+  const [friends, setFriends] = useState<
+    { uid: string; displayName?: string; photoURL?: string }[]
+  >([]);
   const insets = useSafeAreaInsets();
 
   const accessLevel: AccessLevel = (() => {
@@ -49,6 +55,36 @@ const ProfileScreen: FC = () => {
   const handlePlayTrack = (track: Track | null) => {
     setCurrentPlayingTrackId(track?.id);
   };
+
+  // Load friends list (accepted connections) for current user's profile
+  useEffect(() => {
+    const uid = (profile as any)?.uid;
+    if (!uid) return;
+    let active = true;
+    (async () => {
+      try {
+        setFriendsLoading(true);
+        const connections = await listAcceptedConnectionsFor(uid);
+        const otherUids = connections.map((c) => (c.userA === uid ? c.userB : c.userA));
+        const unique = Array.from(new Set(otherUids)).slice(0, 50); // simple cap
+        const docs = await Promise.all(unique.map((fid) => getPublicProfileDoc(fid)));
+        if (!active) return;
+        const items = unique.map((fid, i) => ({
+          uid: fid,
+          displayName: docs[i]?.displayName || docs[i]?.email || 'User',
+          photoURL: docs[i]?.photoURL
+        }));
+        setFriends(items);
+      } catch (e) {
+        // Silent fail for now; could add Notifier
+      } finally {
+        if (active) setFriendsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [profile?.uid]);
 
   // Safe-area aware padding so the last items are not cut off by tab bar/home indicator
   const scrollContentStyle: ViewStyle = {
@@ -99,8 +135,44 @@ const ProfileScreen: FC = () => {
     </View>
   );
 
+  const FriendChip: FC<{
+    user: { uid: string; displayName?: string; photoURL?: string };
+  }> = ({ user }) => (
+    <Pressable
+  onPress={() => router.push(`/profile/${user.uid}`)}
+      className="flex-col items-center gap-1"
+    >
+      {user.photoURL ? (
+        <Image
+          source={{ uri: user.photoURL }}
+          className="h-16 w-16 rounded-full"
+        />
+      ) : (
+        <View className="h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
+          <TextCustom size="l" className="text-accent">
+            {(user.displayName || 'U').charAt(0).toUpperCase()}
+          </TextCustom>
+        </View>
+      )}
+      <TextCustom
+        size="s"
+        numberOfLines={2}
+        style={{
+          width: 'auto',
+          maxWidth: 80,
+          fontFamily: 'Inter',
+          textAlign: 'center',
+          color: themeColors[theme]['text-main']
+        }}
+      >
+        {user.displayName || 'User'}
+      </TextCustom>
+    </Pressable>
+  );
+
   // Build share path for this profile
-  const profilePath = `/profile${user?.uid ? `?uid=${user.uid}` : ''}`;
+  // Share path for own profile now uses dynamic segment
+  const profilePath = `/profile/${user?.uid ?? ''}`;
 
   // New: resolve location label for display (only place, not coords)
   const locationLabel =
@@ -253,6 +325,33 @@ const ProfileScreen: FC = () => {
             })()}
           </View>
         </View>
+
+        {/* Friends card (owner only for now) */}
+        {accessLevel === 'owner' && (
+          <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+            <TextCustom type="subtitle">Friends</TextCustom>
+            <View className="mt-4">
+              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+                Your friends
+              </TextCustom>
+              {friendsLoading ? (
+                <View className="mt-4 items-center justify-center">
+                  <ActivityIndicator />
+                </View>
+              ) : friends.length === 0 ? (
+                <TextCustom className="text-accent/60 mt-2">
+                  No friends yet
+                </TextCustom>
+              ) : (
+                <View className="mt-2 flex-row flex-wrap gap-4">
+                  {friends.map((f) => (
+                    <FriendChip key={f.uid} user={f} />
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Favorite Tracks card */}
         {accessLevel === 'owner' || accessLevel === 'friends' ? (
