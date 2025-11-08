@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { Playlist } from '@/utils/firebase/firebase-service-playlists';
@@ -14,6 +15,7 @@ interface ParticipantsTabProps {
 
 const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
+  const router = useRouter();
 
   // Separate owner and other participants
   const { owner, otherParticipants } = useMemo(() => {
@@ -51,15 +53,19 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
     const avatarSize = 42;
 
     return (
-      <View
+      <Pressable
         key={participant.userId}
-        className="flex-row items-center gap-2 p-2"
-        style={{
-          backgroundColor: themeColors[theme]['bg-main'],
-          borderRadius: 12,
-          marginBottom: 8
-        }}
+        onPress={() => router.push(`/profile/${participant.userId}`)}
+        className="rounded-xl"
+        style={{ marginBottom: 8 }}
       >
+        <View
+          className="flex-row items-center gap-2 p-2"
+          style={{
+            backgroundColor: themeColors[theme]['bg-main'],
+            borderRadius: 12
+          }}
+        >
         {/* Avatar */}
         <View
           style={{
@@ -123,7 +129,8 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
             </TextCustom>
           )}
         </View>
-      </View>
+        </View>
+      </Pressable>
     );
   };
 
