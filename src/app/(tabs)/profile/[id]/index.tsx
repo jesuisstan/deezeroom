@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -20,7 +21,17 @@ import {
   type FriendsProfileDoc,
   type PublicProfileDoc
 } from '@/utils/firebase/firebase-service-profiles';
-import { isFriends } from '@/utils/firebase/firebase-service-connections';
+import {
+  acceptFriendship,
+  deleteFriendship,
+  getConnectionBetween,
+  isFriends,
+  rejectFriendship,
+  requestFriendship,
+  type ConnectionDoc
+} from '@/utils/firebase/firebase-service-connections';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 
 type AccessLevel = 'owner' | 'friends' | 'public';
 
@@ -36,6 +47,8 @@ const OtherProfileScreen: FC = () => {
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('public');
   const [loading, setLoading] = useState(true);
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<string | undefined>();
+  const [connection, setConnection] = useState<ConnectionDoc | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const scrollContentStyle: ViewStyle = useMemo(
     () => ({
@@ -64,11 +77,15 @@ const OtherProfileScreen: FC = () => {
         if (!active) return;
         setPublicDoc(pub);
 
-        // Determine access level
+        // Determine access level & connection
         let level: AccessLevel = 'public';
         if (user?.uid) {
-          const fr = await isFriends(user.uid, id);
+          const [fr, conn] = await Promise.all([
+            isFriends(user.uid, id),
+            getConnectionBetween(user.uid, id)
+          ]);
           if (!active) return;
+          setConnection(conn);
           level = fr ? 'friends' : 'public';
           setAccessLevel(level);
           if (fr) {
@@ -93,6 +110,107 @@ const OtherProfileScreen: FC = () => {
 
   const handlePlayTrack = (track: Track | null) => {
     setCurrentPlayingTrackId(track?.id);
+  };
+
+  // Friendship actions
+  const refreshConnection = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      const [fr, conn] = await Promise.all([
+        isFriends(user.uid, id),
+        getConnectionBetween(user.uid, id)
+      ]);
+      setConnection(conn);
+      setAccessLevel(fr ? 'friends' : 'public');
+      if (fr) {
+        const fdoc = await getFriendsProfileDoc(id);
+        setFriendsDoc(fdoc);
+      } else {
+        setFriendsDoc(null);
+      }
+    } catch (e) {
+      Logger.warn('Failed to refresh connection', e, '👤 OtherProfile');
+    }
+  };
+
+  const onAddFriend = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      setActionLoading(true);
+      const res = await requestFriendship(user.uid, id);
+      if (!res.success) {
+        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to send request' });
+      } else {
+        Notifier.shoot({ type: 'success', title: 'Success', message: 'Friend request sent' });
+      }
+      await refreshConnection();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onCancelRequest = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      setActionLoading(true);
+      const res = await deleteFriendship(user.uid, id);
+      if (!res.success) {
+        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to cancel request' });
+      } else {
+        Notifier.shoot({ type: 'info', message: 'Request canceled' });
+      }
+      await refreshConnection();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onAccept = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      setActionLoading(true);
+      const res = await acceptFriendship(user.uid, id, user.uid);
+      if (!res.success) {
+        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to accept request' });
+      } else {
+        Notifier.shoot({ type: 'success', title: 'Success', message: 'Friend request accepted' });
+      }
+      await refreshConnection();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onReject = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      setActionLoading(true);
+      const res = await rejectFriendship(user.uid, id, user.uid);
+      if (!res.success) {
+        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to reject request' });
+      } else {
+        Notifier.shoot({ type: 'info', message: 'Friend request rejected' });
+      }
+      await refreshConnection();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const onRemoveFriend = async () => {
+    if (!user?.uid || !id || typeof id !== 'string') return;
+    try {
+      setActionLoading(true);
+      const res = await deleteFriendship(user.uid, id);
+      if (!res.success) {
+        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to remove friend' });
+      } else {
+        Notifier.shoot({ type: 'info', message: 'Removed from friends' });
+      }
+      await refreshConnection();
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) return <ActivityIndicatorScreen />;
@@ -170,6 +288,67 @@ const OtherProfileScreen: FC = () => {
                   message="Check out this Deezeroom profile:"
                 />
               </View>
+              {/* Friendship actions row moved below to avoid squeezing header on small screens */}
+              {user?.uid && id && typeof id === 'string' && user.uid !== id ? (
+                <View className="mt-3 flex-row flex-wrap items-center gap-2">
+                  {(() => {
+                    const isPending = connection?.status === 'PENDING';
+                    const requestedByMe = isPending && connection?.requestedBy === user.uid;
+                    const isAccepted = connection?.status === 'ACCEPTED';
+
+                    if (!connection) {
+                      return (
+                        <RippleButton
+                          title="Add friend"
+                          size="sm"
+                          onPress={onAddFriend}
+                          loading={actionLoading}
+                        />
+                      );
+                    }
+                    if (isAccepted) {
+                      return (
+                        <RippleButton
+                          title="Remove"
+                          size="sm"
+                          variant="outline"
+                          onPress={onRemoveFriend}
+                          loading={actionLoading}
+                        />
+                      );
+                    }
+                    if (requestedByMe) {
+                      return (
+                        <RippleButton
+                          title="Cancel request"
+                          size="sm"
+                          variant="outline"
+                          onPress={onCancelRequest}
+                          loading={actionLoading}
+                        />
+                      );
+                    }
+                    // Incoming request from the other user
+                    return (
+                      <View className="flex-row items-center gap-2">
+                        <RippleButton
+                          title="Accept"
+                          size="sm"
+                          onPress={onAccept}
+                          loading={actionLoading}
+                        />
+                        <RippleButton
+                          title="Reject"
+                          size="sm"
+                          variant="outline"
+                          onPress={onReject}
+                          loading={actionLoading}
+                        />
+                      </View>
+                    );
+                  })()}
+                </View>
+              ) : null}
             </View>
           </View>
         </View>
