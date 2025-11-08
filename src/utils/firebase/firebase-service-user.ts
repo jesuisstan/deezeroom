@@ -16,7 +16,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';

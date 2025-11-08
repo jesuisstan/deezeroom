@@ -11,8 +11,8 @@ import React, {
 import type { AudioStatus } from 'expo-audio';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
+import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
-import { Notifier } from '@/modules/notifier';
 
 interface PlaybackStateContextValue {
   queue: Track[];

@@ -123,9 +123,6 @@ const HomeScreen = () => {
 
         {/* Search Section */}
         <View className="w-full gap-2">
-          <TextCustom type="subtitle" size="xl" className="px-4">
-            Music Search
-          </TextCustom>
           <SearchTracksComponent
             onPressTrack={handlePlayTrack}
             onSearchResults={handleSearchResults}

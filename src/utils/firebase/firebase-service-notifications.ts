@@ -5,7 +5,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { doc, setDoc } from 'firebase/firestore';
 
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger';
 import { auth, db } from '@/utils/firebase/firebase-init';
 
 export interface PushToken {

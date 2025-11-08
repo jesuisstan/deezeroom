@@ -12,9 +12,9 @@ import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
+import { Logger } from '@/components/modules/logger/LoggerModule';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -206,8 +206,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               shadowOpacity: 0.3,
               shadowRadius: 6,
               elevation: 8, // Increased for Android to ensure visibility
-              backgroundColor: themeColors[theme]['primary'] + '80',
-              opacity: 0.85
+              backgroundColor: themeColors[theme]['primary'],
+              opacity: 0.9
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>

@@ -1,7 +1,11 @@
 import {
   addDoc,
+  arrayUnion,
   collection,
+  collectionGroup,
+  deleteDoc,
   doc,
+  FirestoreError,
   getDoc,
   getDocs,
   increment,
@@ -16,7 +20,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 import { sendPushNotification } from '@/utils/send-push-notification';
 
@@ -38,7 +42,7 @@ export interface PlaylistInvitation {
   userId: string;
   invitedBy: string;
   invitedAt: Date | any; // Can be Date or Firestore Timestamp
-  status: 'pending' | 'accepted' | 'declined';
+  status: 'pending';
   displayName?: string;
   email?: string;
 }
@@ -59,6 +63,9 @@ export interface Playlist {
 
   // Participants
   participants: PlaylistParticipant[];
+  participantIds?: string[];
+  editorIds?: string[];
+  pendingInviteIds?: string[];
 
   // Real-time sync
   lastModifiedBy: string;
@@ -75,10 +82,77 @@ export interface Playlist {
   coverImageUrl?: string;
 }
 
+export type PlaylistTrackPosition =
+  | { placement: 'start' }
+  | { placement: 'end' }
+  | { placement: 'after'; referenceId: string };
+
 export class PlaylistService {
   private static collection = 'playlists';
   private static tracksCollection = 'tracks';
   private static invitationsCollection = 'invitations';
+
+  private static uniqueStringArray(
+    values: (string | undefined | null)[]
+  ): string[] {
+    const set = new Set<string>();
+    values.forEach((value) => {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        set.add(value);
+      }
+    });
+    return Array.from(set);
+  }
+
+  private static ensureParticipantIds(playlist: Playlist): string[] {
+    if (
+      Array.isArray(playlist.participantIds) &&
+      playlist.participantIds.length
+    ) {
+      return this.uniqueStringArray(playlist.participantIds);
+    }
+    return this.uniqueStringArray(
+      Array.isArray(playlist.participants)
+        ? playlist.participants.map((participant) => participant.userId)
+        : []
+    );
+  }
+
+  private static ensureEditorIds(playlist: Playlist): string[] {
+    if (Array.isArray(playlist.editorIds) && playlist.editorIds.length) {
+      return this.uniqueStringArray(playlist.editorIds);
+    }
+    return this.uniqueStringArray(
+      Array.isArray(playlist.participants)
+        ? playlist.participants
+            .filter(
+              (participant) =>
+                participant.role === 'owner' || participant.role === 'editor'
+            )
+            .map((participant) => participant.userId)
+        : []
+    );
+  }
+
+  private static buildParticipantArrays(
+    playlist: Playlist,
+    participantUpdates?: PlaylistParticipant[]
+  ) {
+    const participants = participantUpdates ?? playlist.participants ?? [];
+    return {
+      participantIds: this.uniqueStringArray(
+        participants.map((participant) => participant.userId)
+      ),
+      editorIds: this.uniqueStringArray(
+        participants
+          .filter(
+            (participant) =>
+              participant.role === 'owner' || participant.role === 'editor'
+          )
+          .map((participant) => participant.userId)
+      )
+    };
+  }
 
   // ===== PLAYLIST MANAGEMENT =====
 
@@ -115,7 +189,10 @@ export class PlaylistService {
           ...(ownerData?.email && { email: ownerData.email }),
           ...(ownerData?.photoURL && { photoURL: ownerData.photoURL })
         }
-      ]
+      ],
+      participantIds: [createdBy],
+      editorIds: [createdBy],
+      pendingInviteIds: []
     };
 
     const docRef = await addDoc(collection(db, this.collection), playlistData);
@@ -173,11 +250,22 @@ export class PlaylistService {
     );
     const tracksSnapshot = await getDocs(tracksQuery);
 
+    // Delete invitations
+    const invitationsQuery = query(
+      collection(db, this.collection, playlistId, this.invitationsCollection)
+    );
+    const invitationsSnapshot = await getDocs(invitationsQuery);
+
     const batch = writeBatch(db);
 
     // Delete all tracks
     tracksSnapshot.docs.forEach((trackDoc) => {
       batch.delete(trackDoc.ref);
+    });
+
+    // Delete all invitations
+    invitationsSnapshot.docs.forEach((invitationDoc) => {
+      batch.delete(invitationDoc.ref);
     });
 
     // Delete playlist
@@ -200,43 +288,41 @@ export class PlaylistService {
   // ===== USER PLAYLISTS =====
 
   static async getUserPlaylists(userId: string): Promise<Playlist[]> {
-    // Get all playlists and filter by owner in memory
-    // This is more reliable than array-contains with complex objects
     const q = query(
       collection(db, this.collection),
-      orderBy('updatedAt', 'desc')
+      where('createdBy', '==', userId)
     );
 
     const querySnapshot = await getDocs(q);
-    const allPlaylists = querySnapshot.docs.map(
+    const playlists = querySnapshot.docs.map(
       (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
     );
 
-    // Filter playlists where user is the creator
-    return allPlaylists.filter((playlist) => playlist.createdBy === userId);
+    return playlists.sort((a, b) => {
+      const dateA = parseFirestoreDate(a.updatedAt);
+      const dateB = parseFirestoreDate(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   static async getUserParticipatingPlaylists(
     userId: string
   ): Promise<Playlist[]> {
-    // Get all playlists and filter by participants in memory
-    // This is more reliable than array-contains with complex objects
     const q = query(
       collection(db, this.collection),
-      orderBy('updatedAt', 'desc')
+      where('participantIds', 'array-contains', userId)
     );
 
     const querySnapshot = await getDocs(q);
-    const allPlaylists = querySnapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
-    );
+    const playlists = querySnapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as Playlist)
+      .filter((playlist) => playlist.createdBy !== userId);
 
-    // Filter playlists where user is participant but not owner
-    return allPlaylists.filter(
-      (playlist) =>
-        playlist.participants.some((p) => p.userId === userId) &&
-        playlist.createdBy !== userId
-    );
+    return playlists.sort((a, b) => {
+      const dateA = parseFirestoreDate(a.updatedAt);
+      const dateB = parseFirestoreDate(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
   }
 
   static async getPublicPlaylists(
@@ -353,9 +439,18 @@ export class PlaylistService {
 
   static async reorderTrack(
     playlistId: string,
-    fromIndex: number,
-    toIndex: number
+    trackId: string,
+    targetPosition: PlaylistTrackPosition,
+    userId: string
   ): Promise<void> {
+    // Check if user has permission to reorder tracks
+    const canEdit = await this.canUserEditPlaylist(playlistId, userId);
+    if (!canEdit) {
+      throw new Error(
+        'You do not have permission to reorder tracks in this playlist'
+      );
+    }
+
     await runTransaction(db, async (transaction) => {
       const playlistRef = doc(db, this.collection, playlistId);
       const playlistDoc = await transaction.get(playlistRef);
@@ -369,21 +464,54 @@ export class PlaylistService {
         ? [...(playlist.tracks as string[])]
         : [];
 
-      if (
-        fromIndex < 0 ||
-        fromIndex >= currentTracks.length ||
-        toIndex < 0 ||
-        toIndex >= currentTracks.length
-      ) {
-        throw new Error('Invalid reorder indexes');
+      const fromIndex = currentTracks.findIndex((id) => id === trackId);
+      if (fromIndex === -1) {
+        throw new Error(`Track ${trackId} not found in playlist`);
       }
 
-      const [moved] = currentTracks.splice(fromIndex, 1);
-      currentTracks.splice(toIndex, 0, moved);
+      const remainingTracks = currentTracks.filter((id) => id !== trackId);
+
+      let insertionIndex = remainingTracks.length; // default to end
+
+      switch (targetPosition.placement) {
+        case 'start':
+          insertionIndex = 0;
+          break;
+        case 'end':
+          insertionIndex = remainingTracks.length;
+          break;
+        case 'after': {
+          const referenceIndex = remainingTracks.findIndex(
+            (id) => id === targetPosition.referenceId
+          );
+
+          if (referenceIndex === -1) {
+            // Reference track might have been removed concurrently; place at end
+            insertionIndex = remainingTracks.length;
+          } else {
+            insertionIndex = referenceIndex + 1;
+          }
+          break;
+        }
+        default:
+          throw new Error('Invalid target position for track reorder');
+      }
+
+      const newOrder = [...remainingTracks];
+      newOrder.splice(insertionIndex, 0, trackId);
+
+      // If order remains unchanged, skip update
+      if (
+        currentTracks.length === newOrder.length &&
+        currentTracks.every((id, idx) => id === newOrder[idx])
+      ) {
+        return;
+      }
 
       transaction.update(playlistRef, {
-        tracks: currentTracks,
+        tracks: newOrder,
         updatedAt: serverTimestamp(),
+        lastModifiedBy: userId,
         version: increment(1)
       });
     });
@@ -424,6 +552,16 @@ export class PlaylistService {
       collection(db, this.collection, playlistId, this.invitationsCollection),
       invitationData
     );
+
+    // Track pending invite on playlist document for permission checks
+    try {
+      const playlistRef = doc(db, this.collection, playlistId);
+      await updateDoc(playlistRef, {
+        pendingInviteIds: arrayUnion(userId)
+      });
+    } catch (error) {
+      Logger.warn('Failed to update pendingInviteIds on invite', error);
+    }
 
     // Send push notification to invited user
     try {
@@ -580,9 +718,15 @@ export class PlaylistService {
     const updatedParticipants = playlist.participants.filter(
       (p) => p.userId !== userId
     );
+    const { participantIds, editorIds } = this.buildParticipantArrays(
+      playlist,
+      updatedParticipants
+    );
 
     await updateDoc(playlistRef, {
       participants: updatedParticipants,
+      participantIds,
+      editorIds,
       updatedAt: serverTimestamp(),
       version: increment(1)
     });
@@ -635,9 +779,15 @@ export class PlaylistService {
           const updatedParticipants = otherParticipants.map((p) =>
             p.userId === newOwner.userId ? { ...p, role: 'owner' as const } : p
           );
+          const { participantIds, editorIds } = this.buildParticipantArrays(
+            playlist,
+            updatedParticipants
+          );
 
           transaction.update(playlistRef, {
             participants: updatedParticipants,
+            participantIds,
+            editorIds,
             createdBy: newOwner.userId,
             lastModifiedBy: newOwner.userId,
             updatedAt: serverTimestamp(),
@@ -691,9 +841,15 @@ export class PlaylistService {
 
         // If not owner, just remove participant
         const updatedParticipants = otherParticipants;
+        const { participantIds, editorIds } = this.buildParticipantArrays(
+          playlist,
+          updatedParticipants
+        );
 
         transaction.update(playlistRef, {
           participants: updatedParticipants,
+          participantIds,
+          editorIds,
           lastModifiedBy: userId,
           updatedAt: serverTimestamp(),
           version: increment(1)
@@ -714,111 +870,31 @@ export class PlaylistService {
     userId: string
   ): Promise<PlaylistInvitation[]> {
     try {
-      // Get all playlists to find invitations for this user
-      const playlistsQuery = query(collection(db, this.collection));
-      const playlistsSnapshot = await getDocs(playlistsQuery);
+      const invitationsQuery = query(
+        collectionGroup(db, this.invitationsCollection),
+        where('userId', '==', userId)
+      );
 
-      const allInvitations: PlaylistInvitation[] = [];
+      const invitationsSnapshot = await getDocs(invitationsQuery);
 
-      for (const playlistDoc of playlistsSnapshot.docs) {
-        const playlistId = playlistDoc.id;
-
-        // Get invitations for this playlist (only by userId, no orderBy to avoid index requirement)
-        const invitationsQuery = query(
-          collection(
-            db,
-            this.collection,
-            playlistId,
-            this.invitationsCollection
-          ),
-          where('userId', '==', userId),
-          where('status', '==', 'pending')
-        );
-
-        const invitationsSnapshot = await getDocs(invitationsQuery);
-
-        invitationsSnapshot.docs.forEach((invitationDoc) => {
-          allInvitations.push({
+      const invitations = invitationsSnapshot.docs
+        .map((invitationDoc) => {
+          const parentPlaylistId = invitationDoc.ref.parent.parent?.id;
+          return {
             id: invitationDoc.id,
-            playlistId,
+            playlistId: parentPlaylistId || '',
             ...invitationDoc.data()
-          } as PlaylistInvitation);
-        });
-      }
+          } as PlaylistInvitation;
+        })
+        .filter((invitation) => invitation.status === 'pending');
 
-      // Sort by invitedAt in memory (descending)
-      return allInvitations.sort((a, b) => {
+      return invitations.sort((a, b) => {
         const dateA = parseFirestoreDate(a.invitedAt);
         const dateB = parseFirestoreDate(b.invitedAt);
         return dateB.getTime() - dateA.getTime();
       });
     } catch (error) {
       Logger.error('Error getting user invitations:', error);
-      return [];
-    }
-  }
-
-  // Get all sent invitations that received responses (accepted or declined)
-  // Returns only recent responses (within last 7 days) for badge count
-  static async getUserSentInvitationsResponses(
-    userId: string,
-    sinceDaysAgo: number = 7
-  ): Promise<PlaylistInvitation[]> {
-    try {
-      // Get all playlists to find sent invitations
-      const playlistsQuery = query(collection(db, this.collection));
-      const playlistsSnapshot = await getDocs(playlistsQuery);
-
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
-
-      const allResponses: PlaylistInvitation[] = [];
-
-      for (const playlistDoc of playlistsSnapshot.docs) {
-        const playlistId = playlistDoc.id;
-
-        // Get invitations where user is the inviter and status is accepted or declined
-        const invitationsQuery = query(
-          collection(
-            db,
-            this.collection,
-            playlistId,
-            this.invitationsCollection
-          ),
-          where('invitedBy', '==', userId)
-        );
-
-        const invitationsSnapshot = await getDocs(invitationsQuery);
-
-        invitationsSnapshot.docs.forEach((invitationDoc) => {
-          const invitation = {
-            id: invitationDoc.id,
-            playlistId,
-            ...invitationDoc.data()
-          } as PlaylistInvitation;
-
-          // Only include accepted or declined invitations from recent period
-          if (
-            (invitation.status === 'accepted' ||
-              invitation.status === 'declined') &&
-            invitation.invitedAt
-          ) {
-            const invitedAt = parseFirestoreDate(invitation.invitedAt);
-            if (invitedAt >= cutoffDate) {
-              allResponses.push(invitation);
-            }
-          }
-        });
-      }
-
-      // Sort by invitedAt in memory (descending) - most recent first
-      return allResponses.sort((a, b) => {
-        const dateA = parseFirestoreDate(a.invitedAt);
-        const dateB = parseFirestoreDate(b.invitedAt);
-        return dateB.getTime() - dateA.getTime();
-      });
-    } catch (error) {
-      Logger.error('Error getting sent invitations responses:', error);
       return [];
     }
   }
@@ -863,89 +939,74 @@ export class PlaylistService {
       }
 
       // Validate playlist exists and user permissions
-      const playlist = await this.getPlaylist(playlistId);
-      if (!playlist) {
-        return { success: false, message: 'Playlist not found' };
-      }
-
-      // Check if user is already a participant
-      const isAlreadyParticipant = playlist.participants.some(
-        (p) => p.userId === userId
-      );
-
-      if (isAlreadyParticipant) {
-        return {
-          success: false,
-          message: 'You are already a participant in this playlist'
-        };
-      }
-
       // Now execute the transaction
       await runTransaction(db, async (transaction) => {
         const playlistRef = doc(db, this.collection, playlistId);
+        const playlistSnapshot = await transaction.get(playlistRef);
 
-        // Update invitation status
-        transaction.update(invitationRef, {
-          status: 'accepted'
-        });
+        if (!playlistSnapshot.exists()) {
+          throw new Error('Playlist not found');
+        }
 
-        // Add user to participants with additional info from invitation and user data
+        const currentPlaylist = playlistSnapshot.data() as Playlist;
+
+        const existingParticipant = currentPlaylist.participants?.find(
+          (p) => p.userId === userId
+        );
+
+        if (existingParticipant) {
+          throw new Error('You are already a participant in this playlist');
+        }
+
+        const invitationSnapshot = await transaction.get(invitationRef);
+        if (!invitationSnapshot.exists()) {
+          throw new Error('Invitation not found');
+        }
+
+        const currentInvitation =
+          invitationSnapshot.data() as PlaylistInvitation;
+        if (currentInvitation.status !== 'pending') {
+          throw new Error('This invitation has already been processed');
+        }
+
         const participantData: PlaylistParticipant = {
           userId,
           role,
           joinedAt: new Date(),
-          displayName: userData?.displayName || invitation.displayName,
-          email: userData?.email || invitation.email
+          displayName: userData?.displayName || currentInvitation.displayName,
+          email: userData?.email || currentInvitation.email
         };
 
-        // Only add photoURL if it exists
         if (userData?.photoURL) {
           participantData.photoURL = userData.photoURL;
         }
 
-        const updatedParticipants = [...playlist.participants, participantData];
+        const currentParticipants = Array.isArray(currentPlaylist.participants)
+          ? [...currentPlaylist.participants]
+          : [];
+        currentParticipants.push(participantData);
+        const { participantIds, editorIds } =
+          PlaylistService.buildParticipantArrays(
+            currentPlaylist,
+            currentParticipants
+          );
+        const updatedPendingInviteIds = Array.isArray(
+          currentPlaylist.pendingInviteIds
+        )
+          ? currentPlaylist.pendingInviteIds.filter((id) => id !== userId)
+          : [];
 
+        transaction.delete(invitationRef);
         transaction.update(playlistRef, {
-          participants: updatedParticipants,
+          participants: currentParticipants,
+          participantIds,
+          editorIds,
+          pendingInviteIds: updatedPendingInviteIds,
           updatedAt: serverTimestamp(),
+          lastModifiedBy: userId,
           version: increment(1)
         });
       });
-
-      // Send push notification to inviter
-      try {
-        const inviterRef = doc(db, 'users', invitation.invitedBy);
-        const inviterDoc = await getDoc(inviterRef);
-
-        if (inviterDoc.exists()) {
-          const inviterData = inviterDoc.data();
-          const pushToken = inviterData?.pushTokens;
-
-          if (pushToken?.expoPushToken) {
-            const accepterName =
-              invitation.displayName ||
-              invitation.email?.split('@')[0] ||
-              'Someone';
-
-            await sendPushNotification({
-              to: pushToken.expoPushToken,
-              title: 'Invitation Accepted',
-              body: `${accepterName} accepted your invitation to "${playlist?.name || 'playlist'}"`,
-              data: {
-                type: 'invitation_accepted',
-                playlistId,
-                userId
-              },
-              badge: 1
-            });
-
-            Logger.info('Push notification sent to inviter');
-          }
-        }
-      } catch (error) {
-        Logger.error('Error sending push notification to inviter:', error);
-        // Don't throw - invitation is accepted, notification is optional
-      }
 
       return { success: true, message: 'Invitation accepted successfully' };
     } catch (error) {
@@ -1011,45 +1072,31 @@ export class PlaylistService {
         };
       }
 
-      // Update invitation status
-      await updateDoc(invitationRef, {
-        status: 'declined'
-      });
+      // Remove invitation to keep collection clean
+      await deleteDoc(invitationRef);
 
-      // Send push notification to inviter
+      // Remove pending invite reference from playlist document
       try {
-        const playlist = await this.getPlaylist(playlistId);
-        const inviterRef = doc(db, 'users', invitation.invitedBy);
-        const inviterDoc = await getDoc(inviterRef);
-
-        if (inviterDoc.exists()) {
-          const inviterData = inviterDoc.data();
-          const pushToken = inviterData?.pushTokens;
-
-          if (pushToken?.expoPushToken) {
-            const declinerName =
-              invitation.displayName ||
-              invitation.email?.split('@')[0] ||
-              'Someone';
-
-            await sendPushNotification({
-              to: pushToken.expoPushToken,
-              title: 'Invitation Declined',
-              body: `${declinerName} declined your invitation to "${playlist?.name || 'playlist'}"`,
-              data: {
-                type: 'invitation_declined',
-                playlistId,
-                userId
-              },
-              badge: 1
-            });
-
-            Logger.info('Push notification sent to inviter');
+        const playlistRef = doc(db, this.collection, playlistId);
+        await runTransaction(db, async (transaction) => {
+          const playlistSnapshot = await transaction.get(playlistRef);
+          if (!playlistSnapshot.exists()) {
+            return;
           }
-        }
+
+          const playlist = playlistSnapshot.data() as Playlist;
+          const updatedPendingInviteIds = Array.isArray(
+            playlist.pendingInviteIds
+          )
+            ? playlist.pendingInviteIds.filter((id) => id !== userId)
+            : [];
+
+          transaction.update(playlistRef, {
+            pendingInviteIds: updatedPendingInviteIds
+          });
+        });
       } catch (error) {
-        Logger.error('Error sending push notification to inviter:', error);
-        // Don't throw - invitation is declined, notification is optional
+        Logger.warn('Failed to update pendingInviteIds on decline', error);
       }
 
       return { success: true, message: 'Invitation declined' };
@@ -1080,32 +1127,60 @@ export class PlaylistService {
 
   static subscribeToPlaylist(
     playlistId: string,
-    callback: (playlist: Playlist | null) => void
+    callback: (playlist: Playlist | null, error?: unknown) => void
   ) {
     const playlistRef = doc(db, this.collection, playlistId);
-    return onSnapshot(playlistRef, (doc) => {
-      if (doc.exists()) {
-        callback({ id: doc.id, ...doc.data() } as Playlist);
-      } else {
-        callback(null);
+    return onSnapshot(
+      playlistRef,
+      (doc) => {
+        if (doc.exists()) {
+          callback({ id: doc.id, ...doc.data() } as Playlist);
+        } else {
+          callback(null);
+        }
+      },
+      (error) => {
+        const firestoreError = error as FirestoreError;
+        if (firestoreError?.code === 'permission-denied') {
+          Logger.warn('Playlist subscription permission denied', {
+            playlistId
+          });
+        } else {
+          Logger.error('Error in subscribeToPlaylist:', error);
+        }
+        callback(null, firestoreError);
       }
-    });
+    );
   }
 
   static subscribeToPlaylistTracks(
     playlistId: string,
-    callback: (trackIds: string[]) => void
+    callback: (trackIds: string[], error?: unknown) => void
   ) {
     const playlistRef = doc(db, this.collection, playlistId);
-    return onSnapshot(playlistRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        callback([]);
-        return;
+    return onSnapshot(
+      playlistRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          callback([]);
+          return;
+        }
+        const data = docSnap.data() as Playlist;
+        const ids = (data.tracks as string[]) || [];
+        callback(ids);
+      },
+      (error) => {
+        const firestoreError = error as FirestoreError;
+        if (firestoreError?.code === 'permission-denied') {
+          Logger.warn('Playlist tracks subscription permission denied', {
+            playlistId
+          });
+        } else {
+          Logger.error('Error in subscribeToPlaylistTracks:', error);
+        }
+        callback([], firestoreError);
       }
-      const data = docSnap.data() as Playlist;
-      const ids = (data.tracks as string[]) || [];
-      callback(ids);
-    });
+    );
   }
 
   // Subscribe to user's own playlists (real-time, includes field updates)
@@ -1115,22 +1190,22 @@ export class PlaylistService {
   ): () => void {
     const q = query(
       collection(db, this.collection),
-      orderBy('updatedAt', 'desc')
+      where('createdBy', '==', userId)
     );
 
     return onSnapshot(
       q,
       (querySnapshot) => {
-        const allPlaylists = querySnapshot.docs.map(
+        const userPlaylists = querySnapshot.docs.map(
           (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
         );
 
-        // Filter playlists where user is the creator
-        const userPlaylists = allPlaylists.filter(
-          (playlist) => playlist.createdBy === userId
-        );
+        userPlaylists.sort((a, b) => {
+          const dateA = parseFirestoreDate(a.updatedAt);
+          const dateB = parseFirestoreDate(b.updatedAt);
+          return dateB.getTime() - dateA.getTime();
+        });
 
-        // Always update to get field changes (name, description, etc.)
         callback(userPlaylists);
       },
       (error) => {
@@ -1146,24 +1221,22 @@ export class PlaylistService {
   ): () => void {
     const q = query(
       collection(db, this.collection),
-      orderBy('updatedAt', 'desc')
+      where('participantIds', 'array-contains', userId)
     );
 
     return onSnapshot(
       q,
       (querySnapshot) => {
-        const allPlaylists = querySnapshot.docs.map(
-          (doc) => ({ id: doc.id, ...doc.data() }) as Playlist
-        );
+        const participatingPlaylists = querySnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }) as Playlist)
+          .filter((playlist) => playlist.createdBy !== userId);
 
-        // Filter playlists where user is participant but not owner
-        const participatingPlaylists = allPlaylists.filter(
-          (playlist) =>
-            playlist.participants.some((p) => p.userId === userId) &&
-            playlist.createdBy !== userId
-        );
+        participatingPlaylists.sort((a, b) => {
+          const dateA = parseFirestoreDate(a.updatedAt);
+          const dateB = parseFirestoreDate(b.updatedAt);
+          return dateB.getTime() - dateA.getTime();
+        });
 
-        // Always update to get field changes (name, description, etc.)
         callback(participatingPlaylists);
       },
       (error) => {
@@ -1227,169 +1300,37 @@ export class PlaylistService {
     userId: string,
     callback: (invitations: PlaylistInvitation[]) => void
   ): () => void {
-    // We need to get all playlists and subscribe to their invitations
-    // This is a more complex real-time subscription
-    let unsubscribeFunctions: (() => void)[] = [];
-    let allInvitations: PlaylistInvitation[] = [];
+    const invitationsQuery = query(
+      collectionGroup(db, this.invitationsCollection),
+      where('userId', '==', userId)
+    );
 
-    const updateInvitations = () => {
-      // Sort by invitedAt in memory (descending)
-      const sortedInvitations = allInvitations.sort((a, b) => {
-        const dateA = parseFirestoreDate(a.invitedAt);
-        const dateB = parseFirestoreDate(b.invitedAt);
-        return dateB.getTime() - dateA.getTime();
-      });
-      callback(sortedInvitations);
-    };
+    return onSnapshot(
+      invitationsQuery,
+      (querySnapshot) => {
+        const invitations = querySnapshot.docs
+          .map((invitationDoc) => {
+            const parentPlaylistId = invitationDoc.ref.parent.parent?.id;
+            return {
+              id: invitationDoc.id,
+              playlistId: parentPlaylistId || '',
+              ...invitationDoc.data()
+            } as PlaylistInvitation;
+          })
+          .filter((invitation) => invitation.status === 'pending');
 
-    // First, get all playlists to set up individual subscriptions
-    const setupSubscriptions = async () => {
-      try {
-        const playlistsQuery = query(collection(db, this.collection));
-        const playlistsSnapshot = await getDocs(playlistsQuery);
-
-        playlistsSnapshot.docs.forEach((playlistDoc) => {
-          const playlistId = playlistDoc.id;
-
-          // Subscribe to invitations for this playlist for the specific user
-          const invitationsRef = collection(
-            db,
-            this.collection,
-            playlistId,
-            this.invitationsCollection
-          );
-          const invitationsQuery = query(
-            invitationsRef,
-            where('userId', '==', userId),
-            where('status', '==', 'pending')
-          );
-
-          const unsubscribe = onSnapshot(
-            invitationsQuery,
-            (querySnapshot) => {
-              // Remove old invitations for this playlist
-              allInvitations = allInvitations.filter(
-                (inv) => inv.playlistId !== playlistId
-              );
-
-              // Add new invitations for this playlist
-              const newInvitations = querySnapshot.docs.map((doc) => ({
-                id: doc.id,
-                playlistId,
-                ...doc.data()
-              })) as PlaylistInvitation[];
-
-              allInvitations.push(...newInvitations);
-              updateInvitations();
-            },
-            (error) => {
-              Logger.error(
-                `Error in real-time invitation subscription for playlist ${playlistId}:`,
-                error
-              );
-            }
-          );
-
-          unsubscribeFunctions.push(unsubscribe);
+        const sortedInvitations = invitations.sort((a, b) => {
+          const dateA = parseFirestoreDate(a.invitedAt);
+          const dateB = parseFirestoreDate(b.invitedAt);
+          return dateB.getTime() - dateA.getTime();
         });
-      } catch (error) {
-        Logger.error(
-          'Error setting up real-time invitation subscriptions:',
-          error
-        );
+
+        callback(sortedInvitations);
+      },
+      (error) => {
+        Logger.error('Error in real-time invitation subscriptions:', error);
       }
-    };
-
-    setupSubscriptions();
-
-    // Return cleanup function
-    return () => {
-      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-      unsubscribeFunctions = [];
-      allInvitations = [];
-    };
-  }
-
-  // Subscribe to user sent invitations responses (real-time)
-  static subscribeToUserSentInvitationsResponses(
-    userId: string,
-    callback: (responses: PlaylistInvitation[]) => void,
-    sinceDaysAgo: number = 7
-  ): () => void {
-    let unsubscribeFunctions: (() => void)[] = [];
-    let allResponses: PlaylistInvitation[] = [];
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - sinceDaysAgo);
-
-    const updateResponses = () => {
-      const filteredResponses = allResponses.filter((response) => {
-        if (
-          (response.status === 'accepted' || response.status === 'declined') &&
-          response.invitedAt
-        ) {
-          const invitedAt = parseFirestoreDate(response.invitedAt);
-          return invitedAt >= cutoffDate;
-        }
-        return false;
-      });
-
-      const sortedResponses = filteredResponses.sort((a, b) => {
-        const dateA = parseFirestoreDate(a.invitedAt);
-        const dateB = parseFirestoreDate(b.invitedAt);
-        return dateB.getTime() - dateA.getTime();
-      });
-      callback(sortedResponses);
-    };
-
-    const setupSubscriptions = async () => {
-      try {
-        const playlistsQuery = query(collection(db, this.collection));
-        const playlistsSnapshot = await getDocs(playlistsQuery);
-
-        for (const playlistDoc of playlistsSnapshot.docs) {
-          const playlistId = playlistDoc.id;
-
-          const invitationsQuery = query(
-            collection(
-              db,
-              this.collection,
-              playlistId,
-              this.invitationsCollection
-            ),
-            where('invitedBy', '==', userId)
-          );
-
-          const unsubscribe = onSnapshot(invitationsQuery, (querySnapshot) => {
-            allResponses = [];
-            querySnapshot.docs.forEach((invitationDoc) => {
-              const invitation = {
-                id: invitationDoc.id,
-                playlistId,
-                ...invitationDoc.data()
-              } as PlaylistInvitation;
-              allResponses.push(invitation);
-            });
-            updateResponses();
-          });
-
-          unsubscribeFunctions.push(unsubscribe);
-        }
-      } catch (error) {
-        Logger.error(
-          'Error setting up sent invitations responses subscriptions:',
-          error
-        );
-      }
-    };
-
-    setupSubscriptions();
-
-    return () => {
-      unsubscribeFunctions.forEach((unsubscribe) => unsubscribe());
-      unsubscribeFunctions = [];
-      allResponses = [];
-    };
+    );
   }
 
   // Update participant data (when user profile changes)
@@ -1414,9 +1355,15 @@ export class PlaylistService {
           }
         : participant
     );
+    const { participantIds, editorIds } = this.buildParticipantArrays(
+      playlist,
+      updatedParticipants
+    );
 
     await updateDoc(playlistRef, {
       participants: updatedParticipants,
+      participantIds,
+      editorIds,
       updatedAt: serverTimestamp(),
       version: increment(1)
     });
@@ -1434,15 +1381,12 @@ export class PlaylistService {
     // Owner can always edit
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant
-    const participant = playlist.participants.find((p) => p.userId === userId);
-    const isParticipant = !!participant;
+    const editorIds = new Set(this.ensureEditorIds(playlist));
+    const isEditor = editorIds.has(userId);
 
     // PRIVATE playlists: only invited participants can edit
     if (playlist.visibility === 'private') {
-      if (!isParticipant) return false;
-      // Check if participant has editor or owner role
-      return participant!.role === 'editor' || participant!.role === 'owner';
+      return isEditor;
     }
 
     // PUBLIC playlists: depends on editPermissions
@@ -1452,8 +1396,7 @@ export class PlaylistService {
         return true;
       } else if (playlist.editPermissions === 'invited') {
         // Only participants can edit
-        if (!isParticipant) return false;
-        return participant!.role === 'editor' || participant!.role === 'owner';
+        return isEditor;
       }
     }
 
@@ -1470,14 +1413,13 @@ export class PlaylistService {
     // Owner can always invite
     if (playlist.createdBy === userId) return true;
 
-    // Check if user is participant
-    const participant = playlist.participants.find((p) => p.userId === userId);
-    const isParticipant = !!participant;
+    const participantIds = new Set(this.ensureParticipantIds(playlist));
+    const editorIds = new Set(this.ensureEditorIds(playlist));
+    const isEditor = editorIds.has(userId);
 
     // PRIVATE playlists: only participants with editor/owner role can invite
     if (playlist.visibility === 'private') {
-      if (!isParticipant) return false;
-      return participant!.role === 'editor' || participant!.role === 'owner';
+      return isEditor;
     }
 
     // PUBLIC playlists: depends on editPermissions
@@ -1487,8 +1429,9 @@ export class PlaylistService {
         return true;
       } else if (playlist.editPermissions === 'invited') {
         // Only participants can invite
+        const isParticipant = participantIds.has(userId);
         if (!isParticipant) return false;
-        return participant!.role === 'editor' || participant!.role === 'owner';
+        return isEditor;
       }
     }
 
@@ -1506,7 +1449,7 @@ export class PlaylistService {
     if (playlist.visibility === 'public') return true;
 
     // Private playlists only by participants
-    const participant = playlist.participants.find((p) => p.userId === userId);
-    return !!participant;
+    const participantIds = new Set(this.ensureParticipantIds(playlist));
+    return participantIds.has(userId);
   }
 }
