@@ -43,7 +43,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         }}
       >
         <MaterialCommunityIcons
-          name="music-circle"
+          name="party-popper"
           size={42}
           color={themeColors[theme]['primary']}
         />

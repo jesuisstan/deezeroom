@@ -171,14 +171,15 @@ const EventsScreen = () => {
     } as const;
 
     return (
-      <RippleButton
-        key={tab}
-        title={titles[tab]}
-        size="sm"
-        onPress={() => handleTabChange(tab)}
-        variant={isActive ? 'primary' : 'outline'}
-        className="flex-1"
-      />
+      <View key={tab} className="flex-1">
+        <RippleButton
+          title={titles[tab]}
+          size="sm"
+          onPress={() => handleTabChange(tab)}
+          variant={isActive ? 'primary' : 'outline'}
+          width="full"
+        />
+      </View>
     );
   };
 
@@ -187,34 +188,27 @@ const EventsScreen = () => {
       className="flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-main'] }}
     >
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          backgroundColor: themeColors[theme]['bg-tertiary'],
-          borderBottomWidth: 1,
-          borderBottomColor: themeColors[theme].border,
-          shadowColor: themeColors[theme]['bg-inverse'],
-          shadowOpacity: 0.08,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: 2 }
-        }}
-      >
+      <View className="gap-2 border-b border-border bg-bg-tertiary px-4 py-2 shadow-sm">
         <View className="flex-row items-center gap-2">
           {(['my', 'participating', 'public'] as const).map(renderTabButton)}
         </View>
 
         <InputCustom
-          placeholder="Search events"
+          placeholder="Search events..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          className="mt-3"
+          leftIconName="search"
         />
       </View>
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[themeColors[theme]['primary']]}
+            tintColor={themeColors[theme]['primary']}
+          />
         }
         contentContainerStyle={{
           paddingBottom: bottomPadding + 24,

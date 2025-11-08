@@ -237,7 +237,12 @@ const EventDetailScreen = () => {
     >
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[themeColors[theme]['primary']]}
+            tintColor={themeColors[theme]['primary']}
+          />
         }
         contentContainerStyle={{
           paddingBottom: bottomPadding + 24,
