@@ -50,11 +50,6 @@ const NotificationsScreen = () => {
       if (!result.success) {
         throw new Error(result.message || 'Failed to accept invitation');
       }
-      Notifier.shoot({
-        type: 'success',
-        title: 'Success',
-        message: result.message || 'Invitation accepted'
-      });
     } catch (error) {
       Logger.error('Error accepting invitation:', error);
       Notifier.shoot({
@@ -78,11 +73,6 @@ const NotificationsScreen = () => {
       if (!result.success) {
         throw new Error(result.message || 'Failed to decline invitation');
       }
-      Notifier.shoot({
-        type: 'warn',
-        title: 'Warning',
-        message: result.message || 'Invitation declined'
-      });
     } catch (error) {
       Logger.error('Error declining invitation:', error);
       Notifier.shoot({

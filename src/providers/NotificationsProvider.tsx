@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react';
 import { Platform } from 'react-native';
+
+import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { useUser } from '@/providers/UserProvider';
@@ -28,12 +37,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children
 }) => {
   const { user } = useUser();
+  const router = useRouter();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [playlistInvitations, setPlaylistInvitations] = useState<
     PlaylistInvitation[]
   >([]);
+  const notificationResponseListener = useRef<ReturnType<
+    typeof Notifications.addNotificationResponseReceivedListener
+  > | null>(null);
 
   // TODO Implement FRIENDS REQUESTS
   // TODO Implement EVENTS INVITATIONS
@@ -42,6 +55,24 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     notificationService.configureNotificationHandler();
   }, []);
+
+  // Navigate to notifications screen when user taps a notification
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    notificationResponseListener.current =
+      Notifications.addNotificationResponseReceivedListener(() => {
+        Logger.info('Notification tapped, navigating to notifications screen');
+        router.push('/notifications');
+      });
+
+    return () => {
+      notificationResponseListener.current?.remove();
+      notificationResponseListener.current = null;
+    };
+  }, [router, user]);
 
   // Register user for push notifications
   const registerForPushNotifications = async () => {

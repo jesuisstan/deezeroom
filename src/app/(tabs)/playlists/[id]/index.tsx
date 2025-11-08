@@ -20,6 +20,7 @@ import {
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FirestoreError } from 'firebase/firestore';
 import { useSharedValue } from 'react-native-reanimated';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
@@ -215,11 +216,36 @@ const PlaylistDetailScreen = () => {
     // Subscribe to real-time updates
     const unsubscribe = PlaylistService.subscribeToPlaylist(
       id,
-      (updatedPlaylist) => {
+      (updatedPlaylist, subscriptionError) => {
+        if (subscriptionError) {
+          const firestoreError = subscriptionError as
+            | FirestoreError
+            | undefined;
+          if (firestoreError?.code === 'permission-denied') {
+            Logger.warn(
+              'Playlist subscription permission denied, redirecting',
+              {
+                playlistId: id
+              }
+            );
+          } else {
+            Logger.error('Error in playlist subscription:', subscriptionError);
+          }
+          setError('This playlist is no longer available');
+          setPlaylist(null);
+          setTrackIds([]);
+          setTracks([]);
+          router.replace('/(tabs)/playlists');
+          return;
+        }
+
         if (!updatedPlaylist) {
           // Playlist was deleted
           setError('Playlist not found');
           setPlaylist(null);
+          setTrackIds([]);
+          setTracks([]);
+          router.replace('/(tabs)/playlists');
           return;
         }
 
@@ -232,6 +258,7 @@ const PlaylistDetailScreen = () => {
         if (!hasAccess) {
           setError('You do not have access to this playlist');
           setPlaylist(null);
+          router.replace('/(tabs)/playlists');
           return;
         }
 
@@ -269,7 +296,7 @@ const PlaylistDetailScreen = () => {
     return () => {
       unsubscribe();
     };
-  }, [id, user, loadPlaylist]);
+  }, [id, user, loadPlaylist, router]);
 
   useEffect(() => {
     const fetchTrackDetails = async () => {
