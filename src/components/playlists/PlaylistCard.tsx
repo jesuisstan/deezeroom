@@ -48,14 +48,14 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
           width: cardWidth,
           height: cardWidth,
           backgroundColor: getCardBackgroundColor(),
-          borderRadius: 4,
+          borderRadius: 6,
           shadowColor: themeColors[theme]['bg-inverse'],
           shadowOffset: {
             width: 0,
             height: 2
           },
           shadowOpacity: 0.1,
-          shadowRadius: 4,
+          shadowRadius: 6,
           overflow: 'hidden'
         }}
       >

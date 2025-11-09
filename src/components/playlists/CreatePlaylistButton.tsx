@@ -32,7 +32,7 @@ const CreatePlaylistCard = ({ onPress }: { onPress: () => void }) => {
           width: cardWidth,
           height: cardWidth,
           backgroundColor: themeColors[theme]['bg-secondary'],
-          borderRadius: 4,
+          borderRadius: 6,
           padding: 12,
           borderWidth: 2,
           borderColor: themeColors[theme]['border'],

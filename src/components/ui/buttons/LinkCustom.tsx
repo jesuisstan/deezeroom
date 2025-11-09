@@ -89,7 +89,7 @@ const LinkCustom = ({ href, text, params }: Props) => {
   };
 
   return (
-    <View className="self-start overflow-hidden rounded-lg">
+    <View className="self-start overflow-hidden rounded-md">
       <Pressable
         accessibilityRole="link"
         onPress={handlePress}
@@ -99,7 +99,7 @@ const LinkCustom = ({ href, text, params }: Props) => {
       >
         {/* Ripple effect */}
         <Animated.View
-          className="rounded-xl"
+          className="rounded-md"
           style={[
             {
               position: 'absolute',

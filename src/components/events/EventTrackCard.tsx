@@ -42,7 +42,7 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
     <View
       style={{
         backgroundColor: themeColors[theme]['bg-secondary'],
-        borderRadius: 16,
+        borderRadius: 6,
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
@@ -55,7 +55,7 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
           style={{
             width: 52,
             height: 52,
-            borderRadius: 12,
+            borderRadius: 6,
             backgroundColor: `${themeColors[theme]['primary']}20`,
             alignItems: 'center',
             justifyContent: 'center'

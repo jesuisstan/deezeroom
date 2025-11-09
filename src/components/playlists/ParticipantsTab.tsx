@@ -56,7 +56,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
         className="flex-row items-center gap-2 p-2"
         style={{
           backgroundColor: themeColors[theme]['bg-main'],
-          borderRadius: 12,
+          borderRadius: 6,
           marginBottom: 8
         }}
       >

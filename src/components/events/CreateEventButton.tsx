@@ -19,7 +19,7 @@ const CreateEventButton: React.FC<CreateEventButtonProps> = ({ onPress }) => {
       <View
         style={{
           borderWidth: 2,
-          borderRadius: 8,
+          borderRadius: 6,
           padding: 16,
           borderStyle: 'dashed',
           borderColor: themeColors[theme]['border'],

@@ -46,6 +46,7 @@ export interface Event {
   geofence?: EventGeoFence;
   voteTimeWindow?: EventTimeWindow;
   createdBy: string;
+  ownerDisplayName?: string | null;
   createdAt: Timestamp | Date | null;
   updatedAt: Timestamp | Date | null;
   startAt?: Timestamp | Date | null;
@@ -102,7 +103,8 @@ export class EventService {
       endAt?: Date | null;
     },
     createdBy: string,
-    initialTracks: Track[] = []
+    initialTracks: Track[] = [],
+    ownerInfo?: { displayName?: string | null }
   ): Promise<string> {
     const eventData = {
       name: data.name.trim(),
@@ -113,6 +115,7 @@ export class EventService {
       geofence: data.geofence || null,
       voteTimeWindow: data.voteTimeWindow || null,
       createdBy,
+      ownerDisplayName: ownerInfo?.displayName ?? null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       startAt: data.startAt ? Timestamp.fromDate(data.startAt) : null,
@@ -512,7 +515,6 @@ export class EventService {
     trackId: string,
     userId: string
   ): Promise<void> {
-    const eventRef = doc(db, this.collection, eventId);
     const trackRef = doc(
       db,
       this.collection,

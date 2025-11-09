@@ -35,7 +35,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       return (
         <Image
           source={{ uri: event.coverImageUrl }}
-          style={{ width: COVER_SIZE, height: COVER_SIZE, borderRadius: 12 }}
+          style={{ width: COVER_SIZE, height: COVER_SIZE, borderRadius: 6 }}
           resizeMode="cover"
         />
       );
@@ -46,7 +46,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         style={{
           width: COVER_SIZE,
           height: COVER_SIZE,
-          borderRadius: 12,
+          borderRadius: 6,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: `${themeColors[theme]['primary']}25`
@@ -71,7 +71,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         return 'Everyone can vote';
     }
   };
-
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
@@ -85,7 +84,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           style={{
             flexDirection: 'row',
             backgroundColor: themeColors[theme]['bg-secondary'],
-            borderRadius: 8,
+            borderRadius: 6,
             padding: 14,
             borderWidth: 1,
             borderColor: themeColors[theme].border,
@@ -116,6 +115,23 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   numberOfLines={1}
                 >
                   {event.name}
+                </TextCustom>
+              </View>
+
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <MaterialCommunityIcons
+                  name="account-circle"
+                  size={16}
+                  color={themeColors[theme]['text-secondary']}
+                />
+                <TextCustom
+                  size="xs"
+                  color={themeColors[theme]['text-secondary']}
+                  numberOfLines={1}
+                >
+                  {event.ownerDisplayName || 'Unknown host'}
                 </TextCustom>
               </View>
 

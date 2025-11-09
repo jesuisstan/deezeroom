@@ -985,7 +985,7 @@ const PlaylistDetailScreen = () => {
                 bottom: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
-                borderRadius: 12,
+                borderRadius: 6,
                 padding: 2,
                 backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                 borderColor: themeColors[theme]['border'],

@@ -19,6 +19,7 @@ import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { containerWidthStyle } from '@/style/container-width-style';
 import {
   Event,
   EventService,
@@ -210,7 +211,10 @@ const EventDetailScreen = () => {
     return (
       <View
         className="flex-1 items-center justify-center px-4"
-        style={{ backgroundColor: themeColors[theme]['bg-main'] }}
+        style={{
+          backgroundColor: themeColors[theme]['bg-main'],
+          ...containerWidthStyle
+        }}
       >
         <MaterialCommunityIcons
           name="alert-circle"
@@ -251,7 +255,7 @@ const EventDetailScreen = () => {
         }}
         showsVerticalScrollIndicator={true}
       >
-        <View style={{ gap: 16 }}>
+        <View style={containerWidthStyle} className="gap-4">
           <View style={{ gap: 8 }}>
             <TextCustom
               type="title"

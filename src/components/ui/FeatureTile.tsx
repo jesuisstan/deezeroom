@@ -41,7 +41,7 @@ const FeatureTile: React.FC<FeatureTileProps> = ({
         style={{
           height: 120,
           backgroundColor,
-          borderRadius: 4,
+          borderRadius: 6,
           padding: 16,
           alignItems: 'center',
           justifyContent: 'center',

@@ -219,7 +219,7 @@ export const AlertModule = forwardRef<AlertRef>((_, ref) => {
           style={[
             {
               backgroundColor: colors['bg-main'],
-              borderRadius: 12,
+              borderRadius: 6,
               padding: 24,
               minWidth: 300,
               maxWidth: 400,

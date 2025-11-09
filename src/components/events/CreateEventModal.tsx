@@ -78,7 +78,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           visibility,
           voteLicense
         },
-        userData.uid
+        userData.uid,
+        [],
+        { displayName: userData.displayName }
       );
 
       if (coverImageUri) {

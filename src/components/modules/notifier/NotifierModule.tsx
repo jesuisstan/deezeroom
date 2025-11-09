@@ -191,7 +191,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               //backgroundColor: colors['bg-secondary'],
               borderColor: bgByType,
               borderWidth: 1,
-              borderRadius: 20,
+              borderRadius: 18,
               paddingHorizontal: 16,
               paddingVertical: 12,
               zIndex: 1,
