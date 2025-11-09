@@ -932,6 +932,7 @@ const PlaylistDetailScreen = () => {
       </View>
     );
   }
+
   return (
     <View
       className="flex-1"
@@ -1045,7 +1046,7 @@ const PlaylistDetailScreen = () => {
           )}
         </View>
 
-        {/* Dots indicator under content (no labels) */}
+        {/* Rectangular indicators-switches under tabs (no labels) */}
         <View
           style={{
             flexDirection: 'row',

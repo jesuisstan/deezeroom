@@ -9,7 +9,6 @@ import EventCard from '@/components/events/EventCard';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
@@ -28,9 +27,9 @@ const EventsScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'my' | 'participating' | 'public'>(
-    'my'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'my' | 'participating' | 'public' | 'passed'
+  >('my');
   const [searchQuery, setSearchQuery] = useState('');
 
   const bottomPadding = useMemo(() => {
@@ -38,7 +37,7 @@ const EventsScreen = () => {
   }, [currentTrack]);
 
   const loadEvents = useCallback(
-    async (tab: 'my' | 'participating' | 'public') => {
+    async (tab: 'my' | 'participating' | 'public' | 'passed') => {
       if (!user) return;
 
       try {
@@ -47,14 +46,26 @@ const EventsScreen = () => {
         switch (tab) {
           case 'my':
             eventsData = await EventService.getUserEvents(user.uid);
+            eventsData = eventsData.filter((event) =>
+              EventService.isEventActive(event)
+            );
             break;
           case 'participating':
             eventsData = await EventService.getUserParticipatingEvents(
               user.uid
             );
+            eventsData = eventsData.filter((event) =>
+              EventService.isEventActive(event)
+            );
             break;
           case 'public':
             eventsData = await EventService.getPublicEvents();
+            eventsData = eventsData.filter((event) =>
+              EventService.isEventActive(event)
+            );
+            break;
+          case 'passed':
+            eventsData = await EventService.getPassedEvents(user.uid);
             break;
         }
 
@@ -77,7 +88,9 @@ const EventsScreen = () => {
     setIsRefreshing(false);
   };
 
-  const handleTabChange = async (tab: 'my' | 'participating' | 'public') => {
+  const handleTabChange = async (
+    tab: 'my' | 'participating' | 'public' | 'passed'
+  ) => {
     setActiveTab(tab);
     setIsLoading(true);
     await loadEvents(tab);
@@ -100,7 +113,9 @@ const EventsScreen = () => {
         unsubscribe = EventService.subscribeToUserEvents(
           user.uid,
           (updated) => {
-            setEvents(updated);
+            setEvents(
+              updated.filter((event) => EventService.isEventActive(event))
+            );
           }
         );
         break;
@@ -108,14 +123,22 @@ const EventsScreen = () => {
         unsubscribe = EventService.subscribeToUserParticipatingEvents(
           user.uid,
           (updated) => {
-            setEvents(updated);
+            setEvents(
+              updated.filter((event) => EventService.isEventActive(event))
+            );
           }
         );
         break;
       case 'public':
         unsubscribe = EventService.subscribeToPublicEvents((updated) => {
-          setEvents(updated);
+          setEvents(
+            updated.filter((event) => EventService.isEventActive(event))
+          );
         });
+        break;
+      case 'passed':
+        // No real-time subscription for passed events
+        unsubscribe = undefined;
         break;
     }
 
@@ -148,7 +171,9 @@ const EventsScreen = () => {
             ? 'No public events available'
             : activeTab === 'my'
               ? 'You have not created any events yet'
-              : 'No events you participate in yet'}
+              : activeTab === 'participating'
+                ? 'No events you participate in yet'
+                : 'No past events to display'}
         </TextCustom>
         {activeTab === 'my' ? (
           <RippleButton
@@ -162,12 +187,15 @@ const EventsScreen = () => {
     );
   };
 
-  const renderTabButton = (tab: 'my' | 'participating' | 'public') => {
+  const renderTabButton = (
+    tab: 'my' | 'participating' | 'public' | 'passed'
+  ) => {
     const isActive = activeTab === tab;
     const titles: Record<typeof tab, string> = {
       my: 'My',
       participating: 'Invited',
-      public: 'Public'
+      public: 'Public',
+      passed: 'Passed'
     } as const;
 
     return (
@@ -190,7 +218,9 @@ const EventsScreen = () => {
     >
       <View className="gap-2 border-b border-border bg-bg-tertiary px-4 py-2 shadow-sm">
         <View className="flex-row items-center gap-2">
-          {(['my', 'participating', 'public'] as const).map(renderTabButton)}
+          {(['my', 'participating', 'public', 'passed'] as const).map(
+            renderTabButton
+          )}
         </View>
 
         <InputCustom

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -103,9 +103,14 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
   }, [currentMinute, playlist.updatedAt]);
 
   return (
-    <View
-      className="h-full w-full flex-1 gap-4 p-4"
+    <ScrollView
+      className="h-full w-full flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+      contentContainerStyle={{
+        padding: 16,
+        gap: 16
+      }}
+      showsVerticalScrollIndicator={true}
     >
       {/* Description Section */}
       <TextCustom
@@ -118,7 +123,6 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
       >
         {playlist.description || 'No description provided'}
       </TextCustom>
-
       {/* Stats Section */}
       <View className="flex-col items-start justify-start gap-4">
         <View className="w-full flex-row items-center justify-between gap-2">
@@ -254,7 +258,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 

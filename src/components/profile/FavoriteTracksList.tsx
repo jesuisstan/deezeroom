@@ -239,6 +239,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         // ignore
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (favoriteTrackIds.length === 0) {

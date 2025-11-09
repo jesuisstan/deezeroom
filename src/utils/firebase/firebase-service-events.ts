@@ -47,6 +47,7 @@ export interface Event {
   voteTimeWindow?: EventTimeWindow;
   createdBy: string;
   ownerDisplayName?: string | null;
+  timezone?: string | null;
   createdAt: Timestamp | Date | null;
   updatedAt: Timestamp | Date | null;
   startAt?: Timestamp | Date | null;
@@ -99,13 +100,25 @@ export class EventService {
       voteLicense?: EventVoteLicense;
       geofence?: EventGeoFence;
       voteTimeWindow?: EventTimeWindow;
-      startAt?: Date | null;
-      endAt?: Date | null;
+      startAt: Date;
+      endAt: Date;
+      timezone?: string | null;
     },
     createdBy: string,
     initialTracks: Track[] = [],
     ownerInfo?: { displayName?: string | null }
   ): Promise<string> {
+    const now = new Date();
+    const startAt = new Date(data.startAt);
+    const endAt = new Date(data.endAt);
+    if (startAt < now) {
+      throw new Error('Event start time must be in the future');
+    }
+    if (endAt <= startAt) {
+      throw new Error('Event end time must be after start time');
+    }
+
+    const status = this.computeStatus(startAt, endAt);
     const eventData = {
       name: data.name.trim(),
       description: data.description?.trim() || null,
@@ -116,11 +129,12 @@ export class EventService {
       voteTimeWindow: data.voteTimeWindow || null,
       createdBy,
       ownerDisplayName: ownerInfo?.displayName ?? null,
+      timezone: data.timezone || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      startAt: data.startAt ? Timestamp.fromDate(data.startAt) : null,
-      endAt: data.endAt ? Timestamp.fromDate(data.endAt) : null,
-      status: 'live' as EventStatus,
+      startAt: Timestamp.fromDate(startAt),
+      endAt: Timestamp.fromDate(endAt),
+      status,
       participantIds: [createdBy],
       editorIds: [createdBy],
       pendingInviteIds: [],
@@ -146,7 +160,7 @@ export class EventService {
     if (!snap.exists()) {
       return null;
     }
-    return { id: snap.id, ...snap.data() } as Event;
+    return this.deserializeEventDoc(snap.id, snap.data());
   }
 
   static subscribeToEvent(
@@ -159,7 +173,7 @@ export class EventService {
         callback(null);
         return;
       }
-      callback({ id: docSnap.id, ...docSnap.data() } as Event);
+      callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
     });
   }
 
@@ -226,10 +240,9 @@ export class EventService {
       limit(limitCount)
     );
     const snapshot = await getDocs(q);
-    const events = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    })) as Event[];
+    const events = snapshot.docs.map((docSnap) =>
+      this.deserializeEventDoc(docSnap.id, docSnap.data())
+    );
     return events.sort((a, b) => {
       const dateA = this.toMillis(a.updatedAt);
       const dateB = this.toMillis(b.updatedAt);
@@ -241,10 +254,9 @@ export class EventService {
     const eventsRef = collection(db, this.collection);
     const q = query(eventsRef, where('createdBy', '==', userId));
     const snapshot = await getDocs(q);
-    const events = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data()
-    })) as Event[];
+    const events = snapshot.docs.map((docSnap) =>
+      this.deserializeEventDoc(docSnap.id, docSnap.data())
+    );
     return events.sort((a, b) => {
       const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
       const dateB = (b.updatedAt as Timestamp | Date | null) ?? null;
@@ -263,7 +275,7 @@ export class EventService {
     );
     const snapshot = await getDocs(q);
     const events = snapshot.docs
-      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Event)
+      .map((docSnap) => this.deserializeEventDoc(docSnap.id, docSnap.data()))
       .filter((event) => event.createdBy !== userId);
     return events.sort((a, b) => {
       const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
@@ -282,10 +294,9 @@ export class EventService {
     const eventsRef = collection(db, this.collection);
     const q = query(eventsRef, where('createdBy', '==', userId));
     return onSnapshot(q, (snapshot) => {
-      const events = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as Event[];
+      const events = snapshot.docs.map((docSnap) =>
+        this.deserializeEventDoc(docSnap.id, docSnap.data())
+      );
       events.sort((a, b) => {
         const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
         const dateB = (b.updatedAt as Timestamp | Date | null) ?? null;
@@ -295,6 +306,28 @@ export class EventService {
         );
       });
       callback(events);
+    });
+  }
+
+  static async getPassedEvents(userId: string | null): Promise<Event[]> {
+    const [owned, participating, publicEvents] = await Promise.all([
+      userId ? this.getUserEvents(userId) : Promise.resolve([]),
+      userId ? this.getUserParticipatingEvents(userId) : Promise.resolve([]),
+      this.getPublicEvents()
+    ]);
+
+    const map = new Map<string, Event>();
+    [...owned, ...participating, ...publicEvents].forEach((event) => {
+      if (!this.hasEventEnded(event)) {
+        return;
+      }
+      map.set(event.id, event);
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      const endA = this.toMillis(a.endAt);
+      const endB = this.toMillis(b.endAt);
+      return endB - endA;
     });
   }
 
@@ -309,7 +342,7 @@ export class EventService {
     );
     return onSnapshot(q, (snapshot) => {
       const events = snapshot.docs
-        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Event)
+        .map((docSnap) => this.deserializeEventDoc(docSnap.id, docSnap.data()))
         .filter((event) => event.createdBy !== userId);
       events.sort((a, b) => {
         const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
@@ -336,10 +369,9 @@ export class EventService {
     return onSnapshot(
       q,
       (snapshot) => {
-        const events = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        })) as Event[];
+        const events = snapshot.docs.map((docSnap) =>
+          this.deserializeEventDoc(docSnap.id, docSnap.data())
+        );
         events.sort(
           (a, b) => this.toMillis(b.updatedAt) - this.toMillis(a.updatedAt)
         );
@@ -381,7 +413,11 @@ export class EventService {
       if (!eventSnap.exists()) {
         throw new Error('Event not found');
       }
-      const event = eventSnap.data() as Event;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      if (this.hasEventEnded(event)) {
+        throw new Error('Event has already ended');
+      }
 
       if (!this.canUserAddTrack(event, userId)) {
         throw new Error(
@@ -471,7 +507,11 @@ export class EventService {
       if (!eventSnap.exists()) {
         throw new Error('Event not found');
       }
-      const event = eventSnap.data() as Event;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      if (this.hasEventEnded(event)) {
+        throw new Error('Event has already ended');
+      }
 
       if (!this.canUserVoteWithEvent(event, userId)) {
         throw new Error('You do not have permission to vote in this event');
@@ -515,6 +555,7 @@ export class EventService {
     trackId: string,
     userId: string
   ): Promise<void> {
+    const eventRef = doc(db, this.collection, eventId);
     const trackRef = doc(
       db,
       this.collection,
@@ -531,6 +572,16 @@ export class EventService {
     );
 
     await runTransaction(db, async (transaction) => {
+      const eventSnap = await transaction.get(eventRef);
+      if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+      }
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      if (this.hasEventEnded(event)) {
+        throw new Error('Event has already ended');
+      }
+
       const trackSnap = await transaction.get(trackRef);
       if (!trackSnap.exists()) {
         throw new Error('Track not found');
@@ -587,7 +638,7 @@ export class EventService {
       if (!eventSnap.exists()) {
         throw new Error('Event not found');
       }
-      const event = eventSnap.data() as Event;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
 
       if (!this.canUserManageEvent(event, userId)) {
         throw new Error(
@@ -610,6 +661,14 @@ export class EventService {
 
   static async deleteEvent(eventId: string): Promise<void> {
     const eventRef = doc(db, this.collection, eventId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) {
+      return;
+    }
+    const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+    if (this.hasEventEnded(event)) {
+      throw new Error('Ended events cannot be deleted');
+    }
     const tracksSnapshot = await getDocs(
       collection(eventRef, this.tracksCollection)
     );
@@ -641,6 +700,9 @@ export class EventService {
   // ===== PERMISSIONS =====
 
   static canUserManageEvent(event: Event, userId: string): boolean {
+    if (this.hasEventEnded(event)) {
+      return false;
+    }
     if (event.createdBy === userId) {
       return true;
     }
@@ -648,6 +710,9 @@ export class EventService {
   }
 
   static canUserAddTrack(event: Event, userId: string): boolean {
+    if (this.hasEventEnded(event)) {
+      return false;
+    }
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
     }
@@ -660,6 +725,9 @@ export class EventService {
   }
 
   static canUserVoteWithEvent(event: Event, userId: string): boolean {
+    if (this.hasEventEnded(event)) {
+      return false;
+    }
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
     }
@@ -695,6 +763,9 @@ export class EventService {
     const event = await this.getEvent(eventId);
     if (!event) {
       throw new Error('Event not found');
+    }
+    if (!this.isEventActive(event)) {
+      throw new Error('Cannot invite users to an event that has ended');
     }
     if (!this.canUserManageEvent(event, invitedBy)) {
       throw new Error(
@@ -749,7 +820,7 @@ export class EventService {
       if (!eventSnap.exists()) {
         throw new Error('Event not found');
       }
-      const event = eventSnap.data() as Event;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
 
       if ((event.participantIds || []).includes(userId)) {
         throw new Error('You are already a participant in this event');
@@ -792,7 +863,10 @@ export class EventService {
       const eventRef = doc(db, this.collection, eventId);
       const eventSnap = await transaction.get(eventRef);
       if (eventSnap.exists()) {
-        const event = eventSnap.data() as Event;
+        const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+        if (this.hasEventEnded(event)) {
+          throw new Error('Event has already ended');
+        }
         const updatedPending = (event.pendingInviteIds || []).filter(
           (id) => id !== userId
         );
@@ -806,11 +880,80 @@ export class EventService {
     });
   }
 
-  private static toMillis(value: Timestamp | Date | null | undefined): number {
+  static toDate(value: Timestamp | Date | null | undefined): Date | null {
+    if (!value) return null;
+    if (value instanceof Timestamp) {
+      return value.toDate();
+    }
+    return new Date(value);
+  }
+
+  static toMillis(value: Timestamp | Date | null | undefined): number {
     if (!value) return 0;
     if (value instanceof Timestamp) {
       return value.toMillis();
     }
     return new Date(value).getTime();
+  }
+
+  private static computeStatus(startAt: Date, endAt: Date): EventStatus {
+    const now = Date.now();
+    if (endAt.getTime() <= now) {
+      return 'ended';
+    }
+    if (startAt.getTime() > now) {
+      return 'draft';
+    }
+    return 'live';
+  }
+
+  static hasEventEnded(event: Event): boolean {
+    const end = this.toDate(event.endAt);
+    if (!end) return false;
+    return end.getTime() <= Date.now();
+  }
+
+  static hasEventStarted(event: Event): boolean {
+    const start = this.toDate(event.startAt);
+    if (!start) return false;
+    return start.getTime() <= Date.now();
+  }
+
+  static isEventActive(event: Event): boolean {
+    return !this.hasEventEnded(event);
+  }
+
+  private static deserializeEventDoc(id: string, data: any): Event {
+    const startAt = this.toDate(data?.startAt) ?? null;
+    const endAt = this.toDate(data?.endAt) ?? null;
+    const status =
+      startAt && endAt ? this.computeStatus(startAt, endAt) : 'draft';
+
+    return {
+      id,
+      name: data?.name ?? '',
+      description: data?.description ?? undefined,
+      coverImageUrl: data?.coverImageUrl ?? undefined,
+      visibility: data?.visibility ?? 'public',
+      voteLicense: data?.voteLicense ?? 'everyone',
+      geofence: data?.geofence ?? undefined,
+      voteTimeWindow: data?.voteTimeWindow ?? undefined,
+      createdBy: data?.createdBy ?? '',
+      ownerDisplayName: data?.ownerDisplayName ?? null,
+      timezone: data?.timezone ?? null,
+      createdAt: this.toDate(data?.createdAt),
+      updatedAt: this.toDate(data?.updatedAt),
+      startAt,
+      endAt,
+      status,
+      participantIds: Array.isArray(data?.participantIds)
+        ? data.participantIds
+        : [],
+      editorIds: Array.isArray(data?.editorIds) ? data.editorIds : [],
+      pendingInviteIds: Array.isArray(data?.pendingInviteIds)
+        ? data.pendingInviteIds
+        : [],
+      trackCount: data?.trackCount ?? 0
+    } as Event;
   }
 }

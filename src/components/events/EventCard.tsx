@@ -30,6 +30,42 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     router.push(`/(tabs)/events/${event.id}` as any);
   };
 
+  const formatSchedule = () => {
+    if (!event.startAt || !event.endAt) {
+      return 'Schedule not set';
+    }
+
+    const startDate = new Date(event.startAt as any);
+    const endDate = new Date(event.endAt as any);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return 'Schedule not set';
+    }
+    const timeZone = event.timezone || undefined;
+    const sameDay = startDate.toDateString() === endDate.toDateString();
+
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat(undefined, {
+      timeStyle: 'short',
+      timeZone
+    });
+
+    const startText = dateFormatter.format(startDate);
+    const endText = sameDay
+      ? timeFormatter.format(endDate)
+      : dateFormatter.format(endDate);
+
+    const timeZoneName = dateFormatter
+      .formatToParts(startDate)
+      .find((part) => part.type === 'timeZoneName')?.value;
+    const tzSuffix = timeZoneName ? ` (${timeZoneName})` : '';
+    return `Start: ${startText}\nEnd: ${endText}${tzSuffix}`;
+  };
+
   const renderCover = () => {
     if (event.coverImageUrl) {
       return (
@@ -61,16 +97,6 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     );
   };
 
-  const getVoteLicenseLabel = () => {
-    switch (event.voteLicense) {
-      case 'invited':
-        return 'Invited votes only';
-      case 'geofence':
-        return 'Location based votes';
-      default:
-        return 'Everyone can vote';
-    }
-  };
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
@@ -135,54 +161,27 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                 </TextCustom>
               </View>
 
-              {event.description ? (
-                <TextCustom
-                  size="s"
-                  numberOfLines={2}
-                  color={themeColors[theme]['text-secondary']}
+              <View style={{ gap: 2 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
                 >
-                  {event.description}
-                </TextCustom>
-              ) : null}
-            </View>
-
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}
-            >
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-              >
-                <MaterialCommunityIcons
-                  name="account-music"
-                  size={16}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom
-                  size="xs"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  {event.trackCount || 0} tracks
-                </TextCustom>
-              </View>
-
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-              >
-                <MaterialCommunityIcons
-                  name="vote"
-                  size={16}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom
-                  size="xs"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  {getVoteLicenseLabel()}
-                </TextCustom>
+                  <MaterialCommunityIcons
+                    name="calendar-clock"
+                    size={14}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    color={themeColors[theme]['text-secondary']}
+                    numberOfLines={2}
+                  >
+                    {formatSchedule()}
+                  </TextCustom>
+                </View>
               </View>
             </View>
           </View>

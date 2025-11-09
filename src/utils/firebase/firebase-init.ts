@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { initializeApp } from 'firebase/app';
 import * as FBauth from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore'; // add setLogLevel import for debugging
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -34,6 +34,11 @@ if (Platform.OS === 'web') {
 }
 
 const db = getFirestore(app);
+
+//if (process.env.NODE_ENV === 'development') {
+//  setLogLevel('debug');
+//}
+
 const storage = getStorage(app);
 
 export { app, auth, db, storage };
