@@ -35,8 +35,8 @@ import React, {
 
 import { NetworkState, NetworkStateType, useNetworkState } from 'expo-network';
 
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 
 type ConnectionType = 'WIFI' | 'CELLULAR' | 'UNKNOWN' | 'NONE';
 

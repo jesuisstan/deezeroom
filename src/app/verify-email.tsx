@@ -6,11 +6,11 @@ import { sendEmailVerification } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import HelpButton from '@/components/auth/need-help/NeedHelp';
+import { Logger } from '@/components/modules/logger/LoggerModule';
+import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Logger } from '@/modules/logger/LoggerModule';
-import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';

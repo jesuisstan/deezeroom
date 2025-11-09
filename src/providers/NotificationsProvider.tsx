@@ -7,22 +7,22 @@ import React, {
 } from 'react';
 import { Platform } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger';
 import { useUser } from '@/providers/UserProvider';
 import { notificationService } from '@/utils/firebase/firebase-service-notifications';
-import { PlaylistService } from '@/utils/firebase/firebase-service-playlists';
+import {
+  PlaylistInvitation,
+  PlaylistService
+} from '@/utils/firebase/firebase-service-playlists';
 
 interface NotificationsContextType {
   expoPushToken: string | null;
-  lastNotification: Notifications.Notification | null;
   badgeCount: number;
   isRegistered: boolean;
   registerForPushNotifications: () => Promise<void>;
-  clearBadge: () => Promise<void>;
 }
 
 const NotificationsContext = createContext<
@@ -36,23 +36,43 @@ interface NotificationsProviderProps {
 export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   children
 }) => {
-  const router = useRouter();
   const { user } = useUser();
+  const router = useRouter();
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const [lastNotification, setLastNotification] =
-    useState<Notifications.Notification | null>(null);
   const [badgeCount, setBadgeCount] = useState<number>(0);
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
+  const [playlistInvitations, setPlaylistInvitations] = useState<
+    PlaylistInvitation[]
+  >([]);
+  const notificationResponseListener = useRef<ReturnType<
+    typeof Notifications.addNotificationResponseReceivedListener
+  > | null>(null);
 
-  const notificationListener = useRef<Notifications.EventSubscription | null>(
-    null
-  );
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  // TODO Implement FRIENDS REQUESTS
+  // TODO Implement EVENTS INVITATIONS
 
   // Configure notification handler
   useEffect(() => {
     notificationService.configureNotificationHandler();
   }, []);
+
+  // Navigate to notifications screen when user taps a notification
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    notificationResponseListener.current =
+      Notifications.addNotificationResponseReceivedListener(() => {
+        Logger.info('Notification tapped, navigating to notifications screen');
+        router.push('/notifications');
+      });
+
+    return () => {
+      notificationResponseListener.current?.remove();
+      notificationResponseListener.current = null;
+    };
+  }, [router, user]);
 
   // Register user for push notifications
   const registerForPushNotifications = async () => {
@@ -78,16 +98,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     }
   };
 
-  // Clear badge count - resets both UI badge and native badge
-  const clearBadge = async () => {
-    try {
-      setBadgeCount(0);
-      await notificationService.setBadgeCount(0);
-    } catch (error) {
-      Logger.error('Error clearing badge:', error);
-    }
-  };
-
   // Register user when authenticated
   useEffect(() => {
     if (user && !isRegistered) {
@@ -96,125 +106,55 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isRegistered]);
 
-  // Setup notification listeners
+  // Subscribe to incoming playlist invitations
   useEffect(() => {
-    // Listener for notifications received in foreground
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        setLastNotification(notification);
-        Logger.info('Notification received:', notification);
-      });
+    if (!user) {
+      setPlaylistInvitations([]);
+      return;
+    }
 
-    // Listener for when user taps on notification
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const data = response.notification.request.content.data;
-        Logger.info('Notification response:', response);
-
-        // Handle navigation based on notification type
-        if (data?.type === 'invitation') {
-          router.push('/notifications');
-        } else if (data?.type === 'playlist') {
-          if (data.playlistId) {
-            router.push(`/playlist/${data.playlistId}` as any);
-          }
-        } else if (data?.type === 'event') {
-          if (data.eventId) {
-            router.push(`/events/${data.eventId}` as any);
-          }
-        }
-      });
-
-    return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
-    };
-  }, [router]);
-
-  // Real-time badge count updates
-  useEffect(() => {
-    if (!user) return;
-
-    let unsubscribeInvitations: (() => void) | undefined;
-    let unsubscribeResponses: (() => void) | undefined;
-
-    let currentInvitations: any[] = [];
-    let currentResponses: any[] = [];
-
-    const calculateBadgeCount = async () => {
-      try {
-        // Get viewed response IDs from storage
-        const key = `viewed_responses_${user.uid}`;
-        const viewedIdsJson = await AsyncStorage.getItem(key);
-        const viewedIds = viewedIdsJson
-          ? (JSON.parse(viewedIdsJson) as string[])
-          : [];
-
-        // Filter out viewed responses
-        const unviewedResponses = currentResponses.filter(
-          (inv) => !viewedIds.includes(inv.id)
-        );
-
-        // Calculate total unread count
-        let unreadCount = currentInvitations.length;
-        unreadCount += unviewedResponses.length;
-
-        setBadgeCount(unreadCount);
-
-        // Update native badge
-        await notificationService.setBadgeCount(unreadCount);
-      } catch (error) {
-        Logger.error('Error calculating badge count:', error);
-      }
-    };
-
-    // Subscribe to incoming invitations (real-time)
-    unsubscribeInvitations = PlaylistService.subscribeToUserInvitations(
+    const unsubscribe = PlaylistService.subscribeToUserInvitations(
       user.uid,
-      (invitations) => {
-        currentInvitations = invitations;
-        calculateBadgeCount();
+      (newInvitations) => {
+        setPlaylistInvitations(newInvitations);
       }
     );
 
-    // Subscribe to sent invitations responses (real-time)
-    unsubscribeResponses =
-      PlaylistService.subscribeToUserSentInvitationsResponses(
-        user.uid,
-        (responses) => {
-          currentResponses = responses;
-          calculateBadgeCount();
-        }
-      );
-
     return () => {
-      if (unsubscribeInvitations) {
-        unsubscribeInvitations();
-      }
-      if (unsubscribeResponses) {
-        unsubscribeResponses();
-      }
+      unsubscribe();
     };
   }, [user]);
 
-  // Reset badge when user opens notifications screen
+  // Recalculate badge count based on playlist invitations
   useEffect(() => {
-    if (Platform.OS !== 'web' && badgeCount > 0) {
-      notificationService.setBadgeCount(badgeCount);
+    if (!user) {
+      setBadgeCount(0);
+      notificationService
+        .setBadgeCount(0)
+        .catch((error) =>
+          Logger.error('Error updating native badge count:', error)
+        );
+      return;
     }
-  }, [badgeCount]);
+
+    const unread = playlistInvitations.length;
+
+    setBadgeCount(unread);
+
+    if (Platform.OS !== 'web') {
+      notificationService
+        .setBadgeCount(unread)
+        .catch((error) =>
+          Logger.error('Error updating native badge count:', error)
+        );
+    }
+  }, [playlistInvitations, user]);
 
   const value: NotificationsContextType = {
     expoPushToken,
-    lastNotification,
     badgeCount,
     isRegistered,
-    registerForPushNotifications,
-    clearBadge
+    registerForPushNotifications
   };
 
   return (

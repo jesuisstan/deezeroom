@@ -13,13 +13,13 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import NeedHelp from '@/components/auth/need-help/NeedHelp';
+import { Logger } from '@/components/modules/logger/LoggerModule';
+import { Notifier } from '@/components/modules/notifier';
 import LinkCustom from '@/components/ui/buttons/LinkCustom';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import RouterBackButton from '@/components/ui/buttons/RouterBackButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Logger } from '@/modules/logger/LoggerModule';
-import { Notifier } from '@/modules/notifier';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { auth } from '@/utils/firebase/firebase-init';

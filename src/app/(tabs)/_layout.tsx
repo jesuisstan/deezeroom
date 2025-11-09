@@ -19,8 +19,10 @@ const HeaderRight = () => {
   return (
     <View className="mx-2 flex-row items-center gap-2">
       <ThemeToggler />
-      <NotificationsButton />
-      <SignOutButton />
+      <View className="flex-row items-center">
+        <NotificationsButton />
+        <SignOutButton />
+      </View>
     </View>
   );
 };

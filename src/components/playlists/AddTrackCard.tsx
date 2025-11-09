@@ -11,6 +11,10 @@ import IconButton from '@/components/ui/buttons/IconButton';
 import LineButton from '@/components/ui/buttons/LineButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
+import {
+  usePlaybackActions,
+  usePlaybackUI
+} from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
@@ -31,6 +35,8 @@ const AddTrackCard: FC<AddTrackCardProps> = ({
   onToggleAdd
 }) => {
   const { theme } = useTheme();
+  const { isPlaying: isGlobalPlaybackActive } = usePlaybackUI();
+  const { pause: pauseGlobalPlayback } = usePlaybackActions();
 
   const formattedDuration = () => {
     const minutes = Math.floor(track.duration / 60);
@@ -43,6 +49,9 @@ const AddTrackCard: FC<AddTrackCardProps> = ({
   const handlePress = () => {
     if (!track.preview) {
       return;
+    }
+    if (isGlobalPlaybackActive) {
+      pauseGlobalPlayback();
     }
     onPreview(track);
   };

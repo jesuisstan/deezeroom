@@ -4,6 +4,8 @@ import { ActivityIndicator, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useClient, useQuery } from 'urql';
 
+import { Alert } from '@/components/modules/alert';
+import { Logger } from '@/components/modules/logger';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -12,8 +14,6 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { LIMIT_DEFAULT } from '@/constants/deezer';
 import { GET_POPULAR_TRACKS, SEARCH_TRACKS } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
-import { Alert } from '@/modules/alert';
-import { Logger } from '@/modules/logger';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';

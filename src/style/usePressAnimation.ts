@@ -36,7 +36,7 @@ export const usePressAnimation = (options: UsePressAnimationOptions = {}) => {
     opacity: opacity.value
   }));
 
-  // Initial animation
+  // Initial animation - only run once on mount, not on every render
   useEffect(() => {
     if (appearAnimation) {
       const timer = setTimeout(() => {
@@ -46,8 +46,9 @@ export const usePressAnimation = (options: UsePressAnimationOptions = {}) => {
 
       return () => clearTimeout(timer);
     }
+    // Empty dependency array - only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appearAnimation, appearDelay, appearDuration]);
+  }, []);
 
   const handlePressIn = () => {
     scale.value = withSpring(scaleValue, { damping, stiffness });

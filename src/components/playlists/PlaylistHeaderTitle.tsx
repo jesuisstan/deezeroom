@@ -36,8 +36,11 @@ const PlaylistHeaderTitle: React.FC = () => {
     const unsubscribe = PlaylistService.subscribeToPlaylist(
       id,
       (updatedPlaylist) => {
-        if (isMounted && updatedPlaylist) {
+        if (!isMounted) return;
+        if (updatedPlaylist) {
           setPlaylist(updatedPlaylist);
+        } else {
+          setPlaylist(null);
         }
       }
     );

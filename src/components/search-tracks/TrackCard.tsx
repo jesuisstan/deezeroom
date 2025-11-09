@@ -115,41 +115,42 @@ const TrackCard: FC<TrackCardProps> = ({
             />
           )}
           <View className="flex-1">
-            <View className="flex-row items-center gap-1">
+            <View className="mr-4 flex-row items-center gap-2">
               <TextCustom
                 type="semibold"
                 size="m"
                 color={isPlaying ? colors.primary : colors.textMain}
                 numberOfLines={1}
-                className="flex-1"
               >
                 {track.title}
               </TextCustom>
+              {track.explicitLyrics && (
+                <MaterialIcons
+                  name="explicit"
+                  size={18}
+                  color={colors.intentWarning}
+                />
+              )}
               {isPlaying && (
                 <View className="animate-pulse">
                   <AntDesign
                     name="play-square"
-                    size={16}
+                    size={18}
                     color={colors.primary}
                   />
                 </View>
               )}
-              {track.explicitLyrics && (
-                <MaterialIcons
-                  name="explicit"
-                  size={16}
-                  color={colors.intentWarning}
-                />
-              )}
             </View>
-            <View className="flex-row items-center gap-2">
+            <View className="mr-4 flex-row items-center gap-2">
               <TextCustom
                 size="xs"
                 color={colors.textSecondary}
                 numberOfLines={1}
-                className="flex-1"
               >
                 {track.artist.name}
+              </TextCustom>
+              <TextCustom size="xs" color={colors.textSecondary}>
+                •
               </TextCustom>
               <TextCustom size="xs" color={colors.textSecondary}>
                 {formattedDuration}

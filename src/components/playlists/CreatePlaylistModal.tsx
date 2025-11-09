@@ -3,13 +3,13 @@ import { Pressable, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import ImageUploader from '@/components/ui/ImageUploader';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { PlaylistService } from '@/utils/firebase/firebase-service-playlists';

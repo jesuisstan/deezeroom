@@ -1,4 +1,4 @@
-import { Logger } from '@/modules/logger';
+import { Logger } from '@/components/modules/logger';
 import {
   UserProfile,
   UserService

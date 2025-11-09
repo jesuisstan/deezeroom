@@ -8,9 +8,9 @@ import {
   signInWithRedirect
 } from 'firebase/auth';
 
+import { Logger } from '@/components/modules/logger/LoggerModule';
+import { Notifier } from '@/components/modules/notifier';
 import IconButton from '@/components/ui/buttons/IconButton';
-import { Logger } from '@/modules/logger/LoggerModule';
-import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { auth } from '@/utils/firebase/firebase-init';

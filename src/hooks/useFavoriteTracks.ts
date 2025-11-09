@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 
-import { Logger } from '@/modules/logger';
-import { Notifier } from '@/modules/notifier';
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 import { UserService } from '@/utils/firebase/firebase-service-user';
 
