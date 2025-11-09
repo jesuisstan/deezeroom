@@ -33,6 +33,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
   const QRCodeImpl = useMemo(() => {
     try {
       // Prefer default export if present
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic require for optional dependency in RN environment
       const mod = require('react-native-qrcode-svg');
       return mod?.default ?? mod;
     } catch {

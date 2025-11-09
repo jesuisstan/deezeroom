@@ -4,9 +4,9 @@ import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
 import { typeDefs } from '@/graphql/schema';
 import { deezerService } from '@/utils/deezer/deezer-service';
 
-interface APIContext {
-  // Context can be extended in the future
-}
+// Using a type alias instead of an empty interface to satisfy no-empty-object-type rule.
+// Extend later with auth/session if needed.
+type APIContext = Record<string, unknown>;
 
 const schema = createSchema({
   typeDefs,

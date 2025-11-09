@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useRouter } from 'expo-router';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { Playlist } from '@/utils/firebase/firebase-service-playlists';
@@ -66,69 +66,69 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
             borderRadius: 12
           }}
         >
-        {/* Avatar */}
-        <View
-          style={{
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarSize / 2,
-            backgroundColor: themeColors[theme]['bg-secondary'],
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          {participant.photoURL ? (
-            <Image
-              source={{ uri: participant.photoURL }}
-              style={{
-                width: avatarSize,
-                height: avatarSize
-              }}
-              resizeMode="cover"
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="account"
-              size={avatarSize * 0.6}
-              color={themeColors[theme]['text-secondary']}
-            />
-          )}
-        </View>
-
-        {/* Name and Role */}
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <TextCustom
-              type="semibold"
-              size="m"
-              color={themeColors[theme]['text-main']}
-            >
-              {name}
-            </TextCustom>
-            {isOwner && (
+          {/* Avatar */}
+          <View
+            style={{
+              width: avatarSize,
+              height: avatarSize,
+              borderRadius: avatarSize / 2,
+              backgroundColor: themeColors[theme]['bg-secondary'],
+              overflow: 'hidden',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {participant.photoURL ? (
+              <Image
+                source={{ uri: participant.photoURL }}
+                style={{
+                  width: avatarSize,
+                  height: avatarSize
+                }}
+                resizeMode="cover"
+              />
+            ) : (
               <MaterialCommunityIcons
-                name="crown"
-                size={18}
-                color={themeColors[theme]['primary']}
+                name="account"
+                size={avatarSize * 0.6}
+                color={themeColors[theme]['text-secondary']}
               />
             )}
           </View>
-          {participant.role && !isOwner && (
-            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-              {participant.role === 'editor' ? 'Editor' : 'Viewer'}
-            </TextCustom>
-          )}
-          {isOwner && (
-            <TextCustom
-              size="s"
-              color={themeColors[theme]['text-secondary']}
-              className="mt-1"
-            >
-              Owner
-            </TextCustom>
-          )}
-        </View>
+
+          {/* Name and Role */}
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <TextCustom
+                type="semibold"
+                size="m"
+                color={themeColors[theme]['text-main']}
+              >
+                {name}
+              </TextCustom>
+              {isOwner && (
+                <MaterialCommunityIcons
+                  name="crown"
+                  size={18}
+                  color={themeColors[theme]['primary']}
+                />
+              )}
+            </View>
+            {participant.role && !isOwner && (
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                {participant.role === 'editor' ? 'Editor' : 'Viewer'}
+              </TextCustom>
+            )}
+            {isOwner && (
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+                className="mt-1"
+              >
+                Owner
+              </TextCustom>
+            )}
+          </View>
         </View>
       </Pressable>
     );

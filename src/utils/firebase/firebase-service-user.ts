@@ -20,11 +20,11 @@ import { Logger } from '@/components/modules/logger';
 import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
-import { StorageService } from '@/utils/firebase/firebase-service-storage';
 import {
   setFriendsProfileDoc,
   setPublicProfileDoc
 } from '@/utils/firebase/firebase-service-profiles';
+import { StorageService } from '@/utils/firebase/firebase-service-storage';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
 // Preserve Firestore sentinels (serverTimestamp) and Timestamp instances
@@ -260,42 +260,64 @@ export class UserService {
             : undefined;
 
           const finalDisplayName =
-            (userData as any).displayName ?? existingData?.displayName ??
-            user.displayName ?? (user.email ? user.email.split('@')[0] : '');
+            (userData as any).displayName ??
+            existingData?.displayName ??
+            user.displayName ??
+            (user.email ? user.email.split('@')[0] : '');
           const finalPhotoURL =
-            (userData as any).photoURL ?? existingData?.photoURL ?? user.photoURL ?? '';
+            (userData as any).photoURL ??
+            existingData?.photoURL ??
+            user.photoURL ??
+            '';
           const finalEmail =
             (userData as any).email ?? existingData?.email ?? user.email ?? '';
           const finalMusic =
-            (userData as any).musicPreferences ?? existingData?.musicPreferences;
+            (userData as any).musicPreferences ??
+            existingData?.musicPreferences;
 
-          await setPublicProfileDoc(user.uid, removeUndefinedDeep({
-            displayName: finalDisplayName,
-            displayNameLowercase: typeof finalDisplayName === 'string' ? finalDisplayName.toLowerCase() : undefined,
-            email: typeof finalEmail === 'string' ? finalEmail.toLowerCase() : undefined,
-            photoURL: finalPhotoURL,
-            musicPreferences: finalMusic
-              ? {
-                  favoriteGenres: finalMusic.favoriteGenres,
-                  favoriteArtistIds: finalMusic.favoriteArtistIds
-                }
-              : undefined
-          }));
+          await setPublicProfileDoc(
+            user.uid,
+            removeUndefinedDeep({
+              displayName: finalDisplayName,
+              displayNameLowercase:
+                typeof finalDisplayName === 'string'
+                  ? finalDisplayName.toLowerCase()
+                  : undefined,
+              email:
+                typeof finalEmail === 'string'
+                  ? finalEmail.toLowerCase()
+                  : undefined,
+              photoURL: finalPhotoURL,
+              musicPreferences: finalMusic
+                ? {
+                    favoriteGenres: finalMusic.favoriteGenres,
+                    favoriteArtistIds: finalMusic.favoriteArtistIds
+                  }
+                : undefined
+            })
+          );
 
           const finalPublicInfo =
             (userData as any).publicInfo ?? existingData?.publicInfo;
           const finalFavorites =
             (userData as any).favoriteTracks ?? existingData?.favoriteTracks;
 
-          await setFriendsProfileDoc(user.uid, removeUndefinedDeep({
-            bio: finalPublicInfo?.bio,
-            location: finalPublicInfo?.location,
-            locationName: (finalPublicInfo as any)?.locationName,
-            locationCoords: (finalPublicInfo as any)?.locationCoords ?? null,
-            favoriteTracks: finalFavorites
-          }));
+          await setFriendsProfileDoc(
+            user.uid,
+            removeUndefinedDeep({
+              bio: finalPublicInfo?.bio,
+              location: finalPublicInfo?.location,
+              locationName: (finalPublicInfo as any)?.locationName,
+              locationCoords: (finalPublicInfo as any)?.locationCoords ?? null,
+              favoriteTracks: finalFavorites
+            })
+          );
         } catch (mirrorErr) {
-          Logger.warn('Failed to mirror profile to subdocs', mirrorErr, '🔥 Firebase UserService');
+          Logger.warn(
+            'Failed to mirror profile to subdocs',
+            mirrorErr,
+            '🔥 Firebase UserService'
+          );
         }
       } else {
         Logger.info(
@@ -340,12 +362,17 @@ export class UserService {
       const toPublic: any = {};
       if (typeof data.displayName !== 'undefined') {
         toPublic.displayName = data.displayName;
-        toPublic.displayNameLowercase = typeof data.displayName === 'string' ? data.displayName.toLowerCase() : undefined;
+        toPublic.displayNameLowercase =
+          typeof data.displayName === 'string'
+            ? data.displayName.toLowerCase()
+            : undefined;
       }
       if (typeof data.email !== 'undefined') {
-        toPublic.email = typeof data.email === 'string' ? data.email.toLowerCase() : undefined;
+        toPublic.email =
+          typeof data.email === 'string' ? data.email.toLowerCase() : undefined;
       }
-      if (typeof data.photoURL !== 'undefined') toPublic.photoURL = data.photoURL;
+      if (typeof data.photoURL !== 'undefined')
+        toPublic.photoURL = data.photoURL;
       if (typeof data.musicPreferences !== 'undefined') {
         toPublic.musicPreferences = {
           favoriteGenres: data.musicPreferences?.favoriteGenres,
@@ -371,7 +398,11 @@ export class UserService {
         await setFriendsProfileDoc(uid, removeUndefinedDeep(toFriends));
       }
     } catch (mirrorErr) {
-      Logger.warn('Failed to mirror update to subdocs', mirrorErr, '🔥 Firebase UserService');
+      Logger.warn(
+        'Failed to mirror update to subdocs',
+        mirrorErr,
+        '🔥 Firebase UserService'
+      );
     }
   }
 
@@ -847,7 +878,11 @@ export class UserService {
       try {
         await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
       } catch (e) {
-        Logger.warn('Mirror addToFavorites failed', e, '🔥 Firebase UserService');
+        Logger.warn(
+          'Mirror addToFavorites failed',
+          e,
+          '🔥 Firebase UserService'
+        );
       }
 
       Logger.info(
@@ -901,7 +936,11 @@ export class UserService {
       try {
         await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
       } catch (e) {
-        Logger.warn('Mirror removeFromFavorites failed', e, '🔥 Firebase UserService');
+        Logger.warn(
+          'Mirror removeFromFavorites failed',
+          e,
+          '🔥 Firebase UserService'
+        );
       }
 
       Logger.info(
@@ -966,7 +1005,11 @@ export class UserService {
       try {
         await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
       } catch (e) {
-        Logger.warn('Mirror toggleFavorite failed', e, '🔥 Firebase UserService');
+        Logger.warn(
+          'Mirror toggleFavorite failed',
+          e,
+          '🔥 Firebase UserService'
+        );
       }
 
       Logger.info(
@@ -1057,7 +1100,7 @@ export class UserService {
       let emailSnap: any = { docs: [] };
       try {
         emailSnap = await getDocs(emailQuery);
-      } catch (e) {
+      } catch {
         // Ignore if index missing; fallback queries will handle
       }
 
@@ -1086,7 +1129,7 @@ export class UserService {
 
       lowerSnap.docs.forEach(collect);
       rawSnap.docs.forEach(collect);
-  emailSnap.docs.forEach(collect);
+      emailSnap.docs.forEach(collect);
 
       return Array.from(results.values()).slice(0, limitCount);
     } catch (error) {

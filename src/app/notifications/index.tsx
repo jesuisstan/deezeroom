@@ -29,21 +29,7 @@ const NotificationsScreen = () => {
   const [processingInvitations, setProcessingInvitations] = useState<
     Set<string>
   >(new Set());
-  const [processingFriendRequests, setProcessingFriendRequests] = useState<
-    Set<string>
-  >(new Set());
-
-  // Friend requests state
-  const [incomingFriends, setIncomingFriends] = useState<
-    { otherUid: string; id: string; requestedBy?: string | undefined; createdAtMs?: number }[]
-  >([]);
-  const [outgoingFriends, setOutgoingFriends] = useState<
-    { otherUid: string; id: string; requestedBy?: string | undefined }[]
-  >([]);
-  const [people, setPeople] = useState<
-    Record<string, { displayName?: string; photoURL?: string }>
-  >({});
-  const [loadingFriends, setLoadingFriends] = useState<boolean>(true);
+  // (Friend request state removed - unused placeholders cleaned up)
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {

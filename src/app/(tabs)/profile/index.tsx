@@ -1,5 +1,12 @@
 import { FC, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  View
+} from 'react-native';
 
 import { useRouter } from 'expo-router';
 import type { ViewStyle } from 'react-native';
@@ -65,9 +72,13 @@ const ProfileScreen: FC = () => {
       try {
         setFriendsLoading(true);
         const connections = await listAcceptedConnectionsFor(uid);
-        const otherUids = connections.map((c) => (c.userA === uid ? c.userB : c.userA));
+        const otherUids = connections.map((c) =>
+          c.userA === uid ? c.userB : c.userA
+        );
         const unique = Array.from(new Set(otherUids)).slice(0, 50); // simple cap
-        const docs = await Promise.all(unique.map((fid) => getPublicProfileDoc(fid)));
+        const docs = await Promise.all(
+          unique.map((fid) => getPublicProfileDoc(fid))
+        );
         if (!active) return;
         const items = unique.map((fid, i) => ({
           uid: fid,
@@ -75,7 +86,7 @@ const ProfileScreen: FC = () => {
           photoURL: docs[i]?.photoURL
         }));
         setFriends(items);
-      } catch (e) {
+      } catch {
         // Silent fail for now; could add Notifier
       } finally {
         if (active) setFriendsLoading(false);
@@ -84,7 +95,7 @@ const ProfileScreen: FC = () => {
     return () => {
       active = false;
     };
-  }, [profile?.uid]);
+  }, [profile]);
 
   // Safe-area aware padding so the last items are not cut off by tab bar/home indicator
   const scrollContentStyle: ViewStyle = {
@@ -139,7 +150,7 @@ const ProfileScreen: FC = () => {
     user: { uid: string; displayName?: string; photoURL?: string };
   }> = ({ user }) => (
     <Pressable
-  onPress={() => router.push(`/profile/${user.uid}`)}
+      onPress={() => router.push(`/profile/${user.uid}`)}
       className="flex-col items-center gap-1"
     >
       {user.photoURL ? (

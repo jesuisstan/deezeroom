@@ -239,7 +239,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         // ignore
       }
     };
-  }, []);
+  }, [previewPlayer]);
 
   if (favoriteTrackIds.length === 0) {
     return (

@@ -1,3 +1,4 @@
+import { FirebaseError } from 'firebase/app';
 import {
   collection,
   deleteDoc,
@@ -11,7 +12,6 @@ import {
   where
 } from 'firebase/firestore';
 
-import { FirebaseError } from 'firebase/app';
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
 
@@ -45,7 +45,7 @@ export async function getConnectionBetween(
   } catch (error) {
     // Permission-denied is expected for non-existing docs under strict rules.
     const err = error as FirebaseError;
-    if (err?.code != 'permission-denied') {
+    if (err?.code !== 'permission-denied') {
       Logger.error('getConnectionBetween error', error, '🤝 Connections');
     }
     return null;
@@ -66,19 +66,35 @@ export async function listPendingConnectionsFor(
 ): Promise<ConnectionWithId[]> {
   try {
     const col = collection(db, COLLECTION);
-    const qA = query(col, where('userA', '==', uid), where('status', '==', 'PENDING'));
-    const qB = query(col, where('userB', '==', uid), where('status', '==', 'PENDING'));
+    const qA = query(
+      col,
+      where('userA', '==', uid),
+      where('status', '==', 'PENDING')
+    );
+    const qB = query(
+      col,
+      where('userB', '==', uid),
+      where('status', '==', 'PENDING')
+    );
 
     const [sa, sb] = await Promise.all([getDocs(qA), getDocs(qB)]);
     const map = new Map<string, ConnectionWithId>();
-    sa.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
-    sb.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
+    sa.forEach((d) =>
+      map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) })
+    );
+    sb.forEach((d) =>
+      map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) })
+    );
     return Array.from(map.values());
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
       // If rules restrict listing, return empty silently
-      Logger.debug('listPendingConnectionsFor: permission denied (returning empty)', null, '🤝 Connections');
+      Logger.debug(
+        'listPendingConnectionsFor: permission denied (returning empty)',
+        null,
+        '🤝 Connections'
+      );
       return [];
     }
     Logger.error('listPendingConnectionsFor error', error, '🤝 Connections');
@@ -92,18 +108,34 @@ export async function listAcceptedConnectionsFor(
 ): Promise<ConnectionWithId[]> {
   try {
     const col = collection(db, COLLECTION);
-    const qA = query(col, where('userA', '==', uid), where('status', '==', 'ACCEPTED'));
-    const qB = query(col, where('userB', '==', uid), where('status', '==', 'ACCEPTED'));
+    const qA = query(
+      col,
+      where('userA', '==', uid),
+      where('status', '==', 'ACCEPTED')
+    );
+    const qB = query(
+      col,
+      where('userB', '==', uid),
+      where('status', '==', 'ACCEPTED')
+    );
 
     const [sa, sb] = await Promise.all([getDocs(qA), getDocs(qB)]);
     const map = new Map<string, ConnectionWithId>();
-    sa.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
-    sb.forEach((d) => map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) }));
+    sa.forEach((d) =>
+      map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) })
+    );
+    sb.forEach((d) =>
+      map.set(d.id, { id: d.id, ...(d.data() as ConnectionDoc) })
+    );
     return Array.from(map.values());
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
-      Logger.debug('listAcceptedConnectionsFor: permission denied (returning empty)', null, '🤝 Connections');
+      Logger.debug(
+        'listAcceptedConnectionsFor: permission denied (returning empty)',
+        null,
+        '🤝 Connections'
+      );
       return [];
     }
     Logger.error('listAcceptedConnectionsFor error', error, '🤝 Connections');
@@ -134,7 +166,11 @@ export async function requestFriendship(
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
-      Logger.warn('requestFriendship permission denied by rules', error, '🤝 Connections');
+      Logger.warn(
+        'requestFriendship permission denied by rules',
+        error,
+        '🤝 Connections'
+      );
       return { success: false, message: 'Not allowed by security rules' };
     }
     Logger.error('requestFriendship error', error, '🤝 Connections');
@@ -159,7 +195,11 @@ export async function acceptFriendship(
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
-      Logger.warn('acceptFriendship permission denied by rules', error, '🤝 Connections');
+      Logger.warn(
+        'acceptFriendship permission denied by rules',
+        error,
+        '🤝 Connections'
+      );
       return { success: false, message: 'Not allowed by security rules' };
     }
     Logger.error('acceptFriendship error', error, '🤝 Connections');
@@ -184,7 +224,11 @@ export async function rejectFriendship(
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
-      Logger.warn('rejectFriendship permission denied by rules', error, '🤝 Connections');
+      Logger.warn(
+        'rejectFriendship permission denied by rules',
+        error,
+        '🤝 Connections'
+      );
       return { success: false, message: 'Not allowed by security rules' };
     }
     Logger.error('rejectFriendship error', error, '🤝 Connections');
@@ -204,7 +248,11 @@ export async function deleteFriendship(
   } catch (error) {
     const err = error as FirebaseError;
     if (err?.code === 'permission-denied') {
-      Logger.warn('deleteFriendship permission denied by rules', error, '🤝 Connections');
+      Logger.warn(
+        'deleteFriendship permission denied by rules',
+        error,
+        '🤝 Connections'
+      );
       return { success: false, message: 'Not allowed by security rules' };
     }
     Logger.error('deleteFriendship error', error, '🤝 Connections');

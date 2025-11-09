@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 
 import AntDesign from '@expo/vector-icons/AntDesign';
 import * as Linking from 'expo-linking';
-import { Platform } from 'react-native';
 
 import ShareLinkModal from '@/components/share/ShareLinkModal';
 import IconButton from '@/components/ui/buttons/IconButton';

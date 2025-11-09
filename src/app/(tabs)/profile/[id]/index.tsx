@@ -5,10 +5,12 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Logger } from '@/components/modules/logger';
+import { Notifier } from '@/components/modules/notifier';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
-import ArtistLabel from '@/components/ui/ArtistLabel';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
@@ -16,25 +18,23 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { DeezerService } from '@/utils/deezer/deezer-service';
-import {
-  getFriendsProfileDoc,
-  getPublicProfileDoc,
-  type FriendsProfileDoc,
-  type PublicProfileDoc
-} from '@/utils/firebase/firebase-service-profiles';
+import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import {
   acceptFriendship,
+  type ConnectionDoc,
   deleteFriendship,
   getConnectionBetween,
   isFriends,
   rejectFriendship,
-  requestFriendship,
-  type ConnectionDoc
+  requestFriendship
 } from '@/utils/firebase/firebase-service-connections';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
+import {
+  type FriendsProfileDoc,
+  getFriendsProfileDoc,
+  getPublicProfileDoc,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
 
 type AccessLevel = 'owner' | 'friends' | 'public';
 
@@ -49,7 +49,9 @@ const OtherProfileScreen: FC = () => {
   const [friendsDoc, setFriendsDoc] = useState<FriendsProfileDoc | null>(null);
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('public');
   const [loading, setLoading] = useState(true);
-  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<string | undefined>();
+  const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
+    string | undefined
+  >();
   const [connection, setConnection] = useState<ConnectionDoc | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
@@ -110,7 +112,7 @@ const OtherProfileScreen: FC = () => {
     return () => {
       active = false;
     };
-  }, [id, user?.uid]);
+  }, [id, user?.uid, router]);
 
   // Load favorite artists (public) by IDs and transform to DeezerArtist shape for ArtistLabel
   useEffect(() => {
@@ -175,9 +177,17 @@ const OtherProfileScreen: FC = () => {
       setActionLoading(true);
       const res = await requestFriendship(user.uid, id);
       if (!res.success) {
-        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to send request' });
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: res.message || 'Failed to send request'
+        });
       } else {
-        Notifier.shoot({ type: 'success', title: 'Success', message: 'Friend request sent' });
+        Notifier.shoot({
+          type: 'success',
+          title: 'Success',
+          message: 'Friend request sent'
+        });
       }
       await refreshConnection();
     } finally {
@@ -191,7 +201,11 @@ const OtherProfileScreen: FC = () => {
       setActionLoading(true);
       const res = await deleteFriendship(user.uid, id);
       if (!res.success) {
-        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to cancel request' });
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: res.message || 'Failed to cancel request'
+        });
       } else {
         Notifier.shoot({ type: 'info', message: 'Request canceled' });
       }
@@ -207,9 +221,17 @@ const OtherProfileScreen: FC = () => {
       setActionLoading(true);
       const res = await acceptFriendship(user.uid, id, user.uid);
       if (!res.success) {
-        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to accept request' });
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: res.message || 'Failed to accept request'
+        });
       } else {
-        Notifier.shoot({ type: 'success', title: 'Success', message: 'Friend request accepted' });
+        Notifier.shoot({
+          type: 'success',
+          title: 'Success',
+          message: 'Friend request accepted'
+        });
       }
       await refreshConnection();
     } finally {
@@ -223,7 +245,11 @@ const OtherProfileScreen: FC = () => {
       setActionLoading(true);
       const res = await rejectFriendship(user.uid, id, user.uid);
       if (!res.success) {
-        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to reject request' });
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: res.message || 'Failed to reject request'
+        });
       } else {
         Notifier.shoot({ type: 'info', message: 'Friend request rejected' });
       }
@@ -239,7 +265,11 @@ const OtherProfileScreen: FC = () => {
       setActionLoading(true);
       const res = await deleteFriendship(user.uid, id);
       if (!res.success) {
-        Notifier.shoot({ type: 'error', title: 'Error', message: res.message || 'Failed to remove friend' });
+        Notifier.shoot({
+          type: 'error',
+          title: 'Error',
+          message: res.message || 'Failed to remove friend'
+        });
       } else {
         Notifier.shoot({ type: 'info', message: 'Removed from friends' });
       }
@@ -259,28 +289,31 @@ const OtherProfileScreen: FC = () => {
   const locationLabel = friendsDoc?.locationName || friendsDoc?.location || '';
 
   // Helper row
-  const InfoRow: FC<{ label: string; value?: string | null; emptyText?: string }>
-    = ({ label, value, emptyText = '—' }) => {
-      const isEmpty = !value || !value.trim();
-      return (
-        <View className="flex-row items-start justify-between py-2">
-          <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-            {label}
+  const InfoRow: FC<{
+    label: string;
+    value?: string | null;
+    emptyText?: string;
+  }> = ({ label, value, emptyText = '—' }) => {
+    const isEmpty = !value || !value.trim();
+    return (
+      <View className="flex-row items-start justify-between py-2">
+        <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+          {label}
+        </TextCustom>
+        {isEmpty ? (
+          <TextCustom
+            size="s"
+            color={themeColors[theme]['text-secondary']}
+            className="ml-3 flex-1 text-right"
+          >
+            {emptyText}
           </TextCustom>
-          {isEmpty ? (
-            <TextCustom
-              size="s"
-              color={themeColors[theme]['text-secondary']}
-              className="ml-3 flex-1 text-right"
-            >
-              {emptyText}
-            </TextCustom>
-          ) : (
-            <TextCustom className="ml-3 flex-1 text-right">{value}</TextCustom>
-          )}
-        </View>
-      );
-    };
+        ) : (
+          <TextCustom className="ml-3 flex-1 text-right">{value}</TextCustom>
+        )}
+      </View>
+    );
+  };
 
   const Chip: FC<{ text: string }> = ({ text }) => (
     <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-2 py-1">
@@ -300,7 +333,10 @@ const OtherProfileScreen: FC = () => {
         <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
           <View className="flex-row items-center gap-4">
             {photoURL ? (
-              <Image source={{ uri: photoURL }} className="h-24 w-24 rounded-full" />
+              <Image
+                source={{ uri: photoURL }}
+                className="h-24 w-24 rounded-full"
+              />
             ) : (
               <View className="h-24 w-24 items-center justify-center rounded-full border border-border bg-primary">
                 <TextCustom type="title">
@@ -329,7 +365,8 @@ const OtherProfileScreen: FC = () => {
                 <View className="mt-3 flex-row flex-wrap items-center gap-2">
                   {(() => {
                     const isPending = connection?.status === 'PENDING';
-                    const requestedByMe = isPending && connection?.requestedBy === user.uid;
+                    const requestedByMe =
+                      isPending && connection?.requestedBy === user.uid;
                     const isAccepted = connection?.status === 'ACCEPTED';
 
                     if (!connection) {
@@ -397,13 +434,23 @@ const OtherProfileScreen: FC = () => {
           <InfoRow label="Name" value={displayName} emptyText="No name yet" />
           {accessLevel === 'friends' ? (
             <>
-              <InfoRow label="About me" value={friendsDoc?.bio} emptyText="No bio yet" />
-              <InfoRow label="Location" value={locationLabel} emptyText="No location yet" />
+              <InfoRow
+                label="About me"
+                value={friendsDoc?.bio}
+                emptyText="No bio yet"
+              />
+              <InfoRow
+                label="Location"
+                value={locationLabel}
+                emptyText="No location yet"
+              />
             </>
           ) : (
             <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
               <TextCustom className="text-accent">Friends only</TextCustom>
-              <TextCustom>About and location are visible to friends.</TextCustom>
+              <TextCustom>
+                About and location are visible to friends.
+              </TextCustom>
             </View>
           )}
         </View>
@@ -432,14 +479,17 @@ const OtherProfileScreen: FC = () => {
             <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
               Favorite genres
             </TextCustom>
-            {publicDoc?.musicPreferences?.favoriteGenres && publicDoc.musicPreferences.favoriteGenres.length > 0 ? (
+            {publicDoc?.musicPreferences?.favoriteGenres &&
+            publicDoc.musicPreferences.favoriteGenres.length > 0 ? (
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {publicDoc.musicPreferences.favoriteGenres.map((g, idx) => (
                   <Chip key={`${g}-${idx}`} text={g} />
                 ))}
               </View>
             ) : (
-              <TextCustom className="text-accent/60">No favorite genres yet</TextCustom>
+              <TextCustom className="text-accent/60">
+                No favorite genres yet
+              </TextCustom>
             )}
           </View>
         </View>
