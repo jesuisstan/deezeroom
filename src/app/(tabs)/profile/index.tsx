@@ -9,11 +9,11 @@ import {
 
 import { useRouter } from 'expo-router';
 
+import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
 import InfoRow from '@/components/profile/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
@@ -268,26 +268,14 @@ const ProfileScreen: FC = () => {
             emptyText="No name yet"
           />
           <InfoRow label="Bio" value={bioValue} emptyText="No bio yet" />
-          <View className="mt-4">
-            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-              Favorite artists
-            </TextCustom>
-            {favoriteArtistsLoading ? (
-              <View className="mt-2">
-                <ActivityIndicator />
-              </View>
-            ) : favoriteArtists.length === 0 ? (
-              <TextCustom className="text-accent/60">
-                No favorite artists added yet
-              </TextCustom>
-            ) : (
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                {favoriteArtists.map((artist) => (
-                  <ArtistLabel key={artist.id} artist={artist} />
-                ))}
-              </View>
-            )}
-          </View>
+        </View>
+
+        {/* Favorite artists (public) */}
+        <View className="rounded-md border border-border bg-bg-secondary">
+          <FavoriteArtistsList
+            artists={favoriteArtists}
+            loading={favoriteArtistsLoading}
+          />
         </View>
 
         {/* Favorite tracks (public) */}

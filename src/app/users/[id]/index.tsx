@@ -1,15 +1,15 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
+import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
 import InfoRow from '@/components/profile/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
@@ -136,7 +136,7 @@ const OtherProfileScreen: FC = () => {
     };
   }, [id, user?.uid, currentUserProfile, user]);
 
-  // Load favorite artists (public) by IDs and transform to DeezerArtist shape for ArtistLabel
+  // Load favorite artists (public) by IDs and transform to DeezerArtist shape for FavoriteArtistsList
   useEffect(() => {
     let active = true;
     (async () => {
@@ -468,26 +468,14 @@ const OtherProfileScreen: FC = () => {
             emptyText="No name yet"
           />
           <InfoRow label="Bio" value={bioValue} emptyText="No bio yet" />
-          <View className="mt-4">
-            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-              Favorite artists
-            </TextCustom>
-            {favoriteArtistsLoading ? (
-              <View className="mt-2">
-                <ActivityIndicator />
-              </View>
-            ) : favoriteArtists.length === 0 ? (
-              <TextCustom className="text-accent/60">
-                No favorite artists added yet
-              </TextCustom>
-            ) : (
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                {favoriteArtists.map((a) => (
-                  <ArtistLabel key={a.id} artist={a} />
-                ))}
-              </View>
-            )}
-          </View>
+        </View>
+
+        {/* Favorite artists */}
+        <View className="rounded-md border border-border bg-bg-secondary">
+          <FavoriteArtistsList
+            artists={favoriteArtists}
+            loading={favoriteArtistsLoading}
+          />
         </View>
 
         {/* Favorite tracks */}
