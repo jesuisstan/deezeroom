@@ -1,7 +1,7 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
@@ -15,7 +15,9 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
+import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { DeezerService } from '@/utils/deezer/deezer-service';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
@@ -40,7 +42,7 @@ type AccessLevel = 'owner' | 'friends' | 'public';
 const OtherProfileScreen: FC = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { user, profile: currentUserProfile } = useUser();
-
+  const { theme } = useTheme();
   const [publicDoc, setPublicDoc] = useState<PublicProfileDoc | null>(null);
   const [friendsDoc, setFriendsDoc] = useState<FriendsProfileDoc | null>(null);
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('public');
@@ -308,6 +310,30 @@ const OtherProfileScreen: FC = () => {
 
   if (loading) return <ActivityIndicatorScreen />;
   if (!id || typeof id !== 'string') return <ActivityIndicatorScreen />;
+  if (!publicDoc) {
+    return (
+      <View
+        className="flex-1 items-center justify-center gap-2 bg-bg-main px-6"
+        style={containerWidthStyle}
+      >
+        <TextCustom type="bold" size="xl">
+          Profile not found
+        </TextCustom>
+        <TextCustom
+          color={themeColors[theme]['text-secondary']}
+          className="text-center"
+        >
+          This account may have been deleted or the link is invalid.
+        </TextCustom>
+        <RippleButton
+          title="Go Back"
+          onPress={() => {
+            router.back();
+          }}
+        />
+      </View>
+    );
+  }
 
   const displayName = publicDoc?.displayName || 'User';
   const photoURL = publicDoc?.photoURL;
