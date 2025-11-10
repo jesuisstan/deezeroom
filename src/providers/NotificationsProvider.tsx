@@ -49,6 +49,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     PlaylistInvitation[]
   >([]);
   const [friendRequests, setFriendRequests] = useState<ConnectionWithId[]>([]);
+  const previousUserIdRef = useRef<string | null>(null);
   const notificationResponseListener = useRef<ReturnType<
     typeof Notifications.addNotificationResponseReceivedListener
   > | null>(null);
@@ -110,6 +111,24 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isRegistered]);
+
+  // Reset registration state when user changes or logs out
+  useEffect(() => {
+    const currentUserId = user?.uid ?? null;
+    const previousUserId = previousUserIdRef.current;
+
+    if (previousUserId && previousUserId !== currentUserId) {
+      setIsRegistered(false);
+      setExpoPushToken(null);
+    }
+
+    if (!currentUserId) {
+      setIsRegistered(false);
+      setExpoPushToken(null);
+    }
+
+    previousUserIdRef.current = currentUserId;
+  }, [user?.uid]);
 
   // Subscribe to incoming playlist invitations
   useEffect(() => {

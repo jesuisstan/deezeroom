@@ -61,7 +61,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
             params: { id: participant.userId }
           })
         }
-        className="rounded-md"
+        className="mb-2 rounded-md"
       >
         <View className="flex-row items-center gap-2 rounded-md bg-bg-tertiary p-2">
           {/* Avatar */}

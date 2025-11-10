@@ -12,8 +12,10 @@ const DeezeroomApp = () => {
   const { theme } = useTheme();
   const { user, profile, loading, profileLoading } = useUser();
 
-  // Show loading indicator while loading
-  if (loading || profileLoading) {
+  const isInitialLoading = loading || (profileLoading && !profile);
+
+  // Show loading indicator while performing initial load
+  if (isInitialLoading) {
     return <ActivityIndicatorScreen />;
   }
 

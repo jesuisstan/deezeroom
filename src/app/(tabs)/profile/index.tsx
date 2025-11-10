@@ -2,7 +2,9 @@ import { FC, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   View
 } from 'react-native';
@@ -29,7 +31,7 @@ import { listAcceptedConnectionsFor } from '@/utils/firebase/firebase-service-co
 import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 
 const ProfileScreen: FC = () => {
-  const { user, profile, profileLoading } = useUser();
+  const { user, profile, profileLoading, refreshProfile } = useUser();
   const { theme } = useTheme();
   const router = useRouter();
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
@@ -41,6 +43,7 @@ const ProfileScreen: FC = () => {
   >([]);
   const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
@@ -128,7 +131,7 @@ const ProfileScreen: FC = () => {
     };
   }, [profile?.favoriteArtistIds]);
 
-  if (profileLoading) {
+  if (profileLoading && !profile) {
     return <ActivityIndicatorScreen />;
   }
 
@@ -183,6 +186,18 @@ const ProfileScreen: FC = () => {
   const locationLabel = profile?.privateInfo?.locationName || '';
   const bioValue = profile?.bio || '';
 
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await refreshProfile();
+    } catch (error) {
+      console.warn('Failed to refresh profile', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={true}
@@ -190,6 +205,14 @@ const ProfileScreen: FC = () => {
         flexGrow: 1,
         paddingBottom: bottomPadding
       }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={[themeColors[theme]['primary']]}
+          tintColor={themeColors[theme]['primary']}
+        />
+      }
       className="bg-bg-main"
     >
       <View style={containerWidthStyle} className="gap-2 px-4 py-4">
@@ -328,6 +351,31 @@ const ProfileScreen: FC = () => {
             )}
           </View>
         </View>
+
+        {/* Footer */}
+        {Platform.OS === 'web' && (
+          <View className="flex-row items-center gap-2">
+            <View className="flex-1">
+              <RippleButton
+                title="Back to Home"
+                onPress={() => router.push('/')}
+                width="full"
+                size="sm"
+                variant="secondary"
+              />
+            </View>
+            <View className="flex-1">
+              <RippleButton
+                title="Refresh"
+                onPress={handleRefresh}
+                width="full"
+                size="sm"
+                loading={refreshing}
+                variant="secondary"
+              />
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
