@@ -222,7 +222,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
     <Pressable
       onPress={() => handleUserSelect(item)}
-      className="flex-row items-center rounded-lg border border-border bg-bg-secondary px-3 py-1"
+      className="flex-row items-center rounded-md border border-border bg-bg-secondary px-3 py-1"
     >
       {/* Avatar */}
       <View className="mr-3">

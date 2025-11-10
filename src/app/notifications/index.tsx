@@ -158,7 +158,7 @@ const NotificationsScreen = () => {
         {sortedInvitations.map((invitation) => (
           <View
             key={invitation.id}
-            className="mb-2 rounded-lg border px-4 py-3"
+            className="mb-2 rounded-md border px-4 py-3"
             style={{
               backgroundColor: themeColors[theme]['bg-secondary'],
               borderColor: themeColors[theme]['border']

@@ -61,16 +61,9 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
             params: { id: participant.userId }
           })
         }
-        className="rounded-xl"
-        style={{ marginBottom: 8 }}
+        className="rounded-md"
       >
-        <View
-          className="flex-row items-center gap-2 p-2"
-          style={{
-            backgroundColor: themeColors[theme]['bg-main'],
-            borderRadius: 12
-          }}
-        >
+        <View className="flex-row items-center gap-2 rounded-md bg-bg-tertiary p-2">
           {/* Avatar */}
           <View
             style={{

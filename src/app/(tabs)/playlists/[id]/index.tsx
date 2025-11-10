@@ -932,6 +932,7 @@ const PlaylistDetailScreen = () => {
       </View>
     );
   }
+
   return (
     <View
       className="flex-1"
@@ -985,7 +986,7 @@ const PlaylistDetailScreen = () => {
                 bottom: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
-                borderRadius: 12,
+                borderRadius: 6,
                 padding: 2,
                 backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                 borderColor: themeColors[theme]['border'],
@@ -1045,7 +1046,7 @@ const PlaylistDetailScreen = () => {
           )}
         </View>
 
-        {/* Dots indicator under content (no labels) */}
+        {/* Rectangular indicators-switches under tabs (no labels) */}
         <View
           style={{
             flexDirection: 'row',
