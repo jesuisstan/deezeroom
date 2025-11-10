@@ -51,7 +51,8 @@ const DeezeroomApp = () => {
           <Stack.Screen
             name="notifications"
             options={{
-              headerShown: false
+              headerShown: false,
+              animation: 'slide_from_right'
             }}
           />
 
@@ -61,6 +62,14 @@ const DeezeroomApp = () => {
               presentation: 'modal',
               headerShown: false,
               animation: 'slide_from_bottom'
+            }}
+          />
+
+          <Stack.Screen
+            name="users/[id]"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
             }}
           />
         </Stack.Protected>

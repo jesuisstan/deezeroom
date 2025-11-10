@@ -266,7 +266,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
     <View className="w-full">
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="rounded-lg bg-bg-secondary p-4">
+        <View className="rounded-md bg-bg-secondary p-4">
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached favorite tracks only
           </TextCustom>

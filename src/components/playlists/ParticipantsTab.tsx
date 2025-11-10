@@ -55,7 +55,12 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
     return (
       <Pressable
         key={participant.userId}
-        onPress={() => router.push(`/profile/${participant.userId}`)}
+        onPress={() =>
+          router.push({
+            pathname: '/users/[id]',
+            params: { id: participant.userId }
+          })
+        }
         className="rounded-xl"
         style={{ marginBottom: 8 }}
       >

@@ -41,16 +41,8 @@ const ProfileLayout = () => {
       <Stack.Screen
         name="index"
         options={{
-          //title: 'Profile',
-          headerShown: false
-        }}
-      />
-      <Stack.Screen
-        name="[id]/index"
-        options={{
           title: 'Profile',
-          headerShown: true,
-          header: () => <CustomHeader title="" />
+          headerShown: false
         }}
       />
       <Stack.Screen

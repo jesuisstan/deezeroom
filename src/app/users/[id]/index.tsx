@@ -1,22 +1,22 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { Image, Platform, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import type { ViewStyle } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
+import InfoRow from '@/components/profile/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import ArtistLabel from '@/components/ui/ArtistLabel';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
-import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { DeezerService } from '@/utils/deezer/deezer-service';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
@@ -40,10 +40,7 @@ type AccessLevel = 'owner' | 'friends' | 'public';
 
 const OtherProfileScreen: FC = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { user } = useUser();
-  const router = useRouter();
-  const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { user, profile: currentUserProfile } = useUser();
 
   const [publicDoc, setPublicDoc] = useState<PublicProfileDoc | null>(null);
   const [friendsDoc, setFriendsDoc] = useState<FriendsProfileDoc | null>(null);
@@ -56,13 +53,11 @@ const OtherProfileScreen: FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
 
-  const scrollContentStyle: ViewStyle = useMemo(
-    () => ({
-      paddingBottom: insets.bottom + 32,
-      ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {})
-    }),
-    [insets.bottom]
-  );
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   useEffect(() => {
     let active = true;
@@ -70,9 +65,40 @@ const OtherProfileScreen: FC = () => {
       try {
         if (!id || typeof id !== 'string') return;
 
-        // If viewing own profile, redirect to self profile page
+        // Use locally cached profile data when viewing own profile
         if (user?.uid && user.uid === id) {
-          router.replace('/profile');
+          if (!active) return;
+
+          const publicProfile: PublicProfileDoc = {
+            displayName:
+              currentUserProfile?.displayName || user.displayName || undefined,
+            email: currentUserProfile?.email || user.email || undefined,
+            photoURL:
+              currentUserProfile?.photoURL || user.photoURL || undefined,
+            musicPreferences: currentUserProfile?.musicPreferences
+              ? {
+                  favoriteGenres:
+                    currentUserProfile.musicPreferences.favoriteGenres,
+                  favoriteArtistIds:
+                    currentUserProfile.musicPreferences.favoriteArtistIds
+                }
+              : undefined
+          };
+
+          const friendsProfile: FriendsProfileDoc = {
+            bio: currentUserProfile?.publicInfo?.bio,
+            location: currentUserProfile?.publicInfo?.location,
+            locationName: currentUserProfile?.publicInfo?.locationName,
+            locationCoords:
+              currentUserProfile?.publicInfo?.locationCoords ?? null,
+            favoriteTracks: currentUserProfile?.favoriteTracks || []
+          };
+
+          setPublicDoc(publicProfile);
+          setFriendsDoc(friendsProfile);
+          setAccessLevel('friends');
+          setConnection(null);
+          setLoading(false);
           return;
         }
 
@@ -112,7 +138,7 @@ const OtherProfileScreen: FC = () => {
     return () => {
       active = false;
     };
-  }, [id, user?.uid, router]);
+  }, [id, user?.uid, currentUserProfile, user]);
 
   // Load favorite artists (public) by IDs and transform to DeezerArtist shape for ArtistLabel
   useEffect(() => {
@@ -288,33 +314,6 @@ const OtherProfileScreen: FC = () => {
 
   const locationLabel = friendsDoc?.locationName || friendsDoc?.location || '';
 
-  // Helper row
-  const InfoRow: FC<{
-    label: string;
-    value?: string | null;
-    emptyText?: string;
-  }> = ({ label, value, emptyText = '—' }) => {
-    const isEmpty = !value || !value.trim();
-    return (
-      <View className="flex-row items-start justify-between py-2">
-        <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-          {label}
-        </TextCustom>
-        {isEmpty ? (
-          <TextCustom
-            size="s"
-            color={themeColors[theme]['text-secondary']}
-            className="ml-3 flex-1 text-right"
-          >
-            {emptyText}
-          </TextCustom>
-        ) : (
-          <TextCustom className="ml-3 flex-1 text-right">{value}</TextCustom>
-        )}
-      </View>
-    );
-  };
-
   const Chip: FC<{ text: string }> = ({ text }) => (
     <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-2 py-1">
       <TextCustom className="text-accent" size="s">
@@ -325,12 +324,16 @@ const OtherProfileScreen: FC = () => {
 
   return (
     <ScrollView
-      className="flex-1 bg-bg-main px-4 py-4"
-      contentContainerStyle={scrollContentStyle}
+      showsVerticalScrollIndicator={true}
+      contentContainerStyle={{
+        flexGrow: 1,
+        paddingBottom: bottomPadding
+      }}
+      className="bg-bg-main"
     >
-      <View className="w-full gap-4" style={[containerWidthStyle]}>
+      <View style={containerWidthStyle} className="gap-2 px-4 py-4 ">
         {/* Header */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4 shadow-sm">
+        <View className="rounded-md border border-border bg-bg-secondary p-4 shadow-sm">
           <View className="flex-row items-center gap-4">
             {photoURL ? (
               <Image
@@ -355,7 +358,7 @@ const OtherProfileScreen: FC = () => {
                   ) : null}
                 </View>
                 <ShareButton
-                  path={`/profile/${id}`}
+                  path={`/users/${id}`}
                   title="Share profile"
                   message="Check out this Deezeroom profile:"
                 />
@@ -427,10 +430,8 @@ const OtherProfileScreen: FC = () => {
         </View>
 
         {/* Profile details */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
-          <View className="mb-2 flex-row items-center justify-between">
-            <TextCustom type="subtitle">Profile details</TextCustom>
-          </View>
+        <View className="rounded-md border border-border bg-bg-secondary p-4">
+          <TextCustom type="subtitle">Private information</TextCustom>
           <InfoRow label="Name" value={displayName} emptyText="No name yet" />
           {accessLevel === 'friends' ? (
             <>
@@ -456,7 +457,7 @@ const OtherProfileScreen: FC = () => {
         </View>
 
         {/* Music preferences - basic public info */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+        <View className="rounded-md border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle">Music preferences</TextCustom>
           {/* Favorite artists */}
           <View className="mt-4">
@@ -475,27 +476,10 @@ const OtherProfileScreen: FC = () => {
               </View>
             )}
           </View>
-          <View className="mt-4">
-            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-              Favorite genres
-            </TextCustom>
-            {publicDoc?.musicPreferences?.favoriteGenres &&
-            publicDoc.musicPreferences.favoriteGenres.length > 0 ? (
-              <View className="mt-2 flex-row flex-wrap gap-2">
-                {publicDoc.musicPreferences.favoriteGenres.map((g, idx) => (
-                  <Chip key={`${g}-${idx}`} text={g} />
-                ))}
-              </View>
-            ) : (
-              <TextCustom className="text-accent/60">
-                No favorite genres yet
-              </TextCustom>
-            )}
-          </View>
         </View>
 
         {/* Favorite Tracks */}
-        <View className="rounded-2xl border border-border bg-bg-secondary p-4">
+        <View className="rounded-md border border-border bg-bg-secondary p-4">
           <TextCustom type="subtitle" className="mb-4">
             Favorite Tracks
           </TextCustom>

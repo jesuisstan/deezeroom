@@ -1,8 +1,7 @@
-import { FC, forwardRef, useEffect, useRef, useState } from 'react';
+import { FC, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import * as ExpoLocation from 'expo-location';
-import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
@@ -18,6 +17,8 @@ import ImageUploader, {
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -111,12 +112,11 @@ const EditProfileScreen: FC = () => {
   const [showBirthModal, setShowBirthModal] = useState(false);
   const [showArtistsModal, setShowArtistsModal] = useState(false);
 
-  const contentStyle: ViewStyle = {
-    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
-    paddingBottom: insets.bottom + 32,
-    // Make ScrollView content fill the viewport height so we can push the save button down
-    flexGrow: 1
-  };
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   // Initialize form data from profile
   useEffect(() => {
@@ -405,133 +405,159 @@ const EditProfileScreen: FC = () => {
     >
       <ScrollView
         ref={scrollRef}
-        className="flex-1 bg-bg-main px-4 py-4"
-        contentContainerStyle={contentStyle}
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: bottomPadding
+        }}
+        className="bg-bg-main"
         keyboardShouldPersistTaps="handled"
       >
-        <View
-          className="w-full flex-1"
-          style={[containerWidthStyle, { justifyContent: 'space-between' }]}
-        >
-          {/* Content group (top) */}
-          <View>
-            {/* Avatar */}
-            <View className="w-full items-center gap-3 px-4 py-6">
-              <ImageUploader
-                ref={uploaderRef}
-                currentImageUrl={profile?.photoURL}
-                onImageUploaded={handleImageUploaded}
-                shape="circle"
-                placeholder="Add Photo"
-                size="lg"
-              />
-              <RippleButton
-                title="Update picture"
-                size="sm"
-                variant="primary"
-                onPress={() => uploaderRef.current?.open()}
-              />
-              {!!profile?.photoURL && (
+        <View className="w-full gap-4 py-4" style={[containerWidthStyle]}>
+          {/* Avatar */}
+          <View className="w-full items-center gap-2 px-4">
+            <ImageUploader
+              ref={uploaderRef}
+              currentImageUrl={profile?.photoURL}
+              onImageUploaded={handleImageUploaded}
+              shape="circle"
+              placeholder="Add Photo"
+              size="lg"
+            />
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1">
                 <RippleButton
-                  title="Remove"
+                  title="Update avatar"
                   size="sm"
-                  variant="outline"
-                  onPress={() => uploaderRef.current?.remove()}
+                  variant="primary"
+                  onPress={() => uploaderRef.current?.open()}
                 />
-              )}
-            </View>
-            <Divider />
-
-            {/* Personal information as line buttons */}
-            <View className="mt-2">
-              <TextCustom type="subtitle">Personal information</TextCustom>
-
-              {/* Username */}
-              <LineButton onPress={() => setShowNameModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    My Username
-                  </TextCustom>
-                  <TextCustom>{formData.displayName || 'Not set'}</TextCustom>
-                </View>
-              </LineButton>
-              <Divider />
-
-              {/* Date of Birth */}
-              <LineButton onPress={() => setShowBirthModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    Date of Birth
-                  </TextCustom>
-                  <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
-                </View>
-              </LineButton>
-              <Divider />
-
-              {/* About me */}
-              <LineButton onPress={() => setShowBioModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    About me
-                  </TextCustom>
-                  <TextCustom numberOfLines={1}>
-                    {formData.bio || 'Tap to write'}
-                  </TextCustom>
-                </View>
-              </LineButton>
-              <Divider />
-
-              {/* Location */}
-              <LineButton onPress={() => setShowLocationModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    Location
-                  </TextCustom>
-                  <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
-                </View>
-              </LineButton>
-              <Divider />
-
-              {/* Phone */}
-              <LineButton onPress={() => setShowPhoneModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    Phone
-                  </TextCustom>
-                  <TextCustom>{formData.phone || 'Not set'}</TextCustom>
-                </View>
-              </LineButton>
-            </View>
-
-            <Divider className="my-4" />
-
-            {/* Music preferences */}
-            <View className="mt-2">
-              <TextCustom type="subtitle">Music preferences</TextCustom>
-
-              {/* Favorite artists */}
-              <LineButton onPress={() => setShowArtistsModal(true)}>
-                <View className="w-full py-4">
-                  <TextCustom size="s" className="opacity-60">
-                    Favorite artists
-                  </TextCustom>
-                  <TextCustom>
-                    {selectedArtists.length > 0
-                      ? `${selectedArtists.length} selected`
-                      : 'None'}
-                  </TextCustom>
-                </View>
-              </LineButton>
+              </View>
+              <View className="flex-1">
+                {!!profile?.photoURL && (
+                  <RippleButton
+                    title="Remove"
+                    size="sm"
+                    variant="outline"
+                    onPress={() => uploaderRef.current?.remove()}
+                  />
+                )}
+              </View>
             </View>
           </View>
+          <Divider />
 
-          {/* Save (bottom) */}
-          <View className="mt-6">
+          {/* Personal information as line buttons */}
+          <View className="">
+            <TextCustom type="bold" size="xl" className="px-4">
+              Personal information
+            </TextCustom>
+
+            {/* Username */}
+            <LineButton onPress={() => setShowNameModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  My Username
+                </TextCustom>
+                <TextCustom>{formData.displayName || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+
+            {/* Date of Birth */}
+            <LineButton onPress={() => setShowBirthModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Date of Birth
+                </TextCustom>
+                <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+
+            {/* About me */}
+            <LineButton onPress={() => setShowBioModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  About me
+                </TextCustom>
+                <TextCustom numberOfLines={1}>
+                  {formData.bio || 'Tap to write'}
+                </TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+
+            {/* Location */}
+            <LineButton onPress={() => setShowLocationModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Location
+                </TextCustom>
+                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+
+            {/* Phone */}
+            <LineButton onPress={() => setShowPhoneModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Phone
+                </TextCustom>
+                <TextCustom>{formData.phone || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+          </View>
+
+          {/* Music preferences */}
+          <View className="">
+            <TextCustom type="bold" size="xl" className="px-4">
+              Music preferences
+            </TextCustom>
+
+            {/* Favorite artists */}
+            <LineButton onPress={() => setShowArtistsModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Favorite artists
+                </TextCustom>
+                <TextCustom>
+                  {selectedArtists.length > 0
+                    ? `${selectedArtists.length} selected`
+                    : 'None'}
+                </TextCustom>
+              </View>
+            </LineButton>
+          </View>
+
+          {/* Save */}
+          <View className="px-4">
             <RippleButton
               title="Save"
               size="md"
               variant="primary"
               onPress={handleSave}
+              width="full"
             />
           </View>
         </View>
