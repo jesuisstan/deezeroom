@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   serverTimestamp,
   setDoc,
@@ -14,6 +15,7 @@ import {
 
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
+import { sendPushNotification } from '@/utils/send-push-notification';
 
 export type ConnectionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 
@@ -31,6 +33,27 @@ export const pairKey = (a: string, b: string) =>
   a < b ? `${a}_${b}` : `${b}_${a}`;
 
 const COLLECTION = 'connections';
+
+const FRIEND_REQUEST_PUSH_TYPE = 'friend_request';
+
+const FALLBACK_NAME = 'Someone';
+
+const getUserData = async (uid: string) => {
+  const userRef = doc(db, 'users', uid);
+  const userSnap = await getDoc(userRef);
+  return userSnap.exists() ? userSnap.data() : null;
+};
+
+const formatDisplayName = (userData: any, uid: string) => {
+  if (!userData) return FALLBACK_NAME;
+  return (
+    userData.displayName ||
+    userData.bio?.displayName ||
+    userData.email?.split?.('@')?.[0] ||
+    uid?.slice(0, 6) ||
+    FALLBACK_NAME
+  );
+};
 
 export async function getConnectionBetween(
   uid1: string,
@@ -143,6 +166,76 @@ export async function listAcceptedConnectionsFor(
   }
 }
 
+export function subscribeToPendingConnections(
+  uid: string,
+  callback: (connections: ConnectionWithId[]) => void
+): () => void {
+  const col = collection(db, COLLECTION);
+  const qA = query(
+    col,
+    where('userA', '==', uid),
+    where('status', '==', 'PENDING')
+  );
+  const qB = query(
+    col,
+    where('userB', '==', uid),
+    where('status', '==', 'PENDING')
+  );
+
+  let mapA = new Map<string, ConnectionWithId>();
+  let mapB = new Map<string, ConnectionWithId>();
+
+  const emit = () => {
+    const combined = new Map<string, ConnectionWithId>([...mapA, ...mapB]);
+    callback(Array.from(combined.values()));
+  };
+
+  const unsubA = onSnapshot(
+    qA,
+    (snapshot) => {
+      mapA = new Map(
+        snapshot.docs.map((docSnap) => [
+          docSnap.id,
+          { id: docSnap.id, ...(docSnap.data() as ConnectionDoc) }
+        ])
+      );
+      emit();
+    },
+    (error) => {
+      Logger.warn(
+        'subscribeToPendingConnections (userA) error',
+        error,
+        '🤝 Connections'
+      );
+    }
+  );
+
+  const unsubB = onSnapshot(
+    qB,
+    (snapshot) => {
+      mapB = new Map(
+        snapshot.docs.map((docSnap) => [
+          docSnap.id,
+          { id: docSnap.id, ...(docSnap.data() as ConnectionDoc) }
+        ])
+      );
+      emit();
+    },
+    (error) => {
+      Logger.warn(
+        'subscribeToPendingConnections (userB) error',
+        error,
+        '🤝 Connections'
+      );
+    }
+  );
+
+  return () => {
+    unsubA();
+    unsubB();
+  };
+}
+
 export async function requestFriendship(
   fromUid: string,
   toUid: string
@@ -162,6 +255,36 @@ export async function requestFriendship(
       requestedBy: fromUid
     };
     await setDoc(ref, payload, { merge: true });
+
+    // Send push notification to the recipient
+    try {
+      const [targetData, requesterData] = await Promise.all([
+        getUserData(toUid),
+        getUserData(fromUid)
+      ]);
+
+      const expoPushToken = targetData?.pushTokens?.expoPushToken;
+      if (expoPushToken) {
+        const requesterName = formatDisplayName(requesterData, fromUid);
+        await sendPushNotification({
+          to: expoPushToken,
+          title: 'New friend request',
+          body: `${requesterName} sent you a friend request`,
+          data: {
+            type: FRIEND_REQUEST_PUSH_TYPE,
+            fromUid
+          },
+          badge: 1
+        });
+      }
+    } catch (notificationError) {
+      Logger.warn(
+        'Failed to send friend request push notification',
+        notificationError,
+        '🤝 Connections'
+      );
+    }
+
     return { success: true };
   } catch (error) {
     const err = error as FirebaseError;
@@ -215,11 +338,7 @@ export async function rejectFriendship(
   try {
     const id = pairKey(uid1, uid2);
     const ref = doc(db, COLLECTION, id);
-    await updateDoc(ref, {
-      status: 'REJECTED',
-      respondedBy: responderUid,
-      updatedAt: serverTimestamp()
-    });
+    await deleteDoc(ref);
     return { success: true };
   } catch (error) {
     const err = error as FirebaseError;

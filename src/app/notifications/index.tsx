@@ -8,6 +8,10 @@ import { Notifier } from '@/components/modules/notifier';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import {
+  type FriendRequestItem,
+  useFriendRequests
+} from '@/hooks/useFriendRequests';
 import { usePlaylistInvitations } from '@/hooks/usePlaylistInvitations';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -20,20 +24,29 @@ const NotificationsScreen = () => {
   const {
     playlistInvitations,
     unreadCount,
-    isLoading,
+    isLoading: invitationsLoading,
     refreshInvitations,
     acceptInvitation,
     declineInvitation
   } = usePlaylistInvitations();
+  const {
+    friendRequests,
+    isLoading: friendRequestsLoading,
+    refreshFriendRequests,
+    acceptFriendRequest,
+    declineFriendRequest
+  } = useFriendRequests();
 
   const [processingInvitations, setProcessingInvitations] = useState<
     Set<string>
   >(new Set());
-  // (Friend request state removed - unused placeholders cleaned up)
+  const [processingFriendRequests, setProcessingFriendRequests] = useState<
+    Set<string>
+  >(new Set());
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
-    await refreshInvitations();
+    await Promise.all([refreshInvitations(), refreshFriendRequests()]);
   };
 
   const sortedInvitations = useMemo(() => {
@@ -90,11 +103,13 @@ const NotificationsScreen = () => {
     }
   };
 
+  const isLoading = invitationsLoading || friendRequestsLoading;
+
   if (isLoading) {
     return <ActivityIndicatorScreen />;
   }
 
-  if (sortedInvitations.length === 0) {
+  if (sortedInvitations.length === 0 && friendRequests.length === 0) {
     return (
       <ScrollView
         className="flex-1"
@@ -130,6 +145,54 @@ const NotificationsScreen = () => {
     );
   }
 
+  const handleAcceptFriendRequest = async (request: FriendRequestItem) => {
+    setProcessingFriendRequests((prev) => new Set(prev).add(request.id));
+    try {
+      const result = await acceptFriendRequest(request);
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to accept friend request');
+      }
+    } catch (error) {
+      Logger.error('Error accepting friend request:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to accept friend request'
+      });
+    } finally {
+      setProcessingFriendRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(request.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDeclineFriendRequest = async (request: FriendRequestItem) => {
+    setProcessingFriendRequests((prev) => new Set(prev).add(request.id));
+    try {
+      const result = await declineFriendRequest(request);
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to decline friend request');
+      }
+    } catch (error) {
+      Logger.error('Error declining friend request:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to decline friend request'
+      });
+    } finally {
+      setProcessingFriendRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(request.id);
+        return next;
+      });
+    }
+  };
+
+  const totalNew = friendRequests.length + sortedInvitations.length;
+
   return (
     <ScrollView
       className="flex-1 p-3"
@@ -148,12 +211,84 @@ const NotificationsScreen = () => {
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <TextCustom size="xs" color={themeColors[theme]['text-main']}>
-                {sortedInvitations.length} playlist invitation(s)
-                {unreadCount > 0 ? ` • ${unreadCount} new` : ''}
+                {[
+                  friendRequests.length
+                    ? `${friendRequests.length} friend request${
+                        friendRequests.length === 1 ? '' : 's'
+                      }`
+                    : null,
+                  sortedInvitations.length
+                    ? `${sortedInvitations.length} playlist invitation${
+                        sortedInvitations.length === 1 ? '' : 's'
+                      }`
+                    : null,
+                  totalNew > 0 ? `${totalNew} new` : null
+                ]
+                  .filter(Boolean)
+                  .join(' • ')}
               </TextCustom>
             </View>
           </View>
         </View>
+
+        {friendRequests.map((request) => (
+          <View
+            key={request.id}
+            className="mb-2 rounded-md border px-4 py-3"
+            style={{
+              backgroundColor: themeColors[theme]['bg-secondary'],
+              borderColor: themeColors[theme]['border']
+            }}
+          >
+            <View className="flex-row items-center">
+              <MaterialCommunityIcons
+                name="account-plus"
+                size={18}
+                color={themeColors[theme]['primary']}
+                style={{ marginRight: 8 }}
+              />
+              <TextCustom
+                type="semibold"
+                size="s"
+                color={themeColors[theme]['text-main']}
+              >
+                Friend Request
+              </TextCustom>
+            </View>
+
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['text-secondary']}
+              className="mt-1"
+            >
+              {`${request.requesterName} wants to connect with you.`}
+            </TextCustom>
+
+            <View className="mt-3 flex-row items-center gap-2">
+              <View className="flex-1">
+                <RippleButton
+                  title="Accept"
+                  size="sm"
+                  loading={processingFriendRequests.has(request.id)}
+                  disabled={processingFriendRequests.has(request.id)}
+                  onPress={() => handleAcceptFriendRequest(request)}
+                  width="full"
+                />
+              </View>
+              <View className="flex-1">
+                <RippleButton
+                  title="Decline"
+                  size="sm"
+                  variant="outline"
+                  loading={processingFriendRequests.has(request.id)}
+                  disabled={processingFriendRequests.has(request.id)}
+                  onPress={() => handleDeclineFriendRequest(request)}
+                  width="full"
+                />
+              </View>
+            </View>
+          </View>
+        ))}
 
         {sortedInvitations.map((invitation) => (
           <View

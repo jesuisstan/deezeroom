@@ -12,6 +12,10 @@ import { useRouter } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { useUser } from '@/providers/UserProvider';
+import {
+  ConnectionWithId,
+  subscribeToPendingConnections
+} from '@/utils/firebase/firebase-service-connections';
 import { notificationService } from '@/utils/firebase/firebase-service-notifications';
 import {
   PlaylistInvitation,
@@ -44,6 +48,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const [playlistInvitations, setPlaylistInvitations] = useState<
     PlaylistInvitation[]
   >([]);
+  const [friendRequests, setFriendRequests] = useState<ConnectionWithId[]>([]);
   const notificationResponseListener = useRef<ReturnType<
     typeof Notifications.addNotificationResponseReceivedListener
   > | null>(null);
@@ -110,6 +115,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     if (!user) {
       setPlaylistInvitations([]);
+      setFriendRequests([]);
       return;
     }
 
@@ -117,6 +123,29 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       user.uid,
       (newInvitations) => {
         setPlaylistInvitations(newInvitations);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
+  // Subscribe to incoming friend requests
+  useEffect(() => {
+    if (!user) {
+      setFriendRequests([]);
+      return;
+    }
+
+    const unsubscribe = subscribeToPendingConnections(
+      user.uid,
+      (connections) => {
+        const incoming = connections.filter(
+          (connection) =>
+            connection.requestedBy && connection.requestedBy !== user.uid
+        );
+        setFriendRequests(incoming);
       }
     );
 
@@ -137,7 +166,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       return;
     }
 
-    const unread = playlistInvitations.length;
+    const unread = playlistInvitations.length + friendRequests.length;
 
     setBadgeCount(unread);
 
@@ -148,7 +177,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           Logger.error('Error updating native badge count:', error)
         );
     }
-  }, [playlistInvitations, user]);
+  }, [playlistInvitations, friendRequests, user]);
 
   const value: NotificationsContextType = {
     expoPushToken,
