@@ -548,13 +548,20 @@ const OtherProfileScreen: FC = () => {
               />
             </>
           ) : (
-            <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
+            <View className="rounded-xl border border-border bg-bg-tertiary p-4">
               <TextCustom className="text-accent">Friends only</TextCustom>
               <TextCustom>
                 Phone, birth date and location are visible to friends.
               </TextCustom>
             </View>
           )}
+        </View>
+        <View className="flex-1">
+          <RippleButton
+            title="Back to Home"
+            onPress={() => router.push('/')}
+            disabled={actionLoading}
+          />
         </View>
       </View>
     </ScrollView>
