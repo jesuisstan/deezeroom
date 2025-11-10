@@ -23,6 +23,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
+import { DeezerService } from '@/utils/deezer/deezer-service';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { listAcceptedConnectionsFor } from '@/utils/firebase/firebase-service-connections';
 import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
@@ -38,6 +39,8 @@ const ProfileScreen: FC = () => {
   const [friends, setFriends] = useState<
     { uid: string; displayName?: string; photoURL?: string }[]
   >([]);
+  const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
+  const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
 
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
@@ -68,7 +71,7 @@ const ProfileScreen: FC = () => {
         if (!active) return;
         const items = unique.map((fid, i) => ({
           uid: fid,
-          displayName: docs[i]?.displayName || docs[i]?.email || 'User',
+          displayName: docs[i]?.displayName || 'User',
           photoURL: docs[i]?.photoURL
         }));
         setFriends(items);
@@ -83,6 +86,48 @@ const ProfileScreen: FC = () => {
     };
   }, [profile]);
 
+  // Resolve favorite artists by IDs (public data)
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const ids = profile?.favoriteArtistIds || [];
+
+      if (!ids || ids.length === 0) {
+        if (active) {
+          setFavoriteArtists([]);
+          setFavoriteArtistsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        if (active) setFavoriteArtistsLoading(true);
+        const svc = DeezerService.getInstance();
+        const artists = await svc.getArtistsByIdsViaGraphQL(ids.slice(0, 20));
+        if (!active) return;
+        const mapped = artists.map((a) => ({
+          id: a.id,
+          name: a.name,
+          picture: a.picture,
+          picture_small: a.pictureSmall,
+          picture_medium: a.pictureMedium,
+          picture_big: a.pictureBig,
+          picture_xl: a.pictureXl
+        })) as DeezerArtist[];
+        setFavoriteArtists(mapped);
+      } catch {
+        if (active) {
+          setFavoriteArtists([]);
+        }
+      } finally {
+        if (active) setFavoriteArtistsLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [profile?.favoriteArtistIds]);
+
   if (profileLoading) {
     return <ActivityIndicatorScreen />;
   }
@@ -90,14 +135,6 @@ const ProfileScreen: FC = () => {
   if (!user) {
     return <ActivityIndicatorScreen />; // todo: redirect to auth if needed
   }
-
-  const Chip: FC<{ text: string }> = ({ text }) => (
-    <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-2 py-1">
-      <TextCustom className="text-accent" size="s">
-        {text}
-      </TextCustom>
-    </View>
-  );
 
   const FriendChip: FC<{
     user: { uid: string; displayName?: string; photoURL?: string };
@@ -143,10 +180,8 @@ const ProfileScreen: FC = () => {
   const profilePath = `/users/${user?.uid ?? ''}`;
 
   // New: resolve location label for display (only place, not coords)
-  const locationLabel =
-    (profile?.publicInfo as any)?.locationName ||
-    profile?.publicInfo?.location ||
-    '';
+  const locationLabel = profile?.privateInfo?.locationName || '';
+  const bioValue = profile?.bio || '';
 
   return (
     <ScrollView
@@ -163,8 +198,7 @@ const ProfileScreen: FC = () => {
           {/* Left: Avatar + Name */}
           <View className="flex-1 flex-row items-center">
             {(() => {
-              const avatarUrl =
-                profile?.photoURL || 'https://via.placeholder.com/100';
+              const avatarUrl = profile?.photoURL;
               if (avatarUrl) {
                 return (
                   <Image
@@ -223,84 +257,72 @@ const ProfileScreen: FC = () => {
           </View>
         </View>
 
-        {/* Basic information card */}
+        {/* Public information */}
         <View className="rounded-md border border-border bg-bg-secondary p-4">
           <TextCustom type="semibold" size="xl" className="mb-2">
-            Profile details
+            Public information
           </TextCustom>
           <InfoRow
-            label="Name"
+            label="Display name"
             value={profile?.displayName}
             emptyText="No name yet"
           />
+          <InfoRow label="Bio" value={bioValue} emptyText="No bio yet" />
+          <View className="mt-4">
+            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+              Favorite artists
+            </TextCustom>
+            {favoriteArtistsLoading ? (
+              <View className="mt-2">
+                <ActivityIndicator />
+              </View>
+            ) : favoriteArtists.length === 0 ? (
+              <TextCustom className="text-accent/60">
+                No favorite artists added yet
+              </TextCustom>
+            ) : (
+              <View className="mt-2 flex-row flex-wrap gap-2">
+                {favoriteArtists.map((artist) => (
+                  <ArtistLabel key={artist.id} artist={artist} />
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Favorite tracks (public) */}
+        <View className="rounded-md border border-border bg-bg-secondary">
+          <FavoriteTracksList
+            onPlayTrack={handlePlayTrack}
+            currentPlayingTrackId={currentPlayingTrackId}
+            trackIdsOverride={profile?.favoriteTracks}
+          />
+        </View>
+
+        {/* Private information */}
+        <View className="rounded-md border border-border bg-bg-secondary p-4">
+          <TextCustom type="semibold" size="xl" className="mb-2">
+            Private information
+          </TextCustom>
           <InfoRow
-            label="About me"
-            value={profile?.publicInfo?.bio}
-            emptyText="No bio yet"
+            label="Phone"
+            value={profile?.privateInfo?.phone}
+            emptyText="No phone yet"
+          />
+          <InfoRow
+            label="Birth date"
+            value={profile?.privateInfo?.birthDate}
+            emptyText="No birth date yet"
           />
           <InfoRow
             label="Location"
             value={locationLabel}
             emptyText="No location yet"
           />
-        </View>
-
-        {/* Private information card */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Private information
-          </TextCustom>
-          <>
-            <InfoRow
-              label="Phone"
-              value={profile?.privateInfo?.phone}
-              emptyText="No phone yet"
-            />
-            <InfoRow
-              label="Birth date"
-              value={profile?.privateInfo?.birthDate}
-              emptyText="No birth date yet"
-            />
-          </>
-        </View>
-
-        {/* Music preferences card */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Music preferences
-          </TextCustom>
-          <View>
-            {(() => {
-              const items = profile?.musicPreferences?.favoriteArtists as
-                | any[]
-                | undefined;
-              if (!items || items.length === 0)
-                return (
-                  <TextCustom className="text-accent/60">
-                    No favorite artists added yet
-                  </TextCustom>
-                );
-              return (
-                <View className="mt-2 flex-row flex-wrap gap-2">
-                  {items.map((i, idx) => {
-                    if (typeof i === 'string') {
-                      return <Chip key={`${i}-${idx}`} text={i} />;
-                    }
-                    const a = i as DeezerArtist;
-                    return <ArtistLabel key={a.id || idx} artist={a} />;
-                  })}
-                </View>
-              );
-            })()}
-          </View>
-        </View>
-
-        {/* Friends card (owner only for now) */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Friends
-          </TextCustom>
-          <View>
+          <View className="mt-4">
+            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
+              Friends
+            </TextCustom>
             {friendsLoading ? (
               <View className="mt-4 items-center justify-center">
                 <ActivityIndicator />
@@ -317,15 +339,6 @@ const ProfileScreen: FC = () => {
               </View>
             )}
           </View>
-        </View>
-
-        {/* Favorite Tracks card */}
-        <View className="rounded-md border border-border bg-bg-secondary">
-          <FavoriteTracksList
-            onPlayTrack={handlePlayTrack}
-            currentPlayingTrackId={currentPlayingTrackId}
-            trackIdsOverride={profile?.favoriteTracks}
-          />
         </View>
       </View>
     </ScrollView>

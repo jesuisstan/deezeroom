@@ -17,7 +17,6 @@ import {
 } from 'firebase/firestore';
 
 import { Logger } from '@/components/modules/logger';
-import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import {
@@ -60,24 +59,15 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
-  publicInfo?: {
-    bio?: string;
-    location?: string;
-    locationName?: string;
-    locationCoords?: { lat: number; lng: number } | null;
-  };
+  bio?: string;
   privateInfo?: {
     phone?: string;
     birthDate?: string;
+    locationName?: string;
+    locationCoords?: { lat: number; lng: number } | null;
   };
-  musicPreferences?: {
-    favoriteGenres: string[];
-    // Store only IDs for source-of-truth freshness
-    favoriteArtistIds?: string[];
-    // Deprecated: kept for backward compatibility (render only)
-    favoriteArtists?: DeezerArtist[];
-  };
-  favoriteTracks?: string[]; // Array of track IDs
+  favoriteArtistIds?: string[];
+  favoriteTracks?: string[];
   authProviders?: {
     google?: {
       linked: boolean;
@@ -234,6 +224,7 @@ export class UserService {
         }
         // Initialize favoriteTracks for new users
         baseData.favoriteTracks = [];
+        baseData.favoriteArtistIds = [];
       }
 
       // Only write to Firestore if there are actual changes or it's a new user
@@ -271,9 +262,13 @@ export class UserService {
             '';
           const finalEmail =
             (userData as any).email ?? existingData?.email ?? user.email ?? '';
-          const finalMusic =
-            (userData as any).musicPreferences ??
-            existingData?.musicPreferences;
+          const finalBio =
+            (userData as any).bio ?? existingData?.bio ?? undefined;
+          const finalFavoriteArtistIds =
+            (userData as any).favoriteArtistIds ??
+            existingData?.favoriteArtistIds;
+          const finalFavoriteTracks =
+            (userData as any).favoriteTracks ?? existingData?.favoriteTracks;
 
           await setPublicProfileDoc(
             user.uid,
@@ -283,33 +278,24 @@ export class UserService {
                 typeof finalDisplayName === 'string'
                   ? finalDisplayName.toLowerCase()
                   : undefined,
-              email:
-                typeof finalEmail === 'string'
-                  ? finalEmail.toLowerCase()
-                  : undefined,
               photoURL: finalPhotoURL,
-              musicPreferences: finalMusic
-                ? {
-                    favoriteGenres: finalMusic.favoriteGenres,
-                    favoriteArtistIds: finalMusic.favoriteArtistIds
-                  }
-                : undefined
+              bio: finalBio,
+              favoriteArtistIds: finalFavoriteArtistIds,
+              favoriteTracks: finalFavoriteTracks
             })
           );
 
-          const finalPublicInfo =
-            (userData as any).publicInfo ?? existingData?.publicInfo;
-          const finalFavorites =
-            (userData as any).favoriteTracks ?? existingData?.favoriteTracks;
+          const finalPrivateInfo =
+            (userData as any).privateInfo ?? existingData?.privateInfo;
 
           await setFriendsProfileDoc(
             user.uid,
             removeUndefinedDeep({
-              bio: finalPublicInfo?.bio,
-              location: finalPublicInfo?.location,
-              locationName: (finalPublicInfo as any)?.locationName,
-              locationCoords: (finalPublicInfo as any)?.locationCoords ?? null,
-              favoriteTracks: finalFavorites
+              email: finalEmail,
+              phone: finalPrivateInfo?.phone,
+              birthDate: finalPrivateInfo?.birthDate,
+              locationName: finalPrivateInfo?.locationName,
+              locationCoords: finalPrivateInfo?.locationCoords ?? null
             })
           );
         } catch (mirrorErr) {
@@ -367,32 +353,26 @@ export class UserService {
             ? data.displayName.toLowerCase()
             : undefined;
       }
-      if (typeof data.email !== 'undefined') {
-        toPublic.email =
-          typeof data.email === 'string' ? data.email.toLowerCase() : undefined;
-      }
       if (typeof data.photoURL !== 'undefined')
         toPublic.photoURL = data.photoURL;
-      if (typeof data.musicPreferences !== 'undefined') {
-        toPublic.musicPreferences = {
-          favoriteGenres: data.musicPreferences?.favoriteGenres,
-          favoriteArtistIds: data.musicPreferences?.favoriteArtistIds
-        };
-      }
+      if (typeof data.bio !== 'undefined') toPublic.bio = data.bio;
+      if (typeof data.favoriteArtistIds !== 'undefined')
+        toPublic.favoriteArtistIds = data.favoriteArtistIds;
+      if (typeof data.favoriteTracks !== 'undefined')
+        toPublic.favoriteTracks = data.favoriteTracks;
       if (Object.keys(removeUndefinedDeep(toPublic) || {}).length > 0) {
         await setPublicProfileDoc(uid, removeUndefinedDeep(toPublic));
       }
 
       const toFriends: any = {};
-      if (typeof (data as any).publicInfo !== 'undefined') {
-        const pi: any = (data as any).publicInfo;
-        toFriends.bio = pi?.bio;
-        toFriends.location = pi?.location;
-        toFriends.locationName = pi?.locationName;
-        toFriends.locationCoords = pi?.locationCoords ?? null;
+      if (typeof data.email !== 'undefined') {
+        toFriends.email = data.email;
       }
-      if (typeof data.favoriteTracks !== 'undefined') {
-        toFriends.favoriteTracks = data.favoriteTracks;
+      if (typeof data.privateInfo !== 'undefined') {
+        toFriends.phone = data.privateInfo?.phone;
+        toFriends.birthDate = data.privateInfo?.birthDate;
+        toFriends.locationName = data.privateInfo?.locationName;
+        toFriends.locationCoords = data.privateInfo?.locationCoords ?? null;
       }
       if (Object.keys(removeUndefinedDeep(toFriends) || {}).length > 0) {
         await setFriendsProfileDoc(uid, removeUndefinedDeep(toFriends));
@@ -830,6 +810,38 @@ export class UserService {
       const playlistsSnap = await getDocs(playlistsQ);
       await Promise.all(playlistsSnap.docs.map((d) => deleteDoc(d.ref)));
 
+      // Delete user profile subcollections (public/friends)
+      const publicProfileRef = doc(
+        db,
+        this.collection,
+        uid,
+        'public',
+        'profile'
+      );
+      const friendsProfileRef = doc(
+        db,
+        this.collection,
+        uid,
+        'friends',
+        'profile'
+      );
+      await Promise.all([
+        deleteDoc(publicProfileRef).catch((error) =>
+          Logger.warn(
+            'Failed to delete public profile subdoc',
+            error,
+            '🔥 Firebase UserService'
+          )
+        ),
+        deleteDoc(friendsProfileRef).catch((error) =>
+          Logger.warn(
+            'Failed to delete friends profile subdoc',
+            error,
+            '🔥 Firebase UserService'
+          )
+        )
+      ]);
+
       // Delete user profile document
       const userRef = doc(db, this.collection, uid);
       await deleteDoc(userRef);
@@ -874,9 +886,11 @@ export class UserService {
         updatedAt: serverTimestamp()
       });
 
-      // Mirror to friends profile subdoc
+      // Mirror to public profile subdoc
       try {
-        await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
       } catch (e) {
         Logger.warn(
           'Mirror addToFavorites failed',
@@ -934,7 +948,9 @@ export class UserService {
       });
 
       try {
-        await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
       } catch (e) {
         Logger.warn(
           'Mirror removeFromFavorites failed',
@@ -1003,7 +1019,9 @@ export class UserService {
       });
 
       try {
-        await setFriendsProfileDoc(uid, { favoriteTracks: updatedFavorites });
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
       } catch (e) {
         Logger.warn(
           'Mirror toggleFavorite failed',
@@ -1053,7 +1071,6 @@ export class UserService {
 
       const termLower = trimmed.toLowerCase();
 
-      // IMPORTANT: Root /users docs are private by rules; search public profile subdocs instead
       // Primary: search by lowercase display name (if present)
       const lowerNameQuery = query(
         collectionGroup(db, 'public'),
@@ -1070,12 +1087,20 @@ export class UserService {
         limit(limitCount)
       );
 
-      // Email exact match in public profile
-      const emailQuery = query(
-        collectionGroup(db, 'public'),
+      // Email exact match in root user profile (stored lowercased)
+      const emailQueryLower = query(
+        collection(db, this.collection),
         where('email', '==', termLower),
         limit(limitCount)
       );
+      const emailQueryExact =
+        termLower === trimmed
+          ? null
+          : query(
+              collection(db, this.collection),
+              where('email', '==', trimmed),
+              limit(limitCount)
+            );
 
       // Run lowercase query first; if index is missing, fall back gracefully
       let lowerSnap: any = { docs: [] };
@@ -1097,39 +1122,82 @@ export class UserService {
         throw e;
       }
 
-      let emailSnap: any = { docs: [] };
+      let emailDocs: any[] = [];
       try {
-        emailSnap = await getDocs(emailQuery);
+        const lowerSnapResult = await getDocs(emailQueryLower);
+        emailDocs = lowerSnapResult.docs;
+        if (emailQueryExact) {
+          const exactSnap = await getDocs(emailQueryExact);
+          emailDocs = emailDocs.concat(exactSnap.docs);
+        }
       } catch {
-        // Ignore if index missing; fallback queries will handle
+        // Ignore errors; name-based search still works
       }
 
       const results = new Map<string, UserProfile>();
 
-      const collect = (d: any) => {
-        const data = d.data();
-        const uid = d.ref.parent.parent?.id as string | undefined;
+      const mergeResult = (
+        uid: string,
+        data: Partial<
+          Pick<
+            UserProfile,
+            | 'email'
+            | 'displayName'
+            | 'photoURL'
+            | 'bio'
+            | 'favoriteArtistIds'
+            | 'favoriteTracks'
+          >
+        >
+      ) => {
         if (!uid) return;
         if (excludeUserId && uid === excludeUserId) return;
-
-        const user: any = {
+        const existing = results.get(uid);
+        results.set(uid, {
           uid,
-          email: data?.email || '',
-          displayName: data?.displayName || '',
-          photoURL: data?.photoURL,
-          // Optional extras for UI; rest of fields omitted for privacy
-          musicPreferences: data?.musicPreferences,
+          email: data.email ?? existing?.email ?? '',
+          displayName: data.displayName ?? existing?.displayName ?? '',
+          photoURL: data.photoURL ?? existing?.photoURL,
+          bio: data.bio ?? existing?.bio,
+          favoriteArtistIds:
+            data.favoriteArtistIds ?? existing?.favoriteArtistIds,
+          favoriteTracks: data.favoriteTracks ?? existing?.favoriteTracks,
           createdAt: null,
           updatedAt: null,
           emailVerified: false
-        };
-
-        results.set(uid, user as UserProfile);
+        });
       };
 
-      lowerSnap.docs.forEach(collect);
-      rawSnap.docs.forEach(collect);
-      emailSnap.docs.forEach(collect);
+      const collectPublic = (d: any) => {
+        const data = d.data();
+        const uid = d.ref.parent.parent?.id as string | undefined;
+        if (!uid) return;
+        mergeResult(uid, {
+          displayName: data?.displayName,
+          photoURL: data?.photoURL,
+          bio: data?.bio,
+          favoriteArtistIds: data?.favoriteArtistIds,
+          favoriteTracks: data?.favoriteTracks
+        });
+      };
+
+      const collectUserDoc = (d: any) => {
+        const data = d.data();
+        const uid = d.id as string | undefined;
+        if (!uid) return;
+        mergeResult(uid, {
+          email: data?.email,
+          displayName: data?.displayName,
+          photoURL: data?.photoURL,
+          bio: data?.bio,
+          favoriteArtistIds: data?.favoriteArtistIds,
+          favoriteTracks: data?.favoriteTracks
+        });
+      };
+
+      lowerSnap.docs.forEach(collectPublic);
+      rawSnap.docs.forEach(collectPublic);
+      emailDocs.forEach(collectUserDoc);
 
       return Array.from(results.values()).slice(0, limitCount);
     } catch (error) {

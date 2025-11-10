@@ -7,22 +7,18 @@ export interface PublicProfileDoc {
   displayName?: string;
   // Lowercased display name for case-insensitive search
   displayNameLowercase?: string;
-  // Public email for invitation lookup (lowercased). Visible to all by rules.
-  email?: string;
   photoURL?: string;
-  musicPreferences?: {
-    favoriteGenres?: string[];
-    favoriteArtistIds?: string[];
-  };
+  bio?: string;
+  favoriteArtistIds?: string[];
+  favoriteTracks?: string[];
 }
 
 export interface FriendsProfileDoc {
-  bio?: string; // About me
-  location?: string;
+  email?: string;
+  phone?: string;
+  birthDate?: string;
   locationName?: string;
   locationCoords?: { lat: number; lng: number } | null;
-  favoriteTracks?: string[];
-  playlistsPreview?: string[]; // optional IDs
 }
 
 const USERS = 'users';

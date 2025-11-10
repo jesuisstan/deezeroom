@@ -247,13 +247,6 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
         <TextCustom type="subtitle" numberOfLines={1} size="l">
           {item.displayName || 'Unknown User'}
         </TextCustom>
-        <TextCustom
-          size="s"
-          color={themeColors[theme]['text-secondary']}
-          numberOfLines={1}
-        >
-          {item.email}
-        </TextCustom>
       </View>
 
       {/* Selection Indicator */}

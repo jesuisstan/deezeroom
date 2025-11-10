@@ -123,19 +123,14 @@ const EditProfileScreen: FC = () => {
     if (profile) {
       setFormData({
         displayName: profile.displayName || '',
-        bio: profile.publicInfo?.bio || '',
-        locationName:
-          (profile.publicInfo as any)?.locationName ||
-          profile.publicInfo?.location ||
-          '',
-        locationCoords: (profile.publicInfo as any)?.locationCoords || null,
+        bio: profile.bio || '',
+        locationName: profile.privateInfo?.locationName || '',
+        locationCoords: profile.privateInfo?.locationCoords || null,
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || ''
       });
       // Load selected artists details by IDs (preferred), fallback to deprecated stored objects
-      const ids = (profile.musicPreferences as any)?.favoriteArtistIds as
-        | string[]
-        | undefined;
+      const ids = profile.favoriteArtistIds;
       if (ids && ids.length) {
         deezerService
           .getArtistsByIdsViaGraphQL(ids)
@@ -156,11 +151,7 @@ const EditProfileScreen: FC = () => {
           })
           .catch(() => setSelectedArtists([]));
       } else {
-        setSelectedArtists(
-          ((profile.musicPreferences as any)?.favoriteArtists as
-            | DeezerArtist[]
-            | undefined) || []
-        );
+        setSelectedArtists([]);
       }
     }
   }, [profile]);
@@ -176,7 +167,7 @@ const EditProfileScreen: FC = () => {
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const d = String(date.getDate()).padStart(2, '0');
-      setFormData((prev) => ({ ...prev, birthDate: `${y}-${m}-${d}` }));
+      setFormData((prev) => ({ ...prev, birthDate: `${d}-${m}-${y}` }));
     }
   };
 
@@ -185,7 +176,7 @@ const EditProfileScreen: FC = () => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return `${d}-${m}-${y}`;
   };
   const parseDate = (value?: string) => {
     if (!value) return null;
@@ -373,18 +364,14 @@ const EditProfileScreen: FC = () => {
     try {
       const updateData = {
         displayName: formData.displayName,
-        publicInfo: {
-          bio: formData.bio,
+        bio: formData.bio,
+        privateInfo: {
+          phone: formData.phone,
+          birthDate: formData.birthDate,
           locationName: formData.locationName || undefined,
           locationCoords: formData.locationCoords || undefined
         },
-        privateInfo: {
-          phone: formData.phone,
-          birthDate: formData.birthDate
-        },
-        musicPreferences: {
-          favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
-        }
+        favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
       } as any;
 
       await updateProfile(updateData);
@@ -447,10 +434,10 @@ const EditProfileScreen: FC = () => {
           </View>
           <Divider />
 
-          {/* Personal information as line buttons */}
+          {/* Public information */}
           <View className="">
             <TextCustom type="bold" size="xl" className="px-4">
-              Personal information
+              Public information
             </TextCustom>
 
             {/* Username */}
@@ -465,21 +452,7 @@ const EditProfileScreen: FC = () => {
                 <TextCustom>{formData.displayName || 'Not set'}</TextCustom>
               </View>
             </LineButton>
-            <Divider />
-
-            {/* Date of Birth */}
-            <LineButton onPress={() => setShowBirthModal(true)}>
-              <View className="w-full px-4 py-2">
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Date of Birth
-                </TextCustom>
-                <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
-              </View>
-            </LineButton>
-            <Divider />
+            <Divider inset />
 
             {/* About me */}
             <LineButton onPress={() => setShowBioModal(true)}>
@@ -495,42 +468,7 @@ const EditProfileScreen: FC = () => {
                 </TextCustom>
               </View>
             </LineButton>
-            <Divider />
-
-            {/* Location */}
-            <LineButton onPress={() => setShowLocationModal(true)}>
-              <View className="w-full px-4 py-2">
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Location
-                </TextCustom>
-                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
-              </View>
-            </LineButton>
-            <Divider />
-
-            {/* Phone */}
-            <LineButton onPress={() => setShowPhoneModal(true)}>
-              <View className="w-full px-4 py-2">
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  Phone
-                </TextCustom>
-                <TextCustom>{formData.phone || 'Not set'}</TextCustom>
-              </View>
-            </LineButton>
-            <Divider />
-          </View>
-
-          {/* Music preferences */}
-          <View className="">
-            <TextCustom type="bold" size="xl" className="px-4">
-              Music preferences
-            </TextCustom>
+            <Divider inset />
 
             {/* Favorite artists */}
             <LineButton onPress={() => setShowArtistsModal(true)}>
@@ -546,6 +484,55 @@ const EditProfileScreen: FC = () => {
                     ? `${selectedArtists.length} selected`
                     : 'None'}
                 </TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+          </View>
+
+          {/* Private information */}
+          <View className="">
+            <TextCustom type="bold" size="xl" className="px-4">
+              Private information
+            </TextCustom>
+
+            {/* Date of Birth */}
+            <LineButton onPress={() => setShowBirthModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Date of Birth
+                </TextCustom>
+                <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* Location */}
+            <LineButton onPress={() => setShowLocationModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Location
+                </TextCustom>
+                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* Phone */}
+            <LineButton onPress={() => setShowPhoneModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Phone
+                </TextCustom>
+                <TextCustom>{formData.phone || 'Not set'}</TextCustom>
               </View>
             </LineButton>
           </View>

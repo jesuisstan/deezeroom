@@ -74,7 +74,8 @@ const RegisterScreen: FC = () => {
       );
 
       await UserService.createOrUpdateUser(credential.user, {
-        musicPreferences: { favoriteGenres: [], favoriteArtists: [] }
+        favoriteArtistIds: [],
+        favoriteTracks: []
       });
       // Send verification email (AuthGuard will navigate to verify screen)
       try {

@@ -93,10 +93,8 @@ export const UserProvider: FC<TUserProviderProps> = ({
         Logger.info('Creating new user profile...', null, '👤 UserProvider');
         await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified,
-          musicPreferences: {
-            favoriteGenres: [],
-            favoriteArtists: []
-          }
+          favoriteArtistIds: [],
+          favoriteTracks: []
         });
         // Load created profile
         const newProfile = await UserService.getUserProfile(currentUser.uid);

@@ -1,5 +1,5 @@
 import { FC, useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, View } from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 
@@ -15,7 +15,6 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
-import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { DeezerService } from '@/utils/deezer/deezer-service';
@@ -52,6 +51,7 @@ const OtherProfileScreen: FC = () => {
   const [connection, setConnection] = useState<ConnectionDoc | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
+  const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
 
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
@@ -72,26 +72,20 @@ const OtherProfileScreen: FC = () => {
           const publicProfile: PublicProfileDoc = {
             displayName:
               currentUserProfile?.displayName || user.displayName || undefined,
-            email: currentUserProfile?.email || user.email || undefined,
             photoURL:
               currentUserProfile?.photoURL || user.photoURL || undefined,
-            musicPreferences: currentUserProfile?.musicPreferences
-              ? {
-                  favoriteGenres:
-                    currentUserProfile.musicPreferences.favoriteGenres,
-                  favoriteArtistIds:
-                    currentUserProfile.musicPreferences.favoriteArtistIds
-                }
-              : undefined
+            bio: currentUserProfile?.bio,
+            favoriteArtistIds: currentUserProfile?.favoriteArtistIds || [],
+            favoriteTracks: currentUserProfile?.favoriteTracks || []
           };
 
           const friendsProfile: FriendsProfileDoc = {
-            bio: currentUserProfile?.publicInfo?.bio,
-            location: currentUserProfile?.publicInfo?.location,
-            locationName: currentUserProfile?.publicInfo?.locationName,
+            email: currentUserProfile?.email || user.email || undefined,
+            phone: currentUserProfile?.privateInfo?.phone,
+            birthDate: currentUserProfile?.privateInfo?.birthDate,
+            locationName: currentUserProfile?.privateInfo?.locationName,
             locationCoords:
-              currentUserProfile?.publicInfo?.locationCoords ?? null,
-            favoriteTracks: currentUserProfile?.favoriteTracks || []
+              currentUserProfile?.privateInfo?.locationCoords ?? null
           };
 
           setPublicDoc(publicProfile);
@@ -145,11 +139,15 @@ const OtherProfileScreen: FC = () => {
     let active = true;
     (async () => {
       try {
-        const ids = publicDoc?.musicPreferences?.favoriteArtistIds;
+        const ids = publicDoc?.favoriteArtistIds;
         if (!ids || ids.length === 0) {
-          setFavoriteArtists([]);
+          if (active) {
+            setFavoriteArtists([]);
+            setFavoriteArtistsLoading(false);
+          }
           return;
         }
+        if (active) setFavoriteArtistsLoading(true);
         const svc = DeezerService.getInstance();
         const artists = await svc.getArtistsByIdsViaGraphQL(ids.slice(0, 20));
         if (!active) return;
@@ -165,12 +163,15 @@ const OtherProfileScreen: FC = () => {
         setFavoriteArtists(deezerLike);
       } catch (e) {
         Logger.warn('Failed to load favorite artists', e, '👤 OtherProfile');
+        if (active) setFavoriteArtists([]);
+      } finally {
+        if (active) setFavoriteArtistsLoading(false);
       }
     })();
     return () => {
       active = false;
     };
-  }, [publicDoc?.musicPreferences?.favoriteArtistIds]);
+  }, [publicDoc?.favoriteArtistIds]);
 
   const handlePlayTrack = (track: Track | null) => {
     setCurrentPlayingTrackId(track?.id);
@@ -310,17 +311,20 @@ const OtherProfileScreen: FC = () => {
 
   const displayName = publicDoc?.displayName || 'User';
   const photoURL = publicDoc?.photoURL;
-  const email = publicDoc?.email;
-
-  const locationLabel = friendsDoc?.locationName || friendsDoc?.location || '';
-
-  const Chip: FC<{ text: string }> = ({ text }) => (
-    <View className="mb-2 mr-2 rounded-full border border-border bg-bg-main px-2 py-1">
-      <TextCustom className="text-accent" size="s">
-        {text}
-      </TextCustom>
-    </View>
-  );
+  const bioValue = publicDoc?.bio || '';
+  const locationLabel = friendsDoc?.locationName || '';
+  const phoneValue = friendsDoc?.phone || '';
+  const birthDateValue = friendsDoc?.birthDate || '';
+  const publicFavoriteTracks = publicDoc?.favoriteTracks || [];
+  const isOwner = typeof id === 'string' && user?.uid === id;
+  const canSeeEmail = isOwner || accessLevel === 'friends';
+  const visibleEmail = canSeeEmail
+    ? friendsDoc?.email ||
+      (isOwner ? currentUserProfile?.email || user?.email || '' : '')
+    : '';
+  const emailDisplay = canSeeEmail
+    ? visibleEmail || 'Email not provided'
+    : 'Email is hidden';
 
   return (
     <ScrollView
@@ -350,12 +354,10 @@ const OtherProfileScreen: FC = () => {
             <View className="flex-1">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 pr-2">
-                  <TextCustom type="title" size="4xl">
+                  <TextCustom type="semibold" size="xl">
                     {displayName}
                   </TextCustom>
-                  {email ? (
-                    <TextCustom className="text-accent">{email}</TextCustom>
-                  ) : null}
+                  <TextCustom type="italic">{emailDisplay}</TextCustom>
                 </View>
                 <ShareButton
                   path={`/users/${id}`}
@@ -429,42 +431,26 @@ const OtherProfileScreen: FC = () => {
           </View>
         </View>
 
-        {/* Profile details */}
+        {/* Public information */}
         <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle">Private information</TextCustom>
-          <InfoRow label="Name" value={displayName} emptyText="No name yet" />
-          {accessLevel === 'friends' ? (
-            <>
-              <InfoRow
-                label="About me"
-                value={friendsDoc?.bio}
-                emptyText="No bio yet"
-              />
-              <InfoRow
-                label="Location"
-                value={locationLabel}
-                emptyText="No location yet"
-              />
-            </>
-          ) : (
-            <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
-              <TextCustom className="text-accent">Friends only</TextCustom>
-              <TextCustom>
-                About and location are visible to friends.
-              </TextCustom>
-            </View>
-          )}
-        </View>
-
-        {/* Music preferences - basic public info */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle">Music preferences</TextCustom>
-          {/* Favorite artists */}
+          <TextCustom type="semibold" size="xl" className="mb-2">
+            Public information
+          </TextCustom>
+          <InfoRow
+            label="Display name"
+            value={displayName}
+            emptyText="No name yet"
+          />
+          <InfoRow label="Bio" value={bioValue} emptyText="No bio yet" />
           <View className="mt-4">
             <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
               Favorite artists
             </TextCustom>
-            {favoriteArtists.length === 0 ? (
+            {favoriteArtistsLoading ? (
+              <View className="mt-2">
+                <ActivityIndicator />
+              </View>
+            ) : favoriteArtists.length === 0 ? (
               <TextCustom className="text-accent/60">
                 No favorite artists added yet
               </TextCustom>
@@ -478,21 +464,44 @@ const OtherProfileScreen: FC = () => {
           </View>
         </View>
 
-        {/* Favorite Tracks */}
+        {/* Favorite tracks */}
+        <View className="rounded-md border border-border bg-bg-secondary">
+          <FavoriteTracksList
+            onPlayTrack={handlePlayTrack}
+            currentPlayingTrackId={currentPlayingTrackId}
+            trackIdsOverride={publicFavoriteTracks}
+          />
+        </View>
+
+        {/* Private information */}
         <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="subtitle" className="mb-4">
-            Favorite Tracks
+          <TextCustom type="bold" size="xl" className="mb-2">
+            Private information
           </TextCustom>
           {accessLevel === 'friends' ? (
-            <FavoriteTracksList
-              onPlayTrack={handlePlayTrack}
-              currentPlayingTrackId={currentPlayingTrackId}
-              trackIdsOverride={friendsDoc?.favoriteTracks || []}
-            />
+            <>
+              <InfoRow
+                label="Phone"
+                value={phoneValue}
+                emptyText="No phone yet"
+              />
+              <InfoRow
+                label="Birth date"
+                value={birthDateValue}
+                emptyText="No birth date yet"
+              />
+              <InfoRow
+                label="Location"
+                value={locationLabel}
+                emptyText="No location yet"
+              />
+            </>
           ) : (
             <View className="mt-2 rounded-xl border border-border bg-bg-main p-3">
               <TextCustom className="text-accent">Friends only</TextCustom>
-              <TextCustom>Favorite tracks are visible to friends.</TextCustom>
+              <TextCustom>
+                Phone, birth date and location are visible to friends.
+              </TextCustom>
             </View>
           )}
         </View>
