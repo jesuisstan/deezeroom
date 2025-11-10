@@ -201,7 +201,11 @@ export function subscribeToPendingConnections(
   let mapB = new Map<string, ConnectionWithId>();
 
   const emit = () => {
-    const combined = new Map<string, ConnectionWithId>([...mapA, ...mapB]);
+    const combinedEntries: [string, ConnectionWithId][] = [
+      ...Array.from(mapA.entries()),
+      ...Array.from(mapB.entries())
+    ];
+    const combined = new Map<string, ConnectionWithId>(combinedEntries);
     callback(Array.from(combined.values()));
   };
 
