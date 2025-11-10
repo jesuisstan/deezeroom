@@ -67,6 +67,13 @@ export const UserProvider: FC<TUserProviderProps> = ({
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
+  const normalizeProfile = (userProfile: UserProfile): UserProfile => ({
+    ...userProfile,
+    favoriteArtistIds: userProfile.favoriteArtistIds ?? [],
+    favoriteTracks: userProfile.favoriteTracks ?? [],
+    friendIds: userProfile.friendIds ?? []
+  });
+
   // Load user profile
   const loadUserProfile = async (currentUser: User) => {
     try {
@@ -85,7 +92,10 @@ export const UserProvider: FC<TUserProviderProps> = ({
         );
         setProfile(
           updatedProfile
-            ? { ...updatedProfile, emailVerified: !!currentUser.emailVerified }
+            ? {
+                ...normalizeProfile(updatedProfile),
+                emailVerified: !!currentUser.emailVerified
+              }
             : null
         );
       } else {
@@ -94,13 +104,17 @@ export const UserProvider: FC<TUserProviderProps> = ({
         await UserService.createOrUpdateUser(currentUser, {
           emailVerified: !!currentUser.emailVerified,
           favoriteArtistIds: [],
-          favoriteTracks: []
+          favoriteTracks: [],
+          friendIds: []
         });
         // Load created profile
         const newProfile = await UserService.getUserProfile(currentUser.uid);
         setProfile(
           newProfile
-            ? { ...newProfile, emailVerified: !!currentUser.emailVerified }
+            ? {
+                ...normalizeProfile(newProfile),
+                emailVerified: !!currentUser.emailVerified
+              }
             : null
         );
       }
@@ -120,7 +134,13 @@ export const UserProvider: FC<TUserProviderProps> = ({
       await UserService.updateUserProfile(user.uid, data);
       // Optimistically update local state
       if (profile) {
-        setProfile({ ...profile, ...data, updatedAt: new Date() });
+        setProfile(
+          normalizeProfile({
+            ...profile,
+            ...data,
+            updatedAt: new Date()
+          } as UserProfile)
+        );
       }
     } catch (error) {
       Logger.error('Error updating profile', error, '👤 UserProvider');

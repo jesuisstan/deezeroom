@@ -1,5 +1,7 @@
 import { FirebaseError } from 'firebase/app';
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -15,6 +17,11 @@ import {
 
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
+import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
+import {
+  getPublicProfileDoc,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
 import { sendPushNotification } from '@/utils/send-push-notification';
 
 export type ConnectionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
@@ -38,22 +45,30 @@ const FRIEND_REQUEST_PUSH_TYPE = 'friend_request';
 
 const FALLBACK_NAME = 'Someone';
 
-const getUserData = async (uid: string) => {
-  const userRef = doc(db, 'users', uid);
-  const userSnap = await getDoc(userRef);
-  return userSnap.exists() ? userSnap.data() : null;
+const getUserDocSafe = async (uid: string) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+    return userSnap.exists() ? userSnap.data() : null;
+  } catch (error) {
+    const firebaseError = error as FirebaseError;
+    if (firebaseError?.code !== 'permission-denied') {
+      Logger.warn('getUserDocSafe error', error, '🤝 Connections');
+    }
+    return null;
+  }
 };
 
-const formatDisplayName = (userData: any, uid: string) => {
-  if (!userData) return FALLBACK_NAME;
-  return (
-    userData.displayName ||
-    userData.bio?.displayName ||
-    userData.email?.split?.('@')?.[0] ||
-    uid?.slice(0, 6) ||
-    FALLBACK_NAME
-  );
-};
+const resolveDisplayName = (
+  publicProfile: PublicProfileDoc | null,
+  userData: any,
+  uid: string
+) =>
+  publicProfile?.displayName ||
+  userData?.displayName ||
+  userData?.email?.split?.('@')?.[0] ||
+  uid?.slice(0, 6) ||
+  FALLBACK_NAME;
 
 export async function getConnectionBetween(
   uid1: string,
@@ -258,25 +273,43 @@ export async function requestFriendship(
 
     // Send push notification to the recipient
     try {
-      const [targetData, requesterData] = await Promise.all([
-        getUserData(toUid),
-        getUserData(fromUid)
-      ]);
+      const [targetTokens, requesterPublicProfile, requesterDoc] =
+        await Promise.all([
+          getUserPushTokens(toUid),
+          getPublicProfileDoc(fromUid),
+          getUserDocSafe(fromUid)
+        ]);
 
-      const expoPushToken = targetData?.pushTokens?.expoPushToken;
-      if (expoPushToken) {
-        const requesterName = formatDisplayName(requesterData, fromUid);
-        await sendPushNotification({
-          to: expoPushToken,
-          title: 'New friend request',
-          body: `${requesterName} sent you a friend request`,
-          data: {
-            type: FRIEND_REQUEST_PUSH_TYPE,
-            fromUid
-          },
-          badge: 1
-        });
-      }
+      const requesterName = resolveDisplayName(
+        requesterPublicProfile,
+        requesterDoc,
+        fromUid
+      );
+
+      const uniqueTokens = new Set<string>();
+      await Promise.allSettled(
+        (targetTokens ?? [])
+          .map((token) => token.expoPushToken)
+          .filter((token): token is string => Boolean(token))
+          .filter((token) => {
+            if (uniqueTokens.has(token)) return false;
+            uniqueTokens.add(token);
+            return true;
+          })
+          .map((expoToken) =>
+            sendPushNotification({
+              to: expoToken,
+              title: 'New friend request',
+              body: `${requesterName} sent you a friend request`,
+              data: {
+                type: FRIEND_REQUEST_PUSH_TYPE,
+                fromUid,
+                toUid
+              },
+              badge: 1
+            })
+          )
+      );
     } catch (notificationError) {
       Logger.warn(
         'Failed to send friend request push notification',
@@ -314,6 +347,21 @@ export async function acceptFriendship(
       respondedBy: responderUid,
       updatedAt: serverTimestamp()
     });
+
+    const userRef1 = doc(db, 'users', uid1);
+    const userRef2 = doc(db, 'users', uid2);
+
+    await Promise.all([
+      updateDoc(userRef1, {
+        friendIds: arrayUnion(uid2),
+        updatedAt: serverTimestamp()
+      }),
+      updateDoc(userRef2, {
+        friendIds: arrayUnion(uid1),
+        updatedAt: serverTimestamp()
+      })
+    ]);
+
     return { success: true };
   } catch (error) {
     const err = error as FirebaseError;
@@ -362,7 +410,20 @@ export async function deleteFriendship(
   try {
     const id = pairKey(uid1, uid2);
     const ref = doc(db, COLLECTION, id);
-    await deleteDoc(ref);
+    const userRef1 = doc(db, 'users', uid1);
+    const userRef2 = doc(db, 'users', uid2);
+
+    await Promise.all([
+      deleteDoc(ref),
+      updateDoc(userRef1, {
+        friendIds: arrayRemove(uid2),
+        updatedAt: serverTimestamp()
+      }),
+      updateDoc(userRef2, {
+        friendIds: arrayRemove(uid1),
+        updatedAt: serverTimestamp()
+      })
+    ]);
     return { success: true };
   } catch (error) {
     const err = error as FirebaseError;

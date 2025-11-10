@@ -1,3 +1,4 @@
+import { FirebaseError } from 'firebase/app';
 import {
   addDoc,
   arrayUnion,
@@ -22,6 +23,11 @@ import {
 
 import { Logger } from '@/components/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
+import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
+import {
+  getPublicProfileDoc,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
 import { sendPushNotification } from '@/utils/send-push-notification';
 
 import { parseFirestoreDate } from './firestore-date-utils';
@@ -46,6 +52,33 @@ export interface PlaylistInvitation {
   displayName?: string;
   email?: string;
 }
+
+const FALLBACK_DISPLAY_NAME = 'Someone';
+
+const getUserDocSafe = async (uid: string) => {
+  try {
+    const ref = doc(db, 'users', uid);
+    const snapshot = await getDoc(ref);
+    return snapshot.exists() ? snapshot.data() : null;
+  } catch (error) {
+    const firebaseError = error as FirebaseError;
+    if (firebaseError?.code !== 'permission-denied') {
+      Logger.warn('getUserDocSafe error', error, '🎧 Playlists');
+    }
+    return null;
+  }
+};
+
+const resolveDisplayName = (
+  publicProfile: PublicProfileDoc | null,
+  userData: any,
+  uid: string
+) =>
+  publicProfile?.displayName ||
+  userData?.displayName ||
+  userData?.email?.split?.('@')?.[0] ||
+  uid?.slice(0, 6) ||
+  FALLBACK_DISPLAY_NAME;
 
 export interface Playlist {
   id: string;
@@ -565,39 +598,49 @@ export class PlaylistService {
 
     // Send push notification to invited user
     try {
-      // Get invited user's push token
-      const inviteeRef = doc(db, 'users', userId);
-      const inviteeDoc = await getDoc(inviteeRef);
+      const [inviteeTokens, inviterPublicProfile, inviterDoc] =
+        await Promise.all([
+          getUserPushTokens(userId),
+          getPublicProfileDoc(invitedBy),
+          getUserDocSafe(invitedBy)
+        ]);
 
-      if (inviteeDoc.exists()) {
-        const inviteeData = inviteeDoc.data();
-        const pushToken = inviteeData?.pushTokens;
+      const inviterName = resolveDisplayName(
+        inviterPublicProfile,
+        inviterDoc,
+        invitedBy
+      );
 
-        if (pushToken?.expoPushToken) {
-          // Get inviter name
-          const inviterRef = doc(db, 'users', invitedBy);
-          const inviterDoc = await getDoc(inviterRef);
-          const inviterData = inviterDoc.data();
-          const inviterName =
-            inviterData?.displayName ||
-            inviterData?.email?.split('@')[0] ||
-            'Someone';
+      const uniqueTokens = new Set<string>();
+      await Promise.allSettled(
+        (inviteeTokens ?? [])
+          .map((token) => token.expoPushToken)
+          .filter((token): token is string => Boolean(token))
+          .filter((token) => {
+            if (uniqueTokens.has(token)) return false;
+            uniqueTokens.add(token);
+            return true;
+          })
+          .map((expoToken) =>
+            sendPushNotification({
+              to: expoToken,
+              title: 'New Playlist Invitation',
+              body: `${inviterName} invited you to collaborate on "${
+                playlistName || 'a playlist'
+              }"`,
+              data: {
+                type: 'invitation',
+                playlistId,
+                invitationId: docRef.id,
+                toUid: userId
+              },
+              badge: 1
+            })
+          )
+      );
 
-          // Send push notification
-          await sendPushNotification({
-            to: pushToken.expoPushToken,
-            title: 'New Playlist Invitation',
-            body: `${inviterName} invited you to collaborate on "${playlistName || 'a playlist'}"`,
-            data: {
-              type: 'invitation',
-              playlistId,
-              invitationId: docRef.id
-            },
-            badge: 1
-          });
-
-          Logger.info('Push notification sent to invited user');
-        }
+      if (uniqueTokens.size > 0) {
+        Logger.info('Push notification sent to invited user');
       }
     } catch (error) {
       Logger.error('Error sending push notification:', error);
@@ -796,33 +839,42 @@ export class PlaylistService {
 
           // Send push notification to new owner
           try {
-            const newOwnerRef = doc(db, 'users', newOwner.userId);
-            const newOwnerDoc = await getDoc(newOwnerRef);
+            const newOwnerTokens = await getUserPushTokens(newOwner.userId);
 
-            if (newOwnerDoc.exists()) {
-              const newOwnerData = newOwnerDoc.data();
-              const pushToken = newOwnerData?.pushTokens;
+            const leavingUserName =
+              leavingUserData?.displayName ||
+              leavingUserData?.email?.split('@')[0] ||
+              'The previous owner';
 
-              if (pushToken?.expoPushToken) {
-                const leavingUserName =
-                  leavingUserData?.displayName ||
-                  leavingUserData?.email?.split('@')[0] ||
-                  'The previous owner';
+            const uniqueTokens = new Set<string>();
 
-                await sendPushNotification({
-                  to: pushToken.expoPushToken,
-                  title: 'You are now the owner',
-                  body: `${leavingUserName} left "${playlist.name}" and you are now the owner`,
-                  data: {
-                    type: 'playlist_ownership_transferred',
-                    playlistId,
-                    previousOwnerId: userId
-                  },
-                  badge: 1
-                });
+            await Promise.allSettled(
+              (newOwnerTokens ?? [])
+                .map((token) => token.expoPushToken)
+                .filter((token): token is string => Boolean(token))
+                .filter((token) => {
+                  if (uniqueTokens.has(token)) return false;
+                  uniqueTokens.add(token);
+                  return true;
+                })
+                .map((expoToken) =>
+                  sendPushNotification({
+                    to: expoToken,
+                    title: 'You are now the owner',
+                    body: `${leavingUserName} left "${playlist.name}" and you are now the owner`,
+                    data: {
+                      type: 'playlist_ownership_transferred',
+                      playlistId,
+                      previousOwnerId: userId,
+                      toUid: newOwner.userId
+                    },
+                    badge: 1
+                  })
+                )
+            );
 
-                Logger.info('Push notification sent to new owner');
-              }
+            if (uniqueTokens.size > 0) {
+              Logger.info('Push notification sent to new owner');
             }
           } catch (error) {
             Logger.error(

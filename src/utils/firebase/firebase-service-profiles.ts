@@ -13,14 +13,6 @@ export interface PublicProfileDoc {
   favoriteTracks?: string[];
 }
 
-export interface FriendsProfileDoc {
-  email?: string;
-  phone?: string;
-  birthDate?: string;
-  locationName?: string;
-  locationCoords?: { lat: number; lng: number } | null;
-}
-
 const USERS = 'users';
 
 export async function getPublicProfileDoc(
@@ -46,33 +38,6 @@ export async function setPublicProfileDoc(
     await setDoc(ref, data, { merge: true });
   } catch (error) {
     Logger.error('setPublicProfileDoc error', error, '👤 Profiles');
-    throw error;
-  }
-}
-
-export async function getFriendsProfileDoc(
-  uid: string
-): Promise<FriendsProfileDoc | null> {
-  try {
-    const ref = doc(db, `${USERS}/${uid}/friends/profile`);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    return snap.data() as FriendsProfileDoc;
-  } catch (error) {
-    Logger.error('getFriendsProfileDoc error', error, '👤 Profiles');
-    return null;
-  }
-}
-
-export async function setFriendsProfileDoc(
-  uid: string,
-  data: Partial<FriendsProfileDoc>
-): Promise<void> {
-  try {
-    const ref = doc(db, `${USERS}/${uid}/friends/profile`);
-    await setDoc(ref, data, { merge: true });
-  } catch (error) {
-    Logger.error('setFriendsProfileDoc error', error, '👤 Profiles');
     throw error;
   }
 }

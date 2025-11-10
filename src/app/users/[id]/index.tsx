@@ -31,11 +31,13 @@ import {
   requestFriendship
 } from '@/utils/firebase/firebase-service-connections';
 import {
-  type FriendsProfileDoc,
-  getFriendsProfileDoc,
   getPublicProfileDoc,
   type PublicProfileDoc
 } from '@/utils/firebase/firebase-service-profiles';
+import {
+  type UserProfile,
+  UserService
+} from '@/utils/firebase/firebase-service-user';
 
 type AccessLevel = 'owner' | 'friends' | 'public';
 
@@ -44,7 +46,9 @@ const OtherProfileScreen: FC = () => {
   const { user, profile: currentUserProfile } = useUser();
   const { theme } = useTheme();
   const [publicDoc, setPublicDoc] = useState<PublicProfileDoc | null>(null);
-  const [friendsDoc, setFriendsDoc] = useState<FriendsProfileDoc | null>(null);
+  const [privateProfile, setPrivateProfile] = useState<UserProfile | null>(
+    null
+  );
   const [accessLevel, setAccessLevel] = useState<AccessLevel>('public');
   const [loading, setLoading] = useState(true);
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
@@ -81,18 +85,9 @@ const OtherProfileScreen: FC = () => {
             favoriteTracks: currentUserProfile?.favoriteTracks || []
           };
 
-          const friendsProfile: FriendsProfileDoc = {
-            email: currentUserProfile?.email || user.email || undefined,
-            phone: currentUserProfile?.privateInfo?.phone,
-            birthDate: currentUserProfile?.privateInfo?.birthDate,
-            locationName: currentUserProfile?.privateInfo?.locationName,
-            locationCoords:
-              currentUserProfile?.privateInfo?.locationCoords ?? null
-          };
-
           setPublicDoc(publicProfile);
-          setFriendsDoc(friendsProfile);
-          setAccessLevel('friends');
+          setPrivateProfile(currentUserProfile ?? null);
+          setAccessLevel('owner');
           setConnection(null);
           setLoading(false);
           return;
@@ -107,26 +102,46 @@ const OtherProfileScreen: FC = () => {
 
         // Determine access level & connection
         let level: AccessLevel = 'public';
+        let privateData: UserProfile | null = null;
+        let connectionDoc: ConnectionDoc | null = null;
+
         if (user?.uid) {
           const [fr, conn] = await Promise.all([
             isFriends(user.uid, id),
             getConnectionBetween(user.uid, id)
           ]);
           if (!active) return;
-          setConnection(conn);
-          level = fr ? 'friends' : 'public';
-          setAccessLevel(level);
+          connectionDoc = conn;
           if (fr) {
-            const fdoc = await getFriendsProfileDoc(id);
-            if (!active) return;
-            setFriendsDoc(fdoc);
+            level = 'friends';
+            try {
+              const profile = await UserService.getUserProfile(id);
+              if (!active) return;
+              if (profile?.friendIds?.includes(user.uid)) {
+                privateData = profile;
+              } else {
+                Logger.info(
+                  'FriendIds missing for friendship; treating as public access',
+                  { viewer: user.uid, owner: id },
+                  '👤 OtherProfile'
+                );
+              }
+            } catch (error) {
+              Logger.warn(
+                'Failed to load private profile doc',
+                error,
+                '👤 OtherProfile'
+              );
+            }
           } else {
-            setFriendsDoc(null);
+            level = 'public';
           }
-        } else {
-          setAccessLevel('public');
-          setFriendsDoc(null);
         }
+
+        if (!active) return;
+        setConnection(connectionDoc);
+        setAccessLevel(level);
+        setPrivateProfile(privateData);
       } finally {
         if (active) setLoading(false);
       }
@@ -188,12 +203,30 @@ const OtherProfileScreen: FC = () => {
         getConnectionBetween(user.uid, id)
       ]);
       setConnection(conn);
-      setAccessLevel(fr ? 'friends' : 'public');
-      if (fr) {
-        const fdoc = await getFriendsProfileDoc(id);
-        setFriendsDoc(fdoc);
+      const level: AccessLevel =
+        user.uid === id ? 'owner' : fr ? 'friends' : 'public';
+      setAccessLevel(level);
+
+      if (level === 'friends') {
+        try {
+          const profile = await UserService.getUserProfile(id);
+          if (profile?.friendIds?.includes(user.uid)) {
+            setPrivateProfile(profile);
+          } else {
+            setPrivateProfile(null);
+          }
+        } catch (error) {
+          Logger.warn(
+            'Failed to refresh private profile',
+            error,
+            '👤 OtherProfile'
+          );
+          setPrivateProfile(null);
+        }
+      } else if (level === 'owner') {
+        setPrivateProfile(currentUserProfile);
       } else {
-        setFriendsDoc(null);
+        setPrivateProfile(null);
       }
     } catch (e) {
       Logger.warn('Failed to refresh connection', e, '👤 OtherProfile');
@@ -338,14 +371,18 @@ const OtherProfileScreen: FC = () => {
   const displayName = publicDoc?.displayName || 'User';
   const photoURL = publicDoc?.photoURL;
   const bioValue = publicDoc?.bio || '';
-  const locationLabel = friendsDoc?.locationName || '';
-  const phoneValue = friendsDoc?.phone || '';
-  const birthDateValue = friendsDoc?.birthDate || '';
+  const privateInfo = privateProfile?.privateInfo;
+  const locationLabel = privateInfo?.locationName || '';
+  const phoneValue = privateInfo?.phone || '';
+  const birthDateValue = privateInfo?.birthDate || '';
   const publicFavoriteTracks = publicDoc?.favoriteTracks || [];
   const isOwner = typeof id === 'string' && user?.uid === id;
-  const canSeeEmail = isOwner || accessLevel === 'friends';
+  const viewerUid = user?.uid ?? null;
+  const canSeePrivate =
+    isOwner || (!!viewerUid && privateProfile?.friendIds?.includes(viewerUid));
+  const canSeeEmail = canSeePrivate;
   const visibleEmail = canSeeEmail
-    ? friendsDoc?.email ||
+    ? privateProfile?.email ||
       (isOwner ? currentUserProfile?.email || user?.email || '' : '')
     : '';
   const emailDisplay = canSeeEmail
@@ -492,7 +529,7 @@ const OtherProfileScreen: FC = () => {
           <TextCustom type="bold" size="xl" className="mb-2">
             Private information
           </TextCustom>
-          {accessLevel === 'friends' ? (
+          {canSeePrivate ? (
             <>
               <InfoRow
                 label="Phone"

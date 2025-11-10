@@ -1,7 +1,7 @@
 {
   "name": "deezeroom",
   "main": "expo-router/entry",
-  "version": "1.54.6",
+  "version": "1.54.7",
   "scripts": {
     "before": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
     "start": "expo start",
@@ -39,6 +39,7 @@
     "@types/react-datepicker": "^6.2.0",
     "clsx": "^2.1.1",
     "expo": "54.0.21",
+    "expo-application": "~7.0.7",
     "expo-asset": "~12.0.9",
     "expo-audio": "~1.0.14",
     "expo-auth-session": "~7.0.8",
@@ -60,6 +61,7 @@
     "expo-notifications": "~0.32.12",
     "expo-router": "~6.0.14",
     "expo-screen-orientation": "~9.0.7",
+    "expo-secure-store": "~15.0.7",
     "expo-splash-screen": "~31.0.10",
     "expo-status-bar": "~3.0.8",
     "expo-symbols": "~1.0.7",

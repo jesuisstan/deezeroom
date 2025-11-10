@@ -1,23 +1,39 @@
 import { Platform } from 'react-native';
 
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { doc, setDoc } from 'firebase/firestore';
+import * as SecureStore from 'expo-secure-store';
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  where
+} from 'firebase/firestore';
 
 import { Logger } from '@/components/modules/logger';
 import { auth, db } from '@/utils/firebase/firebase-init';
 
-export interface PushToken {
-  expoPushToken?: string;
-  devicePushToken?: string;
+export interface PushTokenDocument {
+  userId: string;
+  installationId: string;
+  expoPushToken?: string | null;
+  devicePushToken?: string | null;
   platform: 'ios' | 'android' | 'web';
-  lastUpdated: Date;
+  lastUpdated?: any;
 }
+
+const INSTALLATION_ID_SECURE_KEY = 'deezeroom.installation-id';
+const INSTALLATION_ID_STORAGE_KEY = 'deezeroom.installation-id';
 
 class NotificationService {
   private static instance: NotificationService;
   private currentExpoPushToken: string | null = null;
+  private installationId: string | null = null;
   // Base document title for web badge rendering
   private baseWebTitle: string | null = null;
 
@@ -30,13 +46,126 @@ class NotificationService {
     return NotificationService.instance;
   }
 
+  private generateInstallationId(): string {
+    return `${Platform.OS}-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+  }
+
+  private async getStoredInstallationId(): Promise<string | null> {
+    try {
+      if (
+        typeof SecureStore?.isAvailableAsync === 'function' &&
+        (await SecureStore.isAvailableAsync()) === true
+      ) {
+        const stored = await SecureStore.getItemAsync(
+          INSTALLATION_ID_SECURE_KEY
+        );
+        if (stored) {
+          return stored;
+        }
+      }
+    } catch (error) {
+      Logger.warn(
+        'Failed to read installation id from secure storage',
+        error,
+        '🔔 NotificationService'
+      );
+    }
+
+    try {
+      const maybeWindow = globalThis as any;
+      const stored = maybeWindow?.localStorage?.getItem?.(
+        INSTALLATION_ID_STORAGE_KEY
+      );
+      if (typeof stored === 'string' && stored.length > 0) {
+        return stored;
+      }
+    } catch (error) {
+      Logger.warn(
+        'Failed to read installation id from local storage',
+        error,
+        '🔔 NotificationService'
+      );
+    }
+
+    return null;
+  }
+
+  private async persistInstallationId(id: string): Promise<void> {
+    try {
+      if (
+        typeof SecureStore?.isAvailableAsync === 'function' &&
+        (await SecureStore.isAvailableAsync()) === true
+      ) {
+        await SecureStore.setItemAsync(INSTALLATION_ID_SECURE_KEY, id);
+      }
+    } catch (error) {
+      Logger.warn(
+        'Failed to persist installation id to secure storage',
+        error,
+        '🔔 NotificationService'
+      );
+    }
+
+    try {
+      const maybeWindow = globalThis as any;
+      maybeWindow?.localStorage?.setItem?.(INSTALLATION_ID_STORAGE_KEY, id);
+    } catch (error) {
+      Logger.warn(
+        'Failed to persist installation id to local storage',
+        error,
+        '🔔 NotificationService'
+      );
+    }
+  }
+
+  private async ensureInstallationId(): Promise<string> {
+    if (this.installationId) {
+      return this.installationId;
+    }
+
+    let installationId: string | null = null;
+
+    try {
+      if (
+        Platform.OS === 'ios' &&
+        typeof (Application as any).getIosIdForVendorAsync === 'function'
+      ) {
+        installationId = await Application.getIosIdForVendorAsync();
+      } else if (Platform.OS === 'android') {
+        const androidId = (Application as any).androidId as string | null;
+        if (androidId) {
+          installationId = androidId;
+        }
+      }
+    } catch (error) {
+      Logger.warn(
+        'Failed to obtain device-provided installation identifier',
+        error,
+        '🔔 NotificationService'
+      );
+    }
+
+    if (!installationId) {
+      installationId = await this.getStoredInstallationId();
+    }
+
+    if (!installationId) {
+      installationId = this.generateInstallationId();
+    }
+
+    await this.persistInstallationId(installationId);
+    this.installationId = installationId;
+    return installationId;
+  }
+
   /**
    * Configure notification handler for foreground notifications
    */
   public configureNotificationHandler() {
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: true,
         shouldShowBanner: true,
@@ -175,16 +304,25 @@ class NotificationService {
       if (!user) {
         throw new Error('User not authenticated');
       }
+      if (user.uid !== userId) {
+        throw new Error('Attempting to save push token for different user');
+      }
 
-      const tokensRef = doc(db, 'users', userId);
-      const tokensData: PushToken = {
-        expoPushToken: expoPushToken || undefined,
-        devicePushToken: devicePushToken || undefined,
-        platform: Platform.OS as 'ios' | 'android' | 'web',
-        lastUpdated: new Date()
-      };
+      const installationId = await this.ensureInstallationId();
+      const tokensRef = doc(db, 'pushTokens', installationId);
 
-      await setDoc(tokensRef, { pushTokens: tokensData }, { merge: true });
+      await setDoc(
+        tokensRef,
+        {
+          userId,
+          installationId,
+          expoPushToken: expoPushToken || null,
+          devicePushToken: devicePushToken || null,
+          platform: Platform.OS as 'ios' | 'android' | 'web',
+          lastUpdated: serverTimestamp()
+        },
+        { merge: true }
+      );
 
       Logger.info('Push token saved successfully');
     } catch (error) {
@@ -270,3 +408,34 @@ class NotificationService {
 }
 
 export const notificationService = NotificationService.getInstance();
+
+export const getUserPushTokens = async (
+  userId: string
+): Promise<PushTokenDocument[]> => {
+  try {
+    const tokensQuery = query(
+      collection(db, 'pushTokens'),
+      where('userId', '==', userId)
+    );
+    const snapshot = await getDocs(tokensQuery);
+    return snapshot.docs
+      .map((docSnap) => {
+        const data = docSnap.data() as PushTokenDocument;
+        return {
+          ...data,
+          installationId: data.installationId ?? docSnap.id
+        };
+      })
+      .filter(
+        (token) =>
+          Boolean(token.expoPushToken) || Boolean(token.devicePushToken)
+      );
+  } catch (error) {
+    Logger.warn(
+      'Failed to load user push tokens',
+      error,
+      '🔔 NotificationService'
+    );
+    return [];
+  }
+};

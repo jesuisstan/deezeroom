@@ -1,8 +1,6 @@
 import { FC } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
-import { router } from 'expo-router';
-
 import ArtistLabel from '@/components/ui/ArtistLabel';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -59,7 +57,7 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
     <View className="w-full gap-4 p-4">
       <View className="flex-row items-center justify-between">
         <TextCustom type="semibold" size="xl">
-          Favorite Artists{' '}
+          Favorite Artists
         </TextCustom>
       </View>
       <ScrollView

@@ -208,7 +208,7 @@ const ProfileScreen: FC = () => {
                 );
               }
               return (
-                <View className="mr-4 h-24 w-24 items-center justify-center rounded-full border border-border bg-bg-main">
+                <View className="mr-4 h-24 w-24 items-center justify-center rounded-full border border-border bg-primary">
                   <TextCustom type="title">
                     {(profile?.displayName || profile?.email || '?')
                       .trim()

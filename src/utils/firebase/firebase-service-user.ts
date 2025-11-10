@@ -19,10 +19,7 @@ import {
 import { Logger } from '@/components/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
-import {
-  setFriendsProfileDoc,
-  setPublicProfileDoc
-} from '@/utils/firebase/firebase-service-profiles';
+import { setPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
@@ -68,6 +65,7 @@ export interface UserProfile {
   };
   favoriteArtistIds?: string[];
   favoriteTracks?: string[];
+  friendIds?: string[];
   authProviders?: {
     google?: {
       linked: boolean;
@@ -225,6 +223,7 @@ export class UserService {
         // Initialize favoriteTracks for new users
         baseData.favoriteTracks = [];
         baseData.favoriteArtistIds = [];
+        baseData.friendIds = [];
       }
 
       // Only write to Firestore if there are actual changes or it's a new user
@@ -244,7 +243,7 @@ export class UserService {
           '🔥 Firebase UserService'
         );
 
-        // Mirror public/friends-visible fields to subdocuments for rules-based access
+        // Mirror public fields to subdocument for rules-based access
         try {
           const existingData = existingSnap.exists()
             ? (existingSnap.data() as UserProfile)
@@ -260,8 +259,6 @@ export class UserService {
             existingData?.photoURL ??
             user.photoURL ??
             '';
-          const finalEmail =
-            (userData as any).email ?? existingData?.email ?? user.email ?? '';
           const finalBio =
             (userData as any).bio ?? existingData?.bio ?? undefined;
           const finalFavoriteArtistIds =
@@ -285,19 +282,12 @@ export class UserService {
             })
           );
 
-          const finalPrivateInfo =
-            (userData as any).privateInfo ?? existingData?.privateInfo;
-
-          await setFriendsProfileDoc(
-            user.uid,
-            removeUndefinedDeep({
-              email: finalEmail,
-              phone: finalPrivateInfo?.phone,
-              birthDate: finalPrivateInfo?.birthDate,
-              locationName: finalPrivateInfo?.locationName,
-              locationCoords: finalPrivateInfo?.locationCoords ?? null
-            })
-          );
+          // Ensure friendIds array exists
+          if (!existingData?.friendIds && !(userData as any).friendIds) {
+            await updateDoc(userRef, {
+              friendIds: []
+            });
+          }
         } catch (mirrorErr) {
           Logger.warn(
             'Failed to mirror profile to subdocs',
@@ -343,7 +333,7 @@ export class UserService {
     });
     await setDoc(userRef, cleaned, { merge: true });
 
-    // Mirror updates into public/friends subdocs as needed
+    // Mirror updates into public subdoc as needed
     try {
       const toPublic: any = {};
       if (typeof data.displayName !== 'undefined') {
@@ -362,20 +352,6 @@ export class UserService {
         toPublic.favoriteTracks = data.favoriteTracks;
       if (Object.keys(removeUndefinedDeep(toPublic) || {}).length > 0) {
         await setPublicProfileDoc(uid, removeUndefinedDeep(toPublic));
-      }
-
-      const toFriends: any = {};
-      if (typeof data.email !== 'undefined') {
-        toFriends.email = data.email;
-      }
-      if (typeof data.privateInfo !== 'undefined') {
-        toFriends.phone = data.privateInfo?.phone;
-        toFriends.birthDate = data.privateInfo?.birthDate;
-        toFriends.locationName = data.privateInfo?.locationName;
-        toFriends.locationCoords = data.privateInfo?.locationCoords ?? null;
-      }
-      if (Object.keys(removeUndefinedDeep(toFriends) || {}).length > 0) {
-        await setFriendsProfileDoc(uid, removeUndefinedDeep(toFriends));
       }
     } catch (mirrorErr) {
       Logger.warn(
@@ -810,7 +786,7 @@ export class UserService {
       const playlistsSnap = await getDocs(playlistsQ);
       await Promise.all(playlistsSnap.docs.map((d) => deleteDoc(d.ref)));
 
-      // Delete user profile subcollections (public/friends)
+      // Delete user profile subcollection (public)
       const publicProfileRef = doc(
         db,
         this.collection,
@@ -818,24 +794,10 @@ export class UserService {
         'public',
         'profile'
       );
-      const friendsProfileRef = doc(
-        db,
-        this.collection,
-        uid,
-        'friends',
-        'profile'
-      );
       await Promise.all([
         deleteDoc(publicProfileRef).catch((error) =>
           Logger.warn(
             'Failed to delete public profile subdoc',
-            error,
-            '🔥 Firebase UserService'
-          )
-        ),
-        deleteDoc(friendsProfileRef).catch((error) =>
-          Logger.warn(
-            'Failed to delete friends profile subdoc',
             error,
             '🔥 Firebase UserService'
           )
