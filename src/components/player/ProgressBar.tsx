@@ -263,8 +263,8 @@ const ProgressBarComponent = ({
       <View
         pointerEvents={isSeekable ? 'auto' : 'none'}
         onLayout={handleLayout}
-        onMouseEnter={IS_WEB ? () => setIsHovering(true) : undefined}
-        onMouseLeave={IS_WEB ? () => setIsHovering(false) : undefined}
+        onPointerEnter={IS_WEB ? () => setIsHovering(true) : undefined}
+        onPointerLeave={IS_WEB ? () => setIsHovering(false) : undefined}
         className="w-full justify-center"
         style={{
           height: HANDLE_TOUCH_HEIGHT,

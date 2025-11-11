@@ -18,7 +18,7 @@ const PlayerArtwork = memo(
 
     return (
       <View className="flex-1 items-center justify-center">
-        <View className="aspect-square w-full overflow-hidden rounded-3xl bg-bg-secondary">
+        <View className="aspect-square w-full overflow-hidden rounded-md bg-bg-secondary">
           <Image
             source={artworkSource}
             style={{ width: '100%', height: '100%' }}

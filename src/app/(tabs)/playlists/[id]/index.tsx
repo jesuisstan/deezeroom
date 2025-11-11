@@ -553,8 +553,12 @@ const PlaylistDetailScreen = () => {
 
     // Start playback with tracks from this playlist
     const queueContext = playlist
-      ? { source: 'playlist', label: playlist.name, id: playlist.id }
-      : { source: 'playlist', label: 'Playlist' };
+      ? {
+          source: 'playlist' as const,
+          label: playlist.name,
+          id: playlist.id
+        }
+      : { source: 'playlist' as const, label: 'Playlist' };
     startPlayback(tracks, track.id, queueContext);
   };
 
