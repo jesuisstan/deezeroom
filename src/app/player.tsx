@@ -38,8 +38,9 @@ const PlayerScreen = () => {
   // ProgressBar will handle status internally
   const { queue, currentTrack, currentIndex, queueContext } =
     usePlaybackState();
-  const { isPlaying, isLoading, error } = usePlaybackUI();
-  const { playNext, playPrevious, togglePlayPause } = usePlaybackActions();
+  const { isPlaying, isLoading, error, repeatMode } = usePlaybackUI();
+  const { playNext, playPrevious, togglePlayPause, cycleRepeatMode } =
+    usePlaybackActions();
 
   const currentTrackId = currentTrack?.id;
   const isCurrentTrackFavorite = useMemo(() => {
@@ -173,7 +174,27 @@ const PlayerScreen = () => {
                 />
 
                 <View className="flex-row items-center justify-between">
-                  <View style={{ width: 48 }} />
+                  <IconButton
+                    accessibilityLabel={`Repeat mode: ${repeatMode}. Tap to change`}
+                    onPress={cycleRepeatMode}
+                    className="h-12 w-12"
+                  >
+                    <MaterialCommunityIcons
+                      name={
+                        repeatMode === 'one'
+                          ? 'repeat-once'
+                          : repeatMode === 'off'
+                            ? 'repeat-off'
+                            : 'repeat'
+                      }
+                      size={24}
+                      color={
+                        repeatMode === 'off'
+                          ? themeColors[theme]['text-secondary']
+                          : themeColors[theme]['primary']
+                      }
+                    />
+                  </IconButton>
                   <IconButton
                     accessibilityLabel={
                       isCurrentTrackFavorite

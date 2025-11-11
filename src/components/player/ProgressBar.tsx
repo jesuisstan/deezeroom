@@ -328,7 +328,7 @@ const ProgressBarComponent = ({
   }
 
   return (
-    <View className="gap-3">
+    <View className="gap-1">
       <View className="flex-row justify-between">
         <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
           {formattedCurrentTime}

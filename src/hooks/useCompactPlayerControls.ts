@@ -9,8 +9,9 @@ import {
 
 const useCompactPlayerControls = () => {
   const { queue, currentTrack, currentIndex } = usePlaybackState();
-  const { isPlaying, isLoading } = usePlaybackUI();
-  const { togglePlayPause, playNext, playPrevious } = usePlaybackActions();
+  const { isPlaying, isLoading, repeatMode } = usePlaybackUI();
+  const { togglePlayPause, playNext, playPrevious, cycleRepeatMode } =
+    usePlaybackActions();
   const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
 
   const currentTrackId = currentTrack?.id ?? null;
@@ -56,7 +57,9 @@ const useCompactPlayerControls = () => {
     isCurrentTrackFavorite,
     hasNext,
     hasPrevious,
-    toggleFavorite: handleToggleFavorite
+    toggleFavorite: handleToggleFavorite,
+    repeatMode,
+    cycleRepeatMode
   };
 };
 

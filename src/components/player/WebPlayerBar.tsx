@@ -28,7 +28,9 @@ const WebPlayerBar = () => {
     playPrevious,
     isCurrentTrackFavorite,
     hasNext,
-    toggleFavorite
+    toggleFavorite,
+    repeatMode,
+    cycleRepeatMode
   } = useCompactPlayerControls();
 
   const albumCoverUrl = currentTrack?.album
@@ -64,7 +66,8 @@ const WebPlayerBar = () => {
         right: 0,
         zIndex: 30,
         alignItems: 'center',
-        paddingHorizontal: WEB_HORIZONTAL_PADDING
+        paddingHorizontal: WEB_HORIZONTAL_PADDING,
+        userSelect: 'none'
       }}
     >
       <View style={{ width: '100%', maxWidth: 1120 }}>
@@ -98,8 +101,8 @@ const WebPlayerBar = () => {
               <Image
                 source={artworkSource}
                 style={{
-                  height: 32,
-                  width: 32,
+                  height: 55,
+                  width: 55,
                   borderRadius: 8,
                   backgroundColor: themeColors[theme]['bg-tertiary']
                 }}
@@ -136,10 +139,11 @@ const WebPlayerBar = () => {
               flexShrink: 1,
               maxWidth: 460,
               minWidth: 0,
-              gap: 4
+              //gap: 1,
+              paddingTop: 4
             }}
           >
-            <View className="flex-row items-center justify-center gap-3">
+            <View className="flex-row items-center justify-center gap-4">
               <IconButton
                 accessibilityLabel="Play previous track"
                 onPress={playPrevious}
@@ -147,7 +151,7 @@ const WebPlayerBar = () => {
               >
                 <MaterialCommunityIcons
                   name="skip-previous"
-                  size={18}
+                  size={21}
                   color={themeColors[theme]['text-main']}
                 />
               </IconButton>
@@ -162,7 +166,7 @@ const WebPlayerBar = () => {
               >
                 <MaterialCommunityIcons
                   name={isPlaying ? 'pause' : 'play'}
-                  size={20}
+                  size={25}
                   color={themeColors[theme]['text-inverse']}
                 />
               </IconButton>
@@ -174,7 +178,7 @@ const WebPlayerBar = () => {
               >
                 <MaterialCommunityIcons
                   name="skip-next"
-                  size={18}
+                  size={21}
                   color={themeColors[theme]['text-main']}
                 />
               </IconButton>
@@ -189,7 +193,7 @@ const WebPlayerBar = () => {
           </View>
 
           <View
-            className="flex-row items-center justify-end"
+            className="flex-row items-center justify-end gap-2"
             style={{
               flexBasis: 0,
               flexGrow: 1,
@@ -199,6 +203,27 @@ const WebPlayerBar = () => {
             }}
           >
             <IconButton
+              accessibilityLabel={`Repeat mode: ${repeatMode}. Tap to change`}
+              onPress={cycleRepeatMode}
+              className="h-11 w-11"
+            >
+              <MaterialCommunityIcons
+                name={
+                  repeatMode === 'one'
+                    ? 'repeat-once'
+                    : repeatMode === 'off'
+                      ? 'repeat-off'
+                      : 'repeat'
+                }
+                size={25}
+                color={
+                  repeatMode === 'off'
+                    ? themeColors[theme]['text-main']
+                    : themeColors[theme]['primary']
+                }
+              />
+            </IconButton>
+            <IconButton
               accessibilityLabel={
                 isCurrentTrackFavorite
                   ? 'Remove from favorites'
@@ -206,11 +231,11 @@ const WebPlayerBar = () => {
               }
               onPress={handleToggleFavorite}
               disabled={!currentTrackId}
-              className="h-8 w-8"
+              className="h-11 w-11"
             >
               <FontAwesome
                 name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                size={16}
+                size={25}
                 color={
                   isCurrentTrackFavorite
                     ? themeColors[theme]['primary']

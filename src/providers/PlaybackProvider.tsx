@@ -20,6 +20,7 @@ import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
 
 export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';
+export type RepeatMode = 'off' | 'one' | 'all';
 
 export interface PlaybackQueueContext {
   source: PlaybackQueueSource;
@@ -38,6 +39,7 @@ interface PlaybackUIStatusContextValue {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
+  repeatMode: RepeatMode;
 }
 
 interface PlaybackActionsContextValue {
@@ -53,6 +55,7 @@ interface PlaybackActionsContextValue {
   resume: () => void;
   seekTo: (seconds: number) => void;
   updateQueue: (tracks: Track[], context?: PlaybackQueueContext | null) => void;
+  cycleRepeatMode: () => void;
 }
 
 const PlaybackStateContext = createContext<
@@ -104,6 +107,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playbackIntent, setPlaybackIntentState] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
 
   const autoPlayRef = useRef(false);
   const playbackIntentRef = useRef(false);
@@ -111,10 +115,24 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const currentIndexRef = useRef<number>(-1);
   const didFinishHandledRef = useRef(false);
   const queueRef = useRef<Track[]>([]);
+  const repeatModeRef = useRef<RepeatMode>('off');
 
   const setPlaybackIntent = useCallback((intent: boolean) => {
     playbackIntentRef.current = intent;
     setPlaybackIntentState(intent);
+  }, []);
+
+  const cycleRepeatMode = useCallback(() => {
+    setRepeatMode((previous) => {
+      switch (previous) {
+        case 'off':
+          return 'all';
+        case 'all':
+          return 'one';
+        default:
+          return 'off';
+      }
+    });
   }, []);
 
   const notifyStatusListeners = useCallback(() => {
@@ -140,6 +158,25 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
       didFinishHandledRef.current = true;
 
+      if (repeatModeRef.current === 'one') {
+        player.seekTo(0).catch(() => null);
+
+        if (playbackIntentRef.current) {
+          autoPlayRef.current = true;
+          setPlaybackIntent(true);
+          try {
+            player.play();
+          } catch {
+            setPlaybackIntent(false);
+            autoPlayRef.current = false;
+          }
+        } else {
+          autoPlayRef.current = false;
+        }
+
+        return;
+      }
+
       const queueSnapshot = queueRef.current;
       const previousIndex = currentIndexRef.current;
       const nextIndex = findNextPlayableIndex(
@@ -158,6 +195,15 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       const firstPlayableIndex = findNextPlayableIndex(queueSnapshot, 0, 1);
+      if (repeatModeRef.current === 'all' && firstPlayableIndex !== -1) {
+        autoPlayRef.current = true;
+        setPlaybackIntent(true);
+        currentIndexRef.current = firstPlayableIndex;
+        currentTrackRef.current = queueSnapshot[firstPlayableIndex] ?? null;
+        setCurrentIndex(firstPlayableIndex);
+        return;
+      }
+
       autoPlayRef.current = false;
       setPlaybackIntent(false);
 
@@ -216,6 +262,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
 
   useEffect(() => {
     if (!currentTrack) {
@@ -537,9 +587,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       isPlaying,
       isLoading,
-      error
+      error,
+      repeatMode
     }),
-    [isPlaying, isLoading, error]
+    [error, isLoading, isPlaying, repeatMode]
   );
 
   const actionsValue: PlaybackActionsContextValue = useMemo(
@@ -551,7 +602,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       pause,
       resume,
       seekTo,
-      updateQueue
+      updateQueue,
+      cycleRepeatMode
     }),
     [
       startPlayback,
@@ -561,7 +613,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       pause,
       resume,
       seekTo,
-      updateQueue
+      updateQueue,
+      cycleRepeatMode
     ]
   );
 
