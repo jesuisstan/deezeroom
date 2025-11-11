@@ -205,8 +205,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
     didFinishHandledRef.current = true;
 
-    const baseIndex = currentIndexRef.current;
-    const nextIndex = findNextPlayableIndex(queue, baseIndex + 1, 1);
+    const previousIndex = currentIndexRef.current;
+    const nextIndex = findNextPlayableIndex(queue, previousIndex + 1, 1);
     if (nextIndex !== -1) {
       autoPlayRef.current = true;
       setPlaybackIntent(true);
@@ -216,9 +216,29 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    const firstPlayableIndex = findNextPlayableIndex(queue, 0, 1);
     autoPlayRef.current = false;
     setPlaybackIntent(false);
-  }, [queue, setPlaybackIntent, status?.didJustFinish]);
+    try {
+      player.pause();
+    } catch {
+      // no-op
+    }
+    if (firstPlayableIndex !== -1) {
+      currentIndexRef.current = firstPlayableIndex;
+      currentTrackRef.current = queue[firstPlayableIndex] ?? null;
+      if (previousIndex === firstPlayableIndex) {
+        player.seekTo(0).catch(() => null);
+      } else {
+        setCurrentIndex(firstPlayableIndex);
+      }
+      return;
+    }
+
+    currentIndexRef.current = -1;
+    currentTrackRef.current = null;
+    setCurrentIndex(-1);
+  }, [player, queue, setPlaybackIntent, status?.didJustFinish]);
 
   const updateQueue = useCallback(
     (tracks: Track[], context?: PlaybackQueueContext | null) => {
