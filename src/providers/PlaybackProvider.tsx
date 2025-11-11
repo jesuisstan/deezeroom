@@ -391,14 +391,18 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       currentIndex >= 0 && currentIndex < queue.length && queue[currentIndex];
     const positionSeconds = status?.currentTime ?? 0;
 
-    if (hasCurrentTrack && positionSeconds > 5) {
+    if (!hasCurrentTrack) {
+      return;
+    }
+
+    if (positionSeconds > 5) {
       player.seekTo(0).catch(() => null);
       return;
     }
 
     const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
     if (previousIndex === -1) {
-      Notifier.error('Already at the first track');
+      player.seekTo(0).catch(() => null);
       return;
     }
 
