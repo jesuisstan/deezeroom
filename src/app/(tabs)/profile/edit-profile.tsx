@@ -161,17 +161,6 @@ const EditProfileScreen: FC = () => {
     await updateAvatar(imageUrl, profile, updateProfile);
   };
 
-  const handleBirthDateChange = (_: any, date?: Date) => {
-    setShowBirthModal(false);
-    if (date) {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-      setFormData((prev) => ({ ...prev, birthDate: `${d}-${m}-${y}` }));
-    }
-  };
-
-  // Helpers for web date formatting
   const formatDate = (date: Date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -180,10 +169,44 @@ const EditProfileScreen: FC = () => {
   };
   const parseDate = (value?: string) => {
     if (!value) return null;
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d;
+    const [dayStr, monthStr, yearStr] = value.split('-');
+    if (!dayStr || !monthStr || !yearStr) return null;
+    const day = Number(dayStr);
+    const month = Number(monthStr);
+    const year = Number(yearStr);
+    if (
+      !Number.isInteger(day) ||
+      !Number.isInteger(month) ||
+      !Number.isInteger(year) ||
+      day <= 0 ||
+      month <= 0 ||
+      month > 12
+    ) {
+      return null;
+    }
+    const parsed = new Date(year, month - 1, day);
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return null;
+    }
+    return parsed;
   };
-
+  const handleBirthDateChange = (event: any, date?: Date) => {
+    if (event?.type === 'dismissed') {
+      setShowBirthModal(false);
+      return;
+    }
+    if (date) {
+      setFormData((prev) => ({ ...prev, birthDate: formatDate(date) }));
+    }
+    setShowBirthModal(false);
+  };
+  const handleBirthDateClear = () => {
+    setFormData((prev) => ({ ...prev, birthDate: '' }));
+  };
   const buildPlaceName = (data: any): string => {
     try {
       // Google Geocoding API response
@@ -557,6 +580,7 @@ const EditProfileScreen: FC = () => {
           title="My Username"
           modalVisible={showNameModal}
           setVisible={setShowNameModal}
+          size="three-quarter"
         >
           <View className="flex-1 gap-4 px-4 pb-6">
             <InputCustom
@@ -580,6 +604,7 @@ const EditProfileScreen: FC = () => {
           title="About me"
           modalVisible={showBioModal}
           setVisible={setShowBioModal}
+          size="three-quarter"
         >
           <View className="flex-1 gap-4 px-4 pb-6">
             <InputCustom
@@ -642,6 +667,7 @@ const EditProfileScreen: FC = () => {
           title="Phone"
           modalVisible={showPhoneModal}
           setVisible={setShowPhoneModal}
+          size="three-quarter"
         >
           <View className="flex-1 gap-4 px-4 pb-6">
             <InputCustom
@@ -666,17 +692,23 @@ const EditProfileScreen: FC = () => {
           title="Date of Birth"
           modalVisible={showBirthModal}
           setVisible={setShowBirthModal}
+          size="hidden"
         >
           <View className="flex-1 gap-4 px-4 pb-6">
             {Platform.OS === 'web' && ReactDatePicker ? (
               <View className="w-full">
                 {/* @ts-ignore dynamic import style handled in file head */}
                 <ReactDatePicker
-                  selected={parseDate(formData.birthDate) || new Date()}
-                  onChange={(date: Date | null) =>
-                    date &&
-                    setFormData((p) => ({ ...p, birthDate: formatDate(date) }))
-                  }
+                  selected={parseDate(formData.birthDate)}
+                  onChange={(date: Date | null) => {
+                    if (date) {
+                      setFormData((p) => ({
+                        ...p,
+                        birthDate: formatDate(date)
+                      }));
+                      setShowBirthModal(false);
+                    }
+                  }}
                   withPortal
                   portalId="react-datepicker-portal"
                   popperPlacement="bottom"
@@ -686,35 +718,55 @@ const EditProfileScreen: FC = () => {
                   scrollableYearDropdown
                   yearDropdownItemNumber={120}
                   maxDate={new Date()}
-                  dateFormat="yyyy-MM-dd"
+                  dateFormat="dd-MM-yyyy"
                   calendarClassName=" border border-border"
                   popperClassName="z-50"
-                  customInput={<DateInputButton placeholder="yyyy-mm-dd" />}
+                  customInput={<DateInputButton placeholder="dd-mm-yyyy" />}
                 />
                 <View className="mt-3 flex-row gap-3">
                   {formData.birthDate ? (
                     <RippleButton
                       title="Clear"
                       variant="outline"
-                      onPress={() =>
-                        setFormData((p) => ({ ...p, birthDate: '' }))
-                      }
+                      onPress={() => {
+                        handleBirthDateClear();
+                        setShowBirthModal(false);
+                      }}
                     />
                   ) : null}
                   <RippleButton
-                    title="Done"
+                    title="Close"
                     onPress={() => setShowBirthModal(false)}
                   />
                 </View>
               </View>
             ) : (
-              <RNDateTimePicker
-                value={parseDate(formData.birthDate) || new Date()}
-                mode="date"
-                display="default"
-                onChange={handleBirthDateChange}
-                style={{ width: '100%' }}
-              />
+              <View className="w-full">
+                <RNDateTimePicker
+                  value={parseDate(formData.birthDate) || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={handleBirthDateChange}
+                  style={{ width: '100%' }}
+                  maximumDate={new Date()}
+                />
+                <View className="mt-3 flex-row gap-3">
+                  {formData.birthDate ? (
+                    <RippleButton
+                      title="Clear"
+                      variant="outline"
+                      onPress={() => {
+                        handleBirthDateClear();
+                        setShowBirthModal(false);
+                      }}
+                    />
+                  ) : null}
+                  <RippleButton
+                    title="Close"
+                    onPress={() => setShowBirthModal(false)}
+                  />
+                </View>
+              </View>
             )}
           </View>
         </SwipeModal>

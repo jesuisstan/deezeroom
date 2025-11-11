@@ -417,17 +417,33 @@ export async function deleteFriendship(
     const userRef1 = doc(db, 'users', uid1);
     const userRef2 = doc(db, 'users', uid2);
 
-    await Promise.all([
-      deleteDoc(ref),
-      updateDoc(userRef1, {
-        friendIds: arrayRemove(uid2),
-        updatedAt: serverTimestamp()
-      }),
-      updateDoc(userRef2, {
-        friendIds: arrayRemove(uid1),
-        updatedAt: serverTimestamp()
-      })
-    ]);
+    const snapshot = await getDoc(ref);
+
+    if (!snapshot.exists()) {
+      // Nothing to delete; treat as success for idempotency
+      return { success: true };
+    }
+
+    const connection = snapshot.data() as ConnectionDoc;
+
+    const tasks: Promise<unknown>[] = [deleteDoc(ref)];
+
+    if (connection.status === 'ACCEPTED') {
+      tasks.push(
+        updateDoc(userRef1, {
+          friendIds: arrayRemove(uid2),
+          updatedAt: serverTimestamp()
+        })
+      );
+      tasks.push(
+        updateDoc(userRef2, {
+          friendIds: arrayRemove(uid1),
+          updatedAt: serverTimestamp()
+        })
+      );
+    }
+
+    await Promise.all(tasks);
     return { success: true };
   } catch (error) {
     const err = error as FirebaseError;

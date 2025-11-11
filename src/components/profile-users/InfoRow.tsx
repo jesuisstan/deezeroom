@@ -14,7 +14,7 @@ const InfoRow: FC<{
   const { theme } = useTheme();
 
   return (
-    <View className="flex-row items-start justify-between py-2">
+    <View className="flex-row items-start justify-between">
       <TextCustom type="semibold" size="m">
         {label}
       </TextCustom>

@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 
+import UserChip from '@/components/profile-users/UserChip';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -39,96 +40,28 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
     };
   }, [playlist]);
 
-  const renderParticipant = (
-    participant: {
-      userId: string;
-      displayName?: string;
-      email?: string;
-      photoURL?: string;
-      role?: string;
-    },
-    isOwner: boolean = false
-  ) => {
+  const renderParticipant = (participant: {
+    userId: string;
+    displayName?: string;
+    email?: string;
+    photoURL?: string;
+  }) => {
     const name = participant.displayName || participant.email || 'Unknown';
-    const avatarSize = 42;
-
     return (
-      <Pressable
+      <UserChip
         key={participant.userId}
+        user={{
+          uid: participant.userId,
+          displayName: name,
+          photoURL: participant.photoURL
+        }}
         onPress={() =>
           router.push({
             pathname: '/users/[id]',
             params: { id: participant.userId }
           })
         }
-        className="mb-2 rounded-md"
-      >
-        <View className="flex-row items-center gap-2 rounded-md bg-bg-tertiary p-2">
-          {/* Avatar */}
-          <View
-            style={{
-              width: avatarSize,
-              height: avatarSize,
-              borderRadius: avatarSize / 2,
-              backgroundColor: themeColors[theme]['bg-secondary'],
-              overflow: 'hidden',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            {participant.photoURL ? (
-              <Image
-                source={{ uri: participant.photoURL }}
-                style={{
-                  width: avatarSize,
-                  height: avatarSize
-                }}
-                resizeMode="cover"
-              />
-            ) : (
-              <MaterialCommunityIcons
-                name="account"
-                size={avatarSize * 0.6}
-                color={themeColors[theme]['text-secondary']}
-              />
-            )}
-          </View>
-
-          {/* Name and Role */}
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <TextCustom
-                type="semibold"
-                size="m"
-                color={themeColors[theme]['text-main']}
-              >
-                {name}
-              </TextCustom>
-              {isOwner && (
-                <MaterialCommunityIcons
-                  name="crown"
-                  size={18}
-                  color={themeColors[theme]['primary']}
-                />
-              )}
-            </View>
-            {participant.role && !isOwner && (
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                {participant.role === 'editor' ? 'Editor' : 'Viewer'}
-              </TextCustom>
-            )}
-            {isOwner && (
-              <TextCustom
-                size="s"
-                color={themeColors[theme]['text-secondary']}
-                className="mt-1"
-              >
-                Owner
-              </TextCustom>
-            )}
-          </View>
-        </View>
-      </Pressable>
+      />
     );
   };
 
@@ -153,7 +86,26 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
           >
             Owner
           </TextCustom>
-          {renderParticipant(owner, true)}
+          <UserChip
+            user={{
+              uid: owner.userId,
+              displayName: owner.displayName || owner.email || 'Unknown',
+              photoURL: owner.photoURL
+            }}
+            onPress={() =>
+              router.push({
+                pathname: '/users/[id]',
+                params: { id: owner.userId }
+              })
+            }
+            rightAccessory={
+              <MaterialCommunityIcons
+                name="crown"
+                size={18}
+                color={themeColors[theme]['primary']}
+              />
+            }
+          />
         </View>
       )}
 
@@ -168,9 +120,16 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
           >
             Participants ({otherParticipants.length})
           </TextCustom>
-          {otherParticipants.map((participant) =>
-            renderParticipant(participant, false)
-          )}
+          <View className="flex-row flex-wrap gap-2">
+            {otherParticipants.map((participant) => (
+              <View
+                key={participant.userId}
+                className="max-w-[48%] flex-shrink"
+              >
+                {renderParticipant(participant)}
+              </View>
+            ))}
+          </View>
         </View>
       )}
 

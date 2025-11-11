@@ -64,7 +64,7 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          gap: 8
+          gap: 1
         }}
       >
         {artists.map((artist) => (

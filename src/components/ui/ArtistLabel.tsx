@@ -9,7 +9,7 @@ import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 const ArtistLabel: FC<{ artist: DeezerArtist }> = ({ artist }) => {
   const { theme } = useTheme();
   return (
-    <View className="flex-col items-center gap-1">
+    <View className="flex-col items-center gap-1" style={{ width: 70 }}>
       {artist.picture_medium ? (
         <Image
           source={{ uri: artist.picture_medium }}
@@ -23,15 +23,12 @@ const ArtistLabel: FC<{ artist: DeezerArtist }> = ({ artist }) => {
         </View>
       )}
       <TextCustom
-        size="s"
+        size="xs"
         numberOfLines={2}
-        style={{
-          width: 'auto',
-          maxWidth: 80,
-          fontFamily: 'Inter',
-          textAlign: 'center',
-          color: themeColors[theme]['text-main']
-        }}
+        ellipsizeMode="tail"
+        className="text-center"
+        color={themeColors[theme]['text-main']}
+        style={{ width: '100%' }}
       >
         {artist.name || ''}
       </TextCustom>

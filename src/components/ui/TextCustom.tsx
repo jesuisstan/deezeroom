@@ -24,6 +24,7 @@ export function TextCustom({
   color,
   size,
   className,
+  style,
   ...rest
 }: TextCustomProps) {
   const { theme } = useTheme();
@@ -104,7 +105,7 @@ export function TextCustom({
 
   return (
     <Text
-      style={[getFontStyle(), { color: customColor }]}
+      style={[getFontStyle(), { color: customColor }, style]}
       className={clsx(`${getTypeClasses()}`, getFontSize(), className)}
       {...rest}
     />

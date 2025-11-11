@@ -1,9 +1,9 @@
 import { FC, useMemo } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
-import ChangePasswordSection from '@/components/profile/ChangePasswordSection';
-import ConnectedAccountsSection from '@/components/profile/ConnectedAccountsSection';
-import DeleteAccountSection from '@/components/profile/DeleteAccountSection';
+import ChangePasswordSection from '@/components/profile-users/ChangePasswordSection';
+import ConnectedAccountsSection from '@/components/profile-users/ConnectedAccountsSection';
+import DeleteAccountSection from '@/components/profile-users/DeleteAccountSection';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import LineButton from '@/components/ui/buttons/LineButton';
 import Divider from '@/components/ui/Divider';

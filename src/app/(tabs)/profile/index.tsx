@@ -9,10 +9,10 @@ import {
 
 import { useRouter } from 'expo-router';
 
-import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
-import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
-import FriendsList from '@/components/profile/FriendsList';
-import InfoRow from '@/components/profile/InfoRow';
+import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
+import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
+import FriendsList from '@/components/profile-users/FriendsList';
+import InfoRow from '@/components/profile-users/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -200,10 +200,10 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Public information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Public information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Public information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           <InfoRow
             label="Display name"
             value={profile?.displayName}
@@ -230,10 +230,10 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Private information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Private information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Private information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           <InfoRow
             label="Phone"
             value={profile?.privateInfo?.phone}
@@ -252,9 +252,13 @@ const ProfileScreen: FC = () => {
         </View>
 
         <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <FriendsList uid={(profile as any)?.uid} />
+          <FriendsList
+            uid={(profile as any)?.uid}
+            friendIds={profile?.friendIds}
+          />
         </View>
-        {/* Footer */}
+
+        {/* WEB Footer */}
         {Platform.OS === 'web' && (
           <View className="mt-2 flex-row items-center gap-2">
             <View className="flex-1">

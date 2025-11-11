@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useRouter } from 'expo-router';
 
+import UserChip from '@/components/profile-users/UserChip';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -15,83 +17,40 @@ interface ParticipantView {
 }
 
 interface EventParticipantsTabProps {
+  ownerId: string;
   ownerName: string;
   ownerPhotoURL?: string;
   participants: ParticipantView[];
 }
 
-const AVATAR_SIZE = 42;
-
 const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
+  ownerId,
   ownerName,
   ownerPhotoURL,
   participants
 }) => {
   const { theme } = useTheme();
+  const router = useRouter();
 
   const participantList = useMemo(() => participants, [participants]);
 
-  const renderParticipant = (participant: ParticipantView, isOwner = false) => {
+  const renderParticipant = (participant: ParticipantView) => {
     const name = participant.displayName || participant.email || 'Unknown user';
-
     return (
-      <View
+      <UserChip
         key={participant.uid}
-        className="flex-row items-center gap-2 p-2"
-        style={{
-          backgroundColor: themeColors[theme]['bg-main'],
-          borderRadius: 6,
-          marginBottom: 8
+        user={{
+          uid: participant.uid,
+          displayName: name,
+          photoURL: participant.photoURL
         }}
-      >
-        <View
-          style={{
-            width: AVATAR_SIZE,
-            height: AVATAR_SIZE,
-            borderRadius: AVATAR_SIZE / 2,
-            backgroundColor: themeColors[theme]['bg-secondary'],
-            overflow: 'hidden',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          {participant.photoURL ? (
-            <Image
-              source={{ uri: participant.photoURL }}
-              style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}
-              resizeMode="cover"
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="account"
-              size={AVATAR_SIZE * 0.6}
-              color={themeColors[theme]['text-secondary']}
-            />
-          )}
-        </View>
-
-        <View className="flex-1">
-          <View className="flex-row items-center gap-2">
-            <TextCustom
-              type="semibold"
-              size="m"
-              color={themeColors[theme]['text-main']}
-            >
-              {name}
-            </TextCustom>
-            {isOwner && (
-              <MaterialCommunityIcons
-                name="crown"
-                size={18}
-                color={themeColors[theme]['primary']}
-              />
-            )}
-          </View>
-          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-            {isOwner ? 'Owner' : 'Participant'}
-          </TextCustom>
-        </View>
-      </View>
+        onPress={() =>
+          router.push({
+            pathname: '/users/[id]',
+            params: { id: participant.uid }
+          })
+        }
+      />
     );
   };
 
@@ -111,14 +70,26 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
         >
           Host
         </TextCustom>
-        {renderParticipant(
-          {
-            uid: 'owner',
-            displayName: ownerName,
+        <UserChip
+          user={{
+            uid: ownerId,
+            displayName: ownerName || 'Unknown',
             photoURL: ownerPhotoURL
-          },
-          true
-        )}
+          }}
+          onPress={() =>
+            router.push({
+              pathname: '/users/[id]',
+              params: { id: ownerId }
+            })
+          }
+          rightAccessory={
+            <MaterialCommunityIcons
+              name="crown"
+              size={18}
+              color={themeColors[theme]['primary']}
+            />
+          }
+        />
       </View>
 
       {participantList.length > 0 ? (
@@ -131,7 +102,13 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
           >
             Participants ({participantList.length})
           </TextCustom>
-          {participantList.map((participant) => renderParticipant(participant))}
+          <View className="flex-row flex-wrap gap-2">
+            {participantList.map((participant) => (
+              <View key={participant.uid} className="max-w-[48%] flex-shrink">
+                {renderParticipant(participant)}
+              </View>
+            ))}
+          </View>
         </View>
       ) : (
         <View className="flex-1 items-center justify-center py-8">

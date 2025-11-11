@@ -65,33 +65,53 @@ const buildFriendRequestItems = async (
       }
 
       if (!cache.has(otherUserId)) {
-        try {
-          const [publicProfile, userProfile] = await Promise.all([
+        const [publicProfileResult, userProfileResult] =
+          await Promise.allSettled([
             getPublicProfileDoc(otherUserId),
             UserService.getUserProfile(otherUserId)
           ]);
 
-          const name =
-            publicProfile?.displayName ||
-            userProfile?.displayName ||
-            userProfile?.email?.split?.('@')?.[0] ||
-            'Someone';
+        const publicProfile =
+          publicProfileResult.status === 'fulfilled'
+            ? publicProfileResult.value
+            : null;
 
-          cache.set(otherUserId, {
-            name,
-            photoURL: publicProfile?.photoURL || userProfile?.photoURL,
-            email: userProfile?.email
-          });
-        } catch (error) {
+        if (publicProfileResult.status === 'rejected') {
           Logger.warn(
-            'Failed to resolve user for friend request',
-            error,
+            'Failed to load public profile for friend request',
+            publicProfileResult.reason,
             '🤝 FriendRequests'
           );
-          cache.set(otherUserId, {
-            name: 'Someone'
-          });
         }
+
+        const userProfile =
+          userProfileResult.status === 'fulfilled'
+            ? userProfileResult.value
+            : null;
+
+        if (userProfileResult.status === 'rejected') {
+          const reason = userProfileResult.reason as Error;
+          // Suppress permission-denied noise; log other cases
+          if ((reason as any)?.code !== 'permission-denied') {
+            Logger.warn(
+              'Failed to load private profile for friend request',
+              reason,
+              '🤝 FriendRequests'
+            );
+          }
+        }
+
+        const name =
+          publicProfile?.displayName ||
+          userProfile?.displayName ||
+          userProfile?.email?.split?.('@')?.[0] ||
+          'Someone';
+
+        cache.set(otherUserId, {
+          name,
+          photoURL: publicProfile?.photoURL || userProfile?.photoURL,
+          email: userProfile?.email
+        });
       }
 
       const cached = cache.get(otherUserId) ?? { name: 'Someone' };

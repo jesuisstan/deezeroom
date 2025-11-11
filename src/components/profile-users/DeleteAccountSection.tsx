@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import AntDesign from '@expo/vector-icons/AntDesign';
 
-import SetupPassword from '@/components/profile/SetupPassword';
+import SetupPassword from '@/components/profile-users/SetupPassword';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';

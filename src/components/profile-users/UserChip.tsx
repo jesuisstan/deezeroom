@@ -1,5 +1,5 @@
 import { FC, ReactNode } from 'react';
-import { Image, Pressable, StyleProp, View, ViewStyle } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated, {
@@ -25,6 +25,8 @@ interface UserChipProps {
   className?: string;
   rightAccessory?: ReactNode;
 }
+
+const MAX_WIDTH = 250;
 
 const UserChip: FC<UserChipProps> = ({
   user,
@@ -61,11 +63,12 @@ const UserChip: FC<UserChipProps> = ({
       disabled={!isPressable}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      className={`relative flex-row items-center gap-2 overflow-hidden rounded-full border border-border px-2 py-1 ${className}`}
+      className={`relative overflow-hidden rounded-full border border-border px-3 py-1 ${className}`}
       style={[
         {
           backgroundColor,
-          opacity: isPressable ? 1 : 0.9
+          opacity: isPressable ? 1 : 0.9,
+          maxWidth: MAX_WIDTH
         }
       ]}
     >
@@ -84,34 +87,42 @@ const UserChip: FC<UserChipProps> = ({
         ]}
       />
 
-      {user.photoURL ? (
-        <Image
-          source={{ uri: user.photoURL }}
-          className="h-6 w-6 rounded-full"
-        />
-      ) : (
-        <View
-          className="h-6 w-6 items-center justify-center rounded-full"
-          style={{ backgroundColor: avatarPlaceholderBg }}
-        >
-          <MaterialCommunityIcons
-            name="account"
-            size={16}
-            color={themeColors[theme]['text-secondary']}
+      <View className="flex-row items-center justify-between gap-2">
+        {user.photoURL ? (
+          <Image
+            source={{ uri: user.photoURL }}
+            className="h-6 w-6 rounded-full"
           />
+        ) : (
+          <View
+            className="h-6 w-6 items-center justify-center rounded-full"
+            style={{ backgroundColor: avatarPlaceholderBg }}
+          >
+            <MaterialCommunityIcons
+              name="account"
+              size={16}
+              color={themeColors[theme]['text-secondary']}
+            />
+          </View>
+        )}
+
+        <View className="flex-shrink">
+          <TextCustom
+            size="s"
+            color={textColor}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {user.displayName || 'Unknown User'}
+          </TextCustom>
         </View>
-      )}
 
-      <TextCustom
-        size="s"
-        numberOfLines={1}
-        color={textColor}
-        className="max-w-[130px]"
-      >
-        {user.displayName || 'Unknown User'}
-      </TextCustom>
-
-      {rightAccessory ? <View className="ml-1">{rightAccessory}</View> : null}
+        {rightAccessory ? (
+          <View className="flex-shrink-0 items-center justify-center">
+            {rightAccessory}
+          </View>
+        ) : null}
+      </View>
     </Pressable>
   );
 };

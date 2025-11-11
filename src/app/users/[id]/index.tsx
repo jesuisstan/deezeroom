@@ -1,14 +1,14 @@
-import { FC, useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { Image, RefreshControl, ScrollView, View } from 'react-native';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
-import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
-import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
-import FriendsList from '@/components/profile/FriendsList';
-import InfoRow from '@/components/profile/InfoRow';
+import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
+import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
+import FriendsList from '@/components/profile-users/FriendsList';
+import InfoRow from '@/components/profile-users/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -46,6 +46,7 @@ const OtherProfileScreen: FC = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { user, profile: currentUserProfile } = useUser();
   const { theme } = useTheme();
+  const [refreshing, setRefreshing] = useState(false);
   const [publicDoc, setPublicDoc] = useState<PublicProfileDoc | null>(null);
   const [privateProfile, setPrivateProfile] = useState<UserProfile | null>(
     null
@@ -65,85 +66,105 @@ const OtherProfileScreen: FC = () => {
     return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
   }, [currentTrack]);
 
+  const fetchProfileSnapshot = useCallback(async () => {
+    if (!id || typeof id !== 'string') return null;
+
+    // Viewing own profile: hydrate from local state to avoid extra fetches
+    if (user?.uid && user.uid === id) {
+      const publicProfile: PublicProfileDoc = {
+        displayName:
+          currentUserProfile?.displayName || user.displayName || undefined,
+        photoURL: currentUserProfile?.photoURL || user.photoURL || undefined,
+        bio: currentUserProfile?.bio,
+        favoriteArtistIds: currentUserProfile?.favoriteArtistIds || [],
+        favoriteTracks: currentUserProfile?.favoriteTracks || []
+      };
+
+      return {
+        public: publicProfile,
+        privateData: currentUserProfile ?? null,
+        connectionDoc: null
+      };
+    }
+
+    const pub = await getPublicProfileDoc(id);
+
+    let privateData: UserProfile | null = null;
+    let connectionDoc: ConnectionDoc | null = null;
+
+    if (user?.uid) {
+      const [fr, conn] = await Promise.all([
+        isFriends(user.uid, id),
+        getConnectionBetween(user.uid, id)
+      ]);
+      connectionDoc = conn;
+
+      if (fr) {
+        try {
+          const profile = await UserService.getUserProfile(id);
+          if (profile?.friendIds?.includes(user.uid)) {
+            privateData = profile;
+          } else {
+            Logger.info(
+              'FriendIds missing for friendship; treating as public access',
+              { viewer: user.uid, owner: id },
+              '👤 OtherProfile'
+            );
+          }
+        } catch (error) {
+          Logger.warn(
+            'Failed to load private profile doc',
+            error,
+            '👤 OtherProfile'
+          );
+        }
+      }
+    }
+
+    return {
+      public: pub,
+      privateData,
+      connectionDoc
+    };
+  }, [currentUserProfile, id, user]);
+
   useEffect(() => {
     let active = true;
+
     (async () => {
+      if (!id || typeof id !== 'string') {
+        setPublicDoc(null);
+        setPrivateProfile(null);
+        setConnection(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       try {
-        if (!id || typeof id !== 'string') return;
+        const snapshot = await fetchProfileSnapshot();
+        if (!active || !snapshot) return;
 
-        // Use locally cached profile data when viewing own profile
-        if (user?.uid && user.uid === id) {
-          if (!active) return;
-
-          const publicProfile: PublicProfileDoc = {
-            displayName:
-              currentUserProfile?.displayName || user.displayName || undefined,
-            photoURL:
-              currentUserProfile?.photoURL || user.photoURL || undefined,
-            bio: currentUserProfile?.bio,
-            favoriteArtistIds: currentUserProfile?.favoriteArtistIds || [],
-            favoriteTracks: currentUserProfile?.favoriteTracks || []
-          };
-
-          setPublicDoc(publicProfile);
-          setPrivateProfile(currentUserProfile ?? null);
-          setConnection(null);
-          setLoading(false);
-          return;
+        setPublicDoc(snapshot.public ?? null);
+        setPrivateProfile(snapshot.privateData);
+        setConnection(snapshot.connectionDoc);
+      } catch (error) {
+        if (active) {
+          Logger.warn(
+            'Failed to load profile snapshot',
+            error,
+            '👤 OtherProfile'
+          );
         }
-
-        setLoading(true);
-
-        // Load public profile always
-        const pub = await getPublicProfileDoc(id);
-        if (!active) return;
-        setPublicDoc(pub);
-
-        // Determine access level & connection
-        let privateData: UserProfile | null = null;
-        let connectionDoc: ConnectionDoc | null = null;
-
-        if (user?.uid) {
-          const [fr, conn] = await Promise.all([
-            isFriends(user.uid, id),
-            getConnectionBetween(user.uid, id)
-          ]);
-          if (!active) return;
-          connectionDoc = conn;
-          if (fr) {
-            try {
-              const profile = await UserService.getUserProfile(id);
-              if (!active) return;
-              if (profile?.friendIds?.includes(user.uid)) {
-                privateData = profile;
-              } else {
-                Logger.info(
-                  'FriendIds missing for friendship; treating as public access',
-                  { viewer: user.uid, owner: id },
-                  '👤 OtherProfile'
-                );
-              }
-            } catch (error) {
-              Logger.warn(
-                'Failed to load private profile doc',
-                error,
-                '👤 OtherProfile'
-              );
-            }
-          }
-        }
-
-        if (!active) return;
-        setConnection(connectionDoc);
-        setPrivateProfile(privateData);
       } finally {
         if (active) setLoading(false);
       }
     })();
+
     return () => {
       active = false;
     };
-  }, [id, user?.uid, currentUserProfile, user]);
+  }, [fetchProfileSnapshot, id]);
 
   // Load favorite artists (public) by IDs and transform to DeezerArtist shape for FavoriteArtistsList
   useEffect(() => {
@@ -381,6 +402,23 @@ const OtherProfileScreen: FC = () => {
     ? visibleEmail || 'Email not provided'
     : 'Email is hidden';
 
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const snapshot = await fetchProfileSnapshot();
+      if (snapshot) {
+        setPublicDoc(snapshot.public ?? null);
+        setPrivateProfile(snapshot.privateData);
+        setConnection(snapshot.connectionDoc);
+      }
+    } catch (error) {
+      Logger.warn('Failed to refresh profile data', error, '👤 OtherProfile');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ScrollView
       showsVerticalScrollIndicator={true}
@@ -389,6 +427,14 @@ const OtherProfileScreen: FC = () => {
         paddingBottom: bottomPadding
       }}
       className="bg-bg-main"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          colors={[themeColors[theme]['primary']]}
+          tintColor={themeColors[theme]['primary']}
+        />
+      }
     >
       <View style={containerWidthStyle} className="gap-2 px-4 py-4 ">
         {/* Header */}
@@ -409,10 +455,21 @@ const OtherProfileScreen: FC = () => {
             <View className="flex-1">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1 pr-2">
-                  <TextCustom type="semibold" size="xl">
+                  <TextCustom
+                    type="semibold"
+                    size="xl"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {displayName}
                   </TextCustom>
-                  <TextCustom type="italic">{emailDisplay}</TextCustom>
+                  <TextCustom
+                    type="italic"
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {emailDisplay}
+                  </TextCustom>
                 </View>
                 <ShareButton
                   path={`/users/${id}`}
@@ -436,6 +493,8 @@ const OtherProfileScreen: FC = () => {
                           size="sm"
                           onPress={onAddFriend}
                           loading={actionLoading}
+                          width="full"
+                          variant="primary"
                         />
                       );
                     }
@@ -447,6 +506,7 @@ const OtherProfileScreen: FC = () => {
                           variant="outline"
                           onPress={onRemoveFriend}
                           loading={actionLoading}
+                          width="full"
                         />
                       );
                     }
@@ -458,25 +518,32 @@ const OtherProfileScreen: FC = () => {
                           variant="outline"
                           onPress={onCancelRequest}
                           loading={actionLoading}
+                          width="full"
                         />
                       );
                     }
                     // Incoming request from the other user
                     return (
                       <View className="flex-row items-center gap-2">
-                        <RippleButton
-                          title="Accept"
-                          size="sm"
-                          onPress={onAccept}
-                          loading={actionLoading}
-                        />
-                        <RippleButton
-                          title="Reject"
-                          size="sm"
-                          variant="outline"
-                          onPress={onReject}
-                          loading={actionLoading}
-                        />
+                        <View className="flex-1">
+                          <RippleButton
+                            title="Accept"
+                            size="sm"
+                            onPress={onAccept}
+                            loading={actionLoading}
+                            width="full"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <RippleButton
+                            title="Reject"
+                            size="sm"
+                            variant="outline"
+                            onPress={onReject}
+                            loading={actionLoading}
+                            width="full"
+                          />
+                        </View>
                       </View>
                     );
                   })()}
@@ -487,10 +554,10 @@ const OtherProfileScreen: FC = () => {
         </View>
 
         {/* Public information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Public information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Public information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           <InfoRow
             label="Display name"
             value={displayName}
@@ -517,10 +584,10 @@ const OtherProfileScreen: FC = () => {
         </View>
 
         {/* Private information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="bold" size="xl" className="mb-2">
-            Private information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Private information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           {canSeePrivate ? (
             <>
               <InfoRow
@@ -538,21 +605,23 @@ const OtherProfileScreen: FC = () => {
                 value={locationLabel}
                 emptyText="No location yet"
               />
-              <View className="mt-4">
-                <FriendsList uid={typeof id === 'string' ? id : undefined} />
+              <View className="mt-2">
+                <FriendsList
+                  uid={typeof id === 'string' ? id : undefined}
+                  friendIds={privateProfile?.friendIds}
+                />
               </View>
             </>
           ) : (
-            <View className="rounded-xl border border-border bg-bg-tertiary p-4">
-              <TextCustom className="text-accent">Friends only</TextCustom>
+            <View className="rounded-md border border-border bg-bg-tertiary p-4">
               <TextCustom>
                 Phone, birth date, location and friends list are visible to
-                friends.
+                friends only.
               </TextCustom>
             </View>
           )}
         </View>
-        <View className="flex-1">
+        <View className="mb-4 flex-1">
           <RippleButton
             title="Home"
             onPress={() => router.push('/')}

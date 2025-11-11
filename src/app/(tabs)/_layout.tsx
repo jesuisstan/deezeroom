@@ -5,7 +5,7 @@ import { Tabs } from 'expo-router';
 
 import NotificationsButton from '@/components/notifications/NotificationsButton';
 import MiniPlayer from '@/components/player/MiniPlayer';
-import SignOutButton from '@/components/profile/SignOutButton';
+import SignOutButton from '@/components/profile-users/SignOutButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import { HapticTab } from '@/components/ui/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
