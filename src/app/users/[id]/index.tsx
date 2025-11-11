@@ -358,10 +358,7 @@ const OtherProfileScreen: FC = () => {
   if (!id || typeof id !== 'string') return <ActivityIndicatorScreen />;
   if (!publicDoc) {
     return (
-      <View
-        className="flex-1 items-center justify-center gap-2 bg-bg-main px-6"
-        style={containerWidthStyle}
-      >
+      <View className="flex-1 items-center justify-center gap-2 bg-bg-main px-6">
         <TextCustom type="bold" size="xl">
           Profile not found
         </TextCustom>

@@ -362,9 +362,7 @@ const PlaylistDetailScreen = () => {
       return;
     }
 
-    const isPlayingThisPlaylist = tracks.some(
-      (t) => t.id === currentTrack.id
-    );
+    const isPlayingThisPlaylist = tracks.some((t) => t.id === currentTrack.id);
 
     if (!isPlayingThisPlaylist) {
       return;

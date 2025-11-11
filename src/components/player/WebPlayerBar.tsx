@@ -54,6 +54,8 @@ const WebPlayerBar = () => {
     await toggleFavorite();
   };
 
+  console.log('WebPlayerBar rendered'); // debug
+
   return (
     <View
       pointerEvents="box-none"
@@ -88,12 +90,12 @@ const WebPlayerBar = () => {
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
-              minWidth: 220
+              minWidth: 0
             }}
           >
             <View
               className="flex-row items-center gap-3"
-              style={{ flexShrink: 1, flexGrow: 1 }}
+              style={{ flexShrink: 1, flexGrow: 1, minWidth: 0 }}
             >
               <Image
                 source={artworkSource}
@@ -126,28 +128,6 @@ const WebPlayerBar = () => {
                 ) : null}
               </View>
             </View>
-            <View>
-              <IconButton
-                accessibilityLabel={
-                  isCurrentTrackFavorite
-                    ? 'Remove from favorites'
-                    : 'Add to favorites'
-                }
-                onPress={handleToggleFavorite}
-                disabled={!currentTrackId}
-                className="h-8 w-8"
-              >
-                <FontAwesome
-                  name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                  size={16}
-                  color={
-                    isCurrentTrackFavorite
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-main']
-                  }
-                />
-              </IconButton>
-            </View>
           </View>
 
           <View
@@ -157,6 +137,7 @@ const WebPlayerBar = () => {
               flexGrow: 1,
               flexShrink: 1,
               maxWidth: 460,
+              minWidth: 0,
               gap: 4
             }}
           >
@@ -210,13 +191,36 @@ const WebPlayerBar = () => {
           </View>
 
           <View
+            className="flex-row items-center justify-end"
             style={{
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
-              minWidth: 220
+              minWidth: 0,
+              paddingLeft: 12
             }}
-          />
+          >
+            <IconButton
+              accessibilityLabel={
+                isCurrentTrackFavorite
+                  ? 'Remove from favorites'
+                  : 'Add to favorites'
+              }
+              onPress={handleToggleFavorite}
+              disabled={!currentTrackId}
+              className="h-8 w-8"
+            >
+              <FontAwesome
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+                size={16}
+                color={
+                  isCurrentTrackFavorite
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-main']
+                }
+              />
+            </IconButton>
+          </View>
         </View>
       </View>
     </View>
