@@ -54,8 +54,6 @@ const WebPlayerBar = () => {
     await toggleFavorite();
   };
 
-  console.log('WebPlayerBar rendered'); // debug
-
   return (
     <View
       pointerEvents="box-none"

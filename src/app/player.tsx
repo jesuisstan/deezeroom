@@ -117,8 +117,8 @@ const PlayerScreen = () => {
             );
           } else {
             translateY.value = withSpring(0, {
-              damping: 18,
-              stiffness: 180
+              damping: 50,
+              stiffness: 250
             });
           }
         }),
@@ -153,23 +153,13 @@ const PlayerScreen = () => {
                 <View className="flex-1 items-center px-4">
                   <TextCustom
                     type="subtitle"
-                    size="xs"
+                    size="2xl"
                     color={themeColors[theme]['text-secondary']}
                     className="w-full text-center"
                     numberOfLines={1}
                     ellipsizeMode="tail"
                   >
                     {queueContext?.label ?? 'MIX'}
-                  </TextCustom>
-                  <TextCustom
-                    type="semibold"
-                    size="m"
-                    color={themeColors[theme]['text-secondary']}
-                    className="w-full text-center"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {currentTrack?.title ?? 'No track selected'}
                   </TextCustom>
                 </View>
                 <View style={{ width: 48 }} />
