@@ -18,10 +18,19 @@ import {
 import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
 
+export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';
+
+export interface PlaybackQueueContext {
+  source: PlaybackQueueSource;
+  label: string;
+  id?: string;
+}
+
 interface PlaybackStateContextValue {
   queue: Track[];
   currentTrack: Track | null;
   currentIndex: number;
+  queueContext: PlaybackQueueContext | null;
 }
 
 interface PlaybackStatusContextValue {
@@ -35,14 +44,21 @@ interface PlaybackUIStatusContextValue {
 }
 
 interface PlaybackActionsContextValue {
-  startPlayback: (tracks: Track[], trackId: string) => void;
+  startPlayback: (
+    tracks: Track[],
+    trackId: string,
+    context?: PlaybackQueueContext
+  ) => void;
   togglePlayPause: () => void;
   playNext: () => void;
   playPrevious: () => void;
   pause: () => void;
   resume: () => void;
   seekTo: (seconds: number) => void;
-  updateQueue: (tracks: Track[]) => void;
+  updateQueue: (
+    tracks: Track[],
+    context?: PlaybackQueueContext | null
+  ) => void;
 }
 
 const PlaybackStateContext = createContext<
@@ -82,6 +98,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [queueContext, setQueueContext] =
+    useState<PlaybackQueueContext | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playbackIntent, setPlaybackIntentState] = useState(false);
@@ -205,7 +223,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   }, [queue, setPlaybackIntent, status?.didJustFinish]);
 
   const updateQueue = useCallback(
-    (tracks: Track[]) => {
+    (tracks: Track[], context?: PlaybackQueueContext | null) => {
       const activeId = currentTrackRef.current?.id ?? null;
       const nextIndex =
         activeId !== null
@@ -217,6 +235,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       // new search results stream in.
       if (activeId !== null && nextIndex === -1) {
         return;
+      }
+
+      if (context !== undefined) {
+        setQueueContext(context);
       }
 
       const sameLength = queue.length === tracks.length;
@@ -238,13 +260,16 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentIndex(-1);
         setPlaybackIntent(false);
         autoPlayRef.current = false;
+        setQueueContext(context ?? null);
+      } else if (tracks.length === 0) {
+        setQueueContext(context ?? null);
       }
     },
-    [queue, setPlaybackIntent]
+    [queue, setPlaybackIntent, setQueueContext]
   );
 
   const startPlayback = useCallback(
-    (tracks: Track[], trackId: string) => {
+    (tracks: Track[], trackId: string, context?: PlaybackQueueContext) => {
       if (!tracks.length) {
         Notifier.error('No tracks to play yet');
         return;
@@ -262,6 +287,12 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      const queueContextToUse: PlaybackQueueContext =
+        context ?? {
+          source: 'search',
+          label: 'MIX'
+        };
+
       const isSameTrack = currentTrackRef.current?.id === targetTrack.id;
 
       if (isSameTrack) {
@@ -277,14 +308,14 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
             autoPlayRef.current = false;
           }
         }
-        updateQueue(tracks);
+        updateQueue(tracks, queueContextToUse);
         return;
       }
 
       currentTrackRef.current = targetTrack;
       currentIndexRef.current = targetIndex;
 
-      updateQueue(tracks);
+      updateQueue(tracks, queueContextToUse);
 
       setPlaybackIntent(true);
       autoPlayRef.current = true;
@@ -410,9 +441,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       queue,
       currentTrack,
-      currentIndex
+      currentIndex,
+      queueContext
     }),
-    [queue, currentTrack, currentIndex]
+    [queue, currentTrack, currentIndex, queueContext]
   );
 
   const statusValue: PlaybackStatusContextValue = useMemo(

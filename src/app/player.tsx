@@ -36,7 +36,8 @@ const PlayerScreen = () => {
 
   // Split into three separate hooks to minimize re-renders
   // ProgressBar will handle status internally
-  const { queue, currentTrack, currentIndex } = usePlaybackState();
+  const { queue, currentTrack, currentIndex, queueContext } =
+    usePlaybackState();
   const { isPlaying, isLoading, error } = usePlaybackUI();
   const { playNext, playPrevious, togglePlayPause } = usePlaybackActions();
 
@@ -152,16 +153,17 @@ const PlayerScreen = () => {
             <View className="flex-1 items-center px-4">
               <TextCustom
                 type="subtitle"
-                size="xl"
+                size="xs"
+                color={themeColors[theme]['text-secondary']}
                 className="w-full text-center"
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                MIX
+                {queueContext?.label ?? 'MIX'}
               </TextCustom>
               <TextCustom
                 type="semibold"
-                size="s"
+                size="m"
                 color={themeColors[theme]['text-secondary']}
                 className="w-full text-center"
                 numberOfLines={1}

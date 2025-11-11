@@ -34,7 +34,10 @@ const HomeScreen = () => {
       return;
     }
 
-    startPlayback(searchResults, track.id);
+    startPlayback(searchResults, track.id, {
+      source: 'search',
+      label: 'MIX'
+    });
   };
 
   const handleSearchResults = useCallback((tracks: Track[]) => {
