@@ -303,6 +303,7 @@ const EventDetailScreen = () => {
       case 'participants':
         return (
           <EventParticipantsTab
+            ownerId={event!.createdBy}
             ownerName={ownerName}
             ownerPhotoURL={ownerPhotoURL}
             participants={participantViews}

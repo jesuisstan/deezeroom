@@ -3,6 +3,8 @@
  * This is used for sending notifications when user performs an action
  */
 
+import { Logger } from '@/components/modules/logger';
+
 interface NotificationPayload {
   to: string;
   title: string;
@@ -46,9 +48,17 @@ export async function sendPushNotification(
       throw new Error(result.data.message);
     }
 
-    console.log('Push notification sent successfully:', result);
+    Logger.info(
+      'Push notification sent successfully:',
+      result,
+      '🔔 SendPushNotification'
+    );
   } catch (error) {
-    console.error('Failed to send push notification:', error);
+    Logger.error(
+      'Failed to send push notification:',
+      error,
+      '🔔 SendPushNotification'
+    );
     throw error;
   }
 }

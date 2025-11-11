@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
+import UserChip from '@/components/profile-users/UserChip';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
@@ -271,47 +272,28 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   );
 
   const renderSelectedUser = ({ item }: { item: UserProfile }) => (
-    <View
-      className="flex-row items-center rounded-full border border-border px-2 py-1"
-      style={{ backgroundColor: themeColors[theme]['primary'] + '20' }}
-    >
-      {/* Avatar */}
-      {item.photoURL ? (
-        <Image
-          source={{ uri: item.photoURL }}
-          className="mr-2 h-6 w-6 rounded-full"
-        />
-      ) : (
-        <MaterialCommunityIcons
-          name="account"
-          size={16}
-          color={themeColors[theme]['primary']}
-          className="mr-2"
-        />
-      )}
-
-      {/* Name */}
-      <TextCustom
-        size="s"
-        color={themeColors[theme]['primary']}
-        numberOfLines={1}
-      >
-        {item.displayName || 'Unknown User'}
-      </TextCustom>
-
-      {/* Remove Button */}
-      <IconButton
-        accessibilityLabel="Remove user from selection"
-        onPress={() => handleRemoveSelectedUser(item)}
-        className="ml-1 h-6 w-6"
-      >
-        <MaterialCommunityIcons
-          name="close-circle"
-          size={16}
-          color={themeColors[theme]['primary']}
-        />
-      </IconButton>
-    </View>
+    <UserChip
+      key={item.uid}
+      user={{
+        uid: item.uid,
+        displayName: item.displayName,
+        photoURL: item.photoURL
+      }}
+      disabled={true}
+      rightAccessory={
+        <IconButton
+          accessibilityLabel="Remove user from selection"
+          onPress={() => handleRemoveSelectedUser(item)}
+          className="ml-1 h-6 w-6"
+        >
+          <MaterialCommunityIcons
+            name="close-circle"
+            size={16}
+            color={themeColors[theme]['primary']}
+          />
+        </IconButton>
+      }
+    />
   );
 
   const renderContent = () => (
@@ -320,41 +302,19 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       {existingUsers.length > 0 && (
         <View>
           <TextCustom type="semibold" className="mb-2">
-            Current Members ({existingUsers.length}/{maxUsers})
+            Current Members ({existingUsers.length} of {maxUsers} max)
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
             {existingUsers.map((user) => (
-              <View
+              <UserChip
                 key={user.userId}
-                className="flex-row items-center rounded-full border border-border px-2 py-1"
-                style={{
-                  backgroundColor: themeColors[theme]['primary'] + '20'
+                user={{
+                  uid: user.userId,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL
                 }}
-              >
-                {/* Avatar */}
-                {user.photoURL ? (
-                  <Image
-                    source={{ uri: user.photoURL }}
-                    className="mr-2 h-6 w-6 rounded-full"
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="account"
-                    size={16}
-                    color={themeColors[theme]['text-secondary']}
-                    className="mr-2"
-                  />
-                )}
-
-                {/* Name */}
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                  numberOfLines={1}
-                >
-                  {user.displayName || 'Unknown User'}
-                </TextCustom>
-              </View>
+                disabled={true}
+              />
             ))}
           </View>
         </View>
@@ -433,8 +393,8 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
           {/* Selected Users */}
           <View>
             <TextCustom type="semibold" className="mb-2">
-              Inviting ({selectedUsers.length}/{maxUsers - existingUsers.length}
-              )
+              Inviting ({selectedUsers.length} of{' '}
+              {maxUsers - existingUsers.length} left max)
             </TextCustom>
             <View className="flex-row flex-wrap gap-2">
               {selectedUsers.length > 0 ? (

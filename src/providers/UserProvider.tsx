@@ -263,6 +263,7 @@ export const UserProvider: FC<TUserProviderProps> = ({
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
 
   const signOut = async () => {

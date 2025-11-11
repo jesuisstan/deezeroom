@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
@@ -23,7 +24,6 @@ const NotificationsScreen = () => {
   const { theme } = useTheme();
   const {
     playlistInvitations,
-    unreadCount,
     isLoading: invitationsLoading,
     refreshInvitations,
     acceptInvitation,
@@ -261,7 +261,14 @@ const NotificationsScreen = () => {
               color={themeColors[theme]['text-secondary']}
               className="mt-1"
             >
-              {`${request.requesterName} wants to connect with you.`}
+              <TextCustom
+                type="link"
+                size="s"
+                onPress={() => router.push(`/users/${request.requesterId}`)}
+              >
+                {request.requesterName}
+              </TextCustom>{' '}
+              wants to connect with you.
             </TextCustom>
 
             <View className="mt-3 flex-row items-center gap-2">

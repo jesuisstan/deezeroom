@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { Alert } from '@/components/modules/alert';
-import SetupPassword from '@/components/profile/SetupPassword';
+import SetupPassword from '@/components/profile-users/SetupPassword';
 import IconButton from '@/components/ui/buttons/IconButton';
 import ProviderIcon from '@/components/ui/ProviderIcon';
 import SwipeModal from '@/components/ui/SwipeModal';

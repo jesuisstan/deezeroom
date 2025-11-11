@@ -35,7 +35,7 @@ interface SwipeModalProps {
   disableSwipe?: boolean; // Disable the swipe gesture
   fade?: boolean; // Fade the background
   duration?: number; // Duration of the animation
-  size?: 'full' | 'three-quarter' | 'half' | 'third'; // Size of the modal
+  size?: 'full' | 'three-quarter' | 'half' | 'third' | 'hidden'; // Size of the modal
 }
 
 // Web version using Modal with centered popup
@@ -288,6 +288,8 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
         return (height - insets.top) / 3;
       case 'three-quarter':
         return ((height - insets.top) / 3) * 2;
+      case 'hidden':
+        return 0;
       default:
         return height - insets.top;
     }

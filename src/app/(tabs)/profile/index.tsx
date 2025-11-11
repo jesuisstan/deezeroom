@@ -1,9 +1,7 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Platform,
-  Pressable,
   RefreshControl,
   ScrollView,
   View
@@ -11,9 +9,10 @@ import {
 
 import { useRouter } from 'expo-router';
 
-import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
-import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
-import InfoRow from '@/components/profile/InfoRow';
+import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
+import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
+import FriendsList from '@/components/profile-users/FriendsList';
+import InfoRow from '@/components/profile-users/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -27,8 +26,6 @@ import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { DeezerService } from '@/utils/deezer/deezer-service';
 import type { DeezerArtist } from '@/utils/deezer/deezer-types';
-import { listAcceptedConnectionsFor } from '@/utils/firebase/firebase-service-connections';
-import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, refreshProfile } = useUser();
@@ -37,10 +34,6 @@ const ProfileScreen: FC = () => {
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
     string | undefined
   >();
-  const [friendsLoading, setFriendsLoading] = useState(false);
-  const [friends, setFriends] = useState<
-    { uid: string; displayName?: string; photoURL?: string }[]
-  >([]);
   const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,40 +47,6 @@ const ProfileScreen: FC = () => {
   const handlePlayTrack = (track: Track | null) => {
     setCurrentPlayingTrackId(track?.id);
   };
-
-  // Load friends list (accepted connections) for current user's profile
-  useEffect(() => {
-    const uid = (profile as any)?.uid;
-    if (!uid) return;
-    let active = true;
-    (async () => {
-      try {
-        setFriendsLoading(true);
-        const connections = await listAcceptedConnectionsFor(uid);
-        const otherUids = connections.map((c) =>
-          c.userA === uid ? c.userB : c.userA
-        );
-        const unique = Array.from(new Set(otherUids)).slice(0, 50); // simple cap
-        const docs = await Promise.all(
-          unique.map((fid) => getPublicProfileDoc(fid))
-        );
-        if (!active) return;
-        const items = unique.map((fid, i) => ({
-          uid: fid,
-          displayName: docs[i]?.displayName || 'User',
-          photoURL: docs[i]?.photoURL
-        }));
-        setFriends(items);
-      } catch {
-        // Silent fail for now; could add Notifier
-      } finally {
-        if (active) setFriendsLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [profile]);
 
   // Resolve favorite artists by IDs (public data)
   useEffect(() => {
@@ -138,46 +97,6 @@ const ProfileScreen: FC = () => {
   if (!user) {
     return <ActivityIndicatorScreen />; // todo: redirect to auth if needed
   }
-
-  const FriendChip: FC<{
-    user: { uid: string; displayName?: string; photoURL?: string };
-  }> = ({ user }) => (
-    <Pressable
-      onPress={() =>
-        router.push({
-          pathname: '/users/[id]',
-          params: { id: user.uid }
-        })
-      }
-      className="flex-col items-center gap-1"
-    >
-      {user.photoURL ? (
-        <Image
-          source={{ uri: user.photoURL }}
-          className="h-16 w-16 rounded-full"
-        />
-      ) : (
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
-          <TextCustom size="l" className="text-accent">
-            {(user.displayName || 'U').charAt(0).toUpperCase()}
-          </TextCustom>
-        </View>
-      )}
-      <TextCustom
-        size="s"
-        numberOfLines={2}
-        style={{
-          width: 'auto',
-          maxWidth: 80,
-          fontFamily: 'Inter',
-          textAlign: 'center',
-          color: themeColors[theme]['text-main']
-        }}
-      >
-        {user.displayName || 'User'}
-      </TextCustom>
-    </Pressable>
-  );
 
   // Build share path for this profile
   const profilePath = `/users/${user?.uid ?? ''}`;
@@ -281,10 +200,10 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Public information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Public information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Public information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           <InfoRow
             label="Display name"
             value={profile?.displayName}
@@ -311,10 +230,10 @@ const ProfileScreen: FC = () => {
         </View>
 
         {/* Private information */}
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
-          <TextCustom type="semibold" size="xl" className="mb-2">
-            Private information
-          </TextCustom>
+        <TextCustom type="bold" size="xl" className="mt-2">
+          Private information
+        </TextCustom>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary p-4">
           <InfoRow
             label="Phone"
             value={profile?.privateInfo?.phone}
@@ -330,37 +249,24 @@ const ProfileScreen: FC = () => {
             value={locationLabel}
             emptyText="No location yet"
           />
-          <View className="mt-4">
-            <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-              Friends
-            </TextCustom>
-            {friendsLoading ? (
-              <View className="mt-4 items-center justify-center">
-                <ActivityIndicator />
-              </View>
-            ) : friends.length === 0 ? (
-              <TextCustom className="text-accent/60 mt-2">
-                No friends yet
-              </TextCustom>
-            ) : (
-              <View className="mt-2 flex-row flex-wrap gap-4">
-                {friends.map((f) => (
-                  <FriendChip key={f.uid} user={f} />
-                ))}
-              </View>
-            )}
-          </View>
         </View>
 
-        {/* Footer */}
+        <View className="rounded-md border border-border bg-bg-secondary p-4">
+          <FriendsList
+            uid={(profile as any)?.uid}
+            friendIds={profile?.friendIds}
+          />
+        </View>
+
+        {/* WEB Footer */}
         {Platform.OS === 'web' && (
-          <View className="flex-row items-center gap-2">
+          <View className="mt-2 flex-row items-center gap-2">
             <View className="flex-1">
               <RippleButton
                 title="Back to Home"
                 onPress={() => router.push('/')}
                 width="full"
-                size="sm"
+                size="md"
                 variant="secondary"
               />
             </View>
@@ -369,7 +275,7 @@ const ProfileScreen: FC = () => {
                 title="Refresh"
                 onPress={handleRefresh}
                 width="full"
-                size="sm"
+                size="md"
                 loading={refreshing}
                 variant="secondary"
               />
