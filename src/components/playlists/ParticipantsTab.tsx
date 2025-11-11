@@ -118,7 +118,14 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
             color={themeColors[theme]['text-main']}
             className="mb-2"
           >
-            Participants ({otherParticipants.length})
+            Participants{' '}
+            <TextCustom
+              type="semibold"
+              size="m"
+              color={themeColors[theme]['text-secondary']}
+            >
+              ({otherParticipants.length})
+            </TextCustom>
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
             {otherParticipants.map((participant) => (
