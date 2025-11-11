@@ -55,10 +55,7 @@ interface PlaybackActionsContextValue {
   pause: () => void;
   resume: () => void;
   seekTo: (seconds: number) => void;
-  updateQueue: (
-    tracks: Track[],
-    context?: PlaybackQueueContext | null
-  ) => void;
+  updateQueue: (tracks: Track[], context?: PlaybackQueueContext | null) => void;
 }
 
 const PlaybackStateContext = createContext<
@@ -98,8 +95,9 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
-  const [queueContext, setQueueContext] =
-    useState<PlaybackQueueContext | null>(null);
+  const [queueContext, setQueueContext] = useState<PlaybackQueueContext | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playbackIntent, setPlaybackIntentState] = useState(false);
@@ -287,11 +285,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      const queueContextToUse: PlaybackQueueContext =
-        context ?? {
-          source: 'search',
-          label: 'MIX'
-        };
+      const queueContextToUse: PlaybackQueueContext = context ?? {
+        source: 'search',
+        label: 'MIX'
+      };
 
       const isSameTrack = currentTrackRef.current?.id === targetTrack.id;
 
@@ -390,6 +387,15 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    const hasCurrentTrack =
+      currentIndex >= 0 && currentIndex < queue.length && queue[currentIndex];
+    const positionSeconds = status?.currentTime ?? 0;
+
+    if (hasCurrentTrack && positionSeconds > 5) {
+      player.seekTo(0).catch(() => null);
+      return;
+    }
+
     const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
     if (previousIndex === -1) {
       Notifier.error('Already at the first track');
@@ -401,7 +407,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     currentIndexRef.current = previousIndex;
     currentTrackRef.current = queue[previousIndex] ?? null;
     setCurrentIndex(previousIndex);
-  }, [currentIndex, queue]);
+  }, [currentIndex, player, queue, status?.currentTime]);
 
   const pause = useCallback(() => {
     try {
