@@ -28,7 +28,6 @@ const WebPlayerBar = () => {
     playPrevious,
     isCurrentTrackFavorite,
     hasNext,
-    hasPrevious,
     toggleFavorite
   } = useCompactPlayerControls();
 
@@ -117,7 +116,7 @@ const WebPlayerBar = () => {
                 </TextCustom>
                 {track.artist?.name ? (
                   <TextCustom
-                    size="2xs"
+                    size="xs"
                     color={themeColors[theme]['text-secondary']}
                     numberOfLines={1}
                     ellipsizeMode="tail"
@@ -165,7 +164,6 @@ const WebPlayerBar = () => {
               <IconButton
                 accessibilityLabel="Play previous track"
                 onPress={playPrevious}
-                disabled={!hasPrevious}
                 className="h-8 w-8"
               >
                 <MaterialCommunityIcons
