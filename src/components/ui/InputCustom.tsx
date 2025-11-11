@@ -95,7 +95,11 @@ const InputCustom = forwardRef<TextInput, InputProps>(function Input(
   return (
     <View className={clsx(containerBase, className)}>
       {label ? (
-        <TextCustom className="mb-2" color={colors['text-secondary']}>
+        <TextCustom
+          className="mb-2"
+          type="bold"
+          color={colors['text-secondary']}
+        >
           {label}
         </TextCustom>
       ) : null}

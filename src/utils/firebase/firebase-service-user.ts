@@ -1,6 +1,7 @@
 import { User } from 'firebase/auth';
 import {
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -16,9 +17,9 @@ import {
 } from 'firebase/firestore';
 
 import { Logger } from '@/components/modules/logger';
-import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
+import { setPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 import { StorageService } from '@/utils/firebase/firebase-service-storage';
 
 // Remove all undefined values recursively to satisfy Firestore constraints
@@ -55,21 +56,16 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
-  publicInfo?: {
-    bio?: string;
-    location?: string;
-    locationName?: string;
-    locationCoords?: { lat: number; lng: number } | null;
-  };
+  bio?: string;
   privateInfo?: {
     phone?: string;
     birthDate?: string;
+    locationName?: string;
+    locationCoords?: { lat: number; lng: number } | null;
   };
-  musicPreferences?: {
-    favoriteGenres: string[];
-    favoriteArtists: DeezerArtist[]; // Array of DeezerArtist (max 20)
-  };
-  favoriteTracks?: string[]; // Array of track IDs
+  favoriteArtistIds?: string[];
+  favoriteTracks?: string[];
+  friendIds?: string[];
   authProviders?: {
     google?: {
       linked: boolean;
@@ -226,6 +222,8 @@ export class UserService {
         }
         // Initialize favoriteTracks for new users
         baseData.favoriteTracks = [];
+        baseData.favoriteArtistIds = [];
+        baseData.friendIds = [];
       }
 
       // Only write to Firestore if there are actual changes or it's a new user
@@ -244,6 +242,59 @@ export class UserService {
           null,
           '🔥 Firebase UserService'
         );
+
+        // Mirror public fields to subdocument for rules-based access
+        try {
+          const existingData = existingSnap.exists()
+            ? (existingSnap.data() as UserProfile)
+            : undefined;
+
+          const finalDisplayName =
+            (userData as any).displayName ??
+            existingData?.displayName ??
+            user.displayName ??
+            (user.email ? user.email.split('@')[0] : '');
+          const finalPhotoURL =
+            (userData as any).photoURL ??
+            existingData?.photoURL ??
+            user.photoURL ??
+            '';
+          const finalBio =
+            (userData as any).bio ?? existingData?.bio ?? undefined;
+          const finalFavoriteArtistIds =
+            (userData as any).favoriteArtistIds ??
+            existingData?.favoriteArtistIds;
+          const finalFavoriteTracks =
+            (userData as any).favoriteTracks ?? existingData?.favoriteTracks;
+
+          await setPublicProfileDoc(
+            user.uid,
+            removeUndefinedDeep({
+              displayName: finalDisplayName,
+              displayNameLowercase:
+                typeof finalDisplayName === 'string'
+                  ? finalDisplayName.toLowerCase()
+                  : undefined,
+              photoURL: finalPhotoURL,
+              bio: finalBio,
+              favoriteArtistIds: finalFavoriteArtistIds,
+              favoriteTracks: finalFavoriteTracks
+            })
+          );
+
+          // Ensure friendIds array exists
+          if (!existingData?.friendIds && !(userData as any).friendIds) {
+            await updateDoc(userRef, {
+              friendIds: []
+            });
+          }
+        } catch (mirrorErr) {
+          Logger.warn(
+            'Failed to mirror profile to subdocs',
+            mirrorErr,
+            '🔥 Firebase UserService'
+          );
+        }
       } else {
         Logger.info(
           'Skipping Firestore write - no changes detected',
@@ -281,6 +332,34 @@ export class UserService {
       updatedAt: serverTimestamp()
     });
     await setDoc(userRef, cleaned, { merge: true });
+
+    // Mirror updates into public subdoc as needed
+    try {
+      const toPublic: any = {};
+      if (typeof data.displayName !== 'undefined') {
+        toPublic.displayName = data.displayName;
+        toPublic.displayNameLowercase =
+          typeof data.displayName === 'string'
+            ? data.displayName.toLowerCase()
+            : undefined;
+      }
+      if (typeof data.photoURL !== 'undefined')
+        toPublic.photoURL = data.photoURL;
+      if (typeof data.bio !== 'undefined') toPublic.bio = data.bio;
+      if (typeof data.favoriteArtistIds !== 'undefined')
+        toPublic.favoriteArtistIds = data.favoriteArtistIds;
+      if (typeof data.favoriteTracks !== 'undefined')
+        toPublic.favoriteTracks = data.favoriteTracks;
+      if (Object.keys(removeUndefinedDeep(toPublic) || {}).length > 0) {
+        await setPublicProfileDoc(uid, removeUndefinedDeep(toPublic));
+      }
+    } catch (mirrorErr) {
+      Logger.warn(
+        'Failed to mirror update to subdocs',
+        mirrorErr,
+        '🔥 Firebase UserService'
+      );
+    }
   }
 
   // Update auth providers information for existing user
@@ -707,6 +786,24 @@ export class UserService {
       const playlistsSnap = await getDocs(playlistsQ);
       await Promise.all(playlistsSnap.docs.map((d) => deleteDoc(d.ref)));
 
+      // Delete user profile subcollection (public)
+      const publicProfileRef = doc(
+        db,
+        this.collection,
+        uid,
+        'public',
+        'profile'
+      );
+      await Promise.all([
+        deleteDoc(publicProfileRef).catch((error) =>
+          Logger.warn(
+            'Failed to delete public profile subdoc',
+            error,
+            '🔥 Firebase UserService'
+          )
+        )
+      ]);
+
       // Delete user profile document
       const userRef = doc(db, this.collection, uid);
       await deleteDoc(userRef);
@@ -750,6 +847,19 @@ export class UserService {
         favoriteTracks: updatedFavorites,
         updatedAt: serverTimestamp()
       });
+
+      // Mirror to public profile subdoc
+      try {
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
+      } catch (e) {
+        Logger.warn(
+          'Mirror addToFavorites failed',
+          e,
+          '🔥 Firebase UserService'
+        );
+      }
 
       Logger.info(
         'Track added to favorites',
@@ -798,6 +908,18 @@ export class UserService {
         favoriteTracks: updatedFavorites,
         updatedAt: serverTimestamp()
       });
+
+      try {
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
+      } catch (e) {
+        Logger.warn(
+          'Mirror removeFromFavorites failed',
+          e,
+          '🔥 Firebase UserService'
+        );
+      }
 
       Logger.info(
         'Track removed from favorites',
@@ -858,6 +980,18 @@ export class UserService {
         updatedAt: serverTimestamp()
       });
 
+      try {
+        await setPublicProfileDoc(uid, {
+          favoriteTracks: updatedFavorites
+        });
+      } catch (e) {
+        Logger.warn(
+          'Mirror toggleFavorite failed',
+          e,
+          '🔥 Firebase UserService'
+        );
+      }
+
       Logger.info(
         'Track favorite status toggled',
         { uid, trackId, isFavorite: !isCurrentlyFavorite },
@@ -894,54 +1028,140 @@ export class UserService {
     excludeUserId?: string
   ): Promise<UserProfile[]> {
     try {
-      if (!searchQuery.trim()) return [];
+      const trimmed = searchQuery.trim();
+      if (!trimmed) return [];
 
-      const searchTerm = searchQuery.trim().toLowerCase();
+      const termLower = trimmed.toLowerCase();
 
-      // Search by email (exact match)
-      const emailQuery = query(
-        collection(db, this.collection),
-        where('email', '==', searchTerm),
+      // Primary: search by lowercase display name (if present)
+      const lowerNameQuery = query(
+        collectionGroup(db, 'public'),
+        where('displayNameLowercase', '>=', termLower),
+        where('displayNameLowercase', '<=', termLower + '\uf8ff'),
         limit(limitCount)
       );
 
-      // Search by display name (contains)
-      const nameQuery = query(
-        collection(db, this.collection),
-        where('displayName', '>=', searchTerm),
-        where('displayName', '<=', searchTerm + '\uf8ff'),
+      // Fallback: search by raw displayName for older docs without lowercase field
+      const rawNameQuery = query(
+        collectionGroup(db, 'public'),
+        where('displayName', '>=', trimmed),
+        where('displayName', '<=', trimmed + '\uf8ff'),
         limit(limitCount)
       );
 
-      const [emailResults, nameResults] = await Promise.all([
-        getDocs(emailQuery),
-        getDocs(nameQuery)
-      ]);
+      // Email exact match in root user profile (stored lowercased)
+      const emailQueryLower = query(
+        collection(db, this.collection),
+        where('email', '==', termLower),
+        limit(limitCount)
+      );
+      const emailQueryExact =
+        termLower === trimmed
+          ? null
+          : query(
+              collection(db, this.collection),
+              where('email', '==', trimmed),
+              limit(limitCount)
+            );
 
-      // Combine and deduplicate results
-      const allUsers = new Map<string, UserProfile>();
-
-      emailResults.docs.forEach((doc) => {
-        const docData = doc.data();
-        if (docData) {
-          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
-          if (!excludeUserId || userData.uid !== excludeUserId) {
-            allUsers.set(userData.uid, userData);
-          }
+      // Run lowercase query first; if index is missing, fall back gracefully
+      let lowerSnap: any = { docs: [] };
+      try {
+        lowerSnap = await getDocs(lowerNameQuery);
+      } catch (e: any) {
+        // If index missing or not ready, proceed with fallback only
+        if (e?.code === 'failed-precondition') {
+        } else {
+          throw e;
         }
-      });
+      }
 
-      nameResults.docs.forEach((doc) => {
-        const docData = doc.data();
-        if (docData) {
-          const userData = { id: doc.id, ...docData } as unknown as UserProfile;
-          if (!excludeUserId || userData.uid !== excludeUserId) {
-            allUsers.set(userData.uid, userData);
-          }
+      let rawSnap: any = { docs: [] };
+      try {
+        rawSnap = await getDocs(rawNameQuery);
+      } catch (e) {
+        // Propagate non-index errors
+        throw e;
+      }
+
+      let emailDocs: any[] = [];
+      try {
+        const lowerSnapResult = await getDocs(emailQueryLower);
+        emailDocs = lowerSnapResult.docs;
+        if (emailQueryExact) {
+          const exactSnap = await getDocs(emailQueryExact);
+          emailDocs = emailDocs.concat(exactSnap.docs);
         }
-      });
+      } catch {
+        // Ignore errors; name-based search still works
+      }
 
-      return Array.from(allUsers.values()).slice(0, limitCount);
+      const results = new Map<string, UserProfile>();
+
+      const mergeResult = (
+        uid: string,
+        data: Partial<
+          Pick<
+            UserProfile,
+            | 'email'
+            | 'displayName'
+            | 'photoURL'
+            | 'bio'
+            | 'favoriteArtistIds'
+            | 'favoriteTracks'
+          >
+        >
+      ) => {
+        if (!uid) return;
+        if (excludeUserId && uid === excludeUserId) return;
+        const existing = results.get(uid);
+        results.set(uid, {
+          uid,
+          email: data.email ?? existing?.email ?? '',
+          displayName: data.displayName ?? existing?.displayName ?? '',
+          photoURL: data.photoURL ?? existing?.photoURL,
+          bio: data.bio ?? existing?.bio,
+          favoriteArtistIds:
+            data.favoriteArtistIds ?? existing?.favoriteArtistIds,
+          favoriteTracks: data.favoriteTracks ?? existing?.favoriteTracks,
+          createdAt: null,
+          updatedAt: null,
+          emailVerified: false
+        });
+      };
+
+      const collectPublic = (d: any) => {
+        const data = d.data();
+        const uid = d.ref.parent.parent?.id as string | undefined;
+        if (!uid) return;
+        mergeResult(uid, {
+          displayName: data?.displayName,
+          photoURL: data?.photoURL,
+          bio: data?.bio,
+          favoriteArtistIds: data?.favoriteArtistIds,
+          favoriteTracks: data?.favoriteTracks
+        });
+      };
+
+      const collectUserDoc = (d: any) => {
+        const data = d.data();
+        const uid = d.id as string | undefined;
+        if (!uid) return;
+        mergeResult(uid, {
+          email: data?.email,
+          displayName: data?.displayName,
+          photoURL: data?.photoURL,
+          bio: data?.bio,
+          favoriteArtistIds: data?.favoriteArtistIds,
+          favoriteTracks: data?.favoriteTracks
+        });
+      };
+
+      lowerSnap.docs.forEach(collectPublic);
+      rawSnap.docs.forEach(collectPublic);
+      emailDocs.forEach(collectUserDoc);
+
+      return Array.from(results.values()).slice(0, limitCount);
     } catch (error) {
       Logger.error('Error searching users', error, '🔥 Firebase UserService');
       return [];

@@ -1,29 +1,24 @@
-import { FC, useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  Platform,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  View
-} from 'react-native';
+import { FC, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ExpoLocation from 'expo-location';
-import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
-import IconButton from '@/components/ui/buttons/IconButton';
+import LineButton from '@/components/ui/buttons/LineButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import ImageUploader, {
   ImageUploaderHandle
 } from '@/components/ui/ImageUploader';
+import InputCustom from '@/components/ui/InputCustom';
+import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import type { Artist as GqlArtist } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -35,8 +30,10 @@ import { updateAvatar } from '@/utils/profile-utils';
 // Guarded runtime import so the screen works even before native rebuild
 let RNDateTimePicker: any = null;
 try {
+  // @ts-ignore ensure styles present when dependency installed
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   RNDateTimePicker = require('@react-native-community/datetimepicker').default;
-} catch (e) {
+} catch {
   RNDateTimePicker = null;
 }
 
@@ -44,11 +41,42 @@ try {
 let ReactDatePicker: any = null;
 if (Platform.OS === 'web') {
   try {
+    // @ts-ignore ensure styles present when dependency installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     ReactDatePicker = require('react-datepicker').default;
     // @ts-ignore ensure styles present when dependency installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     require('react-datepicker/dist/react-datepicker.css');
   } catch {}
 }
+
+// Web-only: custom input for ReactDatePicker that renders TextCustom inside
+// to guarantee proper contrast in dark theme.
+const DateInputButton = forwardRef<
+  HTMLButtonElement,
+  {
+    value?: string;
+    onClick?: () => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }
+>(function DateInputButton({ value, onClick, placeholder, disabled }, ref) {
+  return (
+    // Use a real <button> so the datepicker can focus/anchor it correctly
+    <button
+      type="button"
+      onClick={onClick}
+      ref={ref as any}
+      disabled={disabled}
+      className="w-full rounded-md border border-border p-3 text-left"
+      style={{ cursor: 'pointer' }}
+    >
+      <TextCustom className={value ? '' : 'opacity-60'}>
+        {value || placeholder || 'Select date'}
+      </TextCustom>
+    </button>
+  );
+});
 
 const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
@@ -57,6 +85,8 @@ const EditProfileScreen: FC = () => {
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
+  // Scrolling ref
+  const scrollRef = useRef<ScrollView>(null);
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -65,46 +95,64 @@ const EditProfileScreen: FC = () => {
     locationName: '',
     locationCoords: null as null | { lat: number; lng: number },
     phone: '',
-    birthDate: '',
-    favoriteGenres: ''
+    birthDate: ''
   });
 
   // Artist selection state
   const [selectedArtists, setSelectedArtists] = useState<DeezerArtist[]>([]);
-  const [artistQuery, setArtistQuery] = useState('');
-  const [artistResults, setArtistResults] = useState<GqlArtist[]>([]);
-  const [artistSearching, setArtistSearching] = useState(false);
-  const [artistError, setArtistError] = useState<string | null>(null);
-  const [debounceId, setDebounceId] = useState<any>(null);
+  // Artist picker state is managed inside reusable component. Keep only selected here.
 
   // Loading state for location detection
   const [locLoading, setLocLoading] = useState(false);
-  const [showBirthPicker, setShowBirthPicker] = useState(false);
+  // Modals visibility
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [showBioModal, setShowBioModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showBirthModal, setShowBirthModal] = useState(false);
+  const [showArtistsModal, setShowArtistsModal] = useState(false);
 
-  const contentStyle: ViewStyle = {
-    ...(Platform.OS === 'web' ? { alignItems: 'center' as const } : {}),
-    paddingBottom: insets.bottom + 32
-  };
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
+  const bottomPadding = useMemo(() => {
+    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+  }, [currentTrack]);
 
   // Initialize form data from profile
   useEffect(() => {
     if (profile) {
       setFormData({
         displayName: profile.displayName || '',
-        bio: profile.publicInfo?.bio || '',
-        locationName:
-          (profile.publicInfo as any)?.locationName ||
-          profile.publicInfo?.location ||
-          '',
-        locationCoords: (profile.publicInfo as any)?.locationCoords || null,
+        bio: profile.bio || '',
+        locationName: profile.privateInfo?.locationName || '',
+        locationCoords: profile.privateInfo?.locationCoords || null,
         phone: profile.privateInfo?.phone || '',
-        birthDate: profile.privateInfo?.birthDate || '',
-        favoriteGenres:
-          profile.musicPreferences?.favoriteGenres?.join(', ') || ''
+        birthDate: profile.privateInfo?.birthDate || ''
       });
-      setSelectedArtists(
-        (profile.musicPreferences?.favoriteArtists as DeezerArtist[]) || []
-      );
+      // Load selected artists details by IDs (preferred), fallback to deprecated stored objects
+      const ids = profile.favoriteArtistIds;
+      if (ids && ids.length) {
+        deezerService
+          .getArtistsByIdsViaGraphQL(ids)
+          .then((artists) => {
+            setSelectedArtists(
+              artists.map((a) => ({
+                id: a.id,
+                name: a.name,
+                link: a.link,
+                picture: a.picture,
+                picture_small: a.pictureSmall,
+                picture_medium: a.pictureMedium,
+                picture_big: a.pictureBig,
+                picture_xl: a.pictureXl,
+                type: 'artist'
+              }))
+            );
+          })
+          .catch(() => setSelectedArtists([]));
+      } else {
+        setSelectedArtists([]);
+      }
     }
   }, [profile]);
 
@@ -114,12 +162,12 @@ const EditProfileScreen: FC = () => {
   };
 
   const handleBirthDateChange = (_: any, date?: Date) => {
-    setShowBirthPicker(false);
+    setShowBirthModal(false);
     if (date) {
       const y = date.getFullYear();
       const m = String(date.getMonth() + 1).padStart(2, '0');
       const d = String(date.getDate()).padStart(2, '0');
-      setFormData((prev) => ({ ...prev, birthDate: `${y}-${m}-${d}` }));
+      setFormData((prev) => ({ ...prev, birthDate: `${d}-${m}-${y}` }));
     }
   };
 
@@ -128,7 +176,7 @@ const EditProfileScreen: FC = () => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return `${d}-${m}-${y}`;
   };
   const parseDate = (value?: string) => {
     if (!value) return null;
@@ -311,80 +359,19 @@ const EditProfileScreen: FC = () => {
     }
   };
 
-  const mapGqlArtistToDeezer = (a: GqlArtist): DeezerArtist => ({
-    id: a.id,
-    name: a.name,
-    link: a.link,
-    picture: a.picture,
-    picture_small: a.pictureSmall,
-    picture_medium: a.pictureMedium,
-    picture_big: a.pictureBig,
-    picture_xl: a.pictureXl,
-    type: 'artist'
-  });
-
-  const searchArtists = (q: string) => {
-    setArtistQuery(q);
-    setArtistError(null);
-    if (debounceId) clearTimeout(debounceId);
-
-    if (!q || q.trim().length < 2) {
-      setArtistResults([]);
-      return;
-    }
-
-    const id = setTimeout(async () => {
-      try {
-        setArtistSearching(true);
-        const res = await deezerService.searchArtistsViaGraphQL(q, 8, 0);
-        setArtistResults(res.artists || []);
-      } catch (e: any) {
-        Logger.error('Artist search failed', e, 'EditProfile');
-        setArtistError('Failed to search');
-      } finally {
-        setArtistSearching(false);
-      }
-    }, 300);
-    setDebounceId(id);
-  };
-
-  const addArtist = (artist: GqlArtist) => {
-    const toAdd = mapGqlArtistToDeezer(artist);
-    setArtistQuery('');
-    setArtistResults([]);
-    setSelectedArtists((prev) => {
-      // no duplicates and max 20
-      if (prev.find((a) => a.id === toAdd.id)) return prev;
-      if (prev.length >= 20) return prev;
-      return [...prev, toAdd];
-    });
-  };
-
-  const removeArtist = (id: string) => {
-    setSelectedArtists((prev) => prev.filter((a) => a.id !== id));
-  };
-
   const handleSave = async () => {
     if (!user) return;
     try {
       const updateData = {
         displayName: formData.displayName,
-        publicInfo: {
-          bio: formData.bio,
+        bio: formData.bio,
+        privateInfo: {
+          phone: formData.phone,
+          birthDate: formData.birthDate,
           locationName: formData.locationName || undefined,
           locationCoords: formData.locationCoords || undefined
         },
-        privateInfo: {
-          phone: formData.phone,
-          birthDate: formData.birthDate
-        },
-        musicPreferences: {
-          favoriteGenres: formData.favoriteGenres
-            .split(',')
-            .map((g) => g.trim())
-            .filter((g) => g),
-          favoriteArtists: selectedArtists.slice(0, 20)
-        }
+        favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
       } as any;
 
       await updateProfile(updateData);
@@ -398,343 +385,358 @@ const EditProfileScreen: FC = () => {
   return !profile ? (
     <ActivityIndicatorScreen />
   ) : (
-    <ScrollView
-      className="flex-1 bg-bg-main px-4 py-4"
-      contentContainerStyle={contentStyle}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: themeColors[theme]['bg-main'] }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 8 : 0}
     >
-      <View className="w-full" style={[containerWidthStyle]}>
-        {/* Avatar */}
-        <View className="w-full items-center gap-3 px-4 py-6">
-          <ImageUploader
-            ref={uploaderRef}
-            currentImageUrl={profile?.photoURL}
-            onImageUploaded={handleImageUploaded}
-            shape="circle"
-            placeholder="Add Photo"
-            size="lg"
-          />
-          <View className="flex-row gap-3">
-            <RippleButton
-              title="Change photo"
-              size="sm"
-              variant="primary"
-              onPress={() => uploaderRef.current?.open()}
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: bottomPadding
+        }}
+        className="bg-bg-main"
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="w-full gap-4 py-4" style={[containerWidthStyle]}>
+          {/* Avatar */}
+          <View className="w-full items-center gap-2 px-4">
+            <ImageUploader
+              ref={uploaderRef}
+              currentImageUrl={profile?.photoURL}
+              onImageUploaded={handleImageUploaded}
+              shape="circle"
+              placeholder="Add Photo"
+              size="lg"
             />
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1">
+                <RippleButton
+                  title="Update avatar"
+                  size="sm"
+                  variant="primary"
+                  onPress={() => uploaderRef.current?.open()}
+                />
+              </View>
+              <View className="flex-1">
+                {!!profile?.photoURL && (
+                  <RippleButton
+                    title="Remove"
+                    size="sm"
+                    variant="outline"
+                    onPress={() => uploaderRef.current?.remove()}
+                  />
+                )}
+              </View>
+            </View>
+          </View>
+          <Divider />
+
+          {/* Public information */}
+          <View className="">
+            <TextCustom type="bold" size="xl" className="px-4">
+              Public information
+            </TextCustom>
+
+            {/* Username */}
+            <LineButton onPress={() => setShowNameModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  My Username
+                </TextCustom>
+                <TextCustom>{formData.displayName || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* About me */}
+            <LineButton onPress={() => setShowBioModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  About me
+                </TextCustom>
+                <TextCustom numberOfLines={1}>
+                  {formData.bio || 'Tap to write'}
+                </TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* Favorite artists */}
+            <LineButton onPress={() => setShowArtistsModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Favorite artists
+                </TextCustom>
+                <TextCustom>
+                  {selectedArtists.length > 0
+                    ? `${selectedArtists.length} selected`
+                    : 'None'}
+                </TextCustom>
+              </View>
+            </LineButton>
+            <Divider />
+          </View>
+
+          {/* Private information */}
+          <View className="">
+            <TextCustom type="bold" size="xl" className="px-4">
+              Private information
+            </TextCustom>
+
+            {/* Date of Birth */}
+            <LineButton onPress={() => setShowBirthModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Date of Birth
+                </TextCustom>
+                <TextCustom>{formData.birthDate || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* Location */}
+            <LineButton onPress={() => setShowLocationModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Location
+                </TextCustom>
+                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+            <Divider inset />
+
+            {/* Phone */}
+            <LineButton onPress={() => setShowPhoneModal(true)}>
+              <View className="w-full px-4 py-2">
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Phone
+                </TextCustom>
+                <TextCustom>{formData.phone || 'Not set'}</TextCustom>
+              </View>
+            </LineButton>
+          </View>
+
+          {/* Save */}
+          <View className="px-4">
             <RippleButton
-              title="Remove"
-              size="sm"
-              variant="outline"
-              onPress={() => uploaderRef.current?.remove()}
-              disabled={!profile?.photoURL}
+              title="Save"
+              size="md"
+              variant="primary"
+              onPress={handleSave}
+              width="full"
             />
           </View>
-          <TextCustom size="xs" className="opacity-60">
-            JPG or PNG, up to 5 MB. Tip: use a square image for best fit.
-          </TextCustom>
         </View>
-        <Divider />
+      </ScrollView>
 
-        {/* Basic information */}
-        <View className="mt-4">
-          <TextCustom type="subtitle">Basic information</TextCustom>
-
-          <View className="mb-4 mt-3">
-            <TextCustom type="bold">Name</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
+      {/* Modals */}
+      {/* Name Modal */}
+      {showNameModal && (
+        <SwipeModal
+          title="My Username"
+          modalVisible={showNameModal}
+          setVisible={setShowNameModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Enter your name"
               value={formData.displayName}
               onChangeText={(text) =>
-                setFormData({ ...formData, displayName: text })
+                setFormData((p) => ({ ...p, displayName: text }))
               }
-              placeholder="Enter your name"
+            />
+            <RippleButton
+              title="Done"
+              onPress={() => setShowNameModal(false)}
             />
           </View>
+        </SwipeModal>
+      )}
 
-          <View className="mb-4">
-            <TextCustom type="bold">About me</TextCustom>
-            <TextInput
-              className="mt-1 h-20 rounded-xl border border-border bg-bg-main p-3 text-text-main"
+      {/* Bio Modal */}
+      {showBioModal && (
+        <SwipeModal
+          title="About me"
+          modalVisible={showBioModal}
+          setVisible={setShowBioModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Tell about yourself"
               value={formData.bio}
-              onChangeText={(text) => setFormData({ ...formData, bio: text })}
-              placeholder="Tell me about yourself"
+              onChangeText={(text) => setFormData((p) => ({ ...p, bio: text }))}
               multiline
             />
+            <RippleButton title="Done" onPress={() => setShowBioModal(false)} />
           </View>
+        </SwipeModal>
+      )}
 
-          {/* Location (read-only) */}
-          <View className="mb-4">
-            <TextCustom type="bold">Location</TextCustom>
-            <View className="flex-row items-center gap-2">
-              <View>
-                {formData.locationCoords ? (
-                  <TextCustom color={themeColors[theme]['text-main']}>
-                    {(() => {
-                      const { lat, lng } = formData.locationCoords!;
-                      const nm = (formData.locationName || '').trim();
-                      const looksLikeCoords =
-                        /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(
-                          nm
-                        );
-                      return `${nm && !looksLikeCoords ? `${nm}` : ''}`;
-                    })()}
-                  </TextCustom>
-                ) : (
-                  <TextCustom color={themeColors[theme]['text-secondary']}>
-                    Not set
-                  </TextCustom>
-                )}
-              </View>
-              <IconButton
-                accessibilityLabel="Detect location"
+      {/* Location Modal */}
+      {showLocationModal && (
+        <SwipeModal
+          title="Location"
+          modalVisible={showLocationModal}
+          setVisible={setShowLocationModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="City, Region, Country"
+              value={formData.locationName}
+              onChangeText={(text) =>
+                setFormData((p) => ({ ...p, locationName: text }))
+              }
+            />
+            <View className="flex-row gap-3">
+              <RippleButton
+                title={locLoading ? 'Detecting…' : 'Detect location'}
                 onPress={detectLocation}
-                disabled={locLoading}
                 loading={locLoading}
-                className="h-8 w-8 border border-border"
-              >
-                <MaterialCommunityIcons
-                  name="map-marker"
-                  size={18}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              />
               {formData.locationCoords && (
-                <IconButton
-                  accessibilityLabel="Clear location"
+                <RippleButton
+                  title="Clear"
+                  variant="outline"
                   onPress={() =>
-                    setFormData({
-                      ...formData,
+                    setFormData((p) => ({
+                      ...p,
                       locationCoords: null,
                       locationName: ''
-                    })
+                    }))
                   }
-                  className="h-8 w-8 border border-border"
-                >
-                  <MaterialCommunityIcons
-                    name="close"
-                    size={18}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
+                />
               )}
             </View>
+            <RippleButton
+              title="Done"
+              onPress={() => setShowLocationModal(false)}
+            />
           </View>
+        </SwipeModal>
+      )}
 
-          <View className="mb-4">
-            <TextCustom type="subtitle">Private information</TextCustom>
-            <TextCustom type="bold">Phone</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
+      {/* Phone Modal */}
+      {showPhoneModal && (
+        <SwipeModal
+          title="Phone"
+          modalVisible={showPhoneModal}
+          setVisible={setShowPhoneModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            <InputCustom
+              placeholder="Enter your phone"
               value={formData.phone}
-              onChangeText={(text) => setFormData({ ...formData, phone: text })}
-              placeholder="Enter your phone number"
+              onChangeText={(text) =>
+                setFormData((p) => ({ ...p, phone: text }))
+              }
               keyboardType="phone-pad"
             />
-          </View>
-
-          <View className="mb-4">
-            <TextCustom type="bold">Birth date</TextCustom>
-            {Platform.OS === 'web' ? (
-              <>
-                <TextInput
-                  className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-                  value={formData.birthDate}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, birthDate: text })
-                  }
-                  placeholder="YYYY-MM-DD"
-                />
-                <TextCustom
-                  color={themeColors[theme]['text-secondary']}
-                  className="mt-2"
-                >
-                  Temporary input on web (react-datepicker not installed).
-                </TextCustom>
-              </>
-            ) : (
-              <>
-                {showBirthPicker && RNDateTimePicker && (
-                  <RNDateTimePicker
-                    value={parseDate(formData.birthDate) || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={handleBirthDateChange}
-                    style={{ width: '100%' }}
-                  />
-                )}
-                <View className="flex-row items-center gap-2">
-                  {formData.birthDate ? (
-                    <TextCustom color={themeColors[theme]['text-main']}>
-                      {formatDate(parseDate(formData.birthDate)!)}
-                    </TextCustom>
-                  ) : (
-                    <TextCustom color={themeColors[theme]['text-secondary']}>
-                      Not set
-                    </TextCustom>
-                  )}
-                  <IconButton
-                    accessibilityLabel="Select birth date"
-                    onPress={() => setShowBirthPicker(true)}
-                    className="h-8 w-8 border border-border"
-                  >
-                    <MaterialCommunityIcons
-                      name="calendar"
-                      size={18}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </IconButton>
-                  {formData.birthDate && (
-                    <IconButton
-                      accessibilityLabel="Clear birth date"
-                      onPress={() =>
-                        setFormData({ ...formData, birthDate: '' })
-                      }
-                      className="h-8 w-8 border border-border"
-                    >
-                      <MaterialCommunityIcons
-                        name="close"
-                        size={18}
-                        color={themeColors[theme]['text-main']}
-                      />
-                    </IconButton>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Music preferences */}
-        <View className="mb-6">
-          <TextCustom type="subtitle">Music preferences</TextCustom>
-
-          {/* Favorite artists with search + chips */}
-          <View className="mb-2">
-            <TextCustom>Favorite artists</TextCustom>
-            <TextInput
-              className="mt-1 rounded-xl border border-border bg-bg-main p-3 text-text-main"
-              value={artistQuery}
-              onChangeText={searchArtists}
-              placeholder={
-                selectedArtists.length >= 20
-                  ? 'Maximum 20 selected'
-                  : 'Start typing artist name'
-              }
-              editable={selectedArtists.length < 20}
+            <RippleButton
+              title="Done"
+              onPress={() => setShowPhoneModal(false)}
             />
-            {artistSearching && (
-              <TextCustom size="s" className="mt-2 opacity-60">
-                Searching…
-              </TextCustom>
-            )}
-            {!!artistError && (
-              <TextCustom size="s" className="mt-2 text-accent">
-                {artistError}
-              </TextCustom>
-            )}
-            {artistResults.length > 0 && (
-              <View
-                className="mt-2 rounded-xl border border-border bg-bg-secondary"
-                style={{ borderRadius: 12, overflow: 'hidden' }}
-              >
-                <ScrollView
-                  style={{ maxHeight: 256 }}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                >
-                  {artistResults.map((a) => (
-                    <TouchableOpacity
-                      key={a.id}
-                      className="flex-row items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
-                      onPress={() => addArtist(a)}
-                    >
-                      {a.pictureSmall ? (
-                        <Image
-                          source={{ uri: a.pictureSmall }}
-                          style={{ width: 32, height: 32, borderRadius: 16 }}
-                        />
-                      ) : (
-                        <View
-                          style={{ width: 32, height: 32, borderRadius: 16 }}
-                          className="items-center justify-center bg-bg-main"
-                        >
-                          <TextCustom size="s">{a.name.charAt(0)}</TextCustom>
-                        </View>
-                      )}
-                      <TextCustom className="flex-1">{a.name}</TextCustom>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
           </View>
+        </SwipeModal>
+      )}
 
-          {/* Selected artists chips */}
-          <View className="mt-2">
-            <View className="mb-2 flex-row items-center justify-between">
-              <TextCustom className="text-accent/60 text-[10px] uppercase tracking-wide">
-                Selected
-              </TextCustom>
-              <TextCustom size="s" className="opacity-60">
-                {selectedArtists.length}/20
-              </TextCustom>
-            </View>
-            {selectedArtists.length === 0 ? (
-              <TextCustom className="opacity-60">
-                No artists selected yet
-              </TextCustom>
+      {/* Birth date Modal */}
+      {showBirthModal && (
+        <SwipeModal
+          title="Date of Birth"
+          modalVisible={showBirthModal}
+          setVisible={setShowBirthModal}
+        >
+          <View className="flex-1 gap-4 px-4 pb-6">
+            {Platform.OS === 'web' && ReactDatePicker ? (
+              <View className="w-full">
+                {/* @ts-ignore dynamic import style handled in file head */}
+                <ReactDatePicker
+                  selected={parseDate(formData.birthDate) || new Date()}
+                  onChange={(date: Date | null) =>
+                    date &&
+                    setFormData((p) => ({ ...p, birthDate: formatDate(date) }))
+                  }
+                  withPortal
+                  portalId="react-datepicker-portal"
+                  popperPlacement="bottom"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  scrollableYearDropdown
+                  yearDropdownItemNumber={120}
+                  maxDate={new Date()}
+                  dateFormat="yyyy-MM-dd"
+                  calendarClassName=" border border-border"
+                  popperClassName="z-50"
+                  customInput={<DateInputButton placeholder="yyyy-mm-dd" />}
+                />
+                <View className="mt-3 flex-row gap-3">
+                  {formData.birthDate ? (
+                    <RippleButton
+                      title="Clear"
+                      variant="outline"
+                      onPress={() =>
+                        setFormData((p) => ({ ...p, birthDate: '' }))
+                      }
+                    />
+                  ) : null}
+                  <RippleButton
+                    title="Done"
+                    onPress={() => setShowBirthModal(false)}
+                  />
+                </View>
+              </View>
             ) : (
-              <View className="flex-row flex-wrap">
-                {selectedArtists.map((a) => (
-                  <View
-                    key={a.id}
-                    className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
-                  >
-                    {a.picture_small ? (
-                      <Image
-                        source={{ uri: a.picture_small }}
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          marginRight: 6
-                        }}
-                      />
-                    ) : (
-                      <View
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
-                          marginRight: 6
-                        }}
-                        className="items-center justify-center bg-bg-main"
-                      >
-                        <TextCustom size="xs">{a.name.charAt(0)}</TextCustom>
-                      </View>
-                    )}
-                    <TextCustom size="s">{a.name}</TextCustom>
-                    <TouchableOpacity
-                      onPress={() => removeArtist(a.id)}
-                      className="ml-2 rounded-full bg-bg-main px-2 py-1"
-                    >
-                      <TextCustom size="xs">×</TextCustom>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
+              <RNDateTimePicker
+                value={parseDate(formData.birthDate) || new Date()}
+                mode="date"
+                display="default"
+                onChange={handleBirthDateChange}
+                style={{ width: '100%' }}
+              />
             )}
           </View>
-        </View>
+        </SwipeModal>
+      )}
 
-        {/* Save */}
-        <RippleButton
-          title="Save"
-          size="md"
-          variant="primary"
-          onPress={handleSave}
-        />
-      </View>
-    </ScrollView>
+      {/* Artists Modal */}
+      {showArtistsModal && (
+        <SwipeModal
+          title="Favorite artists"
+          modalVisible={showArtistsModal}
+          setVisible={setShowArtistsModal}
+        >
+          <ArtistsPickerComponent
+            selected={selectedArtists}
+            onChange={setSelectedArtists}
+            max={20}
+            isVisible={showArtistsModal}
+            onDone={() => setShowArtistsModal(false)}
+          />
+        </SwipeModal>
+      )}
+    </KeyboardAvoidingView>
   );
 };
 

@@ -315,7 +315,7 @@ const SearchTracksComponent = ({
 
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="bg-intent-warning/10 mb-2 rounded-lg p-4">
+        <View className="bg-intent-warning/10 mb-2 rounded-md p-4">
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached data only. Search and pagination will
             use cached results.
@@ -325,7 +325,7 @@ const SearchTracksComponent = ({
 
       {/* Error display */}
       {error && (
-        <View className="bg-intent-error/10 mb-2 rounded-lg p-4">
+        <View className="bg-intent-error/10 mb-2 rounded-md p-4">
           <TextCustom color={themeColors[theme]['intent-error']}>
             Error: {error.message}
           </TextCustom>

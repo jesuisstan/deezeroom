@@ -239,11 +239,12 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         // ignore
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (favoriteTrackIds.length === 0) {
     return (
-      <View className="items-center py-8">
+      <View className="items-center py-4">
         <TextCustom
           size="s"
           color={themeColors[theme]['text-secondary']}
@@ -254,7 +255,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         <TextCustom
           size="xs"
           color={themeColors[theme]['text-secondary']}
-          className="mt-2 text-center"
+          className="text-center"
         >
           Add tracks to your favorites from the search results
         </TextCustom>
@@ -266,7 +267,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
     <View className="w-full">
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="rounded-lg bg-bg-secondary p-4">
+        <View className="rounded-md bg-bg-secondary p-4">
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached favorite tracks only
           </TextCustom>

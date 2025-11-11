@@ -1,18 +1,13 @@
-import { Stack, usePathname } from 'expo-router';
+import { Stack } from 'expo-router';
 
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 const NotificationsLayout = () => {
-  const pathname = usePathname();
   const { theme } = useTheme();
 
   return (
-    <Stack
-      screenOptions={{
-        animation: pathname.startsWith('/notifications') ? 'default' : 'none'
-      }}
-    >
+    <Stack>
       <Stack.Screen
         name="index"
         options={{

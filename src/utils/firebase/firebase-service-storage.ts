@@ -79,6 +79,13 @@ export class StorageService {
     return this.uploadImage(fileUri, `playlists/${playlistId}`, 'cover.jpg');
   }
 
+  static async uploadEventCover(
+    eventId: string,
+    fileUri: string
+  ): Promise<string> {
+    return this.uploadImage(fileUri, `events/${eventId}`, 'cover.jpg');
+  }
+
   /**
    * Upload user avatar
    * @param userId - The ID of the user

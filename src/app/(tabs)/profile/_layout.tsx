@@ -41,7 +41,7 @@ const ProfileLayout = () => {
       <Stack.Screen
         name="index"
         options={{
-          //title: 'Profile',
+          title: 'Profile',
           headerShown: false
         }}
       />

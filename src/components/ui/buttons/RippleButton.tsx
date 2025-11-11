@@ -232,6 +232,8 @@ const RippleButton: React.FC<RippleButtonProps> = ({
                 ? themeColors[theme]['text-main']
                 : textColorByVariant[variant]
             }
+            numberOfLines={1}
+            ellipsizeMode="tail"
           >
             {title}
           </TextCustom>

@@ -14,6 +14,7 @@ export type ShareLinkModalProps = {
   visible: boolean;
   onClose: () => void;
   url: string;
+  qrUrl?: string;
   title?: string;
   message?: string;
 };
@@ -22,6 +23,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
   visible,
   onClose,
   url,
+  qrUrl,
   title = 'Share',
   message
 }) => {
@@ -31,6 +33,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
   const QRCodeImpl = useMemo(() => {
     try {
       // Prefer default export if present
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- dynamic require for optional dependency in RN environment
       const mod = require('react-native-qrcode-svg');
       return mod?.default ?? mod;
     } catch {
@@ -38,10 +41,12 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
     }
   }, []);
 
+  const qrValue = qrUrl ?? url;
+
   const qrImgUrl = useMemo(
     () =>
-      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`,
-    [url]
+      `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrValue)}`,
+    [qrValue]
   );
 
   // No overlayStyle needed with SwipeModal
@@ -88,7 +93,7 @@ const ShareLinkModal: FC<ShareLinkModalProps> = ({
             {/* QR Code: native component if available, otherwise static image fallback */}
             {QRCodeImpl ? (
               <QRCodeImpl
-                value={url}
+                value={qrValue}
                 size={200}
                 backgroundColor={themeColors[theme]['bg-main']}
                 color={themeColors[theme]['text-main']}

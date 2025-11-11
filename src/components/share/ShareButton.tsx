@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 
 import AntDesign from '@expo/vector-icons/AntDesign';
 import * as Linking from 'expo-linking';
@@ -26,11 +27,20 @@ const ShareButton = ({
   const { theme } = useTheme();
   const [visible, setVisible] = useState(false);
 
+  const p = path || '/';
+
+  // Web-style URL (used for QR always)
+  const webStyleUrl = useMemo(() => Linking.createURL(p), [p]);
+
+  // Sharing URL (Android override unless explicit url prop)
   const shareUrl = useMemo(() => {
     if (url) return url;
-    const p = path || '/';
-    return Linking.createURL(p);
-  }, [path, url]);
+    if (Platform.OS === 'android') {
+      const base = 'https://deezeroom.expo.app';
+      return `${base.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
+    }
+    return webStyleUrl;
+  }, [url, p, webStyleUrl]);
 
   return (
     <>
@@ -48,6 +58,7 @@ const ShareButton = ({
         visible={visible}
         onClose={() => setVisible(false)}
         url={shareUrl}
+        qrUrl={webStyleUrl}
         title={title}
         message={message}
       />

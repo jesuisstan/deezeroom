@@ -222,7 +222,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
     <Pressable
       onPress={() => handleUserSelect(item)}
-      className="flex-row items-center rounded-lg border border-border bg-bg-secondary px-3 py-1"
+      className="flex-row items-center rounded-md border border-border bg-bg-secondary px-3 py-1"
     >
       {/* Avatar */}
       <View className="mr-3">
@@ -246,13 +246,6 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
       <View className="flex-1">
         <TextCustom type="subtitle" numberOfLines={1} size="l">
           {item.displayName || 'Unknown User'}
-        </TextCustom>
-        <TextCustom
-          size="s"
-          color={themeColors[theme]['text-secondary']}
-          numberOfLines={1}
-        >
-          {item.email}
         </TextCustom>
       </View>
 

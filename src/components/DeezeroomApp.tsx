@@ -12,8 +12,10 @@ const DeezeroomApp = () => {
   const { theme } = useTheme();
   const { user, profile, loading, profileLoading } = useUser();
 
-  // Show loading indicator while loading
-  if (loading || profileLoading) {
+  const isInitialLoading = loading || (profileLoading && !profile);
+
+  // Show loading indicator while performing initial load
+  if (isInitialLoading) {
     return <ActivityIndicatorScreen />;
   }
 
@@ -51,7 +53,8 @@ const DeezeroomApp = () => {
           <Stack.Screen
             name="notifications"
             options={{
-              headerShown: false
+              headerShown: false,
+              animation: 'slide_from_right'
             }}
           />
 
@@ -62,6 +65,14 @@ const DeezeroomApp = () => {
               headerShown: false,
               animation: 'slide_from_bottom',
               contentStyle: { backgroundColor: 'transparent' }
+            }}
+          />
+
+          <Stack.Screen
+            name="users/[id]"
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right'
             }}
           />
         </Stack.Protected>

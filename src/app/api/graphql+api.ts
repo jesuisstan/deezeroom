@@ -4,9 +4,9 @@ import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
 import { typeDefs } from '@/graphql/schema';
 import { deezerService } from '@/utils/deezer/deezer-service';
 
-interface APIContext {
-  // Context can be extended in the future
-}
+// Using a type alias instead of an empty interface to satisfy no-empty-object-type rule.
+// Extend later with auth/session if needed.
+type APIContext = Record<string, unknown>;
 
 const schema = createSchema({
   typeDefs,
@@ -39,6 +39,14 @@ const schema = createSchema({
       ) => {
         const { query, limit = LIMIT_DEFAULT, index = INDEX_DEFAULT } = args;
         return await deezerService.searchArtists(query, limit, index);
+      },
+      artistsByIds: async (
+        _: any,
+        args: { ids: string[] },
+        ctx: APIContext
+      ) => {
+        const { ids } = args;
+        return await deezerService.getArtistsByIds(ids);
       }
     }
   }
