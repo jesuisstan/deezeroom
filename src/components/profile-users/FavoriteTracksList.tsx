@@ -99,7 +99,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
             trackIdsCount: trackIdsToLoad.length,
             totalFavorites: favoriteTrackIds.length
           },
-          '❤️ FavoriteTracksList'
+          '💟 FavoriteTracksList'
         );
 
         // Load tracks in parallel
@@ -118,7 +118,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
             Logger.error(
               `Failed to load track ${trackId}:`,
               error,
-              '❤️ FavoriteTracksList'
+              '💟 FavoriteTracksList'
             );
             return null;
           }
@@ -146,7 +146,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         Logger.error(
           'Error loading favorite tracks batch:',
           error,
-          '❤️ FavoriteTracksList'
+          '💟 FavoriteTracksList'
         );
         Notifier.error('Failed to load favorite tracks');
       } finally {

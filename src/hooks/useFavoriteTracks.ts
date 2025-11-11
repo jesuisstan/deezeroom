@@ -45,7 +45,7 @@ export const useFavoriteTracks = () => {
         Logger.error(
           'Error adding track to favorites:',
           error,
-          '❤️ useFavoriteTracks'
+          '💟 useFavoriteTracks'
         );
         Notifier.error('Failed to add track to favorites');
         return false;
@@ -87,7 +87,7 @@ export const useFavoriteTracks = () => {
         Logger.error(
           'Error removing track from favorites:',
           error,
-          '❤️ useFavoriteTracks'
+          '💟 useFavoriteTracks'
         );
         Notifier.error('Failed to remove track from favorites');
         return false;

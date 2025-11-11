@@ -358,19 +358,23 @@ const PlaylistDetailScreen = () => {
 
   // Auto-update playback queue when tracks change (for real-time collaboration)
   useEffect(() => {
-    if (tracks.length > 0) {
-      // Only update queue if we're currently playing tracks from this playlist
-      // Check if current track is in the tracks array (meaning we're playing this playlist)
-      const isPlayingThisPlaylist =
-        currentTrack && tracks.some((t) => t.id === currentTrack.id);
-
-      if (isPlayingThisPlaylist) {
-        // Update the queue with new tracks while preserving playback
-        updateQueue(tracks);
-      }
+    if (!tracks.length || !currentTrack || !playlist) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracks]);
+
+    const isPlayingThisPlaylist = tracks.some((t) => t.id === currentTrack.id);
+
+    if (!isPlayingThisPlaylist) {
+      return;
+    }
+
+    // Update the queue with new tracks while preserving playback and label
+    updateQueue(tracks, {
+      source: 'playlist',
+      label: playlist.name,
+      id: playlist.id
+    });
+  }, [currentTrack, playlist, tracks, updateQueue]);
 
   const handleBack = () => {
     router.back();
@@ -548,7 +552,14 @@ const PlaylistDetailScreen = () => {
     }
 
     // Start playback with tracks from this playlist
-    startPlayback(tracks, track.id);
+    const queueContext = playlist
+      ? {
+          source: 'playlist' as const,
+          label: playlist.name,
+          id: playlist.id
+        }
+      : { source: 'playlist' as const, label: 'Playlist' };
+    startPlayback(tracks, track.id, queueContext);
   };
 
   const handleRefresh = async () => {

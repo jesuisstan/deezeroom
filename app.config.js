@@ -15,6 +15,7 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
         './credentials/ios/GoogleService-Info.plist',
+      backgroundModes: ['audio'],
       infoPlist: {
         UIBackgroundModes: ['remote-notification']
       }

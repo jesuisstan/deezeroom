@@ -100,7 +100,14 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
             color={themeColors[theme]['text-main']}
             className="mb-2"
           >
-            Participants ({participantList.length})
+            Participants{' '}
+            <TextCustom
+              type="semibold"
+              size="m"
+              color={themeColors[theme]['text-secondary']}
+            >
+              ({participantList.length})
+            </TextCustom>
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
             {participantList.map((participant) => (

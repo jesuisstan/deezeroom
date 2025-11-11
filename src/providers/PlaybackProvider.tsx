@@ -5,48 +5,70 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  useSyncExternalStore
 } from 'react';
 
 import type { AudioStatus } from 'expo-audio';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus
+} from 'expo-audio';
 
 import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
+
+export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';
+export type RepeatMode = 'off' | 'one' | 'all';
+
+export interface PlaybackQueueContext {
+  source: PlaybackQueueSource;
+  label: string;
+  id?: string;
+}
 
 interface PlaybackStateContextValue {
   queue: Track[];
   currentTrack: Track | null;
   currentIndex: number;
-}
-
-interface PlaybackStatusContextValue {
-  status: AudioStatus | null;
+  queueContext: PlaybackQueueContext | null;
 }
 
 interface PlaybackUIStatusContextValue {
   isPlaying: boolean;
   isLoading: boolean;
   error: string | null;
+  repeatMode: RepeatMode;
 }
 
 interface PlaybackActionsContextValue {
-  startPlayback: (tracks: Track[], trackId: string) => void;
+  startPlayback: (
+    tracks: Track[],
+    trackId: string,
+    context?: PlaybackQueueContext
+  ) => void;
   togglePlayPause: () => void;
   playNext: () => void;
   playPrevious: () => void;
   pause: () => void;
   resume: () => void;
   seekTo: (seconds: number) => void;
-  updateQueue: (tracks: Track[]) => void;
+  updateQueue: (tracks: Track[], context?: PlaybackQueueContext | null) => void;
+  cycleRepeatMode: () => void;
 }
 
 const PlaybackStateContext = createContext<
   PlaybackStateContextValue | undefined
 >(undefined);
 
-const PlaybackStatusContext = createContext<
-  PlaybackStatusContextValue | undefined
+interface PlaybackStatusStore {
+  getSnapshot: () => AudioStatus | null;
+  subscribe: (listener: () => void) => () => void;
+}
+
+const PlaybackStatusStoreContext = createContext<
+  PlaybackStatusStore | undefined
 >(undefined);
 
 const PlaybackActionsContext = createContext<
@@ -74,24 +96,141 @@ const findNextPlayableIndex = (
 
 const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const player = useAudioPlayer(null, { keepAudioSessionActive: true });
-  const status = useAudioPlayerStatus(player);
+  const statusRef = useRef<AudioStatus | null>(null);
+  const statusListenersRef = useRef(new Set<() => void>());
 
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [queueContext, setQueueContext] = useState<PlaybackQueueContext | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playbackIntent, setPlaybackIntentState] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
 
   const autoPlayRef = useRef(false);
   const playbackIntentRef = useRef(false);
   const currentTrackRef = useRef<Track | null>(null);
   const currentIndexRef = useRef<number>(-1);
   const didFinishHandledRef = useRef(false);
+  const queueRef = useRef<Track[]>([]);
+  const repeatModeRef = useRef<RepeatMode>('off');
 
   const setPlaybackIntent = useCallback((intent: boolean) => {
     playbackIntentRef.current = intent;
     setPlaybackIntentState(intent);
   }, []);
+
+  const cycleRepeatMode = useCallback(() => {
+    setRepeatMode((previous) => {
+      switch (previous) {
+        case 'off':
+          return 'all';
+        case 'all':
+          return 'one';
+        default:
+          return 'off';
+      }
+    });
+  }, []);
+
+  const notifyStatusListeners = useCallback(() => {
+    statusListenersRef.current.forEach((listener) => listener());
+  }, []);
+
+  const handleStatusChange = useCallback(
+    (nextStatus: AudioStatus | null) => {
+      if (!nextStatus?.didJustFinish) {
+        didFinishHandledRef.current = false;
+      }
+
+      statusRef.current = nextStatus ?? null;
+      notifyStatusListeners();
+
+      if (!nextStatus?.didJustFinish) {
+        return;
+      }
+
+      if (didFinishHandledRef.current) {
+        return;
+      }
+
+      didFinishHandledRef.current = true;
+
+      if (repeatModeRef.current === 'one') {
+        player.seekTo(0).catch(() => null);
+
+        if (playbackIntentRef.current) {
+          autoPlayRef.current = true;
+          setPlaybackIntent(true);
+          try {
+            player.play();
+          } catch {
+            setPlaybackIntent(false);
+            autoPlayRef.current = false;
+          }
+        } else {
+          autoPlayRef.current = false;
+        }
+
+        return;
+      }
+
+      const queueSnapshot = queueRef.current;
+      const previousIndex = currentIndexRef.current;
+      const nextIndex = findNextPlayableIndex(
+        queueSnapshot,
+        previousIndex + 1,
+        1
+      );
+
+      if (nextIndex !== -1) {
+        autoPlayRef.current = true;
+        setPlaybackIntent(true);
+        currentIndexRef.current = nextIndex;
+        currentTrackRef.current = queueSnapshot[nextIndex] ?? null;
+        setCurrentIndex(nextIndex);
+        return;
+      }
+
+      const firstPlayableIndex = findNextPlayableIndex(queueSnapshot, 0, 1);
+      if (repeatModeRef.current === 'all' && firstPlayableIndex !== -1) {
+        autoPlayRef.current = true;
+        setPlaybackIntent(true);
+        currentIndexRef.current = firstPlayableIndex;
+        currentTrackRef.current = queueSnapshot[firstPlayableIndex] ?? null;
+        setCurrentIndex(firstPlayableIndex);
+        return;
+      }
+
+      autoPlayRef.current = false;
+      setPlaybackIntent(false);
+
+      try {
+        player.pause();
+      } catch {
+        // no-op
+      }
+
+      if (firstPlayableIndex !== -1) {
+        currentIndexRef.current = firstPlayableIndex;
+        currentTrackRef.current = queueSnapshot[firstPlayableIndex] ?? null;
+
+        if (previousIndex === firstPlayableIndex) {
+          player.seekTo(0).catch(() => null);
+        } else {
+          setCurrentIndex(firstPlayableIndex);
+        }
+        return;
+      }
+
+      currentIndexRef.current = -1;
+      currentTrackRef.current = null;
+      setCurrentIndex(-1);
+    },
+    [notifyStatusListeners, player, setPlaybackIntent]
+  );
 
   const currentTrack =
     currentIndex >= 0 && currentIndex < queue.length
@@ -102,12 +241,31 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const isPlaying = playbackIntent;
 
   useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'mixWithOthers',
+      interruptionModeAndroid: 'duckOthers'
+    }).catch((audioModeError) => {
+      console.warn('Failed to configure audio session', audioModeError);
+    });
+  }, []);
+
+  useEffect(() => {
     currentTrackRef.current = currentTrack;
   }, [currentTrack]);
 
   useEffect(() => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
 
   useEffect(() => {
     if (!currentTrack) {
@@ -162,35 +320,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id, player, setPlaybackIntent]);
 
-  useEffect(() => {
-    if (!status?.didJustFinish) {
-      didFinishHandledRef.current = false;
-      return;
-    }
-
-    if (didFinishHandledRef.current) {
-      return;
-    }
-
-    didFinishHandledRef.current = true;
-
-    const baseIndex = currentIndexRef.current;
-    const nextIndex = findNextPlayableIndex(queue, baseIndex + 1, 1);
-    if (nextIndex !== -1) {
-      autoPlayRef.current = true;
-      setPlaybackIntent(true);
-      currentIndexRef.current = nextIndex;
-      currentTrackRef.current = queue[nextIndex] ?? null;
-      setCurrentIndex(nextIndex);
-      return;
-    }
-
-    autoPlayRef.current = false;
-    setPlaybackIntent(false);
-  }, [queue, setPlaybackIntent, status?.didJustFinish]);
-
   const updateQueue = useCallback(
-    (tracks: Track[]) => {
+    (tracks: Track[], context?: PlaybackQueueContext | null) => {
       const activeId = currentTrackRef.current?.id ?? null;
       const nextIndex =
         activeId !== null
@@ -202,6 +333,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       // new search results stream in.
       if (activeId !== null && nextIndex === -1) {
         return;
+      }
+
+      if (context !== undefined) {
+        setQueueContext(context);
       }
 
       const sameLength = queue.length === tracks.length;
@@ -223,13 +358,15 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentIndex(-1);
         setPlaybackIntent(false);
         autoPlayRef.current = false;
+        setQueueContext(context ?? null);
+      } else if (tracks.length === 0) {
+        setQueueContext(context ?? null);
       }
     },
-    [queue, setPlaybackIntent]
+    [queue, setPlaybackIntent, setQueueContext]
   );
-
   const startPlayback = useCallback(
-    (tracks: Track[], trackId: string) => {
+    (tracks: Track[], trackId: string, context?: PlaybackQueueContext) => {
       if (!tracks.length) {
         Notifier.error('No tracks to play yet');
         return;
@@ -247,10 +384,15 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      const queueContextToUse: PlaybackQueueContext = context ?? {
+        source: 'search',
+        label: 'MIX'
+      };
+
       const isSameTrack = currentTrackRef.current?.id === targetTrack.id;
 
       if (isSameTrack) {
-        if (!status?.playing) {
+        if (!statusRef.current?.playing) {
           try {
             setPlaybackIntent(true);
             autoPlayRef.current = true;
@@ -262,20 +404,20 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
             autoPlayRef.current = false;
           }
         }
-        updateQueue(tracks);
+        updateQueue(tracks, queueContextToUse);
         return;
       }
 
       currentTrackRef.current = targetTrack;
       currentIndexRef.current = targetIndex;
 
-      updateQueue(tracks);
+      updateQueue(tracks, queueContextToUse);
 
       setPlaybackIntent(true);
       autoPlayRef.current = true;
       setCurrentIndex(targetIndex);
     },
-    [player, setPlaybackIntent, status?.playing, updateQueue]
+    [player, setPlaybackIntent, updateQueue]
   );
 
   const togglePlayPause = useCallback(() => {
@@ -300,7 +442,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      // Use playbackIntentRef instead of status?.playing for instant toggle
+      // Use playbackIntentRef instead of player status for instant toggle
       // This avoids delays waiting for expo-audio status updates
       if (playbackIntentRef.current) {
         setPlaybackIntent(false);
@@ -344,18 +486,44 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
-    if (previousIndex === -1) {
-      Notifier.error('Already at the first track');
+    const hasCurrentTrack =
+      currentIndex >= 0 && currentIndex < queue.length && queue[currentIndex];
+    const positionSeconds = statusRef.current?.currentTime ?? 0;
+
+    if (!hasCurrentTrack) {
       return;
     }
 
-    const shouldPlay = playbackIntentRef.current;
-    autoPlayRef.current = shouldPlay;
+    const restartCurrentTrack = (shouldPlay: boolean) => {
+      player.seekTo(0).catch(() => null);
+      if (shouldPlay) {
+        setPlaybackIntent(true);
+        autoPlayRef.current = true;
+        player.play();
+      } else {
+        autoPlayRef.current = false;
+      }
+    };
+
+    const shouldResume = playbackIntentRef.current;
+
+    if (positionSeconds > 5) {
+      restartCurrentTrack(shouldResume);
+      return;
+    }
+
+    const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
+    if (previousIndex === -1) {
+      restartCurrentTrack(shouldResume);
+      return;
+    }
+
+    setPlaybackIntent(true);
+    autoPlayRef.current = true;
     currentIndexRef.current = previousIndex;
     currentTrackRef.current = queue[previousIndex] ?? null;
     setCurrentIndex(previousIndex);
-  }, [currentIndex, queue]);
+  }, [currentIndex, player, queue, setPlaybackIntent]);
 
   const pause = useCallback(() => {
     try {
@@ -395,16 +563,23 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       queue,
       currentTrack,
-      currentIndex
+      currentIndex,
+      queueContext
     }),
-    [queue, currentTrack, currentIndex]
+    [queue, currentTrack, currentIndex, queueContext]
   );
 
-  const statusValue: PlaybackStatusContextValue = useMemo(
+  const statusStore = useMemo<PlaybackStatusStore>(
     () => ({
-      status: status ?? null
+      getSnapshot: () => statusRef.current,
+      subscribe: (listener: () => void) => {
+        statusListenersRef.current.add(listener);
+        return () => {
+          statusListenersRef.current.delete(listener);
+        };
+      }
     }),
-    [status]
+    []
   );
 
   // UI-only status value that does NOT include `status` ticks
@@ -412,9 +587,10 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     () => ({
       isPlaying,
       isLoading,
-      error
+      error,
+      repeatMode
     }),
-    [isPlaying, isLoading, error]
+    [error, isLoading, isPlaying, repeatMode]
   );
 
   const actionsValue: PlaybackActionsContextValue = useMemo(
@@ -426,7 +602,8 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       pause,
       resume,
       seekTo,
-      updateQueue
+      updateQueue,
+      cycleRepeatMode
     }),
     [
       startPlayback,
@@ -436,22 +613,43 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       pause,
       resume,
       seekTo,
-      updateQueue
+      updateQueue,
+      cycleRepeatMode
     ]
   );
 
   return (
     <PlaybackStateContext.Provider value={stateValue}>
       <PlaybackUIStatusContext.Provider value={uiStatusValue}>
-        <PlaybackStatusContext.Provider value={statusValue}>
-          <PlaybackActionsContext.Provider value={actionsValue}>
+        <PlaybackActionsContext.Provider value={actionsValue}>
+          <PlaybackStatusStoreContext.Provider value={statusStore}>
             {children}
-          </PlaybackActionsContext.Provider>
-        </PlaybackStatusContext.Provider>
+            <PlaybackStatusBridge
+              player={player}
+              onStatusChange={handleStatusChange}
+            />
+          </PlaybackStatusStoreContext.Provider>
+        </PlaybackActionsContext.Provider>
       </PlaybackUIStatusContext.Provider>
     </PlaybackStateContext.Provider>
   );
 };
+
+function PlaybackStatusBridge({
+  player,
+  onStatusChange
+}: {
+  player: ReturnType<typeof useAudioPlayer>;
+  onStatusChange: (status: AudioStatus | null) => void;
+}) {
+  const status = useAudioPlayerStatus(player);
+
+  useEffect(() => {
+    onStatusChange(status ?? null);
+  }, [status, onStatusChange]);
+
+  return null;
+}
 
 /**
  * Hook for accessing playback state (queue, currentTrack, currentIndex).
@@ -471,11 +669,16 @@ const usePlaybackState = () => {
  * Use sparingly for components that need real-time playback status.
  */
 const useAudioStatus = () => {
-  const context = useContext(PlaybackStatusContext);
-  if (!context) {
+  const store = useContext(PlaybackStatusStoreContext);
+  if (!store) {
     throw new Error('useAudioStatus must be used within a PlaybackProvider');
   }
-  return context;
+  const status = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot
+  );
+  return { status };
 };
 
 /**

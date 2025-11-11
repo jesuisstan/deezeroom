@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   GestureResponderEvent,
-  PanResponder,
   Platform,
   Pressable,
   View
@@ -15,12 +14,7 @@ import { usePathname, useRouter } from 'expo-router';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
-import {
-  usePlaybackActions,
-  usePlaybackState,
-  usePlaybackUI
-} from '@/providers/PlaybackProvider';
+import useCompactPlayerControls from '@/hooks/useCompactPlayerControls';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -32,29 +26,25 @@ const MiniPlayer = () => {
   // Keep the mini player floating above the tab bar with a small gap.
   const baseBottomOffset = Platform.select({ ios: 80, default: 70 });
 
-  // Split into three separate hooks to minimize re-renders
-  const { queue, currentIndex, currentTrack } = usePlaybackState();
-  const { isPlaying, isLoading } = usePlaybackUI();
-  const { togglePlayPause, playNext } = usePlaybackActions();
+  const {
+    currentTrack,
+    currentTrackId,
+    isPlaying,
+    isLoading,
+    togglePlayPause,
+    playNext,
+    isCurrentTrackFavorite,
+    hasNext,
+    toggleFavorite
+  } = useCompactPlayerControls();
 
   const { theme } = useTheme();
-  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
 
   const [isRendered, setIsRendered] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
   const animation = useRef(new Animated.Value(0)).current;
-  const swipeTranslateX = useRef(new Animated.Value(0)).current;
 
   const isOnFullPlayer = pathname === '/player';
-  const shouldShow = !!currentTrack && !isOnFullPlayer && !isDismissed;
-
-  const currentTrackId = currentTrack?.id;
-  const isCurrentTrackFavorite = useMemo(() => {
-    if (!currentTrackId) {
-      return false;
-    }
-    return isTrackFavorite(currentTrackId);
-  }, [currentTrackId, isTrackFavorite]);
+  const shouldShow = !!currentTrack && !isOnFullPlayer;
 
   useEffect(() => {
     if (shouldShow) {
@@ -72,80 +62,12 @@ const MiniPlayer = () => {
     });
   }, [animation, shouldShow]);
 
-  useEffect(() => {
-    if (shouldShow) {
-      swipeTranslateX.setValue(0);
-    }
-  }, [shouldShow, swipeTranslateX]);
-
-  useEffect(() => {
-    if (!currentTrackId) {
-      return;
-    }
-    setIsDismissed(false);
-  }, [currentTrackId]);
-
   const translateY = animation.interpolate({
     inputRange: [0, 1],
     outputRange: [80, 0]
   });
 
   const opacity = animation;
-
-  const handleDismissMini = useCallback(() => {
-    Animated.timing(swipeTranslateX, {
-      toValue: 420,
-      duration: 180,
-      useNativeDriver: true
-    }).start(() => {
-      swipeTranslateX.setValue(0);
-      setIsDismissed(true);
-    });
-  }, [swipeTranslateX]);
-
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gestureState) => {
-          if (gestureState.dx <= 0) {
-            return false;
-          }
-          const horizontalSwipe =
-            Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-          return horizontalSwipe && gestureState.dx > 12;
-        },
-        onPanResponderMove: (_, gestureState) => {
-          if (gestureState.dx >= 0) {
-            swipeTranslateX.setValue(gestureState.dx);
-          }
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          const shouldDismiss = gestureState.dx > 80 || gestureState.vx > 0.4;
-          if (shouldDismiss) {
-            handleDismissMini();
-            return;
-          }
-          Animated.spring(swipeTranslateX, {
-            toValue: 0,
-            useNativeDriver: true
-          }).start();
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(swipeTranslateX, {
-            toValue: 0,
-            useNativeDriver: true
-          }).start();
-        }
-      }),
-    [handleDismissMini, swipeTranslateX]
-  );
-
-  const hasNext = useMemo(() => {
-    if (currentIndex < 0) {
-      return false;
-    }
-    return queue.slice(currentIndex + 1).some((track) => track.preview);
-  }, [currentIndex, queue]);
 
   const handleOpenFullPlayer = () => {
     router.push('/player');
@@ -154,12 +76,9 @@ const MiniPlayer = () => {
   const handleToggleFavorite = useCallback(
     async (event: GestureResponderEvent) => {
       event.stopPropagation();
-      if (!currentTrackId) {
-        return;
-      }
-      await toggleFavoriteTrack(currentTrackId);
+      await toggleFavorite();
     },
-    [currentTrackId, toggleFavoriteTrack]
+    [toggleFavorite]
   );
 
   if (!isRendered) {
@@ -168,14 +87,13 @@ const MiniPlayer = () => {
 
   return (
     <Animated.View
-      {...panResponder.panHandlers}
       pointerEvents={shouldShow ? 'auto' : 'none'}
       style={{
         position: 'absolute',
         left: 16,
         right: 16,
         bottom: baseBottomOffset ?? 70,
-        transform: [{ translateY }, { translateX: swipeTranslateX }],
+        transform: [{ translateY }],
         opacity
       }}
     >

@@ -1,14 +1,35 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, View } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, Platform, View } from 'react-native';
+
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
 
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useAudioStatus, usePlaybackUI } from '@/providers/PlaybackProvider';
+import {
+  useAudioStatus,
+  usePlaybackActions
+} from '@/providers/PlaybackProvider';
 import { themeColors } from '@/style/color-theme';
 
 type ProgressBarProps = {
   theme: keyof typeof themeColors;
   trackDuration?: number; // Fallback duration from track metadata
+  layout?: 'stacked' | 'inline';
 };
+
+const TRACK_HEIGHT = 3;
+const TRACK_HOVER_SCALE = 1.4;
+const HANDLE_SIZE = 12;
+const HANDLE_ACTIVE_SCALE = 1.3;
+const HANDLE_HOVER_SCALE = 1.1;
+const HANDLE_TOUCH_HEIGHT = 32;
+const DRAG_TEXT_THROTTLE_MS = 60;
+const IS_WEB = Platform.OS === 'web';
 
 const formatTime = (valueInSeconds: number) => {
   const totalSeconds = Number.isFinite(valueInSeconds)
@@ -19,97 +40,295 @@ const formatTime = (valueInSeconds: number) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
-const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
-  const containerWidthRef = useRef(0);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const scaleX = useRef(new Animated.Value(0)).current; // 0..1 ratio
-
-  // Subscribe to status directly in ProgressBar to avoid parent re-renders
+const ProgressBarComponent = ({
+  theme,
+  trackDuration,
+  layout = 'stacked'
+}: ProgressBarProps) => {
   const { status } = useAudioStatus();
-  const { isPlaying } = usePlaybackUI();
+  const { seekTo } = usePlaybackActions();
 
-  const currentSeconds = status?.currentTime ?? 0;
-  const durationSeconds =
+  const progressRatio = useSharedValue(0);
+  const barWidthShared = useSharedValue(0);
+  const durationShared = useSharedValue(0);
+  const isDraggingShared = useSharedValue(0);
+  const isHoveringShared = useSharedValue(0);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPreviewSeconds, setDragPreviewSeconds] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const isDraggingRef = useRef(false);
+  const dragUpdateThrottleRef = useRef(0);
+
+  const rawCurrent = status?.currentTime ?? 0;
+  const rawDuration =
     status?.duration && status.duration > 0
       ? status.duration
       : (trackDuration ?? 0);
 
-  // Refs for stable animation control on Android
-  const lastReportedSecondsRef = useRef(currentSeconds);
-  const durationRef = useRef<number>(0);
-  const playingRef = useRef<boolean>(false);
+  const safeDuration = Number.isFinite(rawDuration)
+    ? Math.max(0, rawDuration)
+    : 0;
+  const syncToSeconds = safeDuration >= 1; // keep progress changes in lockstep with second ticks
 
-  // const EPSILON_BACKWARD = 0.25; // do not move backward by less than 250ms (kept for possible future use)
-  const SEEK_THRESHOLD = 1.5; // consider as seek if jump > 1.5s
+  const normalizedCurrent = Number.isFinite(rawCurrent)
+    ? Math.max(rawCurrent, 0)
+    : 0;
+  const durationForDisplay = syncToSeconds
+    ? Math.floor(safeDuration)
+    : safeDuration;
+  const currentForDisplay = syncToSeconds
+    ? Math.min(Math.floor(normalizedCurrent), durationForDisplay)
+    : Math.min(normalizedCurrent, durationForDisplay);
 
-  durationRef.current = Number.isFinite(trackDuration ?? 0)
-    ? Math.max(
-        0,
-        status?.duration && status.duration > 0
-          ? status.duration
-          : (trackDuration ?? 0)
+  const ratioBase = durationForDisplay > 0 ? durationForDisplay : safeDuration;
+  const ratio =
+    ratioBase > 0 ? Math.min(Math.max(currentForDisplay / ratioBase, 0), 1) : 0;
+
+  const isSeekable = safeDuration > 0;
+  const clampSeconds = useCallback(
+    (value: number) => {
+      if (safeDuration > 0) {
+        return Math.min(Math.max(value, 0), safeDuration);
+      }
+      return Math.max(value, 0);
+    },
+    [safeDuration]
+  );
+
+  const dragSecondsSafe = clampSeconds(dragPreviewSeconds);
+  const displaySeconds = isDragging
+    ? dragSecondsSafe
+    : syncToSeconds
+      ? currentForDisplay
+      : normalizedCurrent;
+
+  const formattedCurrentTime = formatTime(displaySeconds);
+  const formattedDuration = formatTime(
+    syncToSeconds ? durationForDisplay : safeDuration
+  );
+  const effectiveTrackHeight =
+    TRACK_HEIGHT *
+    (IS_WEB && (isHovering || isDragging) ? TRACK_HOVER_SCALE : 1);
+
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      barWidthShared.value = event.nativeEvent.layout.width;
+    },
+    [barWidthShared]
+  );
+
+  const startDrag = useCallback(
+    (seconds: number) => {
+      isDraggingRef.current = true;
+      dragUpdateThrottleRef.current = Date.now();
+      setIsDragging(true);
+      setDragPreviewSeconds(clampSeconds(seconds));
+    },
+    [clampSeconds]
+  );
+
+  const updateDragPreview = useCallback(
+    (seconds: number) => {
+      const now = Date.now();
+      if (now - dragUpdateThrottleRef.current > DRAG_TEXT_THROTTLE_MS) {
+        dragUpdateThrottleRef.current = now;
+        setDragPreviewSeconds(clampSeconds(seconds));
+      }
+    },
+    [clampSeconds]
+  );
+
+  const finishDrag = useCallback(
+    (seconds: number) => {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      const nextSeconds = clampSeconds(seconds);
+      setDragPreviewSeconds(nextSeconds);
+      seekTo(nextSeconds);
+    },
+    [clampSeconds, seekTo]
+  );
+
+  useEffect(() => {
+    durationShared.value = safeDuration;
+  }, [durationShared, safeDuration]);
+
+  useEffect(() => {
+    if (!IS_WEB) {
+      return;
+    }
+    isHoveringShared.value = isHovering ? 1 : 0;
+  }, [isHovering, isHoveringShared]);
+
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      return;
+    }
+    progressRatio.value = withTiming(ratio, {
+      duration: syncToSeconds ? 200 : 120
+    });
+  }, [progressRatio, ratio, syncToSeconds]);
+
+  const fillAnimatedStyle = useAnimatedStyle(() => {
+    const width = Math.max(
+      0,
+      Math.min(barWidthShared.value, barWidthShared.value * progressRatio.value)
+    );
+    return {
+      width
+    };
+  });
+
+  const handleAnimatedStyle = useAnimatedStyle(() => {
+    const barWidth = barWidthShared.value;
+    const clampedRatio = Math.min(Math.max(progressRatio.value, 0), 1);
+    const translateX = Math.max(
+      0,
+      Math.min(
+        barWidth - HANDLE_SIZE,
+        barWidth * clampedRatio - HANDLE_SIZE / 2
       )
-    : 0;
-  playingRef.current = isPlaying;
+    );
+    const baseScale = isDraggingShared.value
+      ? HANDLE_ACTIVE_SCALE
+      : IS_WEB && isHoveringShared.value
+        ? HANDLE_HOVER_SCALE
+        : 1;
+    return {
+      transform: [
+        { translateX },
+        {
+          scale: withTiming(baseScale, {
+            duration: 120
+          })
+        }
+      ]
+    };
+  });
 
-  // Animator helper: start from a given second to the end (or snap if paused)
-  const startAnimationFrom = useRef((startSeconds: number) => {
-    const width = containerWidthRef.current;
-    const duration = durationRef.current;
-    const safeDur = Number.isFinite(duration) ? Math.max(0, duration) : 0;
+  const panGesture = useMemo(() => {
+    return Gesture.Pan()
+      .enabled(isSeekable)
+      .minDistance(0)
+      .onBegin((event) => {
+        if (!isSeekable) {
+          return;
+        }
+        const width = barWidthShared.value;
+        const durationValue = durationShared.value;
+        if (width <= 0 || durationValue <= 0) {
+          return;
+        }
+        const ratioFromPoint = Math.min(Math.max(event.x / width, 0), 1);
+        progressRatio.value = ratioFromPoint;
+        isDraggingShared.value = 1;
+        runOnJS(startDrag)(ratioFromPoint * durationValue);
+      })
+      .onUpdate((event) => {
+        if (!isSeekable) {
+          return;
+        }
+        const width = barWidthShared.value;
+        const durationValue = durationShared.value;
+        if (width <= 0 || durationValue <= 0) {
+          return;
+        }
+        const ratioFromPoint = Math.min(Math.max(event.x / width, 0), 1);
+        progressRatio.value = ratioFromPoint;
+        runOnJS(updateDragPreview)(ratioFromPoint * durationValue);
+      })
+      .onFinalize(() => {
+        if (!isSeekable || !isDraggingShared.value) {
+          return;
+        }
+        const durationValue = durationShared.value;
+        const ratioValue = Math.min(Math.max(progressRatio.value, 0), 1);
+        isDraggingShared.value = 0;
+        runOnJS(finishDrag)(ratioValue * durationValue);
+      });
+  }, [
+    barWidthShared,
+    durationShared,
+    finishDrag,
+    isDraggingShared,
+    isSeekable,
+    progressRatio,
+    startDrag,
+    updateDragPreview
+  ]);
 
-    if (width <= 0 || safeDur <= 0) {
-      scaleX.stopAnimation();
-      scaleX.setValue(0);
-      return;
-    }
+  const progressBar = (
+    <GestureDetector gesture={panGesture}>
+      <View
+        pointerEvents={isSeekable ? 'auto' : 'none'}
+        onLayout={handleLayout}
+        onPointerEnter={IS_WEB ? () => setIsHovering(true) : undefined}
+        onPointerLeave={IS_WEB ? () => setIsHovering(false) : undefined}
+        className="w-full justify-center"
+        style={{
+          height: HANDLE_TOUCH_HEIGHT,
+          opacity: isSeekable ? 1 : 0.4,
+          cursor: IS_WEB ? (isSeekable ? 'pointer' : 'auto') : undefined
+        }}
+      >
+        <View
+          className="w-full overflow-hidden bg-bg-tertiary"
+          style={{
+            height: effectiveTrackHeight,
+            borderRadius: effectiveTrackHeight / 2
+          }}
+        >
+          <Animated.View
+            style={[
+              {
+                height: '100%',
+                backgroundColor: themeColors[theme]['primary'],
+                borderRadius: effectiveTrackHeight / 2
+              },
+              fillAnimatedStyle
+            ]}
+          />
+        </View>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: (HANDLE_TOUCH_HEIGHT - HANDLE_SIZE) / 2,
+              height: HANDLE_SIZE,
+              width: HANDLE_SIZE,
+              borderRadius: HANDLE_SIZE / 2,
+              backgroundColor: IS_WEB
+                ? '#FFFFFF'
+                : themeColors[theme]['primary'],
+              borderWidth: IS_WEB ? 1 : 0,
+              borderColor: IS_WEB ? '#B5B5B5' : 'transparent',
+              opacity: IS_WEB ? (isDragging || isHovering ? 1 : 0) : 1
+            },
+            handleAnimatedStyle
+          ]}
+        />
+      </View>
+    </GestureDetector>
+  );
 
-    const clampedStart = Math.min(Math.max(startSeconds, 0), safeDur);
-    const startRatio =
-      safeDur > 0 ? Math.min(Math.max(clampedStart / safeDur, 0), 1) : 0;
-
-    scaleX.stopAnimation();
-    scaleX.setValue(startRatio);
-
-    if (!playingRef.current) {
-      return;
-    }
-
-    const remainingSeconds = Math.max(0, safeDur - clampedStart);
-    Animated.timing(scaleX, {
-      toValue: 1,
-      duration: Math.round(remainingSeconds * 1000),
-      easing: Easing.linear,
-      useNativeDriver: false
-    }).start();
-  }).current;
-
-  const safeDuration = Number.isFinite(durationSeconds)
-    ? Math.max(0, durationSeconds)
-    : 0;
-
-  // Start/stop animation on play/pause
-  useEffect(() => {
-    playingRef.current = isPlaying;
-    const reported = status?.currentTime ?? 0;
-    startAnimationFrom(reported);
-  }, [isPlaying, startAnimationFrom, status?.currentTime]);
-
-  // React only to explicit seeks/jumps to avoid jitter
-  useEffect(() => {
-    const reported = status?.currentTime ?? 0;
-    const previous = lastReportedSecondsRef.current;
-    lastReportedSecondsRef.current = reported;
-    if (Math.abs(reported - previous) > SEEK_THRESHOLD) {
-      startAnimationFrom(reported);
-    }
-  }, [startAnimationFrom, status?.currentTime]);
-
-  const formattedCurrentTime = formatTime(currentSeconds);
-  const formattedDuration = formatTime(safeDuration);
+  if (layout === 'inline') {
+    return (
+      <View className="flex-row items-center gap-2">
+        <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+          {formattedCurrentTime}
+        </TextCustom>
+        <View style={{ flex: 1 }}>{progressBar}</View>
+        <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+          {formattedDuration}
+        </TextCustom>
+      </View>
+    );
+  }
 
   return (
-    <View className="gap-3">
+    <View className="gap-1">
       <View className="flex-row justify-between">
         <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
           {formattedCurrentTime}
@@ -118,34 +337,7 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
           {formattedDuration}
         </TextCustom>
       </View>
-      <View
-        className="h-2 rounded-full bg-bg-tertiary"
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w !== containerWidthRef.current) {
-            containerWidthRef.current = w;
-            setContainerWidth(w);
-            const duration = durationRef.current;
-            const safeDur = Number.isFinite(duration)
-              ? Math.max(0, duration)
-              : 0;
-            const current = status?.currentTime ?? 0;
-            const ratio =
-              safeDur > 0 ? Math.min(Math.max(current / safeDur, 0), 1) : 0;
-            scaleX.setValue(ratio);
-            // Restart animation from current position after layout change
-            startAnimationFrom(current);
-          }
-        }}
-      >
-        <Animated.View
-          className="h-2 rounded-full"
-          style={{
-            width: Animated.multiply(scaleX, containerWidth || 1),
-            backgroundColor: themeColors[theme]['primary']
-          }}
-        />
-      </View>
+      {progressBar}
     </View>
   );
 };
@@ -154,7 +346,9 @@ const ProgressBarComponent = ({ theme, trackDuration }: ProgressBarProps) => {
 const ProgressBar = memo(
   ProgressBarComponent,
   (prev, next) =>
-    prev.theme === next.theme && prev.trackDuration === next.trackDuration
+    prev.theme === next.theme &&
+    prev.trackDuration === next.trackDuration &&
+    prev.layout === next.layout
 );
 ProgressBar.displayName = 'ProgressBar';
 

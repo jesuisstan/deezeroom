@@ -5,6 +5,7 @@ import { Tabs } from 'expo-router';
 
 import NotificationsButton from '@/components/notifications/NotificationsButton';
 import MiniPlayer from '@/components/player/MiniPlayer';
+import WebPlayerBar from '@/components/player/WebPlayerBar';
 import SignOutButton from '@/components/profile-users/SignOutButton';
 import ThemeToggler from '@/components/ThemeToggler';
 import { HapticTab } from '@/components/ui/HapticTab';
@@ -130,7 +131,7 @@ const TabLayout = () => {
           }}
         />
       </Tabs>
-      <MiniPlayer />
+      {Platform.OS === 'web' ? <WebPlayerBar /> : <MiniPlayer />}
     </View>
   );
 };
