@@ -212,25 +212,13 @@ const WebPlayerBar = () => {
           </View>
 
           <View
-            className="flex-row items-center justify-end"
             style={{
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
               minWidth: 220
             }}
-          >
-            <IconButton
-              accessibilityLabel="Share track (coming soon)"
-              className="h-8 w-8"
-            >
-              <FontAwesome
-                name="share-alt"
-                size={14}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </IconButton>
-          </View>
+          />
         </View>
       </View>
     </View>

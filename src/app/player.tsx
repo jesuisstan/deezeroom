@@ -181,16 +181,7 @@ const PlayerScreen = () => {
             />
 
             <View className="flex-row items-center justify-between">
-              <IconButton
-                accessibilityLabel="Share track (coming soon)"
-                className="h-12 w-12"
-              >
-                <FontAwesome
-                  name="share-alt"
-                  size={24}
-                  color={themeColors[theme]['text-secondary']}
-                />
-              </IconButton>
+              <View style={{ width: 48 }} />
               <IconButton
                 accessibilityLabel={
                   isCurrentTrackFavorite
