@@ -22,7 +22,7 @@ type ProgressBarProps = {
   layout?: 'stacked' | 'inline';
 };
 
-const TRACK_HEIGHT = 8;
+const TRACK_HEIGHT = 4;
 const HANDLE_SIZE = 12;
 const HANDLE_ACTIVE_SCALE = 1.3;
 const HANDLE_TOUCH_HEIGHT = 32;
@@ -246,7 +246,10 @@ const ProgressBarComponent = ({
         className="w-full justify-center"
         style={{ height: HANDLE_TOUCH_HEIGHT, opacity: isSeekable ? 1 : 0.4 }}
       >
-        <View className="h-2 w-full overflow-hidden rounded-full bg-bg-tertiary">
+        <View
+          className="w-full overflow-hidden bg-bg-tertiary"
+          style={{ height: TRACK_HEIGHT, borderRadius: TRACK_HEIGHT / 2 }}
+        >
           <Animated.View
             style={[
               {
