@@ -1,5 +1,6 @@
+/* eslint-disable prettier/prettier */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, View } from 'react-native';
+import { LayoutChangeEvent, Platform, View } from 'react-native';
 
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -22,11 +23,14 @@ type ProgressBarProps = {
   layout?: 'stacked' | 'inline';
 };
 
-const TRACK_HEIGHT = 4;
+const TRACK_HEIGHT = 3;
+const TRACK_HOVER_SCALE = 1.4;
 const HANDLE_SIZE = 12;
 const HANDLE_ACTIVE_SCALE = 1.3;
+const HANDLE_HOVER_SCALE = 1.1;
 const HANDLE_TOUCH_HEIGHT = 32;
 const DRAG_TEXT_THROTTLE_MS = 60;
+const IS_WEB = Platform.OS === 'web';
 
 const formatTime = (valueInSeconds: number) => {
   const totalSeconds = Number.isFinite(valueInSeconds)
@@ -49,9 +53,11 @@ const ProgressBarComponent = ({
   const barWidthShared = useSharedValue(0);
   const durationShared = useSharedValue(0);
   const isDraggingShared = useSharedValue(0);
+  const isHoveringShared = useSharedValue(0);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragPreviewSeconds, setDragPreviewSeconds] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
   const isDraggingRef = useRef(false);
   const dragUpdateThrottleRef = useRef(0);
 
@@ -102,6 +108,9 @@ const ProgressBarComponent = ({
   const formattedDuration = formatTime(
     syncToSeconds ? durationForDisplay : safeDuration
   );
+  const effectiveTrackHeight =
+    TRACK_HEIGHT *
+    (IS_WEB && (isHovering || isDragging) ? TRACK_HOVER_SCALE : 1);
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -147,6 +156,13 @@ const ProgressBarComponent = ({
   }, [durationShared, safeDuration]);
 
   useEffect(() => {
+    if (!IS_WEB) {
+      return;
+    }
+    isHoveringShared.value = isHovering ? 1 : 0;
+  }, [isHovering, isHoveringShared]);
+
+  useEffect(() => {
     if (isDraggingRef.current) {
       return;
     }
@@ -175,11 +191,16 @@ const ProgressBarComponent = ({
         barWidth * clampedRatio - HANDLE_SIZE / 2
       )
     );
+    const baseScale = isDraggingShared.value
+      ? HANDLE_ACTIVE_SCALE
+      : IS_WEB && isHoveringShared.value
+        ? HANDLE_HOVER_SCALE
+        : 1;
     return {
       transform: [
         { translateX },
         {
-          scale: withTiming(isDraggingShared.value ? HANDLE_ACTIVE_SCALE : 1, {
+          scale: withTiming(baseScale, {
             duration: 120
           })
         }
@@ -243,19 +264,28 @@ const ProgressBarComponent = ({
       <View
         pointerEvents={isSeekable ? 'auto' : 'none'}
         onLayout={handleLayout}
+        onMouseEnter={IS_WEB ? () => setIsHovering(true) : undefined}
+        onMouseLeave={IS_WEB ? () => setIsHovering(false) : undefined}
         className="w-full justify-center"
-        style={{ height: HANDLE_TOUCH_HEIGHT, opacity: isSeekable ? 1 : 0.4 }}
+        style={{
+          height: HANDLE_TOUCH_HEIGHT,
+          opacity: isSeekable ? 1 : 0.4,
+          cursor: IS_WEB ? (isSeekable ? 'pointer' : 'auto') : undefined
+        }}
       >
         <View
           className="w-full overflow-hidden bg-bg-tertiary"
-          style={{ height: TRACK_HEIGHT, borderRadius: TRACK_HEIGHT / 2 }}
+          style={{
+            height: effectiveTrackHeight,
+            borderRadius: effectiveTrackHeight / 2
+          }}
         >
           <Animated.View
             style={[
               {
                 height: '100%',
                 backgroundColor: themeColors[theme]['primary'],
-                borderRadius: TRACK_HEIGHT / 2
+                borderRadius: effectiveTrackHeight / 2
               },
               fillAnimatedStyle
             ]}
@@ -270,7 +300,17 @@ const ProgressBarComponent = ({
               height: HANDLE_SIZE,
               width: HANDLE_SIZE,
               borderRadius: HANDLE_SIZE / 2,
-              backgroundColor: themeColors[theme]['primary']
+              backgroundColor: IS_WEB
+                ? '#FFFFFF'
+                : themeColors[theme]['primary'],
+              borderWidth: IS_WEB ? 1 : 0,
+              borderColor: IS_WEB ? '#B5B5B5' : 'transparent',
+              opacity:
+                IS_WEB
+                  ? isDragging || isHovering
+                    ? 1
+                    : 0
+                  : 1
             },
             handleAnimatedStyle
           ]}
