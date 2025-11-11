@@ -28,22 +28,36 @@ const ProgressBarComponent = ({
   const { status } = useAudioStatus();
 
   const rawCurrent = status?.currentTime ?? 0;
-  const durationSeconds =
+  const rawDuration =
     status?.duration && status.duration > 0
       ? status.duration
-      : (trackDuration ?? 0);
+      : trackDuration ?? 0;
 
-  const safeDuration = Number.isFinite(durationSeconds)
-    ? Math.max(0, durationSeconds)
+  const safeDuration = Number.isFinite(rawDuration)
+    ? Math.max(0, rawDuration)
     : 0;
-  const safeCurrent = Number.isFinite(rawCurrent)
-    ? Math.min(Math.max(rawCurrent, 0), safeDuration)
+  const syncToSeconds = safeDuration >= 1; // keep progress changes in lockstep with second ticks
+
+  const normalizedCurrent = Number.isFinite(rawCurrent)
+    ? Math.max(rawCurrent, 0)
     : 0;
+  const durationForDisplay = syncToSeconds
+    ? Math.floor(safeDuration)
+    : safeDuration;
+  const currentForDisplay = syncToSeconds
+    ? Math.min(Math.floor(normalizedCurrent), durationForDisplay)
+    : Math.min(normalizedCurrent, durationForDisplay);
+
+  const ratioBase = durationForDisplay > 0 ? durationForDisplay : safeDuration;
   const ratio =
-    safeDuration > 0 ? Math.min(Math.max(safeCurrent / safeDuration, 0), 1) : 0;
+    ratioBase > 0 ? Math.min(Math.max(currentForDisplay / ratioBase, 0), 1) : 0;
 
-  const formattedCurrentTime = formatTime(safeCurrent);
-  const formattedDuration = formatTime(safeDuration);
+  const formattedCurrentTime = formatTime(
+    syncToSeconds ? currentForDisplay : normalizedCurrent
+  );
+  const formattedDuration = formatTime(
+    syncToSeconds ? durationForDisplay : safeDuration
+  );
 
   const bar = (
     <View className="h-2 overflow-hidden rounded-full bg-bg-tertiary">
