@@ -395,23 +395,36 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    if (positionSeconds > 5) {
+    const restartCurrentTrack = (shouldPlay: boolean) => {
       player.seekTo(0).catch(() => null);
+      if (shouldPlay) {
+        setPlaybackIntent(true);
+        autoPlayRef.current = true;
+        player.play();
+      } else {
+        autoPlayRef.current = false;
+      }
+    };
+
+    const shouldResume = playbackIntentRef.current;
+
+    if (positionSeconds > 5) {
+      restartCurrentTrack(shouldResume);
       return;
     }
 
     const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
     if (previousIndex === -1) {
-      player.seekTo(0).catch(() => null);
+      restartCurrentTrack(shouldResume);
       return;
     }
 
-    const shouldPlay = playbackIntentRef.current;
-    autoPlayRef.current = shouldPlay;
+    setPlaybackIntent(true);
+    autoPlayRef.current = true;
     currentIndexRef.current = previousIndex;
     currentTrackRef.current = queue[previousIndex] ?? null;
     setCurrentIndex(previousIndex);
-  }, [currentIndex, player, queue, status?.currentTime]);
+  }, [currentIndex, player, queue, setPlaybackIntent, status?.currentTime]);
 
   const pause = useCallback(() => {
     try {
