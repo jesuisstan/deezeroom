@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Platform, View } from 'react-native';
 
@@ -305,12 +304,7 @@ const ProgressBarComponent = ({
                 : themeColors[theme]['primary'],
               borderWidth: IS_WEB ? 1 : 0,
               borderColor: IS_WEB ? '#B5B5B5' : 'transparent',
-              opacity:
-                IS_WEB
-                  ? isDragging || isHovering
-                    ? 1
-                    : 0
-                  : 1
+              opacity: IS_WEB ? (isDragging || isHovering ? 1 : 0) : 1
             },
             handleAnimatedStyle
           ]}
