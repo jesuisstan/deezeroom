@@ -1,8 +1,19 @@
-import { memo } from 'react';
-import { View } from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, View } from 'react-native';
+
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming
+} from 'react-native-reanimated';
 
 import { TextCustom } from '@/components/ui/TextCustom';
-import { useAudioStatus } from '@/providers/PlaybackProvider';
+import {
+  useAudioStatus,
+  usePlaybackActions
+} from '@/providers/PlaybackProvider';
 import { themeColors } from '@/style/color-theme';
 
 type ProgressBarProps = {
@@ -10,6 +21,12 @@ type ProgressBarProps = {
   trackDuration?: number; // Fallback duration from track metadata
   layout?: 'stacked' | 'inline';
 };
+
+const TRACK_HEIGHT = 8;
+const HANDLE_SIZE = 12;
+const HANDLE_ACTIVE_SCALE = 1.3;
+const HANDLE_TOUCH_HEIGHT = 32;
+const DRAG_TEXT_THROTTLE_MS = 60;
 
 const formatTime = (valueInSeconds: number) => {
   const totalSeconds = Number.isFinite(valueInSeconds)
@@ -26,12 +43,23 @@ const ProgressBarComponent = ({
   layout = 'stacked'
 }: ProgressBarProps) => {
   const { status } = useAudioStatus();
+  const { seekTo } = usePlaybackActions();
+
+  const progressRatio = useSharedValue(0);
+  const barWidthShared = useSharedValue(0);
+  const durationShared = useSharedValue(0);
+  const isDraggingShared = useSharedValue(0);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPreviewSeconds, setDragPreviewSeconds] = useState(0);
+  const isDraggingRef = useRef(false);
+  const dragUpdateThrottleRef = useRef(0);
 
   const rawCurrent = status?.currentTime ?? 0;
   const rawDuration =
     status?.duration && status.duration > 0
       ? status.duration
-      : trackDuration ?? 0;
+      : (trackDuration ?? 0);
 
   const safeDuration = Number.isFinite(rawDuration)
     ? Math.max(0, rawDuration)
@@ -52,35 +80,200 @@ const ProgressBarComponent = ({
   const ratio =
     ratioBase > 0 ? Math.min(Math.max(currentForDisplay / ratioBase, 0), 1) : 0;
 
-  const formattedCurrentTime = formatTime(
-    syncToSeconds ? currentForDisplay : normalizedCurrent
+  const isSeekable = safeDuration > 0;
+  const clampSeconds = useCallback(
+    (value: number) => {
+      if (safeDuration > 0) {
+        return Math.min(Math.max(value, 0), safeDuration);
+      }
+      return Math.max(value, 0);
+    },
+    [safeDuration]
   );
+
+  const dragSecondsSafe = clampSeconds(dragPreviewSeconds);
+  const displaySeconds = isDragging
+    ? dragSecondsSafe
+    : syncToSeconds
+      ? currentForDisplay
+      : normalizedCurrent;
+
+  const formattedCurrentTime = formatTime(displaySeconds);
   const formattedDuration = formatTime(
     syncToSeconds ? durationForDisplay : safeDuration
   );
 
-  const bar = (
-    <View className="h-2 overflow-hidden rounded-full bg-bg-tertiary">
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      barWidthShared.value = event.nativeEvent.layout.width;
+    },
+    [barWidthShared]
+  );
+
+  const startDrag = useCallback(
+    (seconds: number) => {
+      isDraggingRef.current = true;
+      dragUpdateThrottleRef.current = Date.now();
+      setIsDragging(true);
+      setDragPreviewSeconds(clampSeconds(seconds));
+    },
+    [clampSeconds]
+  );
+
+  const updateDragPreview = useCallback(
+    (seconds: number) => {
+      const now = Date.now();
+      if (now - dragUpdateThrottleRef.current > DRAG_TEXT_THROTTLE_MS) {
+        dragUpdateThrottleRef.current = now;
+        setDragPreviewSeconds(clampSeconds(seconds));
+      }
+    },
+    [clampSeconds]
+  );
+
+  const finishDrag = useCallback(
+    (seconds: number) => {
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      const nextSeconds = clampSeconds(seconds);
+      setDragPreviewSeconds(nextSeconds);
+      seekTo(nextSeconds);
+    },
+    [clampSeconds, seekTo]
+  );
+
+  useEffect(() => {
+    durationShared.value = safeDuration;
+  }, [durationShared, safeDuration]);
+
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      return;
+    }
+    progressRatio.value = withTiming(ratio, {
+      duration: syncToSeconds ? 200 : 120
+    });
+  }, [progressRatio, ratio, syncToSeconds]);
+
+  const fillAnimatedStyle = useAnimatedStyle(() => {
+    const width = Math.max(
+      0,
+      Math.min(barWidthShared.value, barWidthShared.value * progressRatio.value)
+    );
+    return {
+      width
+    };
+  });
+
+  const handleAnimatedStyle = useAnimatedStyle(() => {
+    const barWidth = barWidthShared.value;
+    const clampedRatio = Math.min(Math.max(progressRatio.value, 0), 1);
+    const translateX = Math.max(
+      0,
+      Math.min(
+        barWidth - HANDLE_SIZE,
+        barWidth * clampedRatio - HANDLE_SIZE / 2
+      )
+    );
+    return {
+      transform: [
+        { translateX },
+        {
+          scale: withTiming(isDraggingShared.value ? HANDLE_ACTIVE_SCALE : 1, {
+            duration: 120
+          })
+        }
+      ]
+    };
+  });
+
+  const panGesture = useMemo(() => {
+    return Gesture.Pan()
+      .enabled(isSeekable)
+      .minDistance(0)
+      .onBegin((event) => {
+        if (!isSeekable) {
+          return;
+        }
+        const width = barWidthShared.value;
+        const durationValue = durationShared.value;
+        if (width <= 0 || durationValue <= 0) {
+          return;
+        }
+        const ratioFromPoint = Math.min(Math.max(event.x / width, 0), 1);
+        progressRatio.value = ratioFromPoint;
+        isDraggingShared.value = 1;
+        runOnJS(startDrag)(ratioFromPoint * durationValue);
+      })
+      .onUpdate((event) => {
+        if (!isSeekable) {
+          return;
+        }
+        const width = barWidthShared.value;
+        const durationValue = durationShared.value;
+        if (width <= 0 || durationValue <= 0) {
+          return;
+        }
+        const ratioFromPoint = Math.min(Math.max(event.x / width, 0), 1);
+        progressRatio.value = ratioFromPoint;
+        runOnJS(updateDragPreview)(ratioFromPoint * durationValue);
+      })
+      .onFinalize(() => {
+        if (!isSeekable || !isDraggingShared.value) {
+          return;
+        }
+        const durationValue = durationShared.value;
+        const ratioValue = Math.min(Math.max(progressRatio.value, 0), 1);
+        isDraggingShared.value = 0;
+        runOnJS(finishDrag)(ratioValue * durationValue);
+      });
+  }, [
+    barWidthShared,
+    durationShared,
+    finishDrag,
+    isDraggingShared,
+    isSeekable,
+    progressRatio,
+    startDrag,
+    updateDragPreview
+  ]);
+
+  const progressBar = (
+    <GestureDetector gesture={panGesture}>
       <View
-        style={{
-          flexDirection: 'row',
-          flex: 1,
-          height: '100%'
-        }}
+        pointerEvents={isSeekable ? 'auto' : 'none'}
+        onLayout={handleLayout}
+        className="w-full justify-center"
+        style={{ height: HANDLE_TOUCH_HEIGHT, opacity: isSeekable ? 1 : 0.4 }}
       >
-        <View
-          style={{
-            flex: ratio,
-            backgroundColor: themeColors[theme]['primary']
-          }}
-        />
-        <View
-          style={{
-            flex: Math.max(0, 1 - ratio)
-          }}
+        <View className="h-2 w-full overflow-hidden rounded-full bg-bg-tertiary">
+          <Animated.View
+            style={[
+              {
+                height: '100%',
+                backgroundColor: themeColors[theme]['primary'],
+                borderRadius: TRACK_HEIGHT / 2
+              },
+              fillAnimatedStyle
+            ]}
+          />
+        </View>
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            {
+              position: 'absolute',
+              top: (HANDLE_TOUCH_HEIGHT - HANDLE_SIZE) / 2,
+              height: HANDLE_SIZE,
+              width: HANDLE_SIZE,
+              borderRadius: HANDLE_SIZE / 2,
+              backgroundColor: themeColors[theme]['primary']
+            },
+            handleAnimatedStyle
+          ]}
         />
       </View>
-    </View>
+    </GestureDetector>
   );
 
   if (layout === 'inline') {
@@ -89,7 +282,7 @@ const ProgressBarComponent = ({
         <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
           {formattedCurrentTime}
         </TextCustom>
-        <View style={{ flex: 1 }}>{bar}</View>
+        <View style={{ flex: 1 }}>{progressBar}</View>
         <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
           {formattedDuration}
         </TextCustom>
@@ -107,7 +300,7 @@ const ProgressBarComponent = ({
           {formattedDuration}
         </TextCustom>
       </View>
-      {bar}
+      {progressBar}
     </View>
   );
 };
