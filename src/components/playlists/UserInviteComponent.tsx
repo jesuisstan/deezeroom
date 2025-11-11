@@ -10,6 +10,7 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import UserChip from '@/components/users/UserChip';
 import { MAX_USERS_INVITE } from '@/constants/deezer';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -324,37 +325,15 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
             {existingUsers.map((user) => (
-              <View
+              <UserChip
                 key={user.userId}
-                className="flex-row items-center rounded-full border border-border px-2 py-1"
-                style={{
-                  backgroundColor: themeColors[theme]['primary'] + '20'
+                user={{
+                  uid: user.userId,
+                  displayName: user.displayName,
+                  photoURL: user.photoURL
                 }}
-              >
-                {/* Avatar */}
-                {user.photoURL ? (
-                  <Image
-                    source={{ uri: user.photoURL }}
-                    className="mr-2 h-6 w-6 rounded-full"
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="account"
-                    size={16}
-                    color={themeColors[theme]['text-secondary']}
-                    className="mr-2"
-                  />
-                )}
-
-                {/* Name */}
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                  numberOfLines={1}
-                >
-                  {user.displayName || 'Unknown User'}
-                </TextCustom>
-              </View>
+                disabled={true}
+              />
             ))}
           </View>
         </View>

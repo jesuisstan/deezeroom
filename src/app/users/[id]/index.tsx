@@ -7,6 +7,7 @@ import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import FavoriteArtistsList from '@/components/profile/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile/FavoriteTracksList';
+import FriendsList from '@/components/profile/FriendsList';
 import InfoRow from '@/components/profile/InfoRow';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -49,7 +50,6 @@ const OtherProfileScreen: FC = () => {
   const [privateProfile, setPrivateProfile] = useState<UserProfile | null>(
     null
   );
-  const [accessLevel, setAccessLevel] = useState<AccessLevel>('public');
   const [loading, setLoading] = useState(true);
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
     string | undefined
@@ -87,7 +87,6 @@ const OtherProfileScreen: FC = () => {
 
           setPublicDoc(publicProfile);
           setPrivateProfile(currentUserProfile ?? null);
-          setAccessLevel('owner');
           setConnection(null);
           setLoading(false);
           return;
@@ -101,7 +100,6 @@ const OtherProfileScreen: FC = () => {
         setPublicDoc(pub);
 
         // Determine access level & connection
-        let level: AccessLevel = 'public';
         let privateData: UserProfile | null = null;
         let connectionDoc: ConnectionDoc | null = null;
 
@@ -113,7 +111,6 @@ const OtherProfileScreen: FC = () => {
           if (!active) return;
           connectionDoc = conn;
           if (fr) {
-            level = 'friends';
             try {
               const profile = await UserService.getUserProfile(id);
               if (!active) return;
@@ -133,14 +130,11 @@ const OtherProfileScreen: FC = () => {
                 '👤 OtherProfile'
               );
             }
-          } else {
-            level = 'public';
           }
         }
 
         if (!active) return;
         setConnection(connectionDoc);
-        setAccessLevel(level);
         setPrivateProfile(privateData);
       } finally {
         if (active) setLoading(false);
@@ -205,8 +199,6 @@ const OtherProfileScreen: FC = () => {
       setConnection(conn);
       const level: AccessLevel =
         user.uid === id ? 'owner' : fr ? 'friends' : 'public';
-      setAccessLevel(level);
-
       if (level === 'friends') {
         try {
           const profile = await UserService.getUserProfile(id);
@@ -546,19 +538,23 @@ const OtherProfileScreen: FC = () => {
                 value={locationLabel}
                 emptyText="No location yet"
               />
+              <View className="mt-4">
+                <FriendsList uid={typeof id === 'string' ? id : undefined} />
+              </View>
             </>
           ) : (
             <View className="rounded-xl border border-border bg-bg-tertiary p-4">
               <TextCustom className="text-accent">Friends only</TextCustom>
               <TextCustom>
-                Phone, birth date and location are visible to friends.
+                Phone, birth date, location and friends list are visible to
+                friends.
               </TextCustom>
             </View>
           )}
         </View>
         <View className="flex-1">
           <RippleButton
-            title="Back to Home"
+            title="Home"
             onPress={() => router.push('/')}
             disabled={actionLoading}
           />
