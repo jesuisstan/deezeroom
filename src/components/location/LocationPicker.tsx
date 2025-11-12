@@ -257,6 +257,49 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
     else pickFromPredictionNative(pred);
   };
 
+  // Web: reverse geocode using Google Maps JS SDK to avoid REST CORS/referrer issues
+  const reverseGeocodeWebWithSDK = useCallback(async (lat: number, lng: number) => {
+    try {
+      await loadGoogleMaps(GOOGLE_KEY);
+      const geocoder = new (window as any).google.maps.Geocoder();
+      const result: any = await new Promise((resolve, reject) => {
+        geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
+          if (status === (window as any).google.maps.GeocoderStatus.OK && results?.[0]) {
+            resolve(results[0]);
+          } else {
+            reject(new Error(`Geocoder failed: ${status}`));
+          }
+        });
+      });
+      const components = Array.isArray(result.address_components)
+        ? result.address_components.map((c: any) => ({
+            longName: c.long_name,
+            shortName: c.short_name,
+            types: c.types || []
+          }))
+        : [];
+      const get = (type: string) => components.find((c: any) => c.types.includes(type));
+      const locality = get('locality')?.longName || get('postal_town')?.longName || '';
+      const adminArea = get('administrative_area_level_1')?.longName || '';
+      const country = get('country')?.longName || '';
+      const countryCode = get('country')?.shortName || '';
+      return {
+        placeId: result.place_id,
+        formattedAddress: result.formatted_address,
+        description: result.formatted_address,
+        coords: { lat, lng },
+        addressComponents: components,
+        locality,
+        adminArea,
+        country,
+        countryCode
+      } as LocationValue;
+    } catch (e) {
+      Logger.warn('google.maps.Geocoder failed', e, 'LocationPicker');
+      return null as LocationValue;
+    }
+  }, []);
+
   const useMyLocation = async () => {
     try {
       setDetLoading(true);
@@ -269,7 +312,19 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
       const lat = Number(pos.coords.latitude.toFixed(6));
       const lng = Number(pos.coords.longitude.toFixed(6));
 
-      // Reverse geocode: Prefer Google Geocoding if key
+      // Reverse geocode (Google only)
+      if (Platform.OS === 'web' && GOOGLE_KEY) {
+        // 1) Prefer JS SDK Geocoder
+        const viaSdk = await reverseGeocodeWebWithSDK(lat, lng);
+        if (viaSdk) {
+          onChange(viaSdk);
+          setQuery(viaSdk?.formattedAddress || '');
+          setPredictions([]);
+          return;
+        }
+      }
+
+      // 2) REST Geocoding as a fallback (works on native and usually on web if key allows REST)
       if (GOOGLE_KEY) {
         try {
           const url = `${GEOCODE_URL}?latlng=${lat},${lng}&key=${GOOGLE_KEY}`;
@@ -305,26 +360,28 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
             return;
           }
         } catch (e) {
-          Logger.warn('Reverse geocode (Google) failed', e, 'LocationPicker');
+          Logger.warn('Reverse geocode (Google REST) failed', e, 'LocationPicker');
         }
       }
 
-      // Fallback: Expo reverseGeocodeAsync
-      try {
-        const res = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        const item = res?.[0];
-        const formatted = [item?.city || item?.district, item?.region || item?.subregion, item?.country]
-          .filter(Boolean)
-          .join(', ');
-        onChange({
-          placeId: undefined,
-          formattedAddress: formatted || undefined,
-          description: formatted || undefined,
-          coords: { lat, lng }
-        });
-        setQuery(formatted);
-      } catch (e) {
-        Logger.warn('Expo reverse geocode failed', e, 'LocationPicker');
+      // 3) Native-only fallback via Expo (SDK 49 removed web support)
+      if (Platform.OS !== 'web') {
+        try {
+          const res = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const item = res?.[0];
+          const formatted = [item?.city || item?.district, item?.region || item?.subregion, item?.country]
+            .filter(Boolean)
+            .join(', ');
+          onChange({
+            placeId: undefined,
+            formattedAddress: formatted || undefined,
+            description: formatted || undefined,
+            coords: { lat, lng }
+          });
+          setQuery(formatted);
+        } catch (e) {
+          Logger.warn('Expo reverse geocode failed', e, 'LocationPicker');
+        }
       }
     } catch (e) {
       Logger.error('Get current location failed', e, 'LocationPicker');
