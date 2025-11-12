@@ -66,7 +66,11 @@ export interface UserProfile {
       formattedAddress?: string;
       description?: string;
       coords?: { lat: number; lng: number } | null;
-      addressComponents?: { longName: string; shortName: string; types: string[] }[];
+      addressComponents?: {
+        longName: string;
+        shortName: string;
+        types: string[];
+      }[];
       locality?: string;
       adminArea?: string;
       country?: string;
@@ -368,7 +372,11 @@ export class UserService {
       Object.prototype.hasOwnProperty.call(data.privateInfo, 'location');
     if (shouldClearLocation) {
       try {
-        await setDoc(userRef, { privateInfo: { location: null } }, { merge: true });
+        await setDoc(
+          userRef,
+          { privateInfo: { location: null } },
+          { merge: true }
+        );
       } catch (e) {
         Logger.warn(
           'Failed to pre-clear location before update',

@@ -1,16 +1,23 @@
-import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, View, TouchableOpacity, ScrollView } from 'react-native';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
+import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
 import * as ExpoLocation from 'expo-location';
 
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger/LoggerModule';
-import InputCustom from '@/components/ui/InputCustom';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
+import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { themeColors } from '@/style/color-theme';
 import { useTheme } from '@/providers/ThemeProvider';
+import { themeColors } from '@/style/color-theme';
 
 type LatLng = { lat: number; lng: number };
 
@@ -19,7 +26,11 @@ export type LocationValue = {
   formattedAddress?: string;
   coords?: LatLng | null;
   description?: string;
-  addressComponents?: { longName: string; shortName: string; types: string[] }[];
+  addressComponents?: {
+    longName: string;
+    shortName: string;
+    types: string[];
+  }[];
   locality?: string;
   adminArea?: string;
   country?: string;
@@ -46,7 +57,9 @@ const loadGoogleMaps = (key?: string) =>
     const w = window as any;
     if (w.google?.maps?.places) return resolve();
     const scriptId = 'gmaps-sdk-places';
-    const existing = document.getElementById(scriptId) as HTMLScriptElement | null;
+    const existing = document.getElementById(
+      scriptId
+    ) as HTMLScriptElement | null;
     if (existing && w.google?.maps) return resolve();
     if (!key) return reject(new Error('Missing Google Maps key'));
     const s = document.createElement('script');
@@ -61,7 +74,8 @@ const loadGoogleMaps = (key?: string) =>
 const GOOGLE_KEY =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY || '';
 
-const AUTOCOMPLETE_URL = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+const AUTOCOMPLETE_URL =
+  'https://maps.googleapis.com/maps/api/place/autocomplete/json';
 const DETAILS_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
 const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 
@@ -73,7 +87,12 @@ const debounce = (fn: (...args: any[]) => void, ms = 300) => {
   };
 };
 
-const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentLocation = true }) => {
+const LocationPicker: FC<Props> = ({
+  value,
+  onChange,
+  placeholder,
+  allowCurrentLocation = true
+}) => {
   const [query, setQuery] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,58 +111,56 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
     if (value?.formattedAddress) setQuery(value.formattedAddress);
     else if (value?.description) setQuery(value.description);
     else if (!value) setQuery('');
-  }, [value?.formattedAddress, value?.description]);
+  }, [value]);
 
   // Fetch predictions
-  const fetchPredictionsNative = useCallback(
-    async (text: string) => {
-      if (!GOOGLE_KEY || !text.trim()) {
+  const fetchPredictionsNative = useCallback(async (text: string) => {
+    if (!GOOGLE_KEY || !text.trim()) {
+      setPredictions([]);
+      return;
+    }
+    try {
+      setLoading(true);
+      const url = `${AUTOCOMPLETE_URL}?input=${encodeURIComponent(text)}&key=${GOOGLE_KEY}`;
+      const resp = await fetch(url);
+      const json = await resp.json();
+      if (json?.status === 'OK' && Array.isArray(json.predictions)) {
+        setPredictions(json.predictions as Prediction[]);
+      } else {
         setPredictions([]);
-        return;
       }
-      try {
-        setLoading(true);
-        const url = `${AUTOCOMPLETE_URL}?input=${encodeURIComponent(text)}&key=${GOOGLE_KEY}`;
-        const resp = await fetch(url);
-        const json = await resp.json();
-        if (json?.status === 'OK' && Array.isArray(json.predictions)) {
-          setPredictions(json.predictions as Prediction[]);
+    } catch (e) {
+      Logger.warn('Autocomplete native failed', e, 'LocationPicker');
+      setPredictions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchPredictionsWeb = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setPredictions([]);
+      return;
+    }
+    try {
+      await loadGoogleMaps(GOOGLE_KEY);
+      const svc = new (window as any).google.maps.places.AutocompleteService();
+      svc.getPlacePredictions({ input: text }, (res: any, status: any) => {
+        if (
+          status ===
+            (window as any).google.maps.places.PlacesServiceStatus.OK &&
+          res
+        ) {
+          setPredictions(res as Prediction[]);
         } else {
           setPredictions([]);
         }
-      } catch (e) {
-        Logger.warn('Autocomplete native failed', e, 'LocationPicker');
-        setPredictions([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  const fetchPredictionsWeb = useCallback(
-    async (text: string) => {
-      if (!text.trim()) {
-        setPredictions([]);
-        return;
-      }
-      try {
-        await loadGoogleMaps(GOOGLE_KEY);
-        const svc = new (window as any).google.maps.places.AutocompleteService();
-        svc.getPlacePredictions({ input: text }, (res: any, status: any) => {
-          if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && res) {
-            setPredictions(res as Prediction[]);
-          } else {
-            setPredictions([]);
-          }
-        });
-      } catch (e) {
-        Logger.warn('Autocomplete web failed', e, 'LocationPicker');
-        setPredictions([]);
-      }
-    },
-    []
-  );
+      });
+    } catch (e) {
+      Logger.warn('Autocomplete web failed', e, 'LocationPicker');
+      setPredictions([]);
+    }
+  }, []);
 
   const debouncedFetch = useMemo(
     () =>
@@ -159,98 +176,126 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
     debouncedFetch(text);
   };
 
-  const pickFromPredictionNative = useCallback(async (pred: Prediction) => {
-    if (!GOOGLE_KEY) return Alert.alert('Error', 'Missing Google API key');
-    try {
-      setLoading(true);
-      const fields = 'place_id,formatted_address,geometry,address_components,name';
-      const url = `${DETAILS_URL}?place_id=${encodeURIComponent(pred.place_id)}&fields=${encodeURIComponent(fields)}&key=${GOOGLE_KEY}`;
-      const resp = await fetch(url);
-      const json = await resp.json();
-      const r = json?.result;
-      if (!r) throw new Error('No details');
-      const coords: LatLng | null = r.geometry?.location
-        ? { lat: r.geometry.location.lat, lng: r.geometry.location.lng }
-        : null;
-      const addressComponents = Array.isArray(r.address_components)
-        ? r.address_components.map((c: any) => ({
-            longName: c.long_name,
-            shortName: c.short_name,
-            types: c.types || []
-          }))
-        : [];
-      const get = (type: string) => addressComponents.find((c: any) => c.types.includes(type));
-      const locality = get('locality')?.longName || get('postal_town')?.longName || '';
-      const adminArea = get('administrative_area_level_1')?.longName || '';
-      const country = get('country')?.longName || '';
-      const countryCode = get('country')?.shortName || '';
-      onChange({
-        placeId: r.place_id,
-        formattedAddress: r.formatted_address,
-        description: pred.description,
-        coords,
-        addressComponents,
-        locality,
-        adminArea,
-        country,
-        countryCode
-      });
-      setPredictions([]);
-      setQuery(r.formatted_address || pred.description || '');
-    } catch (e) {
-      Logger.error('Place details native failed', e, 'LocationPicker');
-      Alert.alert('Error', 'Failed to load place details');
-    } finally {
-      setLoading(false);
-    }
-  }, [onChange]);
+  const pickFromPredictionNative = useCallback(
+    async (pred: Prediction) => {
+      if (!GOOGLE_KEY) return Alert.alert('Error', 'Missing Google API key');
+      try {
+        setLoading(true);
+        const fields =
+          'place_id,formatted_address,geometry,address_components,name';
+        const url = `${DETAILS_URL}?place_id=${encodeURIComponent(pred.place_id)}&fields=${encodeURIComponent(fields)}&key=${GOOGLE_KEY}`;
+        const resp = await fetch(url);
+        const json = await resp.json();
+        const r = json?.result;
+        if (!r) throw new Error('No details');
+        const coords: LatLng | null = r.geometry?.location
+          ? { lat: r.geometry.location.lat, lng: r.geometry.location.lng }
+          : null;
+        const addressComponents = Array.isArray(r.address_components)
+          ? r.address_components.map((c: any) => ({
+              longName: c.long_name,
+              shortName: c.short_name,
+              types: c.types || []
+            }))
+          : [];
+        const get = (type: string) =>
+          addressComponents.find((c: any) => c.types.includes(type));
+        const locality =
+          get('locality')?.longName || get('postal_town')?.longName || '';
+        const adminArea = get('administrative_area_level_1')?.longName || '';
+        const country = get('country')?.longName || '';
+        const countryCode = get('country')?.shortName || '';
+        onChange({
+          placeId: r.place_id,
+          formattedAddress: r.formatted_address,
+          description: pred.description,
+          coords,
+          addressComponents,
+          locality,
+          adminArea,
+          country,
+          countryCode
+        });
+        setPredictions([]);
+        setQuery(r.formatted_address || pred.description || '');
+      } catch (e) {
+        Logger.error('Place details native failed', e, 'LocationPicker');
+        Alert.alert('Error', 'Failed to load place details');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onChange]
+  );
 
-  const pickFromPredictionWeb = useCallback(async (pred: Prediction) => {
-    try {
-      await loadGoogleMaps(GOOGLE_KEY);
-      const dummy = document.createElement('div');
-      const svc = new (window as any).google.maps.places.PlacesService(dummy);
-      svc.getDetails(
-        { placeId: pred.place_id, fields: ['place_id', 'formatted_address', 'geometry', 'address_components', 'name'] },
-        (r: any, status: any) => {
-          if (status !== (window as any).google.maps.places.PlacesServiceStatus.OK || !r) {
-            Alert.alert('Error', 'Failed to load place details');
-            return;
+  const pickFromPredictionWeb = useCallback(
+    async (pred: Prediction) => {
+      try {
+        await loadGoogleMaps(GOOGLE_KEY);
+        const dummy = document.createElement('div');
+        const svc = new (window as any).google.maps.places.PlacesService(dummy);
+        svc.getDetails(
+          {
+            placeId: pred.place_id,
+            fields: [
+              'place_id',
+              'formatted_address',
+              'geometry',
+              'address_components',
+              'name'
+            ]
+          },
+          (r: any, status: any) => {
+            if (
+              status !==
+                (window as any).google.maps.places.PlacesServiceStatus.OK ||
+              !r
+            ) {
+              Alert.alert('Error', 'Failed to load place details');
+              return;
+            }
+            const addressComponents = Array.isArray(r.address_components)
+              ? r.address_components.map((c: any) => ({
+                  longName: c.long_name,
+                  shortName: c.short_name,
+                  types: c.types || []
+                }))
+              : [];
+            const get = (type: string) =>
+              addressComponents.find((c: any) => c.types.includes(type));
+            const locality =
+              get('locality')?.longName || get('postal_town')?.longName || '';
+            const adminArea =
+              get('administrative_area_level_1')?.longName || '';
+            const country = get('country')?.longName || '';
+            const countryCode = get('country')?.shortName || '';
+            onChange({
+              placeId: r.place_id,
+              formattedAddress: r.formatted_address,
+              description: pred.description,
+              coords: r.geometry?.location
+                ? {
+                    lat: r.geometry.location.lat(),
+                    lng: r.geometry.location.lng()
+                  }
+                : null,
+              addressComponents,
+              locality,
+              adminArea,
+              country,
+              countryCode
+            });
+            setPredictions([]);
+            setQuery(r.formatted_address || pred.description || '');
           }
-          const addressComponents = Array.isArray(r.address_components)
-            ? r.address_components.map((c: any) => ({
-                longName: c.long_name,
-                shortName: c.short_name,
-                types: c.types || []
-              }))
-            : [];
-          const get = (type: string) => addressComponents.find((c: any) => c.types.includes(type));
-          const locality = get('locality')?.longName || get('postal_town')?.longName || '';
-          const adminArea = get('administrative_area_level_1')?.longName || '';
-          const country = get('country')?.longName || '';
-          const countryCode = get('country')?.shortName || '';
-          onChange({
-            placeId: r.place_id,
-            formattedAddress: r.formatted_address,
-            description: pred.description,
-            coords: r.geometry?.location
-              ? { lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }
-              : null,
-            addressComponents,
-            locality,
-            adminArea,
-            country,
-            countryCode
-          });
-          setPredictions([]);
-          setQuery(r.formatted_address || pred.description || '');
-        }
-      );
-    } catch (e) {
-      Logger.error('Place details web failed', e, 'LocationPicker');
-      Alert.alert('Error', 'Failed to load place details');
-    }
-  }, [onChange]);
+        );
+      } catch (e) {
+        Logger.error('Place details web failed', e, 'LocationPicker');
+        Alert.alert('Error', 'Failed to load place details');
+      }
+    },
+    [onChange]
+  );
 
   const onPickPrediction = (pred: Prediction) => {
     if (Platform.OS === 'web') pickFromPredictionWeb(pred);
@@ -258,47 +303,58 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
   };
 
   // Web: reverse geocode using Google Maps JS SDK to avoid REST CORS/referrer issues
-  const reverseGeocodeWebWithSDK = useCallback(async (lat: number, lng: number) => {
-    try {
-      await loadGoogleMaps(GOOGLE_KEY);
-      const geocoder = new (window as any).google.maps.Geocoder();
-      const result: any = await new Promise((resolve, reject) => {
-        geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {
-          if (status === (window as any).google.maps.GeocoderStatus.OK && results?.[0]) {
-            resolve(results[0]);
-          } else {
-            reject(new Error(`Geocoder failed: ${status}`));
-          }
+  const reverseGeocodeWebWithSDK = useCallback(
+    async (lat: number, lng: number) => {
+      try {
+        await loadGoogleMaps(GOOGLE_KEY);
+        const geocoder = new (window as any).google.maps.Geocoder();
+        const result: any = await new Promise((resolve, reject) => {
+          geocoder.geocode(
+            { location: { lat, lng } },
+            (results: any, status: any) => {
+              if (
+                status === (window as any).google.maps.GeocoderStatus.OK &&
+                results?.[0]
+              ) {
+                resolve(results[0]);
+              } else {
+                reject(new Error(`Geocoder failed: ${status}`));
+              }
+            }
+          );
         });
-      });
-      const components = Array.isArray(result.address_components)
-        ? result.address_components.map((c: any) => ({
-            longName: c.long_name,
-            shortName: c.short_name,
-            types: c.types || []
-          }))
-        : [];
-      const get = (type: string) => components.find((c: any) => c.types.includes(type));
-      const locality = get('locality')?.longName || get('postal_town')?.longName || '';
-      const adminArea = get('administrative_area_level_1')?.longName || '';
-      const country = get('country')?.longName || '';
-      const countryCode = get('country')?.shortName || '';
-      return {
-        placeId: result.place_id,
-        formattedAddress: result.formatted_address,
-        description: result.formatted_address,
-        coords: { lat, lng },
-        addressComponents: components,
-        locality,
-        adminArea,
-        country,
-        countryCode
-      } as LocationValue;
-    } catch (e) {
-      Logger.warn('google.maps.Geocoder failed', e, 'LocationPicker');
-      return null as LocationValue;
-    }
-  }, []);
+        const components = Array.isArray(result.address_components)
+          ? result.address_components.map((c: any) => ({
+              longName: c.long_name,
+              shortName: c.short_name,
+              types: c.types || []
+            }))
+          : [];
+        const get = (type: string) =>
+          components.find((c: any) => c.types.includes(type));
+        const locality =
+          get('locality')?.longName || get('postal_town')?.longName || '';
+        const adminArea = get('administrative_area_level_1')?.longName || '';
+        const country = get('country')?.longName || '';
+        const countryCode = get('country')?.shortName || '';
+        return {
+          placeId: result.place_id,
+          formattedAddress: result.formatted_address,
+          description: result.formatted_address,
+          coords: { lat, lng },
+          addressComponents: components,
+          locality,
+          adminArea,
+          country,
+          countryCode
+        } as LocationValue;
+      } catch (e) {
+        Logger.warn('google.maps.Geocoder failed', e, 'LocationPicker');
+        return null as LocationValue;
+      }
+    },
+    []
+  );
 
   const useMyLocation = async () => {
     try {
@@ -308,7 +364,9 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
         Alert.alert('Permission required', 'Location permission is needed.');
         return;
       }
-      const pos = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced });
+      const pos = await ExpoLocation.getCurrentPositionAsync({
+        accuracy: ExpoLocation.Accuracy.Balanced
+      });
       const lat = Number(pos.coords.latitude.toFixed(6));
       const lng = Number(pos.coords.longitude.toFixed(6));
 
@@ -339,9 +397,12 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
                   types: c.types || []
                 }))
               : [];
-            const get = (type: string) => components.find((c: any) => c.types.includes(type));
-            const locality = get('locality')?.longName || get('postal_town')?.longName || '';
-            const adminArea = get('administrative_area_level_1')?.longName || '';
+            const get = (type: string) =>
+              components.find((c: any) => c.types.includes(type));
+            const locality =
+              get('locality')?.longName || get('postal_town')?.longName || '';
+            const adminArea =
+              get('administrative_area_level_1')?.longName || '';
             const country = get('country')?.longName || '';
             const countryCode = get('country')?.shortName || '';
             onChange({
@@ -360,16 +421,27 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
             return;
           }
         } catch (e) {
-          Logger.warn('Reverse geocode (Google REST) failed', e, 'LocationPicker');
+          Logger.warn(
+            'Reverse geocode (Google REST) failed',
+            e,
+            'LocationPicker'
+          );
         }
       }
 
       // 3) Native-only fallback via Expo (SDK 49 removed web support)
       if (Platform.OS !== 'web') {
         try {
-          const res = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const res = await ExpoLocation.reverseGeocodeAsync({
+            latitude: lat,
+            longitude: lng
+          });
           const item = res?.[0];
-          const formatted = [item?.city || item?.district, item?.region || item?.subregion, item?.country]
+          const formatted = [
+            item?.city || item?.district,
+            item?.region || item?.subregion,
+            item?.country
+          ]
             .filter(Boolean)
             .join(', ');
           onChange({
@@ -406,14 +478,24 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
       />
       {allowCurrentLocation && (
         <View className="flex-row gap-3">
-          <RippleButton title={detLoading ? 'Detecting…' : 'Use my location'} onPress={useMyLocation} loading={detLoading} />
+          <RippleButton
+            title={detLoading ? 'Detecting…' : 'Use my location'}
+            onPress={useMyLocation}
+            loading={detLoading}
+          />
           {value ? (
-            <RippleButton title="Clear" variant="outline" onPress={clearSelection} />
+            <RippleButton
+              title="Clear"
+              variant="outline"
+              onPress={clearSelection}
+            />
           ) : null}
         </View>
       )}
       {loading ? (
-        <TextCustom color={themeColors[theme]['text-secondary']}>Searching…</TextCustom>
+        <TextCustom color={themeColors[theme]['text-secondary']}>
+          Searching…
+        </TextCustom>
       ) : null}
       {predictions.length > 0 && (
         <View
@@ -423,11 +505,19 @@ const LocationPicker: FC<Props> = ({ value, onChange, placeholder, allowCurrentL
           <ScrollView keyboardShouldPersistTaps="handled">
             {predictions.map((p, idx) => (
               <View key={p.place_id}>
-                <TouchableOpacity activeOpacity={0.7} onPress={() => onPickPrediction(p)}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => onPickPrediction(p)}
+                >
                   <View className="px-3 py-2">
-                    <TextCustom>{p.structured_formatting?.main_text || p.description}</TextCustom>
+                    <TextCustom>
+                      {p.structured_formatting?.main_text || p.description}
+                    </TextCustom>
                     {p.structured_formatting?.secondary_text ? (
-                      <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                      <TextCustom
+                        size="s"
+                        color={themeColors[theme]['text-secondary']}
+                      >
                         {p.structured_formatting.secondary_text}
                       </TextCustom>
                     ) : null}
