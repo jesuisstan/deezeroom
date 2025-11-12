@@ -5,6 +5,7 @@ import * as ExpoLocation from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
+import LocationPicker, { LocationValue } from '@/components/location/LocationPicker';
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -91,9 +92,10 @@ const EditProfileScreen: FC = () => {
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
-    // location now stored as coordinates + human-readable name
-    locationName: '',
-    locationCoords: null as null | { lat: number; lng: number },
+    // location now stored in normalized format, plus legacy fields for compatibility
+    location: null as LocationValue,
+    locationName: '', // legacy
+    locationCoords: null as null | { lat: number; lng: number }, // legacy
     phone: '',
     birthDate: ''
   });
@@ -124,8 +126,15 @@ const EditProfileScreen: FC = () => {
       setFormData({
         displayName: profile.displayName || '',
         bio: profile.bio || '',
-        locationName: profile.privateInfo?.locationName || '',
-        locationCoords: profile.privateInfo?.locationCoords || null,
+        location: profile.privateInfo?.location || null,
+        locationName:
+          profile.privateInfo?.location?.formattedAddress ||
+          profile.privateInfo?.locationName ||
+          '',
+        locationCoords:
+          profile.privateInfo?.location?.coords ||
+          profile.privateInfo?.locationCoords ||
+          null,
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || ''
       });
@@ -355,32 +364,7 @@ const EditProfileScreen: FC = () => {
     return '';
   };
 
-  const detectLocation = async () => {
-    try {
-      setLocLoading(true);
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Location permission is needed.');
-        return;
-      }
-      const pos = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.Balanced
-      });
-      const lat = Number(pos.coords.latitude.toFixed(6));
-      const lng = Number(pos.coords.longitude.toFixed(6));
-      const place = await reverseGeocode(lat, lng);
-      setFormData((prev) => ({
-        ...prev,
-        locationCoords: { lat, lng },
-        locationName: place || prev.locationName
-      }));
-    } catch (e) {
-      Logger.error('Failed to get location', e, 'EditProfile');
-      Alert.alert('Error', 'Failed to get location');
-    } finally {
-      setLocLoading(false);
-    }
-  };
+  // Location detection is handled inside LocationPicker now.
 
   const handleSave = async () => {
     if (!user) return;
@@ -391,8 +375,13 @@ const EditProfileScreen: FC = () => {
         privateInfo: {
           phone: formData.phone,
           birthDate: formData.birthDate,
-          locationName: formData.locationName || undefined,
-          locationCoords: formData.locationCoords || undefined
+          // Write new normalized location
+          location: formData.location || undefined,
+          // Keep legacy fields in sync for backward compatibility in other screens
+          locationName:
+            formData.location?.formattedAddress || formData.locationName || undefined,
+          locationCoords:
+            formData.location?.coords || formData.locationCoords || undefined
         },
         favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
       } as any;
@@ -541,7 +530,9 @@ const EditProfileScreen: FC = () => {
                 >
                   Location
                 </TextCustom>
-                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
+                <TextCustom>
+                  {formData.location?.formattedAddress || formData.locationName || 'Not set'}
+                </TextCustom>
               </View>
             </LineButton>
             <Divider inset />
@@ -626,37 +617,21 @@ const EditProfileScreen: FC = () => {
           setVisible={setShowLocationModal}
         >
           <View className="flex-1 gap-4 px-4 pb-6">
-            <InputCustom
-              placeholder="City, Region, Country"
-              value={formData.locationName}
-              onChangeText={(text) =>
-                setFormData((p) => ({ ...p, locationName: text }))
+            <LocationPicker
+              value={formData.location}
+              onChange={(val) =>
+                setFormData((p) => ({
+                  ...p,
+                  location: val,
+                  // keep legacy preview in sync immediately
+                  locationName: val?.formattedAddress || '',
+                  locationCoords: val?.coords || null
+                }))
               }
+              placeholder="Search city, region, country"
+              allowCurrentLocation
             />
-            <View className="flex-row gap-3">
-              <RippleButton
-                title={locLoading ? 'Detecting…' : 'Detect location'}
-                onPress={detectLocation}
-                loading={locLoading}
-              />
-              {formData.locationCoords && (
-                <RippleButton
-                  title="Clear"
-                  variant="outline"
-                  onPress={() =>
-                    setFormData((p) => ({
-                      ...p,
-                      locationCoords: null,
-                      locationName: ''
-                    }))
-                  }
-                />
-              )}
-            </View>
-            <RippleButton
-              title="Done"
-              onPress={() => setShowLocationModal(false)}
-            />
+            <RippleButton title="Done" onPress={() => setShowLocationModal(false)} />
           </View>
         </SwipeModal>
       )}

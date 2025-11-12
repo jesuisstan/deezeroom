@@ -60,6 +60,18 @@ export interface UserProfile {
   privateInfo?: {
     phone?: string;
     birthDate?: string;
+    // New normalized location object
+    location?: {
+      placeId?: string;
+      formattedAddress?: string;
+      description?: string;
+      coords?: { lat: number; lng: number } | null;
+      addressComponents?: { longName: string; shortName: string; types: string[] }[];
+      locality?: string;
+      adminArea?: string;
+      country?: string;
+      countryCode?: string;
+    };
     locationName?: string;
     locationCoords?: { lat: number; lng: number } | null;
   };
