@@ -18,6 +18,7 @@ import {
 
 import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
+import { useUser } from '@/providers/UserProvider';
 
 export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';
 export type RepeatMode = 'off' | 'one' | 'all';
@@ -95,6 +96,7 @@ const findNextPlayableIndex = (
 };
 
 const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useUser();
   const player = useAudioPlayer(null, { keepAudioSessionActive: true });
   const statusRef = useRef<AudioStatus | null>(null);
   const statusListenersRef = useRef(new Set<() => void>());
@@ -266,6 +268,28 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     repeatModeRef.current = repeatMode;
   }, [repeatMode]);
+
+  // Clear playback state when user logs out
+  useEffect(() => {
+    if (!user) {
+      // User logged out - stop playback and clear queue
+      try {
+        player.pause();
+      } catch {
+        // Ignore errors if player is already stopped
+      }
+      setQueue([]);
+      setCurrentIndex(-1);
+      setQueueContext(null);
+      setPlaybackIntent(false);
+      setError(null);
+      setIsLoading(false);
+      autoPlayRef.current = false;
+      currentTrackRef.current = null;
+      currentIndexRef.current = -1;
+      queueRef.current = [];
+    }
+  }, [user, player, setPlaybackIntent]);
 
   useEffect(() => {
     if (!currentTrack) {
