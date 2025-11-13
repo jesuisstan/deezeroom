@@ -77,7 +77,8 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     setEndAt(new Date(roundedStart.getTime() + SIX_HOURS_MS));
     setDurationMs(SIX_HOURS_MS);
     setEndError(null);
-    setHasStartSelection(false);
+    // Set hasStartSelection to true since we're automatically setting the start time
+    setHasStartSelection(true);
   };
 
   const handleClose = () => {
@@ -91,13 +92,24 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   useEffect(() => {
+    if (visible) {
+      // Only reset schedule when modal opens, not when visibility/voteLicense changes
+      resetSchedule();
+      // Auto-adjust voteLicense if needed
+      if (visibility === 'private' && voteLicense === 'everyone') {
+        setVoteLicense('invited');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  // Separate effect for voteLicense adjustment when visibility changes
+  useEffect(() => {
     if (visible && visibility === 'private' && voteLicense === 'everyone') {
       setVoteLicense('invited');
     }
-    if (visible) {
-      resetSchedule();
-    }
-  }, [visible, visibility, voteLicense]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, visibility]);
 
   const handleStartChange = (next: Date) => {
     let adjusted = new Date(next);
@@ -139,15 +151,6 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
         type: 'error',
         title: 'Error',
         message: 'Please enter event name'
-      });
-      return;
-    }
-
-    if (!hasStartSelection) {
-      Notifier.shoot({
-        type: 'error',
-        title: 'Schedule required',
-        message: 'Please set the event start time before continuing.'
       });
       return;
     }
@@ -280,7 +283,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
         <View className="gap-4">
           <DateTimePickerField
-            label="Starts"
+            label="Start *"
             value={startAt}
             onChange={handleStartChange}
             minimumDate={new Date()}
@@ -290,7 +293,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           />
 
           <DateTimePickerField
-            label="Ends"
+            label="End *"
             value={endAt}
             onChange={handleEndChange}
             minimumDate={new Date(startAt.getTime() + 15 * 60 * 1000)}
