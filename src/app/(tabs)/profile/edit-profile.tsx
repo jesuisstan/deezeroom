@@ -1,10 +1,12 @@
 import { FC, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import * as ExpoLocation from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
+import LocationPicker, {
+  LocationValue
+} from '@/components/location/LocationPicker';
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger/LoggerModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -91,9 +93,8 @@ const EditProfileScreen: FC = () => {
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
-    // location now stored as coordinates + human-readable name
-    locationName: '',
-    locationCoords: null as null | { lat: number; lng: number },
+    // location now stored in normalized format, plus legacy fields for compatibility
+    location: null as LocationValue,
     phone: '',
     birthDate: ''
   });
@@ -102,8 +103,6 @@ const EditProfileScreen: FC = () => {
   const [selectedArtists, setSelectedArtists] = useState<DeezerArtist[]>([]);
   // Artist picker state is managed inside reusable component. Keep only selected here.
 
-  // Loading state for location detection
-  const [locLoading, setLocLoading] = useState(false);
   // Modals visibility
   const [showNameModal, setShowNameModal] = useState(false);
   const [showBioModal, setShowBioModal] = useState(false);
@@ -124,8 +123,7 @@ const EditProfileScreen: FC = () => {
       setFormData({
         displayName: profile.displayName || '',
         bio: profile.bio || '',
-        locationName: profile.privateInfo?.locationName || '',
-        locationCoords: profile.privateInfo?.locationCoords || null,
+        location: profile.privateInfo?.location || null,
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || ''
       });
@@ -207,180 +205,6 @@ const EditProfileScreen: FC = () => {
   const handleBirthDateClear = () => {
     setFormData((prev) => ({ ...prev, birthDate: '' }));
   };
-  const buildPlaceName = (data: any): string => {
-    try {
-      // Google Geocoding API response
-      if (data?.results && Array.isArray(data.results) && data.results[0]) {
-        const res = data.results[0];
-        const get = (type: string) =>
-          res.address_components.find((c: any) => c.types.includes(type))
-            ?.long_name;
-        const city =
-          get('locality') ||
-          get('postal_town') ||
-          get('sublocality') ||
-          get('administrative_area_level_2') ||
-          '';
-        const admin = get('administrative_area_level_1') || '';
-        const country = get('country') || '';
-        const fromComponents = [city, admin, country]
-          .filter(Boolean)
-          .join(', ');
-        if (fromComponents) return fromComponents;
-        if (typeof res.formatted_address === 'string') {
-          return res.formatted_address;
-        }
-      }
-      // Expo reverseGeocodeAsync array
-      if (Array.isArray(data) && data[0]) {
-        const item = data[0] as any;
-        const city =
-          item.city || item.town || item.district || item.subregion || '';
-        const region = item.region || item.state || '';
-        const country = item.country || '';
-        const fromExpo = [city, region, country].filter(Boolean).join(', ');
-        if (fromExpo) return fromExpo;
-        const nm = String(item.name || '').trim();
-        const looksLikeCoords =
-          /^(?:[-+]?\d{1,3}(?:\.\d+)?)[,\s]+(?:[-+]?\d{1,3}(?:\.\d+)?)$/.test(
-            nm
-          );
-        if (nm && !looksLikeCoords) return nm;
-      }
-      // Nominatim response
-      if (data?.address) {
-        const a = data.address;
-        const city =
-          a.city || a.town || a.village || a.hamlet || a.suburb || '';
-        const region = a.state || a.county || '';
-        const country = a.country || '';
-        const fromNom = [city, region, country].filter(Boolean).join(', ');
-        if (fromNom) return fromNom;
-        if (data.display_name) return data.display_name;
-      }
-    } catch {}
-    return '';
-  };
-
-  // Web-only: load Google Maps JS SDK and geocode via client to avoid CORS
-  const loadGoogleMaps = (key: string) =>
-    new Promise<void>((resolve, reject) => {
-      if (typeof window !== 'undefined' && (window as any).google?.maps) {
-        resolve();
-        return;
-      }
-      const scriptId = 'gmaps-sdk';
-      const existing = document.getElementById(
-        scriptId
-      ) as HTMLScriptElement | null;
-      if (existing && (window as any).google?.maps) {
-        resolve();
-        return;
-      }
-      const s = document.createElement('script');
-      s.id = scriptId;
-      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&v=weekly`;
-      s.async = true;
-      s.onerror = () => reject(new Error('Failed to load Google Maps JS SDK'));
-      s.onload = () => resolve();
-      document.head.appendChild(s);
-    });
-
-  const reverseGeocodeWebWithSDK = async (
-    lat: number,
-    lng: number,
-    key?: string
-  ): Promise<string> => {
-    if (!key) return '';
-    try {
-      await loadGoogleMaps(key);
-      const geocoder = new (window as any).google.maps.Geocoder();
-      const { results } = await geocoder.geocode({ location: { lat, lng } });
-      const place = buildPlaceName({ results });
-      return place || '';
-    } catch (e) {
-      Logger.warn('google.maps.Geocoder failed', e, 'EditProfile');
-      return '';
-    }
-  };
-
-  const reverseGeocode = async (lat: number, lng: number) => {
-    const key =
-      process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY;
-
-    if (Platform.OS === 'web' && key) {
-      const viaSdk = await reverseGeocodeWebWithSDK(lat, lng, key);
-      if (viaSdk) return viaSdk;
-    }
-
-    // 1) Try Google Geocoding REST if key provided
-    try {
-      if (key) {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${key}`;
-        const resp = await fetch(url);
-        const json = await resp.json();
-        if (json.status === 'OK') {
-          const place = buildPlaceName(json);
-          if (place) return place;
-        }
-      }
-    } catch (e) {
-      Logger.warn('Google reverse geocode REST failed', e, 'EditProfile');
-    }
-
-    // 2) Try Expo reverse geocode
-    try {
-      const res = await ExpoLocation.reverseGeocodeAsync({
-        latitude: lat,
-        longitude: lng
-      });
-      const place = buildPlaceName(res);
-      if (place) return place;
-    } catch (e) {
-      Logger.warn('Expo reverse geocode failed', e, 'EditProfile');
-    }
-
-    // 3) Web-only fallback: Nominatim (OpenStreetMap)
-    try {
-      if (Platform.OS === 'web') {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=en`;
-        const resp = await fetch(url);
-        const json = await resp.json();
-        const place = buildPlaceName(json);
-        if (place) return place;
-      }
-    } catch (e) {
-      Logger.warn('Nominatim reverse geocode failed', e, 'EditProfile');
-    }
-    return '';
-  };
-
-  const detectLocation = async () => {
-    try {
-      setLocLoading(true);
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Location permission is needed.');
-        return;
-      }
-      const pos = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.Balanced
-      });
-      const lat = Number(pos.coords.latitude.toFixed(6));
-      const lng = Number(pos.coords.longitude.toFixed(6));
-      const place = await reverseGeocode(lat, lng);
-      setFormData((prev) => ({
-        ...prev,
-        locationCoords: { lat, lng },
-        locationName: place || prev.locationName
-      }));
-    } catch (e) {
-      Logger.error('Failed to get location', e, 'EditProfile');
-      Alert.alert('Error', 'Failed to get location');
-    } finally {
-      setLocLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -391,8 +215,8 @@ const EditProfileScreen: FC = () => {
         privateInfo: {
           phone: formData.phone,
           birthDate: formData.birthDate,
-          locationName: formData.locationName || undefined,
-          locationCoords: formData.locationCoords || undefined
+          // Write new normalized location
+          location: formData.location || undefined
         },
         favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
       } as any;
@@ -541,7 +365,9 @@ const EditProfileScreen: FC = () => {
                 >
                   Location
                 </TextCustom>
-                <TextCustom>{formData.locationName || 'Not set'}</TextCustom>
+                <TextCustom>
+                  {formData.location?.formattedAddress || 'Not set'}
+                </TextCustom>
               </View>
             </LineButton>
             <Divider inset />
@@ -593,6 +419,8 @@ const EditProfileScreen: FC = () => {
             <RippleButton
               title="Done"
               onPress={() => setShowNameModal(false)}
+              width="full"
+              size="md"
             />
           </View>
         </SwipeModal>
@@ -613,7 +441,12 @@ const EditProfileScreen: FC = () => {
               onChangeText={(text) => setFormData((p) => ({ ...p, bio: text }))}
               multiline
             />
-            <RippleButton title="Done" onPress={() => setShowBioModal(false)} />
+            <RippleButton
+              title="Done"
+              width="full"
+              size="md"
+              onPress={() => setShowBioModal(false)}
+            />
           </View>
         </SwipeModal>
       )}
@@ -626,35 +459,21 @@ const EditProfileScreen: FC = () => {
           setVisible={setShowLocationModal}
         >
           <View className="flex-1 gap-4 px-4 pb-6">
-            <InputCustom
-              placeholder="City, Region, Country"
-              value={formData.locationName}
-              onChangeText={(text) =>
-                setFormData((p) => ({ ...p, locationName: text }))
+            <LocationPicker
+              value={formData.location}
+              onChange={(val) =>
+                setFormData((p) => ({
+                  ...p,
+                  location: val
+                }))
               }
+              placeholder="Search city, region, country"
+              allowCurrentLocation
             />
-            <View className="flex-row gap-3">
-              <RippleButton
-                title={locLoading ? 'Detecting…' : 'Detect location'}
-                onPress={detectLocation}
-                loading={locLoading}
-              />
-              {formData.locationCoords && (
-                <RippleButton
-                  title="Clear"
-                  variant="outline"
-                  onPress={() =>
-                    setFormData((p) => ({
-                      ...p,
-                      locationCoords: null,
-                      locationName: ''
-                    }))
-                  }
-                />
-              )}
-            </View>
             <RippleButton
               title="Done"
+              width="full"
+              size="md"
               onPress={() => setShowLocationModal(false)}
             />
           </View>
@@ -680,6 +499,8 @@ const EditProfileScreen: FC = () => {
             />
             <RippleButton
               title="Done"
+              width="full"
+              size="md"
               onPress={() => setShowPhoneModal(false)}
             />
           </View>

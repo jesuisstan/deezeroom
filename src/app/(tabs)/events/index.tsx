@@ -264,7 +264,7 @@ const EventsScreen = () => {
                 color={themeColors[theme]['text-secondary']}
               />
               <TextCustom
-                className="mt-4"
+                className="mt-4 animate-pulse"
                 color={themeColors[theme]['text-secondary']}
               >
                 Loading events...

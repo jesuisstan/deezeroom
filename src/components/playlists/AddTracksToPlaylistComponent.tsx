@@ -409,7 +409,7 @@ const AddTracksToPlaylistComponent: React.FC<
               <TextCustom
                 size="xs"
                 color={themeColors[theme]['text-secondary']}
-                className="mt-2"
+                className="mt-2 animate-pulse"
               >
                 Loading more tracks...
               </TextCustom>

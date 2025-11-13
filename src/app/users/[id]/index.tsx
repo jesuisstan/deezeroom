@@ -382,7 +382,7 @@ const OtherProfileScreen: FC = () => {
   const photoURL = publicDoc?.photoURL;
   const bioValue = publicDoc?.bio || '';
   const privateInfo = privateProfile?.privateInfo;
-  const locationLabel = privateInfo?.locationName || '';
+  const locationLabel = privateInfo?.location?.formattedAddress || '';
   const phoneValue = privateInfo?.phone || '';
   const birthDateValue = privateInfo?.birthDate || '';
   const publicFavoriteTracks = publicDoc?.favoriteTracks || [];

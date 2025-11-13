@@ -102,7 +102,7 @@ const ProfileScreen: FC = () => {
   const profilePath = `/users/${user?.uid ?? ''}`;
 
   // New: resolve location label for display (only place, not coords)
-  const locationLabel = profile?.privateInfo?.locationName || '';
+  const locationLabel = profile?.privateInfo?.location?.formattedAddress || '';
   const bioValue = profile?.bio || '';
 
   const handleRefresh = async () => {

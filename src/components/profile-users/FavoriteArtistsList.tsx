@@ -24,7 +24,7 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
         <ActivityIndicator color={themeColors[theme]['primary']} />
         <TextCustom
           color={themeColors[theme]['text-secondary']}
-          className="mt-2 text-center"
+          className="mt-2 animate-pulse text-center"
         >
           Loading favorite artists...
         </TextCustom>
@@ -64,7 +64,7 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          gap: 1
+          gap: 2
         }}
       >
         {artists.map((artist) => (

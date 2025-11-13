@@ -404,7 +404,7 @@ const SearchTracksComponent = ({
           <TextCustom
             size="s"
             color={themeColors[theme]['text-secondary']}
-            className="mt-2"
+            className="mt-2 animate-pulse"
           >
             {isLoadingPopular
               ? 'Loading popular tracks...'

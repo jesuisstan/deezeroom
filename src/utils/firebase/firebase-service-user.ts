@@ -60,8 +60,21 @@ export interface UserProfile {
   privateInfo?: {
     phone?: string;
     birthDate?: string;
-    locationName?: string;
-    locationCoords?: { lat: number; lng: number } | null;
+    location?: {
+      placeId?: string;
+      formattedAddress?: string;
+      description?: string;
+      coords?: { lat: number; lng: number } | null;
+      addressComponents?: {
+        longName: string;
+        shortName: string;
+        types: string[];
+      }[];
+      locality?: string;
+      adminArea?: string;
+      country?: string;
+      countryCode?: string;
+    };
   };
   favoriteArtistIds?: string[];
   favoriteTracks?: string[];
@@ -228,6 +241,29 @@ export class UserService {
 
       // Only write to Firestore if there are actual changes or it's a new user
       if (!existingSnap.exists() || needsUpdate || additionalData) {
+        // If caller is updating location, clear it first to avoid stale nested keys
+        const shouldClearLocation =
+          !!additionalData?.privateInfo &&
+          Object.prototype.hasOwnProperty.call(
+            additionalData.privateInfo,
+            'location'
+          );
+        if (shouldClearLocation) {
+          try {
+            await setDoc(
+              userRef,
+              { privateInfo: { location: null } },
+              { merge: true }
+            );
+          } catch (e) {
+            Logger.warn(
+              'Failed to pre-clear location before create/update',
+              e,
+              '🔥 Firebase UserService'
+            );
+          }
+        }
+
         const dataToWrite = existingSnap.exists()
           ? baseData
           : { ...baseData, createdAt: Timestamp.now() };
@@ -327,6 +363,25 @@ export class UserService {
     data: Partial<UserProfile>
   ): Promise<void> {
     const userRef = doc(db, this.collection, uid);
+    // If updating location, clear it first so old nested fields don't persist
+    const shouldClearLocation =
+      !!data?.privateInfo &&
+      Object.prototype.hasOwnProperty.call(data.privateInfo, 'location');
+    if (shouldClearLocation) {
+      try {
+        await setDoc(
+          userRef,
+          { privateInfo: { location: null } },
+          { merge: true }
+        );
+      } catch (e) {
+        Logger.warn(
+          'Failed to pre-clear location before update',
+          e,
+          '🔥 Firebase UserService'
+        );
+      }
+    }
     const cleaned = removeUndefinedDeep({
       ...data,
       updatedAt: serverTimestamp()
