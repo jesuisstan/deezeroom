@@ -161,7 +161,7 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
           dateFormat="Pp"
           minDate={minimumDate}
           maxDate={maximumDate}
-          className="w-full rounded-xl border border-border bg-bg-secondary p-3"
+          className="w-full rounded-md border border-border bg-bg-secondary p-3"
           disabled={disabled}
           onCalendarOpen={() => onOpen?.()}
         />
@@ -171,13 +171,13 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
             onPress={() => openNativePicker('date')}
             style={{
               flex: 1,
-              borderRadius: 12,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
+              borderRadius: 6,
+              paddingVertical: 8,
+              paddingHorizontal: 12,
               backgroundColor: themeColors[theme]['bg-secondary'],
               borderWidth: 1,
               borderColor: themeColors[theme]['border'],
-              opacity: disabled ? 0.6 : 1
+              opacity: disabled ? 0.5 : 1
             }}
             pointerEvents={disabled ? 'none' : 'auto'}
           >
@@ -188,15 +188,15 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
           <Pressable
             onPress={() => openNativePicker('time')}
             style={{
-              width: 72,
-              borderRadius: 12,
+              width: 80,
+              borderRadius: 6,
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: themeColors[theme]['bg-secondary'],
               borderWidth: 1,
               borderColor: themeColors[theme]['border'],
               paddingHorizontal: 8,
-              opacity: disabled ? 0.6 : 1
+              opacity: disabled ? 0.5 : 1
             }}
             pointerEvents={disabled ? 'none' : 'auto'}
           >
