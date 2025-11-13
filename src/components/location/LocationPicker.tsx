@@ -71,8 +71,7 @@ const loadGoogleMaps = (key?: string) =>
     document.head.appendChild(s);
   });
 
-const GOOGLE_KEY =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || process.env.GOOGLE_MAPS_KEY || '';
+const GOOGLE_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '';
 
 const AUTOCOMPLETE_URL =
   'https://maps.googleapis.com/maps/api/place/autocomplete/json';
@@ -130,7 +129,7 @@ const LocationPicker: FC<Props> = ({
         setPredictions([]);
       }
     } catch (e) {
-      Logger.warn('Autocomplete native failed', e, 'LocationPicker');
+      Logger.warn('Autocomplete native failed', e, '📍 LocationPicker');
       setPredictions([]);
     } finally {
       setLoading(false);
@@ -157,7 +156,7 @@ const LocationPicker: FC<Props> = ({
         }
       });
     } catch (e) {
-      Logger.warn('Autocomplete web failed', e, 'LocationPicker');
+      Logger.warn('Autocomplete web failed', e, '📍 LocationPicker');
       setPredictions([]);
     }
   }, []);
@@ -219,7 +218,7 @@ const LocationPicker: FC<Props> = ({
         setPredictions([]);
         setQuery(r.formatted_address || pred.description || '');
       } catch (e) {
-        Logger.error('Place details native failed', e, 'LocationPicker');
+        Logger.error('Place details native failed', e, '📍 LocationPicker');
         Alert.alert('Error', 'Failed to load place details');
       } finally {
         setLoading(false);
@@ -290,7 +289,7 @@ const LocationPicker: FC<Props> = ({
           }
         );
       } catch (e) {
-        Logger.error('Place details web failed', e, 'LocationPicker');
+        Logger.error('Place details web failed', e, '📍 LocationPicker');
         Alert.alert('Error', 'Failed to load place details');
       }
     },
@@ -349,7 +348,7 @@ const LocationPicker: FC<Props> = ({
           countryCode
         } as LocationValue;
       } catch (e) {
-        Logger.warn('google.maps.Geocoder failed', e, 'LocationPicker');
+        Logger.warn('google.maps.Geocoder failed', e, '📍 LocationPicker');
         return null as LocationValue;
       }
     },
@@ -424,7 +423,7 @@ const LocationPicker: FC<Props> = ({
           Logger.warn(
             'Reverse geocode (Google REST) failed',
             e,
-            'LocationPicker'
+            '📍 LocationPicker'
           );
         }
       }
@@ -452,11 +451,11 @@ const LocationPicker: FC<Props> = ({
           });
           setQuery(formatted);
         } catch (e) {
-          Logger.warn('Expo reverse geocode failed', e, 'LocationPicker');
+          Logger.warn('Expo reverse geocode failed', e, '📍 LocationPicker');
         }
       }
     } catch (e) {
-      Logger.error('Get current location failed', e, 'LocationPicker');
+      Logger.error('Get current location failed', e, '📍 LocationPicker');
       Alert.alert('Error', 'Failed to get location');
     } finally {
       setDetLoading(false);
@@ -470,25 +469,44 @@ const LocationPicker: FC<Props> = ({
   };
 
   return (
-    <View className="w-full gap-3">
+    <View className="w-full gap-4">
+      {/* Disclaimer */}
+      <TextCustom
+        size="s"
+        color={themeColors[theme]['intent-warning']}
+        className="text-center"
+      >
+        Setting your location is optional, but it might be a necessary step to
+        access some events, based on geo position.
+      </TextCustom>
+      {/* Input */}
       <InputCustom
         placeholder={placeholder || 'Search location'}
         value={query}
         onChangeText={onChangeText}
       />
       {allowCurrentLocation && (
-        <View className="flex-row gap-3">
-          <RippleButton
-            title={detLoading ? 'Detecting…' : 'Use my location'}
-            onPress={useMyLocation}
-            loading={detLoading}
-          />
-          {value ? (
+        <View className="flex-row gap-2">
+          <View className="flex-1">
             <RippleButton
-              title="Clear"
+              title={'Use current'}
               variant="outline"
-              onPress={clearSelection}
+              size="sm"
+              onPress={useMyLocation}
+              loading={detLoading}
+              width="full"
             />
+          </View>
+          {value ? (
+            <View className="flex-1">
+              <RippleButton
+                title="Clear"
+                variant="outline"
+                size="sm"
+                onPress={clearSelection}
+                width="full"
+              />
+            </View>
           ) : null}
         </View>
       )}
@@ -529,14 +547,23 @@ const LocationPicker: FC<Props> = ({
           </ScrollView>
         </View>
       )}
-      {value?.formattedAddress ? (
-        <View className="mt-2">
-          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-            Selected
-          </TextCustom>
-          <TextCustom>{value.formattedAddress}</TextCustom>
-        </View>
-      ) : null}
+
+      <View>
+        <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+          Selected:
+        </TextCustom>
+        <TextCustom
+          color={
+            value?.formattedAddress
+              ? themeColors[theme]['primary']
+              : themeColors[theme]['text-secondary']
+          }
+        >
+          {value?.formattedAddress
+            ? value.formattedAddress
+            : 'No location selected yet'}
+        </TextCustom>
+      </View>
     </View>
   );
 };

@@ -60,7 +60,6 @@ export interface UserProfile {
   privateInfo?: {
     phone?: string;
     birthDate?: string;
-    // New normalized location object
     location?: {
       placeId?: string;
       formattedAddress?: string;
@@ -76,8 +75,6 @@ export interface UserProfile {
       country?: string;
       countryCode?: string;
     };
-    locationName?: string;
-    locationCoords?: { lat: number; lng: number } | null;
   };
   favoriteArtistIds?: string[];
   favoriteTracks?: string[];

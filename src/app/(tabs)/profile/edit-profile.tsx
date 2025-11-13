@@ -95,8 +95,6 @@ const EditProfileScreen: FC = () => {
     bio: '',
     // location now stored in normalized format, plus legacy fields for compatibility
     location: null as LocationValue,
-    locationName: '', // legacy
-    locationCoords: null as null | { lat: number; lng: number }, // legacy
     phone: '',
     birthDate: ''
   });
@@ -126,14 +124,6 @@ const EditProfileScreen: FC = () => {
         displayName: profile.displayName || '',
         bio: profile.bio || '',
         location: profile.privateInfo?.location || null,
-        locationName:
-          profile.privateInfo?.location?.formattedAddress ||
-          profile.privateInfo?.locationName ||
-          '',
-        locationCoords:
-          profile.privateInfo?.location?.coords ||
-          profile.privateInfo?.locationCoords ||
-          null,
         phone: profile.privateInfo?.phone || '',
         birthDate: profile.privateInfo?.birthDate || ''
       });
@@ -226,14 +216,7 @@ const EditProfileScreen: FC = () => {
           phone: formData.phone,
           birthDate: formData.birthDate,
           // Write new normalized location
-          location: formData.location || undefined,
-          // Keep legacy fields in sync for backward compatibility in other screens
-          locationName:
-            formData.location?.formattedAddress ||
-            formData.locationName ||
-            undefined,
-          locationCoords:
-            formData.location?.coords || formData.locationCoords || undefined
+          location: formData.location || undefined
         },
         favoriteArtistIds: selectedArtists.slice(0, 20).map((a) => a.id)
       } as any;
@@ -383,9 +366,7 @@ const EditProfileScreen: FC = () => {
                   Location
                 </TextCustom>
                 <TextCustom>
-                  {formData.location?.formattedAddress ||
-                    formData.locationName ||
-                    'Not set'}
+                  {formData.location?.formattedAddress || 'Not set'}
                 </TextCustom>
               </View>
             </LineButton>
@@ -438,6 +419,8 @@ const EditProfileScreen: FC = () => {
             <RippleButton
               title="Done"
               onPress={() => setShowNameModal(false)}
+              width="full"
+              size="md"
             />
           </View>
         </SwipeModal>
@@ -458,7 +441,12 @@ const EditProfileScreen: FC = () => {
               onChangeText={(text) => setFormData((p) => ({ ...p, bio: text }))}
               multiline
             />
-            <RippleButton title="Done" onPress={() => setShowBioModal(false)} />
+            <RippleButton
+              title="Done"
+              width="full"
+              size="md"
+              onPress={() => setShowBioModal(false)}
+            />
           </View>
         </SwipeModal>
       )}
@@ -476,10 +464,7 @@ const EditProfileScreen: FC = () => {
               onChange={(val) =>
                 setFormData((p) => ({
                   ...p,
-                  location: val,
-                  // keep legacy preview in sync immediately
-                  locationName: val?.formattedAddress || '',
-                  locationCoords: val?.coords || null
+                  location: val
                 }))
               }
               placeholder="Search city, region, country"
@@ -487,6 +472,8 @@ const EditProfileScreen: FC = () => {
             />
             <RippleButton
               title="Done"
+              width="full"
+              size="md"
               onPress={() => setShowLocationModal(false)}
             />
           </View>
@@ -512,6 +499,8 @@ const EditProfileScreen: FC = () => {
             />
             <RippleButton
               title="Done"
+              width="full"
+              size="md"
               onPress={() => setShowPhoneModal(false)}
             />
           </View>

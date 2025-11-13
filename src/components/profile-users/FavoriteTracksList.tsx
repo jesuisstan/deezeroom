@@ -316,6 +316,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
             onPress={handleLoadMore}
             loading={isLoadingMore}
             width={120}
+            disabled={isLoadingMore || isLoading}
           />
         </View>
       )}
@@ -340,7 +341,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           <TextCustom
             size="s"
             color={themeColors[theme]['text-secondary']}
-            className="mt-2"
+            className="mt-2 animate-pulse"
           >
             Loading favorite tracks...
           </TextCustom>
