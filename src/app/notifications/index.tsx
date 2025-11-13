@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Animated from 'react-native-reanimated';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
@@ -17,11 +18,17 @@ import { usePlaylistInvitations } from '@/hooks/usePlaylistInvitations';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
+import { usePressAnimation } from '@/style/usePressAnimation';
 import { PlaylistInvitation } from '@/utils/firebase/firebase-service-playlists';
 import { parseFirestoreDate } from '@/utils/firebase/firestore-date-utils';
 
 const NotificationsScreen = () => {
   const { theme } = useTheme();
+  const { animatedStyle } = usePressAnimation({
+    appearAnimation: true,
+    appearDelay: 0,
+    appearDuration: 800
+  });
   const {
     playlistInvitations,
     isLoading: invitationsLoading,
@@ -210,7 +217,7 @@ const NotificationsScreen = () => {
         <View className="mb-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
-              <TextCustom size="xs" color={themeColors[theme]['text-main']}>
+              <TextCustom size="s" color={themeColors[theme]['text-main']}>
                 {[
                   friendRequests.length
                     ? `${friendRequests.length} friend request${
@@ -232,13 +239,10 @@ const NotificationsScreen = () => {
         </View>
 
         {friendRequests.map((request) => (
-          <View
+          <Animated.View
             key={request.id}
-            className="mb-2 rounded-md border px-4 py-3"
-            style={{
-              backgroundColor: themeColors[theme]['bg-secondary'],
-              borderColor: themeColors[theme]['border']
-            }}
+            className="mb-2 rounded-md border border-border bg-bg-secondary px-4 py-3"
+            style={animatedStyle}
           >
             <View className="flex-row items-center">
               <MaterialCommunityIcons
@@ -294,17 +298,14 @@ const NotificationsScreen = () => {
                 />
               </View>
             </View>
-          </View>
+          </Animated.View>
         ))}
 
         {sortedInvitations.map((invitation) => (
-          <View
+          <Animated.View
             key={invitation.id}
-            className="mb-2 rounded-md border px-4 py-3"
-            style={{
-              backgroundColor: themeColors[theme]['bg-secondary'],
-              borderColor: themeColors[theme]['border']
-            }}
+            className="mb-2 rounded-md border border-border bg-bg-secondary px-4 py-3"
+            style={animatedStyle}
           >
             <View className="flex-row items-center">
               <MaterialCommunityIcons
@@ -354,7 +355,7 @@ const NotificationsScreen = () => {
                 />
               </View>
             </View>
-          </View>
+          </Animated.View>
         ))}
       </View>
     </ScrollView>

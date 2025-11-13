@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +17,7 @@ import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
@@ -186,39 +187,36 @@ const PlaylistsScreen = () => {
         backgroundColor: themeColors[theme]['bg-main']
       }}
     >
-      {/* Sticky Tabs Header */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          backgroundColor: themeColors[theme]['bg-tertiary'],
-          borderBottomWidth: 1,
-          borderBottomColor: themeColors[theme].border,
-          shadowColor: themeColors[theme]['bg-inverse'],
-          shadowOffset: {
-            width: 0,
-            height: 2
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 4
-        }}
-      >
-        <View className="flex-row gap-4">
+      <View className="gap-2 border-b border-border bg-bg-tertiary px-4 py-2 shadow-sm">
+        <View className="flex-row items-center gap-2">
           {(['my', 'participating', 'public'] as const).map((tab) => (
-            <View key={tab} className="flex-1">
-              <RippleButton
-                title={getTabTitle(tab)}
-                size="sm"
-                onPress={() => handleTabChange(tab)}
-                color={
-                  activeTab === tab
-                    ? themeColors[theme].primary
-                    : themeColors[theme].border
-                }
-              />
-            </View>
+            <TabButton
+              key={tab}
+              title={getTabTitle(tab)}
+              isActive={activeTab === tab}
+              onPress={() => handleTabChange(tab)}
+            />
           ))}
+        </View>
+
+        <View
+          style={
+            Platform.OS === 'web'
+              ? {
+                  maxWidth: '60%',
+                  width: '100%',
+                  alignSelf: 'center'
+                }
+              : undefined
+          }
+        >
+          <InputCustom
+            placeholder="Search playlists..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            leftIconName="search"
+            onClear={() => setSearchQuery('')}
+          />
         </View>
       </View>
 
@@ -247,17 +245,6 @@ const PlaylistsScreen = () => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {/* Search Input */}
-          <View>
-            <InputCustom
-              placeholder="Search playlists..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              leftIconName="search"
-              onClear={() => setSearchQuery('')}
-            />
-          </View>
-
           {/* Playlists List */}
           {isLoading ? (
             <ActivityIndicatorScreen />

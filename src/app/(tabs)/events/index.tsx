@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, RefreshControl, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -9,6 +9,7 @@ import EventCard from '@/components/events/EventCard';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
@@ -199,15 +200,12 @@ const EventsScreen = () => {
     } as const;
 
     return (
-      <View key={tab} className="flex-1">
-        <RippleButton
-          title={titles[tab]}
-          size="sm"
-          onPress={() => handleTabChange(tab)}
-          variant={isActive ? 'primary' : 'outline'}
-          width="full"
-        />
-      </View>
+      <TabButton
+        key={tab}
+        title={titles[tab]}
+        isActive={isActive}
+        onPress={() => handleTabChange(tab)}
+      />
     );
   };
 
@@ -223,12 +221,24 @@ const EventsScreen = () => {
           )}
         </View>
 
-        <InputCustom
-          placeholder="Search events..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          leftIconName="search"
-        />
+        <View
+          style={
+            Platform.OS === 'web'
+              ? {
+                  maxWidth: '60%',
+                  width: '100%',
+                  alignSelf: 'center'
+                }
+              : undefined
+          }
+        >
+          <InputCustom
+            placeholder="Search events..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            leftIconName="search"
+          />
+        </View>
       </View>
 
       <ScrollView
