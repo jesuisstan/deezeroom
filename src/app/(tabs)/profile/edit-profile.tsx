@@ -544,21 +544,29 @@ const EditProfileScreen: FC = () => {
                   popperClassName="z-50"
                   customInput={<DateInputButton placeholder="dd-mm-yyyy" />}
                 />
-                <View className="mt-3 flex-row gap-3">
+                <View className="mt-3 flex-row gap-4">
                   {formData.birthDate ? (
-                    <RippleButton
-                      title="Clear"
-                      variant="outline"
-                      onPress={() => {
-                        handleBirthDateClear();
-                        setShowBirthModal(false);
-                      }}
-                    />
+                    <View className="flex-1">
+                      <RippleButton
+                        title="Clear"
+                        variant="outline"
+                        size="md"
+                        width="full"
+                        onPress={() => {
+                          handleBirthDateClear();
+                          setShowBirthModal(false);
+                        }}
+                      />
+                    </View>
                   ) : null}
-                  <RippleButton
-                    title="Close"
-                    onPress={() => setShowBirthModal(false)}
-                  />
+                  <View className="flex-1">
+                    <RippleButton
+                      title="Done"
+                      size="md"
+                      onPress={() => setShowBirthModal(false)}
+                      width="full"
+                    />
+                  </View>
                 </View>
               </View>
             ) : (

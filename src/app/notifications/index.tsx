@@ -202,7 +202,7 @@ const NotificationsScreen = () => {
 
   return (
     <ScrollView
-      className="flex-1 p-3"
+      className="flex-1 p-4"
       style={{ backgroundColor: themeColors[theme]['bg-main'] }}
       refreshControl={
         <RefreshControl
@@ -213,8 +213,8 @@ const NotificationsScreen = () => {
         />
       }
     >
-      <View style={containerWidthStyle}>
-        <View className="mb-3">
+      <View style={containerWidthStyle} className="gap-4">
+        <View>
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <TextCustom size="s" color={themeColors[theme]['text-main']}>
@@ -239,120 +239,116 @@ const NotificationsScreen = () => {
         </View>
 
         {friendRequests.map((request) => (
-          <Animated.View
-            key={request.id}
-            className="mb-2 rounded-md border border-border bg-bg-secondary px-4 py-3"
-            style={animatedStyle}
-          >
-            <View className="flex-row items-center">
-              <MaterialCommunityIcons
-                name="account-plus"
-                size={18}
-                color={themeColors[theme]['primary']}
-                style={{ marginRight: 8 }}
-              />
-              <TextCustom
-                type="semibold"
-                size="s"
-                color={themeColors[theme]['text-main']}
-              >
-                Friend Request
-              </TextCustom>
-            </View>
-
-            <TextCustom
-              size="s"
-              color={themeColors[theme]['text-secondary']}
-              className="mt-1"
-            >
-              <TextCustom
-                type="link"
-                size="s"
-                onPress={() => router.push(`/users/${request.requesterId}`)}
-              >
-                {request.requesterName}
-              </TextCustom>{' '}
-              wants to connect with you.
-            </TextCustom>
-
-            <View className="mt-3 flex-row items-center gap-2">
-              <View className="flex-1">
-                <RippleButton
-                  title="Accept"
-                  size="sm"
-                  loading={processingFriendRequests.has(request.id)}
-                  disabled={processingFriendRequests.has(request.id)}
-                  onPress={() => handleAcceptFriendRequest(request)}
-                  width="full"
+          <Animated.View key={request.id} style={animatedStyle}>
+            <View className="rounded-md border border-border bg-bg-secondary px-4 py-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons
+                  name="account-plus"
+                  size={18}
+                  color={themeColors[theme]['primary']}
+                  style={{ marginRight: 8 }}
                 />
+                <TextCustom
+                  type="semibold"
+                  size="s"
+                  color={themeColors[theme]['text-main']}
+                >
+                  Friend Request
+                </TextCustom>
               </View>
-              <View className="flex-1">
-                <RippleButton
-                  title="Decline"
-                  size="sm"
-                  variant="outline"
-                  loading={processingFriendRequests.has(request.id)}
-                  disabled={processingFriendRequests.has(request.id)}
-                  onPress={() => handleDeclineFriendRequest(request)}
-                  width="full"
-                />
+
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+                className="mt-1"
+              >
+                <TextCustom
+                  type="link"
+                  size="s"
+                  onPress={() => router.push(`/users/${request.requesterId}`)}
+                >
+                  {request.requesterName}
+                </TextCustom>{' '}
+                wants to connect with you.
+              </TextCustom>
+
+              <View className="mt-3 flex-row items-center gap-2">
+                <View className="flex-1">
+                  <RippleButton
+                    title="Accept"
+                    size="sm"
+                    loading={processingFriendRequests.has(request.id)}
+                    disabled={processingFriendRequests.has(request.id)}
+                    onPress={() => handleAcceptFriendRequest(request)}
+                    width="full"
+                  />
+                </View>
+                <View className="flex-1">
+                  <RippleButton
+                    title="Decline"
+                    size="sm"
+                    variant="outline"
+                    loading={processingFriendRequests.has(request.id)}
+                    disabled={processingFriendRequests.has(request.id)}
+                    onPress={() => handleDeclineFriendRequest(request)}
+                    width="full"
+                  />
+                </View>
               </View>
             </View>
           </Animated.View>
         ))}
 
         {sortedInvitations.map((invitation) => (
-          <Animated.View
-            key={invitation.id}
-            className="mb-2 rounded-md border border-border bg-bg-secondary px-4 py-3"
-            style={animatedStyle}
-          >
-            <View className="flex-row items-center">
-              <MaterialCommunityIcons
-                name="playlist-music"
-                size={18}
-                color={themeColors[theme]['primary']}
-                style={{ marginRight: 8 }}
-              />
-              <TextCustom
-                type="semibold"
-                size="s"
-                color={themeColors[theme]['text-main']}
-              >
-                Playlist Invitation
-              </TextCustom>
-            </View>
-
-            <TextCustom
-              size="s"
-              color={themeColors[theme]['text-secondary']}
-              className="mt-1"
-            >
-              {`You've been invited to collaborate on "${invitation.playlistName || 'a playlist'}".`}
-            </TextCustom>
-
-            {/* Action buttons */}
-            <View className="mt-3 flex-row items-center gap-2">
-              <View className="flex-1">
-                <RippleButton
-                  title="Accept"
-                  size="sm"
-                  loading={processingInvitations.has(invitation.id)}
-                  disabled={processingInvitations.has(invitation.id)}
-                  onPress={() => handleAcceptInvitation(invitation)}
-                  width="full"
+          <Animated.View key={invitation.id} style={animatedStyle}>
+            <View className="rounded-md border border-border bg-bg-secondary px-4 py-3">
+              <View className="flex-row items-center">
+                <MaterialCommunityIcons
+                  name="playlist-music"
+                  size={18}
+                  color={themeColors[theme]['primary']}
+                  style={{ marginRight: 8 }}
                 />
+                <TextCustom
+                  type="semibold"
+                  size="s"
+                  color={themeColors[theme]['text-main']}
+                >
+                  Playlist Invitation
+                </TextCustom>
               </View>
-              <View className="flex-1">
-                <RippleButton
-                  title="Decline"
-                  size="sm"
-                  variant="outline"
-                  loading={processingInvitations.has(invitation.id)}
-                  disabled={processingInvitations.has(invitation.id)}
-                  onPress={() => handleDeclineInvitation(invitation)}
-                  width="full"
-                />
+
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+                className="mt-1"
+              >
+                {`You've been invited to collaborate on "${invitation.playlistName || 'a playlist'}".`}
+              </TextCustom>
+
+              {/* Action buttons */}
+              <View className="mt-3 flex-row items-center gap-2">
+                <View className="flex-1">
+                  <RippleButton
+                    title="Accept"
+                    size="sm"
+                    loading={processingInvitations.has(invitation.id)}
+                    disabled={processingInvitations.has(invitation.id)}
+                    onPress={() => handleAcceptInvitation(invitation)}
+                    width="full"
+                  />
+                </View>
+                <View className="flex-1">
+                  <RippleButton
+                    title="Decline"
+                    size="sm"
+                    variant="outline"
+                    loading={processingInvitations.has(invitation.id)}
+                    disabled={processingInvitations.has(invitation.id)}
+                    onPress={() => handleDeclineInvitation(invitation)}
+                    width="full"
+                  />
+                </View>
               </View>
             </View>
           </Animated.View>
