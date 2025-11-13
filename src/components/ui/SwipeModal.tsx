@@ -75,96 +75,99 @@ const WebSwipeModal = (props: SwipeModalProps) => {
       onRequestClose={handleClose}
       supportedOrientations={['portrait', 'landscape']}
     >
-      {/* Background overlay */}
-      <TouchableWithoutFeedback onPress={handleClose}>
+      {/* Background overlay - use View with onClick for web to avoid Pressable issues */}
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+        // @ts-ignore - onClick is valid for web
+        onClick={handleClose}
+      >
         <View
           style={{
-            flex: 1,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            justifyContent: 'center',
-            alignItems: 'center'
+            backgroundColor: themeColors[theme]['bg-main'],
+            borderRadius: 12,
+            marginHorizontal: 20,
+            maxWidth: Math.min(900, width - 40),
+            width: '100%',
+            maxHeight: height * 0.9,
+            minHeight: 200,
+            shadowColor: '#000',
+            shadowOffset: {
+              width: 0,
+              height: 2
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 8
+          }}
+          // @ts-ignore - onClick is valid for web
+          onClick={(e: any) => {
+            // Prevent modal from closing when clicking inside content
+            e.stopPropagation();
           }}
         >
-          <TouchableWithoutFeedback onPress={() => {}}>
+          {/* Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              padding: 20,
+              paddingBottom: props.title ? 16 : 20
+            }}
+          >
+            {props.title && (
+              <View style={{ flex: 1, marginRight: 16 }}>
+                <TextCustom
+                  type="bold"
+                  size="xl"
+                  color={themeColors[theme]['text-main']}
+                >
+                  {props.title}
+                </TextCustom>
+              </View>
+            )}
             <View
               style={{
-                backgroundColor: themeColors[theme]['bg-main'],
-                borderRadius: 12,
-                marginHorizontal: 20,
-                maxWidth: Math.min(900, width - 40),
-                width: '100%',
-                maxHeight: height * 0.9,
-                minHeight: 200,
-                shadowColor: '#000',
-                shadowOffset: {
-                  width: 0,
-                  height: 2
-                },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 8
+                marginTop: -4,
+                marginRight: -8
               }}
             >
-              {/* Header */}
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  padding: 20,
-                  paddingBottom: props.title ? 16 : 20
-                }}
+              <IconButton
+                accessibilityLabel="Close modal"
+                onPress={handleClose}
               >
-                {props.title && (
-                  <View style={{ flex: 1, marginRight: 16 }}>
-                    <TextCustom
-                      type="bold"
-                      size="xl"
-                      color={themeColors[theme]['text-main']}
-                    >
-                      {props.title}
-                    </TextCustom>
-                  </View>
-                )}
-                <View
-                  style={{
-                    marginTop: -4,
-                    marginRight: -8
-                  }}
-                >
-                  <IconButton
-                    accessibilityLabel="Close modal"
-                    onPress={handleClose}
-                  >
-                    <EvilIcons
-                      name="close"
-                      size={32}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </IconButton>
-                </View>
-              </View>
-
-              {/* Content */}
-              <ScrollView
-                style={{
-                  flex: 1,
-                  paddingHorizontal: 20
-                }}
-                contentContainerStyle={{
-                  flexGrow: 1,
-                  paddingBottom: 20
-                }}
-                showsVerticalScrollIndicator={Platform.OS !== 'web'}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-              >
-                <View style={{ flex: 1 }}>{props.children}</View>
-              </ScrollView>
+                <EvilIcons
+                  name="close"
+                  size={32}
+                  color={themeColors[theme]['text-main']}
+                />
+              </IconButton>
             </View>
-          </TouchableWithoutFeedback>
+          </View>
+
+          {/* Content */}
+          <ScrollView
+            style={{
+              flex: 1,
+              paddingHorizontal: 20
+            }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: 20
+            }}
+            showsVerticalScrollIndicator={Platform.OS !== 'web'}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            <View style={{ flex: 1 }}>{props.children}</View>
+          </ScrollView>
         </View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };

@@ -114,6 +114,11 @@ const NotificationsScreen = () => {
       <ScrollView
         className="flex-1"
         style={{ backgroundColor: themeColors[theme]['bg-main'] }}
+        contentContainerStyle={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -123,24 +128,19 @@ const NotificationsScreen = () => {
           />
         }
       >
-        <View
-          className="flex-1 items-center justify-center p-8"
-          style={containerWidthStyle}
+        <MaterialCommunityIcons
+          name="bell-outline"
+          size={64}
+          color={themeColors[theme]['text-secondary']}
+        />
+        <TextCustom
+          type="bold"
+          size="xl"
+          className="mt-4 text-center"
+          color={themeColors[theme]['text-main']}
         >
-          <MaterialCommunityIcons
-            name="bell-outline"
-            size={64}
-            color={themeColors[theme]['text-secondary']}
-          />
-          <TextCustom
-            type="bold"
-            size="xl"
-            className="mt-4 text-center"
-            color={themeColors[theme]['text-main']}
-          >
-            No Notifications
-          </TextCustom>
-        </View>
+          No Notifications
+        </TextCustom>
       </ScrollView>
     );
   }

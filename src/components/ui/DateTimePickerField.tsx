@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import DateTimePicker, {
@@ -8,6 +8,47 @@ import DateTimePicker, {
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
+
+// Guarded web datepicker import (optional dependency)
+let ReactDatePicker: any = null;
+if (Platform.OS === 'web') {
+  try {
+    // @ts-ignore ensure styles present when dependency installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ReactDatePicker = require('react-datepicker').default;
+    // @ts-ignore ensure styles present when dependency installed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('react-datepicker/dist/react-datepicker.css');
+  } catch {}
+}
+
+// Web-only: custom input for ReactDatePicker that renders TextCustom inside
+// to guarantee proper contrast in dark theme.
+const DateTimeInputButton = forwardRef<
+  HTMLButtonElement,
+  {
+    value?: string;
+    onClick?: () => void;
+    placeholder?: string;
+    disabled?: boolean;
+  }
+>(function DateTimeInputButton({ value, onClick, placeholder, disabled }, ref) {
+  return (
+    // Use a real <button> so the datepicker can focus/anchor it correctly
+    <button
+      type="button"
+      onClick={onClick}
+      ref={ref as any}
+      disabled={disabled}
+      className="w-full rounded-md border border-border bg-bg-secondary p-3 text-left"
+      style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
+    >
+      <TextCustom className={value ? '' : 'opacity-60'}>
+        {value || placeholder || 'Select date and time'}
+      </TextCustom>
+    </button>
+  );
+});
 
 interface DateTimePickerFieldProps {
   label: string;
@@ -38,31 +79,10 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
   onOpen
 }) => {
   const { theme } = useTheme();
-  const [webDatePicker, setWebDatePicker] =
-    useState<React.ComponentType<any> | null>(null);
   const [showNativePicker, setShowNativePicker] = useState<
     'date' | 'time' | null
   >(null);
   const [pendingNativeValue, setPendingNativeValue] = useState<Date>(value);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      return;
-    }
-    let mounted = true;
-    (async () => {
-      const [{ default: DatePicker }] = await Promise.all([
-        import('react-datepicker'),
-        import('react-datepicker/dist/react-datepicker.css')
-      ]);
-      if (mounted) {
-        setWebDatePicker(() => DatePicker as React.ComponentType<any>);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     setPendingNativeValue(value);
@@ -133,16 +153,15 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
     onChange(mergedDate);
   };
 
-  const WebDatePicker = webDatePicker;
-
   return (
     <View style={{ gap: 6 }}>
       <TextCustom type="bold" color={themeColors[theme]['text-secondary']}>
         {label}
       </TextCustom>
 
-      {Platform.OS === 'web' && WebDatePicker ? (
-        <WebDatePicker
+      {Platform.OS === 'web' && ReactDatePicker ? (
+        // @ts-ignore dynamic import style handled in file head
+        <ReactDatePicker
           selected={value}
           onChange={(date: Date | null) => {
             if (!date) return;
@@ -161,9 +180,19 @@ const DateTimePickerField: React.FC<DateTimePickerFieldProps> = ({
           dateFormat="Pp"
           minDate={minimumDate}
           maxDate={maximumDate}
-          className="w-full rounded-md border border-border bg-bg-secondary p-3"
           disabled={disabled}
           onCalendarOpen={() => onOpen?.()}
+          withPortal
+          portalId="react-datepicker-portal"
+          popperPlacement="bottom"
+          popperClassName="z-50"
+          calendarClassName="border border-border"
+          customInput={
+            <DateTimeInputButton
+              placeholder="Select date and time"
+              disabled={disabled}
+            />
+          }
         />
       ) : (
         <View style={{ flexDirection: 'row', gap: 12 }}>
