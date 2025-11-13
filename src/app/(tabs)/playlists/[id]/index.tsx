@@ -726,9 +726,19 @@ const PlaylistDetailScreen = () => {
       if (isTrackAlreadyInPlaylist) {
         // Remove track from playlist
         await removeTrackFromPlaylist(track, latestPlaylist);
+        Logger.info(
+          'Track removed from playlist:',
+          track.id,
+          '📂 PlaylistDetailScreen'
+        );
       } else {
         // Track is not in playlist, add it
         await addTrackToPlaylist(track, latestPlaylist);
+        Logger.info(
+          'Track added to playlist:',
+          track.id,
+          '📂 PlaylistDetailScreen'
+        );
       }
     } catch (error) {
       // Errors are already handled in addTrackToPlaylist/removeTrackFromPlaylist

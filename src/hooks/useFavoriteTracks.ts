@@ -32,8 +32,8 @@ export const useFavoriteTracks = () => {
       try {
         const result = await UserService.toggleFavoriteTrack(user.uid, trackId);
         if (result.success) {
-          // Update profile optimistically
-          const updatedFavorites = [...(profile.favoriteTracks || []), trackId];
+          // Update profile optimistically (add to beginning, newest first)
+          const updatedFavorites = [trackId, ...(profile.favoriteTracks || [])];
           await updateProfile({ favoriteTracks: updatedFavorites });
           Notifier.success(result.message || 'Track added to favorites');
           return true;
@@ -100,8 +100,18 @@ export const useFavoriteTracks = () => {
   const toggleFavoriteTrack = useCallback(
     async (trackId: string): Promise<boolean> => {
       if (isTrackFavorite(trackId)) {
+        Logger.info(
+          'Removing track from favorites:',
+          trackId,
+          '💟 useFavoriteTracks'
+        );
         return await removeFromFavorites(trackId);
       } else {
+        Logger.info(
+          'Adding track to favorites:',
+          trackId,
+          '💟 useFavoriteTracks'
+        );
         return await addToFavorites(trackId);
       }
     },

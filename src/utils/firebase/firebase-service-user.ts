@@ -896,7 +896,8 @@ export class UserService {
         return { success: false, message: 'Track is already in favorites' };
       }
 
-      const updatedFavorites = [...currentFavorites, trackId];
+      // Add to beginning (newest first, like in playlists)
+      const updatedFavorites = [trackId, ...currentFavorites];
 
       await updateDoc(userRef, {
         favoriteTracks: updatedFavorites,
@@ -1026,7 +1027,8 @@ export class UserService {
         updatedFavorites = currentFavorites.filter((id) => id !== trackId);
         message = 'Track removed from favorites';
       } else {
-        updatedFavorites = [...currentFavorites, trackId];
+        // Add to beginning (newest first, like in playlists)
+        updatedFavorites = [trackId, ...currentFavorites];
         message = 'Track added to favorites';
       }
 
