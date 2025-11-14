@@ -32,13 +32,13 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
 
   const formatSchedule = () => {
     if (!event.startAt || !event.endAt) {
-      return 'Schedule not set';
+      return { startText: 'Not set', endText: 'Not set' };
     }
 
     const startDate = new Date(event.startAt as any);
     const endDate = new Date(event.endAt as any);
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-      return 'Schedule not set';
+      return { startText: 'Not set', endText: 'Not set' };
     }
     const timeZone = event.timezone || undefined;
     const sameDay = startDate.toDateString() === endDate.toDateString();
@@ -63,7 +63,18 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       .formatToParts(startDate)
       .find((part) => part.type === 'timeZoneName')?.value;
     const tzSuffix = timeZoneName ? ` (${timeZoneName})` : '';
-    return `Start: ${startText}\nEnd: ${endText}${tzSuffix}`;
+
+    return {
+      startText: `${startText}${tzSuffix}`,
+      endText: `${endText}${tzSuffix}`
+    };
+  };
+
+  const getLocationText = () => {
+    if (event.geofence?.locationName) {
+      return event.geofence.locationName;
+    }
+    return 'No location restriction';
   };
 
   const renderCover = () => {
@@ -144,24 +155,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                 </TextCustom>
               </View>
 
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-              >
-                <MaterialCommunityIcons
-                  name="account-circle"
-                  size={16}
-                  color={themeColors[theme]['text-secondary']}
-                />
-                <TextCustom
-                  size="xs"
-                  color={themeColors[theme]['text-secondary']}
-                  numberOfLines={1}
-                >
-                  {event.ownerDisplayName || 'Unknown host'}
-                </TextCustom>
-              </View>
-
-              <View style={{ gap: 2 }}>
+              <View style={{ gap: 4 }}>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -170,16 +164,62 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   }}
                 >
                   <MaterialCommunityIcons
-                    name="calendar-clock"
-                    size={14}
+                    name="calendar-start"
+                    size={18}
                     color={themeColors[theme]['text-secondary']}
                   />
                   <TextCustom
                     size="xs"
                     color={themeColors[theme]['text-secondary']}
-                    numberOfLines={2}
+                    numberOfLines={1}
                   >
-                    {formatSchedule()}
+                    Start: {formatSchedule().startText}
+                  </TextCustom>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name="calendar-end"
+                    size={18}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    color={themeColors[theme]['text-secondary']}
+                    numberOfLines={1}
+                  >
+                    End: {formatSchedule().endText}
+                  </TextCustom>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <MaterialCommunityIcons
+                    name={
+                      event.geofence?.locationName
+                        ? 'map-marker-radius'
+                        : 'map-marker-off'
+                    }
+                    size={18}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    size="xs"
+                    color={themeColors[theme]['text-secondary']}
+                    numberOfLines={1}
+                  >
+                    {getLocationText()}
                   </TextCustom>
                 </View>
               </View>

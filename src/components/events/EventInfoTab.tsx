@@ -58,12 +58,16 @@ const EventInfoTab: React.FC<EventInfoTabProps> = ({ event }) => {
     switch (event.voteLicense) {
       case 'invited':
         return 'Only invited participants may vote.';
-      case 'geofence':
-        return 'Voting requires attendees within the specified geofence.';
       default:
         return 'Any authenticated user may vote.';
     }
   })();
+
+  const geofenceInfo = event.geofence
+    ? event.geofence.locationName
+      ? `${event.geofence.locationName} (${event.geofence.radiusMeters}m)`
+      : `${event.geofence.radiusMeters}m radius`
+    : 'No location restriction';
 
   return (
     <ScrollView
@@ -161,6 +165,24 @@ const EventInfoTab: React.FC<EventInfoTabProps> = ({ event }) => {
             </TextCustom>
             <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
               {votingDescription}
+            </TextCustom>
+          </View>
+
+          <View className="flex-1 items-end justify-end">
+            <TextCustom
+              type="bold"
+              size="m"
+              color={themeColors[theme]['text-main']}
+              className="text-right"
+            >
+              Geofence
+            </TextCustom>
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-secondary']}
+              className="text-right"
+            >
+              {geofenceInfo}
             </TextCustom>
           </View>
         </View>

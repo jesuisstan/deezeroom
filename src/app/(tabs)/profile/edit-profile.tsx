@@ -459,6 +459,15 @@ const EditProfileScreen: FC = () => {
           setVisible={setShowLocationModal}
         >
           <View className="flex-1 gap-4 px-4 pb-6">
+            {/* Disclaimer */}
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['intent-warning']}
+              className="text-center"
+            >
+              Setting your location is optional, but it might be a necessary
+              step to access some events, based on geo position.
+            </TextCustom>
             <LocationPicker
               value={formData.location}
               onChange={(val) =>

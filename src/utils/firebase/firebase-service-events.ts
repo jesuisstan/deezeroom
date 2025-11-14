@@ -22,13 +22,14 @@ import { Track } from '@/graphql/schema';
 import { db } from '@/utils/firebase/firebase-init';
 
 export type EventVisibility = 'public' | 'private';
-export type EventVoteLicense = 'everyone' | 'invited' | 'geofence';
+export type EventVoteLicense = 'everyone' | 'invited';
 export type EventStatus = 'draft' | 'live' | 'ended';
 
 export interface EventGeoFence {
   latitude: number;
   longitude: number;
   radiusMeters: number;
+  locationName?: string;
 }
 
 export interface EventTimeWindow {
@@ -108,6 +109,30 @@ export class EventService {
     initialTracks: Track[] = [],
     ownerInfo?: { displayName?: string | null }
   ): Promise<string> {
+    // Validate name
+    if (!data.name || !data.name.trim()) {
+      throw new Error('Event name is required');
+    }
+
+    // Validate geofence if provided
+    if (data.geofence) {
+      if (
+        typeof data.geofence.latitude !== 'number' ||
+        typeof data.geofence.longitude !== 'number' ||
+        isNaN(data.geofence.latitude) ||
+        isNaN(data.geofence.longitude)
+      ) {
+        throw new Error('Geofence must have valid latitude and longitude');
+      }
+      if (
+        typeof data.geofence.radiusMeters !== 'number' ||
+        isNaN(data.geofence.radiusMeters) ||
+        data.geofence.radiusMeters <= 0
+      ) {
+        throw new Error('Geofence must have a valid radius greater than 0');
+      }
+    }
+
     const now = new Date();
     const startAt = new Date(data.startAt);
     const endAt = new Date(data.endAt);
@@ -721,6 +746,12 @@ export class EventService {
       return event.participantIds?.includes(userId) ?? false;
     }
 
+    // If geofence is enabled, user must be within the geofence area
+    // For now, we require participant status (can extend with geo checks later)
+    if (event.geofence) {
+      return event.participantIds?.includes(userId) ?? false;
+    }
+
     return true;
   }
 
@@ -732,13 +763,16 @@ export class EventService {
       return event.participantIds?.includes(userId) ?? false;
     }
 
+    // If geofence is enabled, user must be within the geofence area
+    // For now, we require participant status (can extend with geo checks later)
+    if (event.geofence) {
+      return event.participantIds?.includes(userId) ?? false;
+    }
+
     switch (event.voteLicense) {
       case 'everyone':
         return true;
       case 'invited':
-        return event.participantIds?.includes(userId) ?? false;
-      case 'geofence':
-        // For version 1 require participant status (can extend with geo/time checks later)
         return event.participantIds?.includes(userId) ?? false;
       default:
         return false;

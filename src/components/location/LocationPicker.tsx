@@ -470,15 +470,6 @@ const LocationPicker: FC<Props> = ({
 
   return (
     <View className="w-full gap-4">
-      {/* Disclaimer */}
-      <TextCustom
-        size="s"
-        color={themeColors[theme]['intent-warning']}
-        className="text-center"
-      >
-        Setting your location is optional, but it might be a necessary step to
-        access some events, based on geo position.
-      </TextCustom>
       {/* Input */}
       <InputCustom
         placeholder={placeholder || 'Search location'}

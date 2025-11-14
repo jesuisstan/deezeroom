@@ -4,6 +4,10 @@ import { Pressable, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 
+import LocationPicker, {
+  LocationValue
+} from '@/components/location/LocationPicker';
+import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -44,6 +48,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<EventVisibility>('public');
   const [voteLicense, setVoteLicense] = useState<EventVoteLicense>('everyone');
+  const [geofenceEnabled, setGeofenceEnabled] = useState<'yes' | 'no'>('no');
+  const [location, setLocation] = useState<LocationValue>(null);
+  const [radiusMeters, setRadiusMeters] = useState<string>('100');
   const [coverImageUri, setCoverImageUri] = useState<string>('');
   const [startAt, setStartAt] = useState<Date>(() => {
     const now = new Date();
@@ -86,6 +93,9 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     setDescription('');
     setVisibility('public');
     setVoteLicense('everyone');
+    setGeofenceEnabled('no');
+    setLocation(null);
+    setRadiusMeters('100');
     setCoverImageUri('');
     resetSchedule();
     onClose();
@@ -103,13 +113,14 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  // Separate effect for voteLicense adjustment when visibility changes
+  // Auto-adjust voteLicense only when switching to private
   useEffect(() => {
-    if (visible && visibility === 'private' && voteLicense === 'everyone') {
+    if (visibility === 'private') {
+      // For private events, "invited" makes more sense as default
       setVoteLicense('invited');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, visibility]);
+    // Don't auto-change when switching to public - let user choose
+  }, [visibility]);
 
   const handleStartChange = (next: Date) => {
     let adjusted = new Date(next);
@@ -133,11 +144,16 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     adjusted.setSeconds(0, 0);
     if (adjusted <= startAt) {
       setEndError('End time must be after start time');
+      Alert.alert('Invalid Date', 'End time must be after start time');
       return;
     }
     const diff = adjusted.getTime() - startAt.getTime();
     if (diff < MIN_EVENT_DURATION_MS) {
       setEndError('Event duration must be at least 1 minute');
+      Alert.alert(
+        'Invalid Duration',
+        'Event duration must be at least 1 minute'
+      );
       return;
     }
     setEndAt(adjusted);
@@ -146,45 +162,71 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   };
 
   const handleCreateEvent = async () => {
+    // Validate name
     if (!name.trim()) {
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: 'Please enter event name'
-      });
+      Alert.alert('Validation Error', 'Please enter event name');
       return;
     }
 
+    // Validate start and end dates
+    if (!startAt || !endAt) {
+      Alert.alert('Validation Error', 'Please select both start and end dates');
+      return;
+    }
+
+    // Validate schedule
     if (endError) {
-      Notifier.shoot({
-        type: 'error',
-        title: 'Invalid schedule',
-        message: endError
-      });
+      Alert.alert('Invalid Schedule', endError);
       return;
     }
 
     const now = new Date();
     if (startAt < now) {
-      Notifier.shoot({
-        type: 'error',
-        title: 'Invalid schedule',
-        message: 'Start time must be in the future'
-      });
+      Alert.alert('Invalid Schedule', 'Start time must be in the future');
       return;
     }
 
     if (endAt <= startAt) {
-      Notifier.shoot({
-        type: 'error',
-        title: 'Invalid schedule',
-        message: 'End time must be later than start time'
-      });
+      Alert.alert('Invalid Schedule', 'End time must be later than start time');
       return;
+    }
+
+    // Validate geofence if enabled
+    if (geofenceEnabled === 'yes') {
+      if (!location?.coords) {
+        Alert.alert(
+          'Validation Error',
+          'Please select a location for geofence'
+        );
+        return;
+      }
+      if (!radiusMeters.trim()) {
+        Alert.alert('Validation Error', 'Please enter a radius for geofence');
+        return;
+      }
+      const radius = parseFloat(radiusMeters);
+      if (isNaN(radius) || radius <= 0) {
+        Alert.alert(
+          'Validation Error',
+          'Please enter a valid radius (must be greater than 0 meters)'
+        );
+        return;
+      }
     }
 
     setIsLoading(true);
     try {
+      const geofence =
+        geofenceEnabled === 'yes' && location?.coords
+          ? {
+              latitude: location.coords.lat,
+              longitude: location.coords.lng,
+              radiusMeters: parseFloat(radiusMeters),
+              locationName:
+                location.formattedAddress || location.description || undefined
+            }
+          : undefined;
+
       const eventId = await EventService.createEvent(
         {
           name: name.trim(),
@@ -192,6 +234,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           coverImageUrl: undefined,
           visibility,
           voteLicense,
+          geofence,
           startAt,
           endAt,
           timezone
@@ -390,107 +433,154 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           </View>
         </View>
 
+        {/* Vote Permissions */}
         <View>
           <TextCustom className="mb-2" type="bold">
             Vote Permissions
           </TextCustom>
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => setVoteLicense('everyone')}
-              className="flex-1 rounded-xl border p-1"
+          {visibility === 'private' ? (
+            // For private events, only "Invited Only" is allowed
+            <View
+              className="rounded-xl border p-1"
               style={{
-                backgroundColor:
-                  voteLicense === 'everyone'
-                    ? `${themeColors[theme]['primary']}15`
-                    : themeColors[theme]['bg-main'],
-                borderColor:
-                  voteLicense === 'everyone'
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['border']
-              }}
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                <MaterialCommunityIcons
-                  name="account-group"
-                  size={18}
-                  color={
-                    voteLicense === 'everyone'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-secondary']
-                  }
-                />
-                <TextCustom
-                  type="bold"
-                  size="s"
-                  color={
-                    voteLicense === 'everyone'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-main']
-                  }
-                >
-                  Everyone
-                </TextCustom>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setVoteLicense('invited')}
-              className="flex-1 rounded-xl border p-1"
-              style={{
-                backgroundColor:
-                  voteLicense === 'invited'
-                    ? `${themeColors[theme]['primary']}15`
-                    : themeColors[theme]['bg-main'],
-                borderColor:
-                  voteLicense === 'invited'
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['border']
+                backgroundColor: `${themeColors[theme]['primary']}15`,
+                borderColor: themeColors[theme]['primary']
               }}
             >
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialCommunityIcons
                   name="account-plus"
                   size={18}
-                  color={
-                    voteLicense === 'invited'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-secondary']
-                  }
+                  color={themeColors[theme]['primary']}
                 />
                 <TextCustom
                   type="bold"
                   size="s"
-                  color={
-                    voteLicense === 'invited'
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['text-main']
-                  }
+                  color={themeColors[theme]['primary']}
                 >
-                  Invited only
+                  Invited Only
                 </TextCustom>
               </View>
-            </Pressable>
+            </View>
+          ) : (
+            // For public events, show both options
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => setVoteLicense('everyone')}
+                className="flex-1 rounded-xl border p-1"
+                style={{
+                  backgroundColor:
+                    voteLicense === 'everyone'
+                      ? `${themeColors[theme]['primary']}15`
+                      : themeColors[theme]['bg-main'],
+                  borderColor:
+                    voteLicense === 'everyone'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['border']
+                }}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <MaterialCommunityIcons
+                    name="account-group"
+                    size={18}
+                    color={
+                      voteLicense === 'everyone'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
+                  />
+                  <TextCustom
+                    type="bold"
+                    size="s"
+                    color={
+                      voteLicense === 'everyone'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-main']
+                    }
+                  >
+                    Everyone
+                  </TextCustom>
+                </View>
+              </Pressable>
 
+              <Pressable
+                onPress={() => setVoteLicense('invited')}
+                className="flex-1 rounded-xl border p-1"
+                style={{
+                  backgroundColor:
+                    voteLicense === 'invited'
+                      ? `${themeColors[theme]['primary']}15`
+                      : themeColors[theme]['bg-main'],
+                  borderColor:
+                    voteLicense === 'invited'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['border']
+                }}
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <MaterialCommunityIcons
+                    name="account-plus"
+                    size={18}
+                    color={
+                      voteLicense === 'invited'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
+                  />
+                  <TextCustom
+                    type="bold"
+                    size="s"
+                    color={
+                      voteLicense === 'invited'
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-main']
+                    }
+                  >
+                    Invited Only
+                  </TextCustom>
+                </View>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Detailed explanations */}
+          <View className="mt-2 gap-1">
+            <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+              {visibility === 'private'
+                ? '• Only invited users can vote in this private event'
+                : voteLicense === 'everyone'
+                  ? '• All users can vote in this public event'
+                  : '• Only invited users can vote in this public event'}
+            </TextCustom>
+          </View>
+        </View>
+
+        {/* Geofence Settings */}
+        <View>
+          <TextCustom className="mb-2" type="bold">
+            Geofence
+          </TextCustom>
+          <View className="flex-row gap-2">
             <Pressable
-              onPress={() => setVoteLicense('geofence')}
+              onPress={() => setGeofenceEnabled('yes')}
               className="flex-1 rounded-xl border p-1"
               style={{
                 backgroundColor:
-                  voteLicense === 'geofence'
+                  geofenceEnabled === 'yes'
                     ? `${themeColors[theme]['primary']}15`
                     : themeColors[theme]['bg-main'],
                 borderColor:
-                  voteLicense === 'geofence'
+                  geofenceEnabled === 'yes'
                     ? themeColors[theme]['primary']
                     : themeColors[theme]['border']
               }}
             >
               <View className="flex-row items-center justify-center gap-2">
                 <MaterialCommunityIcons
-                  name="map-marker-radius"
+                  name="check"
                   size={18}
                   color={
-                    voteLicense === 'geofence'
+                    geofenceEnabled === 'yes'
                       ? themeColors[theme]['primary']
                       : themeColors[theme]['text-secondary']
                   }
@@ -499,12 +589,53 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
                   type="bold"
                   size="s"
                   color={
-                    voteLicense === 'geofence'
+                    geofenceEnabled === 'yes'
                       ? themeColors[theme]['primary']
                       : themeColors[theme]['text-main']
                   }
                 >
-                  Geofence
+                  Yes
+                </TextCustom>
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                setGeofenceEnabled('no');
+                setLocation(null);
+              }}
+              className="flex-1 rounded-xl border p-1"
+              style={{
+                backgroundColor:
+                  geofenceEnabled === 'no'
+                    ? `${themeColors[theme]['primary']}15`
+                    : themeColors[theme]['bg-main'],
+                borderColor:
+                  geofenceEnabled === 'no'
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['border']
+              }}
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <MaterialCommunityIcons
+                  name="close"
+                  size={18}
+                  color={
+                    geofenceEnabled === 'no'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['text-secondary']
+                  }
+                />
+                <TextCustom
+                  type="bold"
+                  size="s"
+                  color={
+                    geofenceEnabled === 'no'
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['text-main']
+                  }
+                >
+                  No
                 </TextCustom>
               </View>
             </Pressable>
@@ -514,12 +645,31 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             color={themeColors[theme]['text-secondary']}
             className="mt-1"
           >
-            {voteLicense === 'everyone'
-              ? 'All authenticated users can vote.'
-              : voteLicense === 'invited'
-                ? 'Only invited participants may vote.'
-                : 'Requires participants within the defined location. Enforcement handled on device.'}
+            {geofenceEnabled === 'yes'
+              ? 'Only users within the specified radius can participate in this event.'
+              : 'No location restriction for this event.'}
           </TextCustom>
+
+          {geofenceEnabled === 'yes' && (
+            <View className="mt-4 gap-4">
+              <LocationPicker
+                value={location}
+                onChange={setLocation}
+                placeholder="Select event location"
+                allowCurrentLocation={true}
+              />
+              <View>
+                <InputCustom
+                  label="Radius (meters) *"
+                  value={radiusMeters}
+                  onChangeText={setRadiusMeters}
+                  placeholder="Enter radius in meters"
+                  keyboardType="numeric"
+                  variant="default"
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         <View className="">
@@ -528,7 +678,15 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
             onPress={handleCreateEvent}
             loading={isLoading}
             width="full"
-            disabled={!name.trim() || isLoading}
+            disabled={
+              !name.trim() ||
+              isLoading ||
+              (geofenceEnabled === 'yes' &&
+                (!location?.coords ||
+                  !radiusMeters.trim() ||
+                  isNaN(parseFloat(radiusMeters)) ||
+                  parseFloat(radiusMeters) <= 0))
+            }
           />
         </View>
       </View>
