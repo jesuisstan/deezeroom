@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -9,6 +9,10 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { Playlist } from '@/utils/firebase/firebase-service-playlists';
+import {
+  getPublicProfilesByUserIds,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
 
 interface ParticipantsTabProps {
   playlist: Playlist;
@@ -17,6 +21,33 @@ interface ParticipantsTabProps {
 const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
   const router = useRouter();
+  const [profilesMap, setProfilesMap] = useState<Map<string, PublicProfileDoc>>(
+    new Map()
+  );
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
+
+  // Fetch public profiles for all participants
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!playlist?.participants || playlist.participants.length === 0) {
+        setIsLoadingProfiles(false);
+        return;
+      }
+
+      setIsLoadingProfiles(true);
+      try {
+        const userIds = playlist.participants.map((p) => p.userId);
+        const profiles = await getPublicProfilesByUserIds(userIds);
+        setProfilesMap(profiles);
+      } catch (error) {
+        console.error('Error fetching participant profiles:', error);
+      } finally {
+        setIsLoadingProfiles(false);
+      }
+    };
+
+    fetchProfiles();
+  }, [playlist?.participants]);
 
   // Separate owner and other participants
   const { owner, otherParticipants } = useMemo(() => {
@@ -42,18 +73,20 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
 
   const renderParticipant = (participant: {
     userId: string;
-    displayName?: string;
-    email?: string;
-    photoURL?: string;
+    role: 'owner' | 'editor' | 'viewer';
+    joinedAt: Date;
   }) => {
-    const name = participant.displayName || participant.email || 'Unknown';
+    const profile = profilesMap.get(participant.userId);
+    const displayName = profile?.displayName || 'Unknown';
+    const photoURL = profile?.photoURL;
+
     return (
       <UserChip
         key={participant.userId}
         user={{
           uid: participant.userId,
-          displayName: name,
-          photoURL: participant.photoURL
+          displayName,
+          photoURL
         }}
         onPress={() =>
           router.push({
@@ -86,26 +119,33 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
           >
             Owner
           </TextCustom>
-          <UserChip
-            user={{
-              uid: owner.userId,
-              displayName: owner.displayName || owner.email || 'Unknown',
-              photoURL: owner.photoURL
-            }}
-            onPress={() =>
-              router.push({
-                pathname: '/users/[id]',
-                params: { id: owner.userId }
-              })
-            }
-            rightAccessory={
-              <MaterialCommunityIcons
-                name="crown"
-                size={18}
-                color={themeColors[theme]['primary']}
-              />
-            }
-          />
+          {isLoadingProfiles ? (
+            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+              Loading...
+            </TextCustom>
+          ) : (
+            <UserChip
+              user={{
+                uid: owner.userId,
+                displayName:
+                  profilesMap.get(owner.userId)?.displayName || 'Unknown',
+                photoURL: profilesMap.get(owner.userId)?.photoURL
+              }}
+              onPress={() =>
+                router.push({
+                  pathname: '/users/[id]',
+                  params: { id: owner.userId }
+                })
+              }
+              rightAccessory={
+                <MaterialCommunityIcons
+                  name="crown"
+                  size={18}
+                  color={themeColors[theme]['primary']}
+                />
+              }
+            />
+          )}
         </View>
       )}
 

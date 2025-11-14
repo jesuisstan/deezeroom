@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TabView } from 'react-native-tab-view';
 
+import EditEventModal from '@/components/events/EditEventModal';
 import EventCoverTab from '@/components/events/EventCoverTab';
 import EventInfoTab from '@/components/events/EventInfoTab';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
@@ -18,6 +19,7 @@ import EventTrackCard from '@/components/events/EventTrackCard';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
+import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -35,10 +37,7 @@ import {
   EventService,
   EventTrack
 } from '@/utils/firebase/firebase-service-events';
-import {
-  UserProfile,
-  UserService
-} from '@/utils/firebase/firebase-service-user';
+import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
 const EventDetailScreen = () => {
   const { theme } = useTheme();
@@ -53,9 +52,10 @@ const EventDetailScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddTrackModal, setShowAddTrackModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [processingVote, setProcessingVote] = useState<string | null>(null);
-  const [participants, setParticipants] = useState<UserProfile[]>([]);
   const [tabIndex, setTabIndex] = useState(0);
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
@@ -98,38 +98,6 @@ const EventDetailScreen = () => {
     });
   }, [id, user]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadParticipants = async () => {
-      if (!event) {
-        setParticipants([]);
-        return;
-      }
-      const uniqueIds = Array.from(
-        new Set([event.createdBy, ...(event.participantIds || [])])
-      );
-      try {
-        const profiles = await Promise.all(
-          uniqueIds.map((uid) => UserService.getUserProfile(uid))
-        );
-        if (!cancelled) {
-          setParticipants(
-            profiles.filter((profile): profile is UserProfile => !!profile)
-          );
-        }
-      } catch (profileError) {
-        Logger.warn('Failed to load event participants', profileError);
-        if (!cancelled) {
-          setParticipants([]);
-        }
-      }
-    };
-    loadParticipants();
-    return () => {
-      cancelled = true;
-    };
-  }, [event]);
-
   const bottomPadding = useMemo(() => {
     return currentTrack ? MINI_PLAYER_HEIGHT : 0;
   }, [currentTrack]);
@@ -137,11 +105,6 @@ const EventDetailScreen = () => {
   const isEventEnded = useMemo(() => {
     return event ? EventService.hasEventEnded(event) : false;
   }, [event]);
-
-  const canManage = useMemo(() => {
-    if (!event || !user) return false;
-    return EventService.canUserManageEvent(event, user.uid);
-  }, [event, user]);
 
   const canVote = useMemo(() => {
     if (!event || !user) return false;
@@ -156,36 +119,6 @@ const EventDetailScreen = () => {
   const currentTrackIds = useMemo(
     () => tracks.map((track) => track.trackId),
     [tracks]
-  );
-
-  const ownerProfile = useMemo(() => {
-    if (!event) return undefined;
-    return participants.find((profile) => profile.uid === event.createdBy);
-  }, [event, participants]);
-
-  const otherParticipants = useMemo(() => {
-    if (!event) return [] as UserProfile[];
-    return participants.filter((profile) => profile.uid !== event.createdBy);
-  }, [participants, event]);
-
-  const ownerName = useMemo(() => {
-    if (ownerProfile?.displayName) return ownerProfile.displayName;
-    if (ownerProfile?.email) return ownerProfile.email;
-    if (event?.ownerDisplayName) return event.ownerDisplayName;
-    return 'Unknown user';
-  }, [ownerProfile, event]);
-
-  const ownerPhotoURL = ownerProfile?.photoURL || undefined;
-
-  const participantViews = useMemo(
-    () =>
-      otherParticipants.map((profile) => ({
-        uid: profile.uid,
-        displayName: profile.displayName,
-        email: profile.email,
-        photoURL: profile.photoURL
-      })),
-    [otherParticipants]
   );
 
   const handleBack = () => {
@@ -290,8 +223,67 @@ const EventDetailScreen = () => {
     }
   };
 
-  const handlePlaceholderAction = (message: string) => {
-    Notifier.shoot({ type: 'info', title: 'Coming soon', message });
+  const handleEventUpdated = async () => {
+    // Reload event after update
+    if (id) {
+      try {
+        const freshEvent = await EventService.getEvent(id);
+        if (freshEvent) {
+          setEvent(freshEvent);
+        }
+      } catch (error) {
+        Logger.error('Error reloading event after update:', error);
+      }
+    }
+  };
+
+  const handleSendInvitations = async (selectedUsers: UserProfile[]) => {
+    if (!event || !user || selectedUsers.length === 0) return;
+
+    try {
+      const invitationResult = await EventService.inviteMultipleUsersToEvent(
+        event.id,
+        selectedUsers.map((user) => ({
+          userId: user.uid
+        })),
+        user.uid
+      );
+
+      if (invitationResult.success && invitationResult.invitedCount > 0) {
+        Notifier.shoot({
+          type: 'success',
+          title: 'Invitations Sent',
+          message: `${invitationResult.invitedCount} invitation(s) sent successfully!`
+        });
+
+        // Show warnings for any errors
+        if (invitationResult.errors.length > 0) {
+          Notifier.shoot({
+            type: 'warn',
+            title: 'Some invitations failed',
+            message: invitationResult.errors.join(', ')
+          });
+        }
+
+        // Reload event to get updated participants
+        await handleEventUpdated();
+      } else {
+        Notifier.shoot({
+          type: 'error',
+          title: 'Failed to Send Invitations',
+          message:
+            invitationResult.errors.join(', ') || 'No invitations were sent'
+        });
+      }
+    } catch (error) {
+      Logger.error('Error sending invitations:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to send invitations'
+      });
+      throw error;
+    }
   };
 
   const renderScene = ({ route }: { route: { key: string } }) => {
@@ -304,9 +296,7 @@ const EventDetailScreen = () => {
         return (
           <EventParticipantsTab
             ownerId={event!.createdBy}
-            ownerName={ownerName}
-            ownerPhotoURL={ownerPhotoURL}
-            participants={participantViews}
+            participantIds={event!.participantIds || []}
           />
         );
       default:
@@ -393,42 +383,40 @@ const EventDetailScreen = () => {
                 borderWidth: 1
               }}
             >
-              <IconButton
-                accessibilityLabel="Edit event"
-                onPress={() =>
-                  handlePlaceholderAction(
-                    'Event editing will be available soon.'
-                  )
-                }
-              >
-                <MaterialCommunityIcons
-                  name="pencil-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+              {event && user && event.createdBy === user.uid && (
+                <IconButton
+                  accessibilityLabel="Edit event"
+                  onPress={() => setShowEditModal(true)}
+                >
+                  <MaterialCommunityIcons
+                    name="pencil-outline"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                </IconButton>
+              )}
               <IconButton
                 accessibilityLabel="Invite participants"
-                onPress={() =>
-                  handlePlaceholderAction(
-                    'Inviting participants will be available soon.'
-                  )
-                }
+                onPress={() => {
+                  if (!event || !user) return;
+                  const canInvite = EventService.canUserManageEvent(
+                    event,
+                    user.uid
+                  );
+                  if (!canInvite) {
+                    Notifier.shoot({
+                      type: 'error',
+                      title: 'Permission Denied',
+                      message:
+                        'You do not have permission to invite users to this event'
+                    });
+                    return;
+                  }
+                  setShowInviteModal(true);
+                }}
               >
                 <MaterialCommunityIcons
                   name="account-plus-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
-              <IconButton
-                accessibilityLabel="Share event"
-                onPress={() =>
-                  handlePlaceholderAction('Sharing will be available soon.')
-                }
-              >
-                <MaterialCommunityIcons
-                  name="share-variant"
                   size={20}
                   color={themeColors[theme]['text-main']}
                 />
@@ -546,12 +534,8 @@ const EventDetailScreen = () => {
                 canVote={canVote}
                 isVoting={processingVote === eventTrack.trackId}
                 onToggleVote={() => handleToggleVote(eventTrack.trackId)}
-                canManage={canManage}
-                onRemoveTrack={
-                  canManage
-                    ? () => handleRemoveTrack(eventTrack.trackId)
-                    : undefined
-                }
+                currentUserId={user?.uid}
+                onRemoveTrack={() => handleRemoveTrack(eventTrack.trackId)}
               />
             ))
           )}
@@ -571,6 +555,29 @@ const EventDetailScreen = () => {
           isVisible={showAddTrackModal}
         />
       </SwipeModal>
+
+      {/* Edit Event Modal */}
+      {event && (
+        <EditEventModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          event={event}
+          onEventUpdated={handleEventUpdated}
+        />
+      )}
+
+      {/* Invite Users Modal */}
+      {event && (
+        <UserInviteComponent
+          visible={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          onInvite={handleSendInvitations}
+          excludeUserId={user?.uid}
+          existingUsers={[]}
+          placeholder="Search users by email or name..."
+          title="Invite Participants"
+        />
+      )}
     </View>
   );
 };

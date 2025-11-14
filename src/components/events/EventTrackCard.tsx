@@ -4,7 +4,6 @@ import { View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import IconButton from '@/components/ui/buttons/IconButton';
-import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -16,7 +15,7 @@ interface EventTrackCardProps {
   canVote: boolean;
   isVoting?: boolean;
   onToggleVote: () => void;
-  canManage: boolean;
+  currentUserId?: string;
   onRemoveTrack?: () => void;
 }
 
@@ -26,10 +25,16 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
   canVote,
   isVoting = false,
   onToggleVote,
-  canManage,
+  currentUserId,
   onRemoveTrack
 }) => {
   const { theme } = useTheme();
+
+  const canRemove =
+    onRemoveTrack &&
+    currentUserId &&
+    track.addedBy === currentUserId &&
+    track.voteCount === 0;
 
   const renderArtists = () => {
     if (!track.track?.artist) {
@@ -43,18 +48,18 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
       style={{
         backgroundColor: themeColors[theme]['bg-secondary'],
         borderRadius: 6,
-        padding: 16,
+        padding: 12,
         marginBottom: 12,
         borderWidth: 1,
         borderColor: themeColors[theme]['border'],
-        gap: 12
+        gap: 10
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View
           style={{
-            width: 52,
-            height: 52,
+            width: 44,
+            height: 44,
             borderRadius: 6,
             backgroundColor: `${themeColors[theme]['primary']}20`,
             alignItems: 'center',
@@ -63,7 +68,7 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
         >
           <MaterialCommunityIcons
             name="music"
-            size={26}
+            size={22}
             color={themeColors[theme]['primary']}
           />
         </View>
@@ -84,19 +89,6 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
             {renderArtists() || 'Unknown artist'}
           </TextCustom>
         </View>
-        {canManage && onRemoveTrack ? (
-          <IconButton
-            onPress={onRemoveTrack}
-            accessibilityLabel="Remove track from event"
-            className="h-9 w-9"
-          >
-            <MaterialCommunityIcons
-              name="delete"
-              size={18}
-              color={themeColors[theme]['intent-error']}
-            />
-          </IconButton>
-        ) : null}
       </View>
 
       <View
@@ -109,11 +101,11 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <MaterialCommunityIcons
             name="vote"
-            size={18}
+            size={16}
             color={themeColors[theme]['text-secondary']}
           />
           <TextCustom
-            size="s"
+            size="xs"
             color={themeColors[theme]['text-secondary']}
             type="semibold"
           >
@@ -121,20 +113,43 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
           </TextCustom>
         </View>
 
-        {canVote ? (
-          <RippleButton
-            title={hasVoted ? 'Remove vote' : 'Vote'}
-            size="sm"
-            variant={hasVoted ? 'outline' : 'primary'}
-            loading={isVoting}
-            disabled={isVoting}
-            onPress={onToggleVote}
-          />
-        ) : (
-          <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
-            Voting disabled
-          </TextCustom>
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {canRemove ? (
+            <IconButton
+              onPress={onRemoveTrack}
+              accessibilityLabel="Remove track from event"
+              className="h-8 w-8"
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={18}
+                color={themeColors[theme]['intent-error']}
+              />
+            </IconButton>
+          ) : null}
+          {canVote ? (
+            <IconButton
+              onPress={onToggleVote}
+              accessibilityLabel={hasVoted ? 'Remove vote' : 'Vote'}
+              disabled={isVoting}
+              className="h-8 w-8"
+            >
+              <MaterialCommunityIcons
+                name={hasVoted ? 'thumb-up' : 'thumb-up-outline'}
+                size={18}
+                color={
+                  hasVoted
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-secondary']
+                }
+              />
+            </IconButton>
+          ) : (
+            <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
+              Voting disabled
+            </TextCustom>
+          )}
+        </View>
       </View>
     </View>
   );

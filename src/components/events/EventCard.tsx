@@ -167,14 +167,17 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     name="calendar-start"
                     size={18}
                     color={themeColors[theme]['text-secondary']}
+                    style={{ flexShrink: 0 }}
                   />
-                  <TextCustom
-                    size="xs"
-                    color={themeColors[theme]['text-secondary']}
-                    numberOfLines={1}
-                  >
-                    Start: {formatSchedule().startText}
-                  </TextCustom>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <TextCustom
+                      size="xs"
+                      color={themeColors[theme]['text-secondary']}
+                      numberOfLines={1}
+                    >
+                      Start: {formatSchedule().startText}
+                    </TextCustom>
+                  </View>
                 </View>
 
                 <View
@@ -188,14 +191,17 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     name="calendar-end"
                     size={18}
                     color={themeColors[theme]['text-secondary']}
+                    style={{ flexShrink: 0 }}
                   />
-                  <TextCustom
-                    size="xs"
-                    color={themeColors[theme]['text-secondary']}
-                    numberOfLines={1}
-                  >
-                    End: {formatSchedule().endText}
-                  </TextCustom>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <TextCustom
+                      size="xs"
+                      color={themeColors[theme]['text-secondary']}
+                      numberOfLines={1}
+                    >
+                      End: {formatSchedule().endText}
+                    </TextCustom>
+                  </View>
                 </View>
 
                 <View
@@ -213,14 +219,17 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     }
                     size={18}
                     color={themeColors[theme]['text-secondary']}
+                    style={{ flexShrink: 0 }}
                   />
-                  <TextCustom
-                    size="xs"
-                    color={themeColors[theme]['text-secondary']}
-                    numberOfLines={1}
-                  >
-                    {getLocationText()}
-                  </TextCustom>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <TextCustom
+                      size="xs"
+                      color={themeColors[theme]['text-secondary']}
+                      numberOfLines={2}
+                    >
+                      {getLocationText()}
+                    </TextCustom>
+                  </View>
                 </View>
               </View>
             </View>

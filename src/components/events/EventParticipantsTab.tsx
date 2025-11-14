@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -8,46 +8,75 @@ import UserChip from '@/components/profile-users/UserChip';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-
-interface ParticipantView {
-  uid: string;
-  displayName?: string;
-  email?: string;
-  photoURL?: string;
-}
+import {
+  getPublicProfilesByUserIds,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
 
 interface EventParticipantsTabProps {
   ownerId: string;
-  ownerName: string;
-  ownerPhotoURL?: string;
-  participants: ParticipantView[];
+  participantIds: string[];
 }
 
 const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
   ownerId,
-  ownerName,
-  ownerPhotoURL,
-  participants
+  participantIds
 }) => {
   const { theme } = useTheme();
   const router = useRouter();
+  const [profilesMap, setProfilesMap] = useState<Map<string, PublicProfileDoc>>(
+    new Map()
+  );
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
-  const participantList = useMemo(() => participants, [participants]);
+  // Fetch public profiles for owner and all participants
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const allUserIds = [ownerId, ...participantIds].filter(
+        (id, index, self) => self.indexOf(id) === index
+      ); // Remove duplicates
 
-  const renderParticipant = (participant: ParticipantView) => {
-    const name = participant.displayName || participant.email || 'Unknown user';
+      if (allUserIds.length === 0) {
+        setIsLoadingProfiles(false);
+        return;
+      }
+
+      setIsLoadingProfiles(true);
+      try {
+        const profiles = await getPublicProfilesByUserIds(allUserIds);
+        setProfilesMap(profiles);
+      } catch (error) {
+        console.error('Error fetching participant profiles:', error);
+      } finally {
+        setIsLoadingProfiles(false);
+      }
+    };
+
+    fetchProfiles();
+  }, [ownerId, participantIds]);
+
+  // Filter out owner from participants list
+  const otherParticipantIds = useMemo(() => {
+    return participantIds.filter((id) => id !== ownerId);
+  }, [participantIds, ownerId]);
+
+  const renderParticipant = (userId: string) => {
+    const profile = profilesMap.get(userId);
+    const displayName = profile?.displayName || 'Unknown';
+    const photoURL = profile?.photoURL;
+
     return (
       <UserChip
-        key={participant.uid}
+        key={userId}
         user={{
-          uid: participant.uid,
-          displayName: name,
-          photoURL: participant.photoURL
+          uid: userId,
+          displayName,
+          photoURL
         }}
         onPress={() =>
           router.push({
             pathname: '/users/[id]',
-            params: { id: participant.uid }
+            params: { id: userId }
           })
         }
       />
@@ -70,29 +99,35 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
         >
           Host
         </TextCustom>
-        <UserChip
-          user={{
-            uid: ownerId,
-            displayName: ownerName || 'Unknown',
-            photoURL: ownerPhotoURL
-          }}
-          onPress={() =>
-            router.push({
-              pathname: '/users/[id]',
-              params: { id: ownerId }
-            })
-          }
-          rightAccessory={
-            <MaterialCommunityIcons
-              name="crown"
-              size={18}
-              color={themeColors[theme]['primary']}
-            />
-          }
-        />
+        {isLoadingProfiles ? (
+          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+            Loading...
+          </TextCustom>
+        ) : (
+          <UserChip
+            user={{
+              uid: ownerId,
+              displayName: profilesMap.get(ownerId)?.displayName || 'Unknown',
+              photoURL: profilesMap.get(ownerId)?.photoURL
+            }}
+            onPress={() =>
+              router.push({
+                pathname: '/users/[id]',
+                params: { id: ownerId }
+              })
+            }
+            rightAccessory={
+              <MaterialCommunityIcons
+                name="crown"
+                size={18}
+                color={themeColors[theme]['primary']}
+              />
+            }
+          />
+        )}
       </View>
 
-      {participantList.length > 0 ? (
+      {otherParticipantIds.length > 0 ? (
         <View>
           <TextCustom
             type="bold"
@@ -106,13 +141,13 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
               size="m"
               color={themeColors[theme]['text-secondary']}
             >
-              ({participantList.length})
+              ({otherParticipantIds.length})
             </TextCustom>
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
-            {participantList.map((participant) => (
-              <View key={participant.uid} className="max-w-[48%] flex-shrink">
-                {renderParticipant(participant)}
+            {otherParticipantIds.map((userId) => (
+              <View key={userId} className="max-w-[48%] flex-shrink">
+                {renderParticipant(userId)}
               </View>
             ))}
           </View>

@@ -7,23 +7,28 @@ import Animated from 'react-native-reanimated';
 
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
+import { EventInvitationCard } from '@/components/notifications/EventInvitationCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useEventInvitations } from '@/hooks/useEventInvitations';
 import {
   type FriendRequestItem,
   useFriendRequests
 } from '@/hooks/useFriendRequests';
 import { usePlaylistInvitations } from '@/hooks/usePlaylistInvitations';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { usePressAnimation } from '@/style/usePressAnimation';
+import { EventInvitation } from '@/utils/firebase/firebase-service-events';
 import { PlaylistInvitation } from '@/utils/firebase/firebase-service-playlists';
 import { parseFirestoreDate } from '@/utils/firebase/firestore-date-utils';
 
 const NotificationsScreen = () => {
   const { theme } = useTheme();
+  const { profile } = useUser();
   const { animatedStyle } = usePressAnimation({
     appearAnimation: true,
     appearDelay: 0,
@@ -37,6 +42,13 @@ const NotificationsScreen = () => {
     declineInvitation
   } = usePlaylistInvitations();
   const {
+    eventInvitations,
+    isLoading: eventInvitationsLoading,
+    refreshInvitations: refreshEventInvitations,
+    acceptInvitation: acceptEventInvitation,
+    declineInvitation: declineEventInvitation
+  } = useEventInvitations();
+  const {
     friendRequests,
     isLoading: friendRequestsLoading,
     refreshFriendRequests,
@@ -44,7 +56,9 @@ const NotificationsScreen = () => {
     declineFriendRequest
   } = useFriendRequests();
 
-  const [processingInvitations, setProcessingInvitations] = useState<
+  const [processingPlaylistInvitations, setProcessingPlaylistInvitations] =
+    useState<Set<string>>(new Set());
+  const [processingEventInvitations, setProcessingEventInvitations] = useState<
     Set<string>
   >(new Set());
   const [processingFriendRequests, setProcessingFriendRequests] = useState<
@@ -53,19 +67,62 @@ const NotificationsScreen = () => {
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
-    await Promise.all([refreshInvitations(), refreshFriendRequests()]);
+    await Promise.all([
+      refreshInvitations(),
+      refreshEventInvitations(),
+      refreshFriendRequests()
+    ]);
   };
 
-  const sortedInvitations = useMemo(() => {
-    return [...playlistInvitations].sort((a, b) => {
-      const dateA = parseFirestoreDate(a.invitedAt).getTime();
-      const dateB = parseFirestoreDate(b.invitedAt).getTime();
-      return dateB - dateA;
-    });
-  }, [playlistInvitations]);
+  // Combine all notifications and sort by date (newest first)
+  const allNotifications = useMemo(() => {
+    const notifications: {
+      id: string;
+      type: 'friend_request' | 'playlist_invitation' | 'event_invitation';
+      date: Date;
+      data: FriendRequestItem | PlaylistInvitation | EventInvitation;
+    }[] = [];
 
-  const handleAcceptInvitation = async (invitation: PlaylistInvitation) => {
-    setProcessingInvitations((prev) => new Set(prev).add(invitation.id));
+    // Add friend requests
+    friendRequests.forEach((request) => {
+      notifications.push({
+        id: `friend_request_${request.id}`,
+        type: 'friend_request',
+        date: parseFirestoreDate(request.requestedAt || new Date()),
+        data: request
+      });
+    });
+
+    // Add playlist invitations
+    playlistInvitations.forEach((invitation) => {
+      notifications.push({
+        id: `playlist_invitation_${invitation.id}`,
+        type: 'playlist_invitation',
+        date: parseFirestoreDate(invitation.invitedAt),
+        data: invitation
+      });
+    });
+
+    // Add event invitations
+    eventInvitations.forEach((invitation) => {
+      notifications.push({
+        id: `event_invitation_${invitation.id}`,
+        type: 'event_invitation',
+        date: parseFirestoreDate(invitation.invitedAt),
+        data: invitation
+      });
+    });
+
+    // Sort by date (newest first)
+    return notifications.sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [friendRequests, playlistInvitations, eventInvitations]);
+
+  const handleAcceptPlaylistInvitation = async (
+    invitation: PlaylistInvitation
+  ) => {
+    setProcessingPlaylistInvitations((prev) =>
+      new Set(prev).add(invitation.id)
+    );
     try {
       const result = await acceptInvitation(invitation);
       if (!result.success) {
@@ -79,7 +136,7 @@ const NotificationsScreen = () => {
         message: 'Failed to accept invitation'
       });
     } finally {
-      setProcessingInvitations((prev) => {
+      setProcessingPlaylistInvitations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(invitation.id);
         return newSet;
@@ -87,8 +144,12 @@ const NotificationsScreen = () => {
     }
   };
 
-  const handleDeclineInvitation = async (invitation: PlaylistInvitation) => {
-    setProcessingInvitations((prev) => new Set(prev).add(invitation.id));
+  const handleDeclinePlaylistInvitation = async (
+    invitation: PlaylistInvitation
+  ) => {
+    setProcessingPlaylistInvitations((prev) =>
+      new Set(prev).add(invitation.id)
+    );
     try {
       const result = await declineInvitation(invitation);
       if (!result.success) {
@@ -102,7 +163,7 @@ const NotificationsScreen = () => {
         message: 'Failed to decline invitation'
       });
     } finally {
-      setProcessingInvitations((prev) => {
+      setProcessingPlaylistInvitations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(invitation.id);
         return newSet;
@@ -110,13 +171,14 @@ const NotificationsScreen = () => {
     }
   };
 
-  const isLoading = invitationsLoading || friendRequestsLoading;
+  const isLoading =
+    invitationsLoading || eventInvitationsLoading || friendRequestsLoading;
 
   if (isLoading) {
     return <ActivityIndicatorScreen />;
   }
 
-  if (sortedInvitations.length === 0 && friendRequests.length === 0) {
+  if (allNotifications.length === 0) {
     return (
       <ScrollView
         className="flex-1"
@@ -198,7 +260,53 @@ const NotificationsScreen = () => {
     }
   };
 
-  const totalNew = friendRequests.length + sortedInvitations.length;
+  const handleAcceptEventInvitation = async (invitation: EventInvitation) => {
+    setProcessingEventInvitations((prev) => new Set(prev).add(invitation.id));
+    try {
+      const result = await acceptEventInvitation(invitation);
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to accept invitation');
+      }
+    } catch (error) {
+      Logger.error('Error accepting event invitation:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to accept invitation'
+      });
+    } finally {
+      setProcessingEventInvitations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invitation.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeclineEventInvitation = async (invitation: EventInvitation) => {
+    setProcessingEventInvitations((prev) => new Set(prev).add(invitation.id));
+    try {
+      const result = await declineEventInvitation(invitation);
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to decline invitation');
+      }
+    } catch (error) {
+      Logger.error('Error declining event invitation:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to decline invitation'
+      });
+    } finally {
+      setProcessingEventInvitations((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(invitation.id);
+        return newSet;
+      });
+    }
+  };
+
+  const totalNew = allNotifications.length;
 
   return (
     <ScrollView
@@ -218,141 +326,165 @@ const NotificationsScreen = () => {
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <TextCustom size="s" color={themeColors[theme]['text-main']}>
-                {[
-                  friendRequests.length
-                    ? `${friendRequests.length} friend request${
-                        friendRequests.length === 1 ? '' : 's'
-                      }`
-                    : null,
-                  sortedInvitations.length
-                    ? `${sortedInvitations.length} playlist invitation${
-                        sortedInvitations.length === 1 ? '' : 's'
-                      }`
-                    : null,
-                  totalNew > 0 ? `${totalNew} new` : null
-                ]
-                  .filter(Boolean)
-                  .join(' • ')}
+                {totalNew > 0
+                  ? `${totalNew} notification${totalNew === 1 ? '' : 's'}`
+                  : 'No notifications'}
               </TextCustom>
             </View>
           </View>
         </View>
 
-        {friendRequests.map((request) => (
-          <Animated.View key={request.id} style={animatedStyle}>
-            <View className="rounded-md border border-border bg-bg-secondary px-4 py-3">
-              <View className="flex-row items-center">
-                <MaterialCommunityIcons
-                  name="account-plus"
-                  size={18}
-                  color={themeColors[theme]['primary']}
-                  style={{ marginRight: 8 }}
-                />
-                <TextCustom
-                  type="semibold"
-                  size="s"
-                  color={themeColors[theme]['text-main']}
-                >
-                  Friend Request
-                </TextCustom>
-              </View>
+        {allNotifications.map((notification) => {
+          if (notification.type === 'friend_request') {
+            const request = notification.data as FriendRequestItem;
+            return (
+              <Animated.View key={notification.id} style={animatedStyle}>
+                <View className="gap-2 rounded-md border border-border bg-bg-secondary px-4 py-3">
+                  <View className="flex-row items-center">
+                    <MaterialCommunityIcons
+                      name="account-plus"
+                      size={18}
+                      color={themeColors[theme]['primary']}
+                      style={{ marginRight: 8 }}
+                    />
+                    <TextCustom
+                      type="semibold"
+                      size="m"
+                      color={themeColors[theme]['text-main']}
+                    >
+                      Friend Request
+                    </TextCustom>
+                  </View>
 
-              <TextCustom
-                size="s"
-                color={themeColors[theme]['text-secondary']}
-                className="mt-1"
-              >
-                <TextCustom
-                  type="link"
-                  size="s"
-                  onPress={() => router.push(`/users/${request.requesterId}`)}
-                >
-                  {request.requesterName}
-                </TextCustom>{' '}
-                wants to connect with you.
-              </TextCustom>
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
+                    <TextCustom
+                      type="link"
+                      size="s"
+                      onPress={() =>
+                        router.push(`/users/${request.requesterId}`)
+                      }
+                    >
+                      {request.requesterName}
+                    </TextCustom>{' '}
+                    wants to connect with you.
+                  </TextCustom>
 
-              <View className="mt-3 flex-row items-center gap-2">
-                <View className="flex-1">
-                  <RippleButton
-                    title="Accept"
-                    size="sm"
-                    loading={processingFriendRequests.has(request.id)}
-                    disabled={processingFriendRequests.has(request.id)}
-                    onPress={() => handleAcceptFriendRequest(request)}
-                    width="full"
-                  />
+                  <View className="flex-row items-center gap-2">
+                    <View className="flex-1">
+                      <RippleButton
+                        title="Accept"
+                        size="sm"
+                        loading={processingFriendRequests.has(request.id)}
+                        disabled={processingFriendRequests.has(request.id)}
+                        onPress={() => handleAcceptFriendRequest(request)}
+                        width="full"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <RippleButton
+                        title="Decline"
+                        size="sm"
+                        variant="outline"
+                        loading={processingFriendRequests.has(request.id)}
+                        disabled={processingFriendRequests.has(request.id)}
+                        onPress={() => handleDeclineFriendRequest(request)}
+                        width="full"
+                      />
+                    </View>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <RippleButton
-                    title="Decline"
-                    size="sm"
-                    variant="outline"
-                    loading={processingFriendRequests.has(request.id)}
-                    disabled={processingFriendRequests.has(request.id)}
-                    onPress={() => handleDeclineFriendRequest(request)}
-                    width="full"
-                  />
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-        ))}
+              </Animated.View>
+            );
+          }
 
-        {sortedInvitations.map((invitation) => (
-          <Animated.View key={invitation.id} style={animatedStyle}>
-            <View className="rounded-md border border-border bg-bg-secondary px-4 py-3">
-              <View className="flex-row items-center">
-                <MaterialCommunityIcons
-                  name="playlist-music"
-                  size={18}
-                  color={themeColors[theme]['primary']}
-                  style={{ marginRight: 8 }}
-                />
-                <TextCustom
-                  type="semibold"
-                  size="s"
-                  color={themeColors[theme]['text-main']}
-                >
-                  Playlist Invitation
-                </TextCustom>
-              </View>
+          if (notification.type === 'playlist_invitation') {
+            const invitation = notification.data as PlaylistInvitation;
+            return (
+              <Animated.View key={notification.id} style={animatedStyle}>
+                <View className="gap-2 rounded-md border border-border bg-bg-secondary px-4 py-3">
+                  <View className="flex-row items-center">
+                    <MaterialCommunityIcons
+                      name="playlist-music"
+                      size={18}
+                      color={themeColors[theme]['primary']}
+                      style={{ marginRight: 8 }}
+                    />
+                    <TextCustom
+                      type="semibold"
+                      size="m"
+                      color={themeColors[theme]['text-main']}
+                    >
+                      Playlist Invitation
+                    </TextCustom>
+                  </View>
 
-              <TextCustom
-                size="s"
-                color={themeColors[theme]['text-secondary']}
-                className="mt-1"
-              >
-                {`You've been invited to collaborate on "${invitation.playlistName || 'a playlist'}".`}
-              </TextCustom>
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
+                    {`You've been invited to collaborate on ${invitation.playlistName ? `"${invitation.playlistName}"` : 'a'} playlist.`}
+                  </TextCustom>
 
-              {/* Action buttons */}
-              <View className="mt-3 flex-row items-center gap-2">
-                <View className="flex-1">
-                  <RippleButton
-                    title="Accept"
-                    size="sm"
-                    loading={processingInvitations.has(invitation.id)}
-                    disabled={processingInvitations.has(invitation.id)}
-                    onPress={() => handleAcceptInvitation(invitation)}
-                    width="full"
-                  />
+                  <View className="flex-row items-center gap-2">
+                    <View className="flex-1">
+                      <RippleButton
+                        title="Accept"
+                        size="sm"
+                        loading={processingPlaylistInvitations.has(
+                          invitation.id
+                        )}
+                        disabled={processingPlaylistInvitations.has(
+                          invitation.id
+                        )}
+                        onPress={() =>
+                          handleAcceptPlaylistInvitation(invitation)
+                        }
+                        width="full"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <RippleButton
+                        title="Decline"
+                        size="sm"
+                        variant="outline"
+                        loading={processingPlaylistInvitations.has(
+                          invitation.id
+                        )}
+                        disabled={processingPlaylistInvitations.has(
+                          invitation.id
+                        )}
+                        onPress={() =>
+                          handleDeclinePlaylistInvitation(invitation)
+                        }
+                        width="full"
+                      />
+                    </View>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <RippleButton
-                    title="Decline"
-                    size="sm"
-                    variant="outline"
-                    loading={processingInvitations.has(invitation.id)}
-                    disabled={processingInvitations.has(invitation.id)}
-                    onPress={() => handleDeclineInvitation(invitation)}
-                    width="full"
-                  />
-                </View>
-              </View>
-            </View>
-          </Animated.View>
-        ))}
+              </Animated.View>
+            );
+          }
+
+          if (notification.type === 'event_invitation') {
+            const invitation = notification.data as EventInvitation;
+            return (
+              <EventInvitationCard
+                key={notification.id}
+                invitation={invitation}
+                profile={profile}
+                animatedStyle={animatedStyle}
+                processingEventInvitations={processingEventInvitations}
+                onAccept={handleAcceptEventInvitation}
+                onDecline={handleDeclineEventInvitation}
+              />
+            );
+          }
+
+          return null;
+        })}
       </View>
     </ScrollView>
   );

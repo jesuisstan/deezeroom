@@ -3,47 +3,47 @@ import { useCallback, useEffect, useState } from 'react';
 import { Logger } from '@/components/modules/logger';
 import { useUser } from '@/providers/UserProvider';
 import {
-  PlaylistInvitation,
-  PlaylistService
-} from '@/utils/firebase/firebase-service-playlists';
+  EventInvitation,
+  EventService
+} from '@/utils/firebase/firebase-service-events';
 
-export interface UsePlaylistInvitationsReturn {
-  playlistInvitations: PlaylistInvitation[];
+export interface UseEventInvitationsReturn {
+  eventInvitations: EventInvitation[];
   unreadCount: number;
   isLoading: boolean;
   refreshInvitations: () => Promise<void>;
-  acceptInvitation: (invitation: PlaylistInvitation) => Promise<{
+  acceptInvitation: (invitation: EventInvitation) => Promise<{
     success: boolean;
     message?: string;
   }>;
-  declineInvitation: (invitation: PlaylistInvitation) => Promise<{
+  declineInvitation: (invitation: EventInvitation) => Promise<{
     success: boolean;
     message?: string;
   }>;
 }
 
-export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
-  const { user, profile } = useUser();
-  const [playlistInvitations, setPlaylistInvitations] = useState<
-    PlaylistInvitation[]
-  >([]);
+export const useEventInvitations = (): UseEventInvitationsReturn => {
+  const { user } = useUser();
+  const [eventInvitations, setEventInvitations] = useState<EventInvitation[]>(
+    []
+  );
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Real-time subscription to user invitations
   useEffect(() => {
     if (!user) {
-      setPlaylistInvitations([]);
+      setEventInvitations([]);
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
 
-    const unsubscribe = PlaylistService.subscribeToUserInvitations(
+    const unsubscribe = EventService.subscribeToUserEventInvitations(
       user.uid,
       (newInvitations) => {
-        setPlaylistInvitations(newInvitations);
+        setEventInvitations(newInvitations);
         setIsLoading(false);
       }
     );
@@ -57,41 +57,40 @@ export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
 
     try {
       setIsLoading(true);
-      const userInvitations = await PlaylistService.getUserInvitations(
+      const userInvitations = await EventService.getUserEventInvitations(
         user.uid
       );
-      setPlaylistInvitations(userInvitations);
+      setEventInvitations(userInvitations);
     } catch (error) {
-      Logger.error('Error refreshing invitations:', error);
+      Logger.error('Error refreshing event invitations:', error);
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
-  // Calculate unread count based on last read time
+  // Calculate unread count
   useEffect(() => {
-    setUnreadCount(playlistInvitations.length);
-  }, [playlistInvitations]);
+    setUnreadCount(eventInvitations.length);
+  }, [eventInvitations]);
 
   // Accept invitation
   const acceptInvitation = useCallback(
-    async (invitation: PlaylistInvitation) => {
-      if (!user || !profile) {
+    async (invitation: EventInvitation) => {
+      if (!user) {
         return { success: false, message: 'User not authenticated' };
       }
 
       try {
-        const result = await PlaylistService.acceptInvitation(
-          invitation.playlistId,
+        await EventService.acceptInvitation(
+          invitation.eventId,
           invitation.id,
-          user.uid,
-          'editor' // role
+          user.uid
         );
 
         // Invitations will be updated automatically via real-time subscription
-        return result;
+        return { success: true };
       } catch (error) {
-        Logger.error('Error accepting invitation:', error);
+        Logger.error('Error accepting event invitation:', error);
         return {
           success: false,
           message:
@@ -101,27 +100,27 @@ export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
         };
       }
     },
-    [user, profile]
+    [user]
   );
 
   // Decline invitation
   const declineInvitation = useCallback(
-    async (invitation: PlaylistInvitation) => {
+    async (invitation: EventInvitation) => {
       if (!user) {
         return { success: false, message: 'User not authenticated' };
       }
 
       try {
-        const result = await PlaylistService.declineInvitation(
-          invitation.playlistId,
+        await EventService.declineInvitation(
+          invitation.eventId,
           invitation.id,
           user.uid
         );
 
         // Invitations will be updated automatically via real-time subscription
-        return result;
+        return { success: true };
       } catch (error) {
-        Logger.error('Error declining invitation:', error);
+        Logger.error('Error declining event invitation:', error);
         return {
           success: false,
           message:
@@ -135,7 +134,7 @@ export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
   );
 
   return {
-    playlistInvitations,
+    eventInvitations,
     unreadCount,
     isLoading,
     refreshInvitations,

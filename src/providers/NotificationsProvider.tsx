@@ -16,6 +16,10 @@ import {
   ConnectionWithId,
   subscribeToPendingConnections
 } from '@/utils/firebase/firebase-service-connections';
+import {
+  EventInvitation,
+  EventService
+} from '@/utils/firebase/firebase-service-events';
 import { notificationService } from '@/utils/firebase/firebase-service-notifications';
 import {
   PlaylistInvitation,
@@ -48,14 +52,14 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   const [playlistInvitations, setPlaylistInvitations] = useState<
     PlaylistInvitation[]
   >([]);
+  const [eventInvitations, setEventInvitations] = useState<EventInvitation[]>(
+    []
+  );
   const [friendRequests, setFriendRequests] = useState<ConnectionWithId[]>([]);
   const previousUserIdRef = useRef<string | null>(null);
   const notificationResponseListener = useRef<ReturnType<
     typeof Notifications.addNotificationResponseReceivedListener
   > | null>(null);
-
-  // TODO Implement FRIENDS REQUESTS
-  // TODO Implement EVENTS INVITATIONS
 
   // Configure notification handler
   useEffect(() => {
@@ -120,11 +124,17 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     if (previousUserId && previousUserId !== currentUserId) {
       setIsRegistered(false);
       setExpoPushToken(null);
+      setPlaylistInvitations([]);
+      setEventInvitations([]);
+      setFriendRequests([]);
     }
 
     if (!currentUserId) {
       setIsRegistered(false);
       setExpoPushToken(null);
+      setPlaylistInvitations([]);
+      setEventInvitations([]);
+      setFriendRequests([]);
     }
 
     previousUserIdRef.current = currentUserId;
@@ -134,7 +144,6 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
   useEffect(() => {
     if (!user) {
       setPlaylistInvitations([]);
-      setFriendRequests([]);
       return;
     }
 
@@ -142,6 +151,25 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       user.uid,
       (newInvitations) => {
         setPlaylistInvitations(newInvitations);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user]);
+
+  // Subscribe to incoming event invitations
+  useEffect(() => {
+    if (!user) {
+      setEventInvitations([]);
+      return;
+    }
+
+    const unsubscribe = EventService.subscribeToUserEventInvitations(
+      user.uid,
+      (newInvitations) => {
+        setEventInvitations(newInvitations);
       }
     );
 
@@ -173,7 +201,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     };
   }, [user]);
 
-  // Recalculate badge count based on playlist invitations
+  // Recalculate badge count based on all invitations
   useEffect(() => {
     if (!user) {
       setBadgeCount(0);
@@ -185,7 +213,10 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
       return;
     }
 
-    const unread = playlistInvitations.length + friendRequests.length;
+    const unread =
+      playlistInvitations.length +
+      eventInvitations.length +
+      friendRequests.length;
 
     setBadgeCount(unread);
 
@@ -196,7 +227,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           Logger.error('Error updating native badge count:', error)
         );
     }
-  }, [playlistInvitations, friendRequests, user]);
+  }, [playlistInvitations, eventInvitations, friendRequests, user]);
 
   const value: NotificationsContextType = {
     expoPushToken,

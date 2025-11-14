@@ -36,9 +36,6 @@ export interface PlaylistParticipant {
   userId: string;
   role: 'owner' | 'editor' | 'viewer';
   joinedAt: Date;
-  displayName?: string;
-  email?: string;
-  photoURL?: string;
 }
 
 export interface PlaylistInvitation {
@@ -49,8 +46,6 @@ export interface PlaylistInvitation {
   invitedBy: string;
   invitedAt: Date | any; // Can be Date or Firestore Timestamp
   status: 'pending';
-  displayName?: string;
-  email?: string;
 }
 
 const FALLBACK_DISPLAY_NAME = 'Someone';
@@ -123,7 +118,7 @@ export type PlaylistTrackPosition =
 export class PlaylistService {
   private static collection = 'playlists';
   private static tracksCollection = 'tracks';
-  private static invitationsCollection = 'invitations';
+  private static invitationsCollection = 'playlistInvitations';
 
   private static uniqueStringArray(
     values: (string | undefined | null)[]
@@ -200,8 +195,7 @@ export class PlaylistService {
       | 'totalDuration'
       | 'lastModifiedBy'
     >,
-    createdBy: string,
-    ownerData?: { displayName?: string; email?: string; photoURL?: string }
+    createdBy: string
   ): Promise<string> {
     const playlistData = {
       ...data,
@@ -217,10 +211,7 @@ export class PlaylistService {
         {
           userId: createdBy,
           role: 'owner' as const,
-          joinedAt: new Date(),
-          ...(ownerData?.displayName && { displayName: ownerData.displayName }),
-          ...(ownerData?.email && { email: ownerData.email }),
-          ...(ownerData?.photoURL && { photoURL: ownerData.photoURL })
+          joinedAt: new Date()
         }
       ],
       participantIds: [createdBy],
@@ -555,9 +546,7 @@ export class PlaylistService {
   static async inviteUserToPlaylist(
     playlistId: string,
     userId: string,
-    invitedBy: string,
-    displayName?: string,
-    email?: string
+    invitedBy: string
   ): Promise<string> {
     // Check if user has permission to invite
     const canInvite = await this.canUserInviteToPlaylist(playlistId, invitedBy);
@@ -576,8 +565,6 @@ export class PlaylistService {
       invitedBy,
       invitedAt: new Date(),
       status: 'pending' as const,
-      displayName,
-      email,
       playlistName
     };
 
@@ -653,7 +640,7 @@ export class PlaylistService {
   // Invite multiple users to playlist
   static async inviteMultipleUsersToPlaylist(
     playlistId: string,
-    users: { userId: string; displayName?: string; email?: string }[],
+    users: { userId: string }[],
     invitedBy: string
   ): Promise<{ success: boolean; invitedCount: number; errors: string[] }> {
     try {
@@ -693,9 +680,7 @@ export class PlaylistService {
             (p) => p.userId === user.userId
           );
           if (isAlreadyParticipant) {
-            errors.push(
-              `${user.displayName || user.email || 'User'} is already a participant`
-            );
+            errors.push(`${user.userId} - is already a participant`);
             continue;
           }
 
@@ -713,27 +698,17 @@ export class PlaylistService {
           const existingInvitations = await getDocs(existingInvitationsQuery);
 
           if (!existingInvitations.empty) {
-            errors.push(
-              `${user.displayName || user.email || 'User'} already has a pending invitation`
-            );
+            errors.push(`${user.userId} - already has a pending invitation`);
             continue;
           }
 
           // Create invitation
-          await this.inviteUserToPlaylist(
-            playlistId,
-            user.userId,
-            invitedBy,
-            user.displayName,
-            user.email
-          );
+          await this.inviteUserToPlaylist(playlistId, user.userId, invitedBy);
 
           invitedCount++;
         } catch (error) {
           Logger.error(`Error inviting user ${user.userId}:`, error);
-          errors.push(
-            `Failed to invite ${user.displayName || user.email || 'User'}`
-          );
+          errors.push(`Failed to invite user ${user.userId}`);
         }
       }
 
@@ -778,8 +753,7 @@ export class PlaylistService {
   // Leave playlist - if owner, transfer ownership or delete if only participant
   static async leavePlaylist(
     playlistId: string,
-    userId: string,
-    leavingUserData?: { displayName?: string; email?: string }
+    userId: string
   ): Promise<{ success: boolean; deleted?: boolean; newOwnerId?: string }> {
     try {
       return await runTransaction(db, async (transaction) => {
@@ -841,10 +815,7 @@ export class PlaylistService {
           try {
             const newOwnerTokens = await getUserPushTokens(newOwner.userId);
 
-            const leavingUserName =
-              leavingUserData?.displayName ||
-              leavingUserData?.email?.split('@')[0] ||
-              'The previous owner';
+            const leavingUserName = `The previous owner`;
 
             const uniqueTokens = new Set<string>();
 
@@ -956,8 +927,7 @@ export class PlaylistService {
     playlistId: string,
     invitationId: string,
     userId: string,
-    role: 'editor' | 'viewer' = 'editor',
-    userData?: { displayName?: string; email?: string; photoURL?: string }
+    role: 'editor' | 'viewer' = 'editor'
   ): Promise<{ success: boolean; message?: string }> {
     try {
       // First, validate the invitation outside of transaction
@@ -1024,14 +994,8 @@ export class PlaylistService {
         const participantData: PlaylistParticipant = {
           userId,
           role,
-          joinedAt: new Date(),
-          displayName: userData?.displayName || currentInvitation.displayName,
-          email: userData?.email || currentInvitation.email
+          joinedAt: new Date()
         };
-
-        if (userData?.photoURL) {
-          participantData.photoURL = userData.photoURL;
-        }
 
         const currentParticipants = Array.isArray(currentPlaylist.participants)
           ? [...currentPlaylist.participants]
@@ -1388,8 +1352,7 @@ export class PlaylistService {
   // Update participant data (when user profile changes)
   static async updateParticipantData(
     playlistId: string,
-    userId: string,
-    userData: { displayName?: string; email?: string; photoURL?: string }
+    userId: string
   ): Promise<void> {
     const playlistRef = doc(db, this.collection, playlistId);
     const playlistDoc = await getDoc(playlistRef);
@@ -1400,10 +1363,7 @@ export class PlaylistService {
     const updatedParticipants = playlist.participants.map((participant) =>
       participant.userId === userId
         ? {
-            ...participant,
-            ...(userData.displayName && { displayName: userData.displayName }),
-            ...(userData.email && { email: userData.email }),
-            ...(userData.photoURL && { photoURL: userData.photoURL })
+            ...participant
           }
         : participant
     );

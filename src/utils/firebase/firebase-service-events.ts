@@ -2,6 +2,7 @@ import {
   addDoc,
   arrayUnion,
   collection,
+  collectionGroup,
   deleteDoc,
   doc,
   getDoc,
@@ -20,6 +21,13 @@ import {
 import { Logger } from '@/components/modules/logger';
 import { Track } from '@/graphql/schema';
 import { db } from '@/utils/firebase/firebase-init';
+import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
+import {
+  getPublicProfileDoc,
+  type PublicProfileDoc
+} from '@/utils/firebase/firebase-service-profiles';
+import { parseFirestoreDate } from '@/utils/firebase/firestore-date-utils';
+import { sendPushNotification } from '@/utils/send-push-notification';
 
 export type EventVisibility = 'public' | 'private';
 export type EventVoteLicense = 'everyone' | 'invited';
@@ -70,6 +78,23 @@ export interface EventTrack {
   voteCount: number;
 }
 
+export interface EventInvitation {
+  id: string;
+  eventId: string;
+  eventName?: string;
+  userId: string;
+  invitedBy: string;
+  invitedAt: Date | any; // Can be Date or Firestore Timestamp
+  status: 'pending';
+}
+
+const FALLBACK_DISPLAY_NAME = 'Someone';
+
+const resolveDisplayName = (
+  publicProfile: PublicProfileDoc | null,
+  uid: string
+) => publicProfile?.displayName || uid?.slice(0, 6) || FALLBACK_DISPLAY_NAME;
+
 interface EventTrackDoc {
   trackId: string;
   track: Track;
@@ -88,7 +113,7 @@ export class EventService {
   private static collection = 'events';
   private static tracksCollection = 'tracks';
   private static votesCollection = 'votes';
-  private static invitationsCollection = 'invitations';
+  private static invitationsCollection = 'eventInvitations';
 
   // ===== EVENTS CRUD =====
 
@@ -179,6 +204,97 @@ export class EventService {
     return eventId;
   }
 
+  static async updateEvent(
+    eventId: string,
+    updates: {
+      name?: string;
+      description?: string;
+      startAt?: Date;
+      endAt?: Date;
+    }
+  ): Promise<void> {
+    const eventRef = doc(db, this.collection, eventId);
+    const eventSnap = await getDoc(eventRef);
+
+    if (!eventSnap.exists()) {
+      throw new Error('Event not found');
+    }
+
+    const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+    // Validate name if provided
+    if (updates.name !== undefined) {
+      if (!updates.name || !updates.name.trim()) {
+        throw new Error('Event name is required');
+      }
+    }
+
+    // Validate dates if provided
+    const now = new Date();
+    const currentStartAt = event.startAt
+      ? new Date(event.startAt as any)
+      : null;
+    const currentEndAt = event.endAt ? new Date(event.endAt as any) : null;
+
+    const newStartAt = updates.startAt
+      ? new Date(updates.startAt)
+      : currentStartAt;
+    const newEndAt = updates.endAt ? new Date(updates.endAt) : currentEndAt;
+
+    // If updating startAt, validate it
+    if (updates.startAt !== undefined) {
+      const hasStarted =
+        currentStartAt && currentStartAt.getTime() <= now.getTime();
+      if (hasStarted) {
+        throw new Error('Cannot change start time after event has started');
+      }
+      if (newStartAt && newStartAt < now) {
+        throw new Error('Event start time must be in the future');
+      }
+    }
+
+    // Validate endAt
+    if (newStartAt && newEndAt) {
+      if (newEndAt <= newStartAt) {
+        throw new Error('Event end time must be after start time');
+      }
+      if (newEndAt < now) {
+        throw new Error('Event end time must be in the future');
+      }
+    }
+
+    // Build update object
+    const updateData: any = {
+      updatedAt: serverTimestamp()
+    };
+
+    if (updates.name !== undefined) {
+      updateData.name = updates.name.trim();
+    }
+
+    if (updates.description !== undefined) {
+      updateData.description = updates.description?.trim() || null;
+    }
+
+    if (updates.startAt !== undefined && newStartAt) {
+      updateData.startAt = Timestamp.fromDate(newStartAt);
+      // Recompute status
+      if (newEndAt) {
+        updateData.status = this.computeStatus(newStartAt, newEndAt);
+      }
+    }
+
+    if (updates.endAt !== undefined && newEndAt) {
+      updateData.endAt = Timestamp.fromDate(newEndAt);
+      // Recompute status
+      if (newStartAt) {
+        updateData.status = this.computeStatus(newStartAt, newEndAt);
+      }
+    }
+
+    await updateDoc(eventRef, updateData);
+  }
+
   static async getEvent(id: string): Promise<Event | null> {
     const eventRef = doc(db, this.collection, id);
     const snap = await getDoc(eventRef);
@@ -225,6 +341,7 @@ export class EventService {
           updatedAt: data.updatedAt?.toDate()
         };
       });
+      // Sort by voteCount descending (most votes first), then by addedAt ascending (older first)
       tracks.sort((a, b) => {
         if (b.voteCount !== a.voteCount) {
           return b.voteCount - a.voteCount;
@@ -247,14 +364,21 @@ export class EventService {
       this.votesCollection,
       userId
     );
-    return onSnapshot(voteRef, (docSnap) => {
-      if (!docSnap.exists()) {
+    return onSnapshot(
+      voteRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          callback({});
+          return;
+        }
+        const data = docSnap.data() as EventVoteDoc | undefined;
+        callback(data?.trackVotes ?? {});
+      },
+      (error) => {
+        Logger.error('Error in subscribeToUserVotes:', error);
         callback({});
-        return;
       }
-      const data = docSnap.data() as EventVoteDoc | undefined;
-      callback(data?.trackVotes ?? {});
-    });
+    );
   }
 
   static async getPublicEvents(limitCount: number = 50): Promise<Event[]> {
@@ -414,9 +538,9 @@ export class EventService {
     eventId: string,
     track: Track,
     userId: string,
-    options: { autoVote?: boolean } = { autoVote: true }
+    options: { autoVote?: boolean } = { autoVote: false }
   ): Promise<void> {
-    const { autoVote = true } = options;
+    const { autoVote = false } = options;
     const eventRef = doc(db, this.collection, eventId);
     const trackRef = doc(
       db,
@@ -553,8 +677,9 @@ export class EventService {
           ? (voteSnap.data() as EventVoteDoc).trackVotes
           : {}) || {};
 
+      // Allow toggle voting - if already voted, just return (no error)
       if (trackVotes[trackId]) {
-        throw new Error('You have already voted for this track');
+        return;
       }
 
       const trackData = trackSnap.data() as EventTrackDoc;
@@ -615,14 +740,14 @@ export class EventService {
       const trackData = trackSnap.data() as EventTrackDoc;
 
       const voteSnap = await transaction.get(voteRef);
-      if (!voteSnap.exists()) {
-        throw new Error('No votes to remove');
-      }
-      const voteData = voteSnap.data() as EventVoteDoc;
-      const trackVotes = voteData.trackVotes || {};
+      const trackVotes =
+        (voteSnap.exists()
+          ? (voteSnap.data() as EventVoteDoc).trackVotes
+          : {}) || {};
 
+      // Allow toggle - if not voted, just return (no error)
       if (!trackVotes[trackId]) {
-        throw new Error('You have not voted for this track');
+        return;
       }
 
       const updatedVotes = { ...trackVotes };
@@ -633,14 +758,19 @@ export class EventService {
         updatedAt: serverTimestamp()
       });
 
-      transaction.set(
-        voteRef,
-        {
-          trackVotes: updatedVotes,
-          updatedAt: serverTimestamp()
-        },
-        { merge: true }
-      );
+      // If no votes left, delete the vote document, otherwise update it
+      if (Object.keys(updatedVotes).length === 0) {
+        transaction.delete(voteRef);
+      } else {
+        transaction.set(
+          voteRef,
+          {
+            trackVotes: updatedVotes,
+            updatedAt: serverTimestamp()
+          },
+          { merge: true }
+        );
+      }
     });
   }
 
@@ -663,17 +793,22 @@ export class EventService {
       if (!eventSnap.exists()) {
         throw new Error('Event not found');
       }
-      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
-
-      if (!this.canUserManageEvent(event, userId)) {
-        throw new Error(
-          'You do not have permission to remove tracks from this event'
-        );
-      }
 
       const trackSnap = await transaction.get(trackRef);
       if (!trackSnap.exists()) {
         return;
+      }
+
+      const trackData = trackSnap.data() as EventTrackDoc;
+
+      // Only the user who added the track can remove it
+      if (trackData.addedBy !== userId) {
+        throw new Error('Only the user who added this track can remove it');
+      }
+
+      // Track can only be removed if it has no votes
+      if ((trackData.voteCount || 0) > 0) {
+        throw new Error('Cannot remove track that has votes');
       }
 
       transaction.delete(trackRef);
@@ -790,9 +925,7 @@ export class EventService {
   static async inviteUserToEvent(
     eventId: string,
     userId: string,
-    invitedBy: string,
-    displayName?: string,
-    email?: string
+    invitedBy: string
   ): Promise<string> {
     const event = await this.getEvent(eventId);
     if (!event) {
@@ -812,8 +945,6 @@ export class EventService {
       invitedBy,
       invitedAt: new Date(),
       status: 'pending' as const,
-      displayName,
-      email,
       eventName: event.name
     };
 
@@ -826,6 +957,49 @@ export class EventService {
       pendingInviteIds: arrayUnion(userId),
       updatedAt: serverTimestamp()
     });
+
+    // Send push notification to invited user
+    try {
+      const [inviteeTokens, inviterPublicProfile] = await Promise.all([
+        getUserPushTokens(userId),
+        getPublicProfileDoc(invitedBy)
+      ]);
+
+      const inviterName = resolveDisplayName(inviterPublicProfile, invitedBy);
+
+      const uniqueTokens = new Set<string>();
+      await Promise.allSettled(
+        (inviteeTokens ?? [])
+          .map((token) => token.expoPushToken)
+          .filter((token): token is string => Boolean(token))
+          .filter((token) => {
+            if (uniqueTokens.has(token)) return false;
+            uniqueTokens.add(token);
+            return true;
+          })
+          .map((expoToken) =>
+            sendPushNotification({
+              to: expoToken,
+              title: 'New Event Invitation',
+              body: `${inviterName} invited you to "${event.name || 'an event'}"`,
+              data: {
+                type: 'event_invitation',
+                eventId,
+                invitationId: invitationRef.id,
+                toUid: userId
+              },
+              badge: 1
+            })
+          )
+      );
+
+      if (uniqueTokens.size > 0) {
+        Logger.info('Push notification sent to invited user');
+      }
+    } catch (error) {
+      Logger.error('Error sending push notification:', error);
+      // Don't throw - invitation is created, notification is optional
+    }
 
     return invitationRef.id;
   }
@@ -898,19 +1072,114 @@ export class EventService {
       const eventSnap = await transaction.get(eventRef);
       if (eventSnap.exists()) {
         const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
-        if (this.hasEventEnded(event)) {
-          throw new Error('Event has already ended');
+        // Only update pendingInviteIds if event hasn't ended
+        // If event has ended, just delete the invitation
+        if (!this.hasEventEnded(event)) {
+          const updatedPending = (event.pendingInviteIds || []).filter(
+            (id) => id !== userId
+          );
+          transaction.update(eventRef, {
+            pendingInviteIds: updatedPending,
+            updatedAt: serverTimestamp()
+          });
         }
-        const updatedPending = (event.pendingInviteIds || []).filter(
-          (id) => id !== userId
-        );
-        transaction.update(eventRef, {
-          pendingInviteIds: updatedPending,
-          updatedAt: serverTimestamp()
-        });
       }
 
       transaction.delete(invitationRef);
+    });
+  }
+
+  static async inviteMultipleUsersToEvent(
+    eventId: string,
+    users: { userId: string }[],
+    invitedBy: string
+  ): Promise<{ success: boolean; invitedCount: number; errors: string[] }> {
+    const errors: string[] = [];
+    let invitedCount = 0;
+
+    for (const user of users) {
+      try {
+        await this.inviteUserToEvent(eventId, user.userId, invitedBy);
+        invitedCount++;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        errors.push(`${user.userId} - ${errorMessage}`);
+        Logger.error('Error inviting user to event:', error);
+      }
+    }
+
+    return {
+      success: invitedCount > 0,
+      invitedCount,
+      errors
+    };
+  }
+
+  static subscribeToUserEventInvitations(
+    userId: string,
+    callback: (invitations: EventInvitation[]) => void
+  ): () => void {
+    const invitationsQuery = query(
+      collectionGroup(db, this.invitationsCollection),
+      where('userId', '==', userId)
+    );
+
+    return onSnapshot(
+      invitationsQuery,
+      (querySnapshot) => {
+        const invitations = querySnapshot.docs
+          .map((invitationDoc) => {
+            const parentEventId = invitationDoc.ref.parent.parent?.id;
+            return {
+              id: invitationDoc.id,
+              eventId: parentEventId || '',
+              ...invitationDoc.data()
+            } as EventInvitation;
+          })
+          .filter((invitation) => invitation.status === 'pending');
+
+        const sortedInvitations = invitations.sort((a, b) => {
+          const dateA = parseFirestoreDate(a.invitedAt);
+          const dateB = parseFirestoreDate(b.invitedAt);
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        callback(sortedInvitations);
+      },
+      (error) => {
+        Logger.error(
+          'Error in real-time event invitation subscriptions:',
+          error
+        );
+      }
+    );
+  }
+
+  static async getUserEventInvitations(
+    userId: string
+  ): Promise<EventInvitation[]> {
+    const invitationsQuery = query(
+      collectionGroup(db, this.invitationsCollection),
+      where('userId', '==', userId)
+    );
+
+    const querySnapshot = await getDocs(invitationsQuery);
+    const invitations = querySnapshot.docs
+      .map((invitationDoc) => {
+        const parentEventId = invitationDoc.ref.parent.parent?.id;
+        return {
+          id: invitationDoc.id,
+          eventId: parentEventId || '',
+          ...invitationDoc.data()
+        } as EventInvitation;
+      })
+      .filter((invitation) => invitation.status === 'pending');
+
+    return invitations.sort((a, b) => {
+      const dateA = parseFirestoreDate(a.invitedAt);
+      const dateB = parseFirestoreDate(b.invitedAt);
+      return dateB.getTime() - dateA.getTime();
     });
   }
 

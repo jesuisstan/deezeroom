@@ -7,6 +7,7 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { Playlist } from '@/utils/firebase/firebase-service-playlists';
+import { convertToDate } from '@/utils/general-utils';
 
 interface InfoTabProps {
   playlist: Playlist;
@@ -14,14 +15,6 @@ interface InfoTabProps {
 
 const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
-
-  const ownerParticipant = useMemo(() => {
-    if (!playlist) return undefined;
-    return (
-      playlist.participants?.find((p) => p.role === 'owner') ||
-      playlist.participants?.find((p) => p.userId === playlist.createdBy)
-    );
-  }, [playlist]);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -33,16 +26,18 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
     return `${minutes}m`;
   };
 
-  const toDate = (value: any): Date | null => {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-    if (typeof value?.toDate === 'function') return value.toDate();
-    if (typeof value === 'number' || typeof value === 'string') {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    return null;
-  };
+  const formattedCreatedDate = useMemo(() => {
+    if (!playlist) return '—';
+    const date = convertToDate(playlist.createdAt);
+    if (!date) return '—';
+    return date.toLocaleString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }, [playlist]);
 
   // Current time state - updates every minute for relative time display
   const [currentMinute, setCurrentMinute] = useState(() =>
@@ -59,8 +54,8 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
   }, []);
 
   // Memoized formatted date - shows relative time for recent updates, actual time for older ones
-  const formattedDate = useMemo(() => {
-    const date = toDate(playlist.updatedAt);
+  const formattedUpdatedDate = useMemo(() => {
+    const date = convertToDate(playlist.updatedAt);
     if (!date) return '—';
 
     const dateMinute = Math.floor(date.getTime() / 60000);
@@ -134,7 +129,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
                 themeColors[theme as keyof typeof themeColors]['text-main']
               }
             >
-              Created by
+              Created
             </TextCustom>
             <TextCustom
               size="m"
@@ -142,9 +137,12 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
                 themeColors[theme as keyof typeof themeColors]['text-secondary']
               }
             >
-              {ownerParticipant?.displayName ||
-                ownerParticipant?.email ||
-                'Owner'}
+              {/*{playlist.createdAt.toLocaleDateString([], {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })}*/}
+              {formattedCreatedDate}
             </TextCustom>
           </View>
 
@@ -162,7 +160,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
               color={themeColors[theme]['text-secondary']}
               className="text-right"
             >
-              {formattedDate}
+              {formattedUpdatedDate}
             </TextCustom>
           </View>
         </View>
