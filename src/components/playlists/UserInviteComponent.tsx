@@ -14,7 +14,6 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MAX_USERS_INVITE } from '@/constants/deezer';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { PlaylistParticipant } from '@/utils/firebase/firebase-service-playlists';
 import {
   UserProfile,
   UserService
@@ -30,7 +29,7 @@ interface UserInviteComponentProps {
   // Component props
   onUsersSelected?: (users: UserProfile[]) => void;
   selectedUsers?: UserProfile[];
-  existingUsers?: PlaylistParticipant[]; // Users already in the playlist
+  existingUsers?: string[]; // User IDs already in the playlist
   excludeUserId?: string;
   placeholder?: string;
   maxUsers?: number;
@@ -298,25 +297,12 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
 
   const renderContent = () => (
     <View className="gap-4">
-      {/* Existing Users */}
+      {/* Existing Users Info */}
       {existingUsers.length > 0 && (
         <View>
           <TextCustom type="semibold" className="mb-2">
             Current Members ({existingUsers.length} of {maxUsers} max)
           </TextCustom>
-          <View className="flex-row flex-wrap gap-2">
-            {existingUsers.map((user) => (
-              <UserChip
-                key={user.userId}
-                user={{
-                  uid: user.userId,
-                  displayName: user.displayName,
-                  photoURL: user.photoURL
-                }}
-                disabled={true}
-              />
-            ))}
-          </View>
         </View>
       )}
 

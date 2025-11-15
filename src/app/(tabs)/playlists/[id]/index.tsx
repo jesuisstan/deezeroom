@@ -171,8 +171,8 @@ const PlaylistDetailScreen = () => {
         // Check if user has access to this playlist
         const hasAccess =
           playlistData.visibility === 'public' ||
-          playlistData.createdBy === user.uid ||
-          playlistData.participants.some((p) => p.userId === user.uid);
+          playlistData.ownerId === user.uid ||
+          playlistData.participantIds.includes(user.uid);
 
         if (!hasAccess) {
           setError('You do not have access to this playlist');
@@ -252,8 +252,8 @@ const PlaylistDetailScreen = () => {
         // Check if user still has access
         const hasAccess =
           updatedPlaylist.visibility === 'public' ||
-          updatedPlaylist.createdBy === user.uid ||
-          updatedPlaylist.participants.some((p) => p.userId === user.uid);
+          updatedPlaylist.ownerId === user.uid ||
+          updatedPlaylist.participantIds.includes(user.uid);
 
         if (!hasAccess) {
           setError('You do not have access to this playlist');
@@ -413,14 +413,10 @@ const PlaylistDetailScreen = () => {
   const handleEditPlaylist = () => {
     if (!playlist || !user) return;
 
-    // Check if user can edit (owner or editor)
-    const participant = playlist.participants.find(
-      (p) => p.userId === user.uid
-    );
+    // Check if user can edit (owner or participant)
     const canEditPlaylist =
-      playlist.createdBy === user.uid ||
-      participant?.role === 'owner' ||
-      participant?.role === 'editor';
+      playlist.ownerId === user.uid ||
+      playlist.participantIds.includes(user.uid);
 
     if (!canEditPlaylist) {
       Notifier.shoot({
@@ -447,12 +443,10 @@ const PlaylistDetailScreen = () => {
   const handleInviteUsers = () => {
     if (!playlist || !user) return;
 
-    // Check if user can invite
+    // Check if user can invite (owner or participant)
     const canInvite =
-      playlist.createdBy === user.uid ||
-      playlist.participants.some(
-        (p) => p.userId === user.uid && p.role === 'editor'
-      );
+      playlist.ownerId === user.uid ||
+      playlist.participantIds.includes(user.uid);
 
     if (!canInvite) {
       Notifier.shoot({
@@ -993,12 +987,10 @@ const PlaylistDetailScreen = () => {
             renderTabBar={() => null}
           />
 
-          {/* Action buttons - visible for owner and editor */}
+          {/* Action buttons - visible for owner and participants */}
           {(canEdit ||
-            playlist.createdBy === user?.uid ||
-            playlist.participants.some(
-              (p) => p.userId === user?.uid && p.role === 'editor'
-            )) && (
+            playlist.ownerId === user?.uid ||
+            playlist.participantIds.includes(user?.uid || '')) && (
             <View
               style={{
                 position: 'absolute',
@@ -1014,7 +1006,7 @@ const PlaylistDetailScreen = () => {
                 borderWidth: 1
               }}
             >
-              {playlist.createdBy === user?.uid && (
+              {playlist.ownerId === user?.uid && (
                 <IconButton
                   accessibilityLabel="Delete playlist"
                   onPress={handleDeletePlaylist}
@@ -1038,7 +1030,7 @@ const PlaylistDetailScreen = () => {
                 />
               </IconButton>
 
-              {(canEdit || playlist.createdBy === user?.uid) && (
+              {(canEdit || playlist.ownerId === user?.uid) && (
                 <IconButton
                   accessibilityLabel="Invite users"
                   onPress={handleInviteUsers}
@@ -1131,7 +1123,7 @@ const PlaylistDetailScreen = () => {
         onClose={handleCloseInviteModal}
         onInvite={handleSendInvitations}
         excludeUserId={user?.uid}
-        existingUsers={playlist.participants}
+        existingUsers={playlist.participantIds}
         placeholder="Search users by email or name..."
       />
 

@@ -32,22 +32,18 @@ const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
   onLeavePlaylist
 }) => {
   const { theme } = useTheme();
-  const { user, profile } = useUser();
+  const { user } = useUser();
   const [name, setName] = useState(playlist.name || '');
   const [description, setDescription] = useState(playlist.description || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
-  // Check if user is owner or editor
+  // Check if user is owner or participant
   const canEdit = React.useMemo(() => {
     if (!user || !playlist) return false;
-    const participant = playlist.participants.find(
-      (p) => p.userId === user.uid
-    );
     return (
-      playlist.createdBy === user.uid ||
-      participant?.role === 'owner' ||
-      participant?.role === 'editor'
+      playlist.ownerId === user.uid ||
+      playlist.participantIds.includes(user.uid)
     );
   }, [user, playlist]);
 
@@ -114,17 +110,13 @@ const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
   const handleLeavePlaylist = () => {
     if (!user || !playlist) return;
 
-    const participant = playlist.participants.find(
-      (p) => p.userId === user.uid
-    );
-    if (!participant) return;
+    if (!playlist.participantIds.includes(user.uid)) return;
 
-    const isOwnerParticipant =
-      participant.role === 'owner' || playlist.createdBy === user.uid;
+    const isOwner = playlist.ownerId === user.uid;
 
-    if (isOwnerParticipant) {
-      const otherParticipantsCount = playlist.participants.filter(
-        (p) => p.userId !== user.uid
+    if (isOwner) {
+      const otherParticipantsCount = playlist.participantIds.filter(
+        (id) => id !== user.uid
       ).length;
 
       if (otherParticipantsCount === 0) {
@@ -137,11 +129,7 @@ const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
             try {
               const result = await PlaylistService.leavePlaylist(
                 playlist.id,
-                user.uid,
-                {
-                  displayName: profile?.displayName,
-                  email: profile?.email
-                }
+                user.uid
               );
 
               if (result.deleted) {
@@ -176,10 +164,7 @@ const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
           async () => {
             setIsLeaving(true);
             try {
-              await PlaylistService.leavePlaylist(playlist.id, user.uid, {
-                displayName: profile?.displayName,
-                email: profile?.email
-              });
+              await PlaylistService.leavePlaylist(playlist.id, user.uid);
 
               Notifier.shoot({
                 type: 'success',
@@ -212,10 +197,7 @@ const EditPlaylistModal: React.FC<EditPlaylistModalProps> = ({
         async () => {
           setIsLeaving(true);
           try {
-            await PlaylistService.leavePlaylist(playlist.id, user.uid, {
-              displayName: profile?.displayName,
-              email: profile?.email
-            });
+            await PlaylistService.leavePlaylist(playlist.id, user.uid);
 
             Notifier.shoot({
               type: 'success',

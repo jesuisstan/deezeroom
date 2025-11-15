@@ -76,8 +76,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
         name: name.trim(),
         visibility,
         editPermissions,
-        createdBy: userData?.uid,
-        participants: []
+        ownerId: userData?.uid || ''
       };
 
       // Only add description if it's not empty
@@ -87,12 +86,7 @@ const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
       const playlistId = await PlaylistService.createPlaylist(
         playlistData,
-        userData?.uid,
-        {
-          displayName: userData?.displayName,
-          email: userData?.email,
-          photoURL: userData?.photoURL
-        }
+        userData?.uid || ''
       );
 
       // If there's a cover image, upload it

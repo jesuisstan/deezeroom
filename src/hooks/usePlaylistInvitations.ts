@@ -84,8 +84,7 @@ export const usePlaylistInvitations = (): UsePlaylistInvitationsReturn => {
         const result = await PlaylistService.acceptInvitation(
           invitation.playlistId,
           invitation.id,
-          user.uid,
-          'editor' // role
+          user.uid
         );
 
         // Invitations will be updated automatically via real-time subscription

@@ -26,18 +26,28 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
   );
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
-  // Fetch public profiles for all participants
+  // Get ownerId and participantIds
+  const ownerId = useMemo(() => playlist.ownerId || '', [playlist.ownerId]);
+  const participantIds = useMemo(
+    () => playlist.participantIds || [],
+    [playlist.participantIds]
+  );
+
+  // Fetch public profiles for owner and all participants
   useEffect(() => {
     const fetchProfiles = async () => {
-      if (!playlist?.participants || playlist.participants.length === 0) {
+      const allUserIds = [ownerId, ...participantIds].filter(
+        (id, index, self) => self.indexOf(id) === index && id
+      );
+
+      if (allUserIds.length === 0) {
         setIsLoadingProfiles(false);
         return;
       }
 
       setIsLoadingProfiles(true);
       try {
-        const userIds = playlist.participants.map((p) => p.userId);
-        const profiles = await getPublicProfilesByUserIds(userIds);
+        const profiles = await getPublicProfilesByUserIds(allUserIds);
         setProfilesMap(profiles);
       } catch (error) {
         console.error('Error fetching participant profiles:', error);
@@ -47,51 +57,30 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
     };
 
     fetchProfiles();
-  }, [playlist?.participants]);
+  }, [ownerId, participantIds]);
 
   // Separate owner and other participants
-  const { owner, otherParticipants } = useMemo(() => {
-    if (!playlist?.participants || playlist.participants.length === 0) {
-      return { owner: null, otherParticipants: [] };
-    }
+  const otherParticipantIds = useMemo(() => {
+    return participantIds.filter((id) => id !== ownerId);
+  }, [participantIds, ownerId]);
 
-    // Find owner (by role or createdBy)
-    const ownerParticipant =
-      playlist.participants.find((p) => p.role === 'owner') ||
-      playlist.participants.find((p) => p.userId === playlist.createdBy);
-
-    // Get other participants (excluding owner)
-    const others = playlist.participants.filter(
-      (p) => p.userId !== ownerParticipant?.userId
-    );
-
-    return {
-      owner: ownerParticipant || null,
-      otherParticipants: others
-    };
-  }, [playlist]);
-
-  const renderParticipant = (participant: {
-    userId: string;
-    role: 'owner' | 'editor' | 'viewer';
-    joinedAt: Date;
-  }) => {
-    const profile = profilesMap.get(participant.userId);
+  const renderParticipant = (userId: string) => {
+    const profile = profilesMap.get(userId);
     const displayName = profile?.displayName || 'Unknown';
     const photoURL = profile?.photoURL;
 
     return (
       <UserChip
-        key={participant.userId}
+        key={userId}
         user={{
-          uid: participant.userId,
+          uid: userId,
           displayName,
           photoURL
         }}
         onPress={() =>
           router.push({
             pathname: '/users/[id]',
-            params: { id: participant.userId }
+            params: { id: userId }
           })
         }
       />
@@ -109,7 +98,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
       showsVerticalScrollIndicator={true}
     >
       {/* Owner Section */}
-      {owner && (
+      {ownerId && (
         <View>
           <TextCustom
             type="bold"
@@ -126,15 +115,14 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
           ) : (
             <UserChip
               user={{
-                uid: owner.userId,
-                displayName:
-                  profilesMap.get(owner.userId)?.displayName || 'Unknown',
-                photoURL: profilesMap.get(owner.userId)?.photoURL
+                uid: ownerId,
+                displayName: profilesMap.get(ownerId)?.displayName || 'Unknown',
+                photoURL: profilesMap.get(ownerId)?.photoURL
               }}
               onPress={() =>
                 router.push({
                   pathname: '/users/[id]',
-                  params: { id: owner.userId }
+                  params: { id: ownerId }
                 })
               }
               rightAccessory={
@@ -150,7 +138,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
       )}
 
       {/* Other Participants Section */}
-      {otherParticipants.length > 0 && (
+      {otherParticipantIds.length > 0 && (
         <View>
           <TextCustom
             type="bold"
@@ -164,16 +152,13 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
               size="m"
               color={themeColors[theme]['text-secondary']}
             >
-              ({otherParticipants.length})
+              ({otherParticipantIds.length})
             </TextCustom>
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
-            {otherParticipants.map((participant) => (
-              <View
-                key={participant.userId}
-                className="max-w-[48%] flex-shrink"
-              >
-                {renderParticipant(participant)}
+            {otherParticipantIds.map((userId) => (
+              <View key={userId} className="max-w-[48%] flex-shrink">
+                {renderParticipant(userId)}
               </View>
             ))}
           </View>
@@ -181,7 +166,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
       )}
 
       {/* Empty State */}
-      {!owner && otherParticipants.length === 0 && (
+      {!ownerId && otherParticipantIds.length === 0 && (
         <View className="flex-1 items-center justify-center py-8">
           <MaterialCommunityIcons
             name="account-group"

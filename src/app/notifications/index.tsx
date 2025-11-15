@@ -8,6 +8,7 @@ import Animated from 'react-native-reanimated';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import { EventInvitationCard } from '@/components/notifications/EventInvitationCard';
+import OwnershipTransferCard from '@/components/notifications/OwnershipTransferCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -16,6 +17,7 @@ import {
   type FriendRequestItem,
   useFriendRequests
 } from '@/hooks/useFriendRequests';
+import { useOwnershipTransfers } from '@/hooks/useOwnershipTransfers';
 import { usePlaylistInvitations } from '@/hooks/usePlaylistInvitations';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -55,6 +57,12 @@ const NotificationsScreen = () => {
     acceptFriendRequest,
     declineFriendRequest
   } = useFriendRequests();
+  const {
+    ownershipTransfers,
+    isLoading: ownershipTransfersLoading,
+    markAsRead: markOwnershipTransferAsRead,
+    removeNotification: removeOwnershipTransfer
+  } = useOwnershipTransfers();
 
   const [processingPlaylistInvitations, setProcessingPlaylistInvitations] =
     useState<Set<string>>(new Set());
@@ -64,6 +72,8 @@ const NotificationsScreen = () => {
   const [processingFriendRequests, setProcessingFriendRequests] = useState<
     Set<string>
   >(new Set());
+  const [processingOwnershipTransfers, setProcessingOwnershipTransfers] =
+    useState<Set<string>>(new Set());
 
   // Pull-to-refresh handler
   const handleRefresh = async () => {
@@ -78,9 +88,13 @@ const NotificationsScreen = () => {
   const allNotifications = useMemo(() => {
     const notifications: {
       id: string;
-      type: 'friend_request' | 'playlist_invitation' | 'event_invitation';
+      type:
+        | 'friend_request'
+        | 'playlist_invitation'
+        | 'event_invitation'
+        | 'ownership_transfer';
       date: Date;
-      data: FriendRequestItem | PlaylistInvitation | EventInvitation;
+      data: FriendRequestItem | PlaylistInvitation | EventInvitation | any;
     }[] = [];
 
     // Add friend requests
@@ -113,9 +127,24 @@ const NotificationsScreen = () => {
       });
     });
 
+    // Add ownership transfers
+    ownershipTransfers.forEach((transfer) => {
+      notifications.push({
+        id: `ownership_transfer_${transfer.id}`,
+        type: 'ownership_transfer',
+        date: transfer.receivedAt,
+        data: transfer
+      });
+    });
+
     // Sort by date (newest first)
     return notifications.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [friendRequests, playlistInvitations, eventInvitations]);
+  }, [
+    friendRequests,
+    playlistInvitations,
+    eventInvitations,
+    ownershipTransfers
+  ]);
 
   const handleAcceptPlaylistInvitation = async (
     invitation: PlaylistInvitation
@@ -172,7 +201,10 @@ const NotificationsScreen = () => {
   };
 
   const isLoading =
-    invitationsLoading || eventInvitationsLoading || friendRequestsLoading;
+    invitationsLoading ||
+    eventInvitationsLoading ||
+    friendRequestsLoading ||
+    ownershipTransfersLoading;
 
   if (isLoading) {
     return <ActivityIndicatorScreen />;
@@ -301,6 +333,47 @@ const NotificationsScreen = () => {
       setProcessingEventInvitations((prev) => {
         const newSet = new Set(prev);
         newSet.delete(invitation.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleMarkOwnershipTransferAsRead = async (id: string) => {
+    setProcessingOwnershipTransfers((prev) => new Set(prev).add(id));
+    try {
+      await markOwnershipTransferAsRead(id);
+    } catch (error) {
+      Logger.error('Error marking ownership transfer as read:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to mark notification as read'
+      });
+    } finally {
+      setProcessingOwnershipTransfers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleNavigateToPlaylists = async (playlistId: string, id: string) => {
+    setProcessingOwnershipTransfers((prev) => new Set(prev).add(id));
+    try {
+      await removeOwnershipTransfer(id);
+      router.push('/(tabs)/playlists');
+    } catch (error) {
+      Logger.error('Error navigating to playlists:', error);
+      Notifier.shoot({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to navigate to playlists'
+      });
+    } finally {
+      setProcessingOwnershipTransfers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
         return newSet;
       });
     }
@@ -479,6 +552,20 @@ const NotificationsScreen = () => {
                 processingEventInvitations={processingEventInvitations}
                 onAccept={handleAcceptEventInvitation}
                 onDecline={handleDeclineEventInvitation}
+              />
+            );
+          }
+
+          if (notification.type === 'ownership_transfer') {
+            const transfer = notification.data;
+            return (
+              <OwnershipTransferCard
+                key={notification.id}
+                notification={transfer}
+                animatedStyle={animatedStyle}
+                processingNotifications={processingOwnershipTransfers}
+                onMarkRead={handleMarkOwnershipTransferAsRead}
+                onNavigateToPlaylists={handleNavigateToPlaylists}
               />
             );
           }

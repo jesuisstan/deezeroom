@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 
 import { Logger } from '@/components/modules/logger';
+import { useOwnershipTransfers } from '@/hooks/useOwnershipTransfers';
 import { useUser } from '@/providers/UserProvider';
 import {
   ConnectionWithId,
@@ -56,6 +57,7 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     []
   );
   const [friendRequests, setFriendRequests] = useState<ConnectionWithId[]>([]);
+  const { ownershipTransfers } = useOwnershipTransfers();
   const previousUserIdRef = useRef<string | null>(null);
   const notificationResponseListener = useRef<ReturnType<
     typeof Notifications.addNotificationResponseReceivedListener
@@ -216,7 +218,8 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     const unread =
       playlistInvitations.length +
       eventInvitations.length +
-      friendRequests.length;
+      friendRequests.length +
+      ownershipTransfers.length;
 
     setBadgeCount(unread);
 
@@ -227,7 +230,13 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
           Logger.error('Error updating native badge count:', error)
         );
     }
-  }, [playlistInvitations, eventInvitations, friendRequests, user]);
+  }, [
+    playlistInvitations,
+    eventInvitations,
+    friendRequests,
+    ownershipTransfers,
+    user
+  ]);
 
   const value: NotificationsContextType = {
     expoPushToken,
