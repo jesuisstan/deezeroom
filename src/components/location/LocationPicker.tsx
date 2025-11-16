@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ExpoLocation from 'expo-location';
 
 import { Alert } from '@/components/modules/alert';
@@ -470,74 +471,90 @@ const LocationPicker: FC<Props> = ({
 
   return (
     <View className="w-full gap-4">
-      {/* Input */}
-      <InputCustom
-        placeholder={placeholder || 'Search location'}
-        value={query}
-        onChangeText={onChangeText}
-      />
-      {allowCurrentLocation && (
-        <View className="flex-row gap-2">
+      <View className="flex-1 flex-row gap-2">
+        <View className="flex-1">
+          <RippleButton
+            title={'Use current'}
+            variant="outline"
+            size="sm"
+            onPress={useMyLocation}
+            loading={detLoading}
+            width="full"
+            leftIcon={
+              <MaterialCommunityIcons
+                name="map-marker"
+                size={20}
+                color={themeColors[theme]['text-main']}
+              />
+            }
+          />
+        </View>
+        {allowCurrentLocation && (
           <View className="flex-1">
-            <RippleButton
-              title={'Use current'}
-              variant="outline"
-              size="sm"
-              onPress={useMyLocation}
-              loading={detLoading}
-              width="full"
-            />
-          </View>
-          {value ? (
-            <View className="flex-1">
+            {value ? (
               <RippleButton
                 title="Clear"
                 variant="outline"
                 size="sm"
                 onPress={clearSelection}
                 width="full"
+                leftIcon={
+                  <MaterialCommunityIcons
+                    name="broom"
+                    size={20}
+                    color={themeColors[theme]['text-main']}
+                  />
+                }
               />
-            </View>
-          ) : null}
-        </View>
-      )}
-      {loading ? (
-        <TextCustom color={themeColors[theme]['text-secondary']}>
-          Searching…
-        </TextCustom>
-      ) : null}
-      {predictions.length > 0 && (
-        <View
-          className="rounded-md border border-border bg-bg-main"
-          style={{ maxHeight: 260 }}
-        >
-          <ScrollView keyboardShouldPersistTaps="handled">
-            {predictions.map((p, idx) => (
-              <View key={p.place_id}>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => onPickPrediction(p)}
-                >
-                  <View className="px-3 py-2">
-                    <TextCustom>
-                      {p.structured_formatting?.main_text || p.description}
-                    </TextCustom>
-                    {p.structured_formatting?.secondary_text ? (
-                      <TextCustom
-                        size="s"
-                        color={themeColors[theme]['text-secondary']}
-                      >
-                        {p.structured_formatting.secondary_text}
+            ) : null}
+          </View>
+        )}
+      </View>
+      <View className="flex-1 gap-2">
+        {/* Input */}
+        <InputCustom
+          placeholder={placeholder || 'Search location'}
+          value={query}
+          onChangeText={onChangeText}
+        />
+        {loading ? (
+          <TextCustom color={themeColors[theme]['text-secondary']}>
+            Searching…
+          </TextCustom>
+        ) : null}
+        {predictions.length > 0 && (
+          <View
+            className="rounded-md border border-border bg-bg-main"
+            style={{ maxHeight: 260 }}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {predictions.map((p, idx) => (
+                <View key={p.place_id}>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => onPickPrediction(p)}
+                  >
+                    <View className="px-3 py-2">
+                      <TextCustom>
+                        {p.structured_formatting?.main_text || p.description}
                       </TextCustom>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-                {idx < predictions.length - 1 ? <Divider inset /> : null}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+                      {p.structured_formatting?.secondary_text ? (
+                        <TextCustom
+                          size="s"
+                          color={themeColors[theme]['text-secondary']}
+                        >
+                          {p.structured_formatting.secondary_text}
+                        </TextCustom>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                  {idx < predictions.length - 1 ? <Divider inset /> : null}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
 
       <View>
         <TextCustom size="s" color={themeColors[theme]['text-secondary']}>

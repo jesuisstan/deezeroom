@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
   Platform,
@@ -398,17 +399,26 @@ const MobileSwipeModal = (props: SwipeModalProps) => {
           </View>
 
           {/* Content area */}
-          <ScrollView
+          <KeyboardAvoidingView
             style={{ flex: 1 }}
-            contentContainerStyle={{
-              flexGrow: 1
-            }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 20 : 0}
+            enabled={Platform.OS === 'ios'}
           >
-            <View style={{ flex: 1 }}>{props.children}</View>
-          </ScrollView>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                flexGrow: 1,
+                paddingBottom: Platform.OS === 'android' ? 300 : 20 // extra space for keyboard on Android
+              }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              nestedScrollEnabled={true}
+            >
+              <View>{props.children}</View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </Animated.View>
       </Animated.View>
     </Modal>
