@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -98,8 +99,13 @@ const EventDetailScreen = () => {
     });
   }, [id, user]);
 
+  // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0;
+    return currentTrack
+      ? MINI_PLAYER_HEIGHT + Platform.OS === 'web'
+        ? 16
+        : 0
+      : 0;
   }, [currentTrack]);
 
   const isEventEnded = useMemo(() => {

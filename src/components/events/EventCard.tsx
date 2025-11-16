@@ -96,7 +96,10 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           borderRadius: 6,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: `${themeColors[theme]['primary']}25`
+          backgroundColor:
+            event.visibility === 'public'
+              ? themeColors[theme].primary + '25'
+              : themeColors[theme]['intent-success'] + '25'
         }}
       >
         <MaterialCommunityIcons

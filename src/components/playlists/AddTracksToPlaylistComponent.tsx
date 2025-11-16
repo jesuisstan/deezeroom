@@ -390,7 +390,7 @@ const AddTracksToPlaylistComponent: React.FC<
           {hasMore && !isLoadingMore && (
             <View className="mt-2 items-center">
               <RippleButton
-                title="Show more"
+                title="More"
                 size="sm"
                 onPress={handleLoadMore}
                 loading={isLoadingMore}

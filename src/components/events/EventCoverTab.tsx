@@ -25,7 +25,10 @@ const EventCoverTab: React.FC<EventCoverTabProps> = ({ event }) => {
           style={{
             width: '100%',
             height: '100%',
-            backgroundColor: themeColors[theme]['bg-secondary'],
+            backgroundColor:
+              event.visibility === 'public'
+                ? themeColors[theme].primary + '20'
+                : themeColors[theme]['intent-success'] + '20',
             alignItems: 'center',
             justifyContent: 'center'
           }}

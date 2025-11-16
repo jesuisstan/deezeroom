@@ -72,7 +72,12 @@ const EventInfoTab: FC<EventInfoTabProps> = ({ event }) => {
   return (
     <ScrollView
       className="h-full w-full flex-1"
-      style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+      style={{
+        backgroundColor:
+          event.visibility === 'public'
+            ? themeColors[theme].primary + '20'
+            : themeColors[theme]['intent-success'] + '20'
+      }}
       contentContainerStyle={{
         padding: Platform.OS === 'web' ? 32 : 16,
         gap: 16

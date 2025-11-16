@@ -214,7 +214,10 @@ const EventsScreen = () => {
       className="flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-main'] }}
     >
-      <View className="gap-2 border-b border-border bg-bg-tertiary px-4 py-2 shadow-sm">
+      <View
+        className="gap-2 border-b border-border px-4 py-2 shadow-sm"
+        style={{ backgroundColor: themeColors[theme]['primary'] + '20' }}
+      >
         <View className="flex-row items-center gap-2">
           {(['my', 'participating', 'public', 'passed'] as const).map(
             renderTabButton

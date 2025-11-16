@@ -183,7 +183,7 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
           onPress={() => {}}
           style={{
             width: '90%',
-            zIndex: 9999
+            zIndex: 999999
           }}
         >
           <View

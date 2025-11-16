@@ -148,7 +148,11 @@ const PlaylistDetailScreen = () => {
 
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? MINI_PLAYER_HEIGHT + Platform.OS === 'web'
+        ? 16
+        : 0
+      : 0;
   }, [currentTrack]);
 
   const loadPlaylist = useCallback(
@@ -1100,11 +1104,11 @@ const PlaylistDetailScreen = () => {
               borderWidth: 1,
               borderColor: themeColors[theme]['intent-warning'],
               marginHorizontal: 16,
-              marginBottom: 16
+              marginBottom: 8
             }}
           >
             <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
-              You don't have permission to add tracks to this playlist
+              You don't have permission to edit this playlist
             </TextCustom>
           </View>
         )}

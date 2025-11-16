@@ -367,7 +367,7 @@ const SearchTracksComponent = ({
                 Loaded {allTracks.length} tracks
               </TextCustom>
               <RippleButton
-                title="Show more"
+                title="More"
                 size="sm"
                 onPress={handleLoadMore}
                 loading={isLoadingMore}

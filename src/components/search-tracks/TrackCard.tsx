@@ -1,9 +1,10 @@
 import { FC, memo, useCallback, useMemo } from 'react';
-import { Alert, GestureResponderEvent, Image, View } from 'react-native';
+import { GestureResponderEvent, Image, View } from 'react-native';
 
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
+import { Alert } from '@/components/modules/alert';
 import IconButton from '@/components/ui/buttons/IconButton';
 import LineButton from '@/components/ui/buttons/LineButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -35,7 +36,6 @@ const TrackCard: FC<TrackCardProps> = ({
     appearDuration: 800
   });
 
-  // Memoize colors
   const colors = useMemo(
     () => ({
       textMain: themeColors[theme]['text-main'],
@@ -47,7 +47,6 @@ const TrackCard: FC<TrackCardProps> = ({
     [theme]
   );
 
-  // Memoize formatted duration
   const formattedDuration = useMemo(() => {
     const minutes = Math.floor(track.duration / 60);
     const remainingSeconds = track.duration % 60;
@@ -64,12 +63,10 @@ const TrackCard: FC<TrackCardProps> = ({
     return getAlbumCover(track.album, 'small');
   }, [track.album]);
 
-  // Memoize handle play
   const handlePress = useCallback(() => {
     onPress?.(track);
   }, [onPress, track]);
 
-  // Memoize handle toggle favorite
   const handleToggleFavorite = useCallback(
     async (event?: GestureResponderEvent) => {
       // Prevent parent LineButton from handling this press on web and native
@@ -79,25 +76,16 @@ const TrackCard: FC<TrackCardProps> = ({
     [toggleFavoriteTrack, track.id]
   );
 
-  // Memoize handle remove
   const handleRemove = useCallback(
     (event?: GestureResponderEvent) => {
       event?.stopPropagation?.();
 
-      Alert.alert(
+      Alert.confirm(
         'Remove Track',
         `Are you sure you want to remove "${track.title}" by ${track.artist.name} from this playlist?`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          },
-          {
-            text: 'Remove',
-            style: 'destructive',
-            onPress: () => onRemove?.(track)
-          }
-        ]
+        () => {
+          onRemove?.(track);
+        }
       );
     },
     [onRemove, track]
@@ -160,7 +148,7 @@ const TrackCard: FC<TrackCardProps> = ({
 
           <View className="flex-row items-center">
             {/* Favorite Button or Remove Button */}
-            {onRemove ? (
+            {onRemove && (
               <IconButton
                 accessibilityLabel="Remove track from playlist"
                 onPress={handleRemove}
@@ -172,27 +160,24 @@ const TrackCard: FC<TrackCardProps> = ({
                   color={colors.intentError}
                 />
               </IconButton>
-            ) : (
-              <IconButton
-                accessibilityLabel={
-                  isCurrentTrackFavorite
-                    ? 'Remove from favorites'
-                    : 'Add to favorites'
-                }
-                onPress={handleToggleFavorite}
-                className="h-9 w-9"
-              >
-                <FontAwesome
-                  name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                  size={18}
-                  color={
-                    isCurrentTrackFavorite
-                      ? colors.primary
-                      : colors.textSecondary
-                  }
-                />
-              </IconButton>
             )}
+            <IconButton
+              accessibilityLabel={
+                isCurrentTrackFavorite
+                  ? 'Remove from favorites'
+                  : 'Add to favorites'
+              }
+              onPress={handleToggleFavorite}
+              className="h-9 w-9"
+            >
+              <FontAwesome
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+                size={18}
+                color={
+                  isCurrentTrackFavorite ? colors.primary : colors.textSecondary
+                }
+              />
+            </IconButton>
           </View>
         </View>
       </LineButton>
