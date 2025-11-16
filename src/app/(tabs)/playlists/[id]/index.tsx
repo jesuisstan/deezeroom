@@ -1089,7 +1089,25 @@ const PlaylistDetailScreen = () => {
         {/* Action Buttons moved to floating group above cover */}
 
         {/* Add Track Button - only visible if user can edit */}
-        {canEdit && <AddTracksButton onPress={handleAddTrack} />}
+        {canEdit ? (
+          <AddTracksButton onPress={handleAddTrack} />
+        ) : (
+          <View
+            style={{
+              borderRadius: 6,
+              padding: 12,
+              backgroundColor: themeColors[theme]['intent-warning'] + '22',
+              borderWidth: 1,
+              borderColor: themeColors[theme]['intent-warning'],
+              marginHorizontal: 16,
+              marginBottom: 16
+            }}
+          >
+            <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
+              You don't have permission to add tracks to this playlist
+            </TextCustom>
+          </View>
+        )}
 
         {/* Tracks List */}
         <View>

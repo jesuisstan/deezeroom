@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
@@ -18,7 +18,7 @@ interface EventParticipantsTabProps {
   participantIds: string[];
 }
 
-const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
+const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
   ownerId,
   participantIds
 }) => {
@@ -87,7 +87,10 @@ const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
     <ScrollView
       className="h-full w-full flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      contentContainerStyle={{
+        padding: Platform.OS === 'web' ? 32 : 16,
+        gap: 16
+      }}
       showsVerticalScrollIndicator
     >
       <View>

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -13,7 +13,7 @@ interface InfoTabProps {
   playlist: Playlist;
 }
 
-const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
+const InfoTab: FC<InfoTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
 
   const formatDuration = (seconds: number): string => {
@@ -102,7 +102,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ playlist }) => {
       className="h-full w-full flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       contentContainerStyle={{
-        padding: 16,
+        padding: Platform.OS === 'web' ? 32 : 16,
         gap: 16
       }}
       showsVerticalScrollIndicator={true}

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { Platform, ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
@@ -18,7 +18,7 @@ interface ParticipantsTabProps {
   playlist: Playlist;
 }
 
-const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
+const ParticipantsTab: FC<ParticipantsTabProps> = ({ playlist }) => {
   const { theme } = useTheme();
   const router = useRouter();
   const [profilesMap, setProfilesMap] = useState<Map<string, PublicProfileDoc>>(
@@ -92,7 +92,7 @@ const ParticipantsTab: React.FC<ParticipantsTabProps> = ({ playlist }) => {
       className="h-full w-full flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       contentContainerStyle={{
-        padding: 16,
+        padding: Platform.OS === 'web' ? 32 : 16,
         gap: 16
       }}
       showsVerticalScrollIndicator={true}

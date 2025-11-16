@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { FC } from 'react';
+import { Platform, ScrollView, View } from 'react-native';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -10,7 +10,7 @@ interface EventInfoTabProps {
   event: Event;
 }
 
-const EventInfoTab: React.FC<EventInfoTabProps> = ({ event }) => {
+const EventInfoTab: FC<EventInfoTabProps> = ({ event }) => {
   const { theme } = useTheme();
 
   const toDate = (value: any): Date | null => {
@@ -73,7 +73,10 @@ const EventInfoTab: React.FC<EventInfoTabProps> = ({ event }) => {
     <ScrollView
       className="h-full w-full flex-1"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
-      contentContainerStyle={{ padding: 16, gap: 16 }}
+      contentContainerStyle={{
+        padding: Platform.OS === 'web' ? 32 : 16,
+        gap: 16
+      }}
       showsVerticalScrollIndicator
     >
       <TextCustom
