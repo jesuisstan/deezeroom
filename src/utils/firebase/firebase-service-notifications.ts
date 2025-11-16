@@ -232,7 +232,19 @@ class NotificationService {
 
       return this.currentExpoPushToken;
     } catch (error) {
-      Logger.error('Error getting Expo push token:', error);
+      if (Platform.OS === 'web') {
+        Logger.warn(
+          'Expo push token not available on web',
+          null,
+          '🔔 NotificationService'
+        );
+        return null;
+      }
+      Logger.error(
+        'Error getting Expo push token:',
+        error,
+        '🔔 NotificationService'
+      );
       return null;
     }
   }
@@ -249,7 +261,19 @@ class NotificationService {
       const tokenData = await Notifications.getDevicePushTokenAsync();
       return tokenData?.data as string | null;
     } catch (error) {
-      Logger.error('Error getting device push token:', error);
+      if (Platform.OS === 'web') {
+        Logger.warn(
+          'Device push token not available on web',
+          null,
+          '🔔 NotificationService'
+        );
+        return null;
+      }
+      Logger.error(
+        'Error getting device push token:',
+        error,
+        '🔔 NotificationService'
+      );
       return null;
     }
   }

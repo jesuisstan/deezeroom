@@ -84,8 +84,8 @@ const HomeScreen = () => {
             />
             <TextCustom
               type="subtitle"
-              size="l"
-              color={themeColors[theme]['text-secondary']}
+              size="xl"
+              color={themeColors[theme]['primary']}
             >
               welcome to the party
             </TextCustom>

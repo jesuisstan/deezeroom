@@ -188,7 +188,7 @@ const PlaylistsScreen = () => {
       }}
     >
       <View
-        className="gap-2 border-b border-border px-4 py-2 shadow-sm"
+        className="gap-2 px-4 py-2 shadow-sm"
         style={{ backgroundColor: themeColors[theme]['primary'] + '20' }}
       >
         <View className="flex-row items-center gap-2">
