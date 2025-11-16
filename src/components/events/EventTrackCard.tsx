@@ -49,7 +49,6 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
         backgroundColor: themeColors[theme]['bg-secondary'],
         borderRadius: 6,
         padding: 12,
-        marginBottom: 12,
         borderWidth: 1,
         borderColor: themeColors[theme]['border'],
         gap: 10

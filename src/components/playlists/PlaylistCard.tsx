@@ -76,6 +76,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
               numberOfLines={2}
               color={themeColors[theme]['text-main']}
               selectable={false}
+              className="text-center"
             >
               {playlist.name}
             </TextCustom>

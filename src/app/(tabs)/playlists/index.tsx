@@ -283,11 +283,7 @@ const PlaylistsScreen = () => {
               className="flex-row flex-wrap justify-center gap-2"
               style={containerWidthStyle}
             >
-              {activeTab === 'my' && (
-                <CreatePlaylistButton
-                  onPress={() => setShowCreateModal(true)}
-                />
-              )}
+              <CreatePlaylistButton onPress={() => setShowCreateModal(true)} />
               {filteredPlaylists.map((playlist) => (
                 <PlaylistCard key={playlist.id} playlist={playlist} />
               ))}
