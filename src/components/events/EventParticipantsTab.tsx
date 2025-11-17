@@ -14,12 +14,12 @@ import {
 } from '@/utils/firebase/firebase-service-profiles';
 
 interface EventParticipantsTabProps {
-  ownerId: string;
+  hostIds: string[];
   participantIds: string[];
 }
 
 const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
-  ownerId,
+  hostIds,
   participantIds
 }) => {
   const { theme } = useTheme();
@@ -29,10 +29,10 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
   );
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(true);
 
-  // Fetch public profiles for owner and all participants
+  // Fetch public profiles for hosts and all participants
   useEffect(() => {
     const fetchProfiles = async () => {
-      const allUserIds = [ownerId, ...participantIds].filter(
+      const allUserIds = [...hostIds, ...participantIds].filter(
         (id, index, self) => self.indexOf(id) === index
       ); // Remove duplicates
 
@@ -53,12 +53,12 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
     };
 
     fetchProfiles();
-  }, [ownerId, participantIds]);
+  }, [hostIds, participantIds]);
 
-  // Filter out owner from participants list
+  // Filter out hosts from participants list
   const otherParticipantIds = useMemo(() => {
-    return participantIds.filter((id) => id !== ownerId);
-  }, [participantIds, ownerId]);
+    return participantIds.filter((id) => !hostIds.includes(id));
+  }, [participantIds, hostIds]);
 
   const renderParticipant = (userId: string) => {
     const profile = profilesMap.get(userId);
@@ -107,26 +107,32 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
             Loading...
           </TextCustom>
         ) : (
-          <UserChip
-            user={{
-              uid: ownerId,
-              displayName: profilesMap.get(ownerId)?.displayName || 'Unknown',
-              photoURL: profilesMap.get(ownerId)?.photoURL
-            }}
-            onPress={() =>
-              router.push({
-                pathname: '/users/[id]',
-                params: { id: ownerId }
-              })
-            }
-            rightAccessory={
-              <MaterialCommunityIcons
-                name="crown"
-                size={18}
-                color={themeColors[theme]['primary']}
+          <View className="gap-2">
+            {hostIds.map((hostId) => (
+              <UserChip
+                key={hostId}
+                user={{
+                  uid: hostId,
+                  displayName:
+                    profilesMap.get(hostId)?.displayName || 'Unknown',
+                  photoURL: profilesMap.get(hostId)?.photoURL
+                }}
+                onPress={() =>
+                  router.push({
+                    pathname: '/users/[id]',
+                    params: { id: hostId }
+                  })
+                }
+                rightAccessory={
+                  <MaterialCommunityIcons
+                    name="crown"
+                    size={18}
+                    color={themeColors[theme]['primary']}
+                  />
+                }
               />
-            }
-          />
+            ))}
+          </View>
         )}
       </View>
 

@@ -240,8 +240,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
           timezone
         },
         userData.uid,
-        [],
-        { displayName: userData.displayName }
+        []
       );
 
       if (coverImageUri) {

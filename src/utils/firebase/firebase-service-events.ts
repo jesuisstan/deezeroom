@@ -54,8 +54,7 @@ export interface Event {
   voteLicense: EventVoteLicense;
   geofence?: EventGeoFence;
   voteTimeWindow?: EventTimeWindow;
-  createdBy: string;
-  ownerDisplayName?: string | null;
+  hostIds: string[];
   timezone?: string | null;
   createdAt: Timestamp | Date | null;
   updatedAt: Timestamp | Date | null;
@@ -63,7 +62,6 @@ export interface Event {
   endAt?: Timestamp | Date | null;
   status: EventStatus;
   participantIds: string[];
-  editorIds: string[];
   pendingInviteIds?: string[];
   trackCount: number;
 }
@@ -131,8 +129,7 @@ export class EventService {
       timezone?: string | null;
     },
     createdBy: string,
-    initialTracks: Track[] = [],
-    ownerInfo?: { displayName?: string | null }
+    initialTracks: Track[] = []
   ): Promise<string> {
     // Validate name
     if (!data.name || !data.name.trim()) {
@@ -177,8 +174,7 @@ export class EventService {
       voteLicense: data.voteLicense || 'everyone',
       geofence: data.geofence || null,
       voteTimeWindow: data.voteTimeWindow || null,
-      createdBy,
-      ownerDisplayName: ownerInfo?.displayName ?? null,
+      hostIds: [createdBy],
       timezone: data.timezone || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -186,7 +182,6 @@ export class EventService {
       endAt: Timestamp.fromDate(endAt),
       status,
       participantIds: [createdBy],
-      editorIds: [createdBy],
       pendingInviteIds: [],
       trackCount: 0
     };
@@ -243,13 +238,21 @@ export class EventService {
 
     // If updating startAt, validate it
     if (updates.startAt !== undefined) {
+      // Allow hosts to start event early (set startAt to current time or past)
+      // But don't allow changing start time if event has already started naturally
       const hasStarted =
         currentStartAt && currentStartAt.getTime() <= now.getTime();
-      if (hasStarted) {
+      if (
+        hasStarted &&
+        newStartAt &&
+        newStartAt.getTime() !== currentStartAt.getTime()
+      ) {
         throw new Error('Cannot change start time after event has started');
       }
-      if (newStartAt && newStartAt < now) {
-        throw new Error('Event start time must be in the future');
+      // Allow setting startAt to current time or past (early start)
+      // But validate that it's not too far in the past (e.g., more than 1 hour)
+      if (newStartAt && newStartAt.getTime() < now.getTime() - 60 * 60 * 1000) {
+        throw new Error('Cannot set start time more than 1 hour in the past');
       }
     }
 
@@ -401,7 +404,7 @@ export class EventService {
 
   static async getUserEvents(userId: string): Promise<Event[]> {
     const eventsRef = collection(db, this.collection);
-    const q = query(eventsRef, where('createdBy', '==', userId));
+    const q = query(eventsRef, where('hostIds', 'array-contains', userId));
     const snapshot = await getDocs(q);
     const events = snapshot.docs.map((docSnap) =>
       this.deserializeEventDoc(docSnap.id, docSnap.data())
@@ -425,7 +428,7 @@ export class EventService {
     const snapshot = await getDocs(q);
     const events = snapshot.docs
       .map((docSnap) => this.deserializeEventDoc(docSnap.id, docSnap.data()))
-      .filter((event) => event.createdBy !== userId);
+      .filter((event) => !event.hostIds.includes(userId));
     return events.sort((a, b) => {
       const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
       const dateB = (b.updatedAt as Timestamp | Date | null) ?? null;
@@ -441,7 +444,7 @@ export class EventService {
     callback: (events: Event[]) => void
   ): () => void {
     const eventsRef = collection(db, this.collection);
-    const q = query(eventsRef, where('createdBy', '==', userId));
+    const q = query(eventsRef, where('hostIds', 'array-contains', userId));
     return onSnapshot(q, (snapshot) => {
       const events = snapshot.docs.map((docSnap) =>
         this.deserializeEventDoc(docSnap.id, docSnap.data())
@@ -492,7 +495,7 @@ export class EventService {
     return onSnapshot(q, (snapshot) => {
       const events = snapshot.docs
         .map((docSnap) => this.deserializeEventDoc(docSnap.id, docSnap.data()))
-        .filter((event) => event.createdBy !== userId);
+        .filter((event) => !event.hostIds.includes(userId));
       events.sort((a, b) => {
         const dateA = (a.updatedAt as Timestamp | Date | null) ?? null;
         const dateB = (b.updatedAt as Timestamp | Date | null) ?? null;
@@ -863,26 +866,26 @@ export class EventService {
     if (this.hasEventEnded(event)) {
       return false;
     }
-    if (event.createdBy === userId) {
-      return true;
-    }
-    return event.editorIds?.includes(userId) ?? false;
+    return event.hostIds?.includes(userId) ?? false;
   }
 
   static canUserAddTrack(event: Event, userId: string): boolean {
     if (this.hasEventEnded(event)) {
       return false;
     }
+
+    // Private events: only participants can add tracks
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
     }
 
+    // Public + invited: only participants can add tracks
     if (event.voteLicense === 'invited') {
       return event.participantIds?.includes(userId) ?? false;
     }
 
-    // If geofence is enabled, user must be within the geofence area
-    // For now, we require participant status (can extend with geo checks later)
+    // Public + everyone: everyone can add tracks
+    // (geofence check is handled on client side, but requires participant status for now)
     if (event.geofence) {
       return event.participantIds?.includes(userId) ?? false;
     }
@@ -894,30 +897,90 @@ export class EventService {
     if (this.hasEventEnded(event)) {
       return false;
     }
+
+    // Private events: only participants can vote
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
     }
 
-    // If geofence is enabled, user must be within the geofence area
-    // For now, we require participant status (can extend with geo checks later)
+    // Public + invited: only participants can vote
+    if (event.voteLicense === 'invited') {
+      return event.participantIds?.includes(userId) ?? false;
+    }
+
+    // Public + everyone: everyone can vote
+    // (geofence check is handled on client side, but requires participant status for now)
     if (event.geofence) {
       return event.participantIds?.includes(userId) ?? false;
     }
 
-    switch (event.voteLicense) {
-      case 'everyone':
-        return true;
-      case 'invited':
-        return event.participantIds?.includes(userId) ?? false;
-      default:
-        return false;
-    }
+    // Public + everyone: everyone can vote
+    return true;
   }
 
   static async canUserVote(eventId: string, userId: string): Promise<boolean> {
     const event = await this.getEvent(eventId);
     if (!event) return false;
     return this.canUserVoteWithEvent(event, userId);
+  }
+
+  static async startEventEarly(eventId: string, userId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (!this.canUserManageEvent(event, userId)) {
+      throw new Error('Only hosts can start events early');
+    }
+
+    if (this.hasEventStarted(event)) {
+      throw new Error('Event has already started');
+    }
+
+    const eventRef = doc(db, this.collection, eventId);
+    const endAt = event.endAt ? new Date(event.endAt as any) : null;
+
+    if (!endAt) {
+      throw new Error('Event end time is not set');
+    }
+
+    // Set startAt to current server time (exactly now, not earlier or later)
+    // Use serverTimestamp() to ensure it's exactly the current server time
+    await updateDoc(eventRef, {
+      startAt: serverTimestamp(),
+      status: 'live', // Event becomes live when started
+      updatedAt: serverTimestamp()
+    });
+  }
+
+  static async endEventEarly(eventId: string, userId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (!this.canUserManageEvent(event, userId)) {
+      throw new Error('Only hosts can end events early');
+    }
+
+    if (!this.hasEventStarted(event)) {
+      throw new Error('Event has not started yet');
+    }
+
+    if (this.hasEventEnded(event)) {
+      throw new Error('Event has already ended');
+    }
+
+    const eventRef = doc(db, this.collection, eventId);
+
+    // Set endAt to current server time (exactly now, not earlier or later)
+    // Use serverTimestamp() to ensure it's exactly the current server time
+    await updateDoc(eventRef, {
+      endAt: serverTimestamp(),
+      status: 'ended', // Event becomes ended when finished early
+      updatedAt: serverTimestamp()
+    });
   }
 
   // ===== INVITATIONS =====
@@ -1229,8 +1292,13 @@ export class EventService {
   private static deserializeEventDoc(id: string, data: any): Event {
     const startAt = this.toDate(data?.startAt) ?? null;
     const endAt = this.toDate(data?.endAt) ?? null;
+    // Use status from database if available, otherwise compute it
     const status =
-      startAt && endAt ? this.computeStatus(startAt, endAt) : 'draft';
+      data?.status && ['draft', 'live', 'ended'].includes(data.status)
+        ? (data.status as EventStatus)
+        : startAt && endAt
+          ? this.computeStatus(startAt, endAt)
+          : 'draft';
 
     return {
       id,
@@ -1241,8 +1309,13 @@ export class EventService {
       voteLicense: data?.voteLicense ?? 'everyone',
       geofence: data?.geofence ?? undefined,
       voteTimeWindow: data?.voteTimeWindow ?? undefined,
-      createdBy: data?.createdBy ?? '',
-      ownerDisplayName: data?.ownerDisplayName ?? null,
+      hostIds: Array.isArray(data?.hostIds)
+        ? data.hostIds
+        : Array.isArray(data?.createdBy)
+          ? data.createdBy
+          : data?.createdBy
+            ? [data.createdBy]
+            : [],
       timezone: data?.timezone ?? null,
       createdAt: this.toDate(data?.createdAt),
       updatedAt: this.toDate(data?.updatedAt),
@@ -1252,7 +1325,6 @@ export class EventService {
       participantIds: Array.isArray(data?.participantIds)
         ? data.participantIds
         : [],
-      editorIds: Array.isArray(data?.editorIds) ? data.editorIds : [],
       pendingInviteIds: Array.isArray(data?.pendingInviteIds)
         ? data.pendingInviteIds
         : [],

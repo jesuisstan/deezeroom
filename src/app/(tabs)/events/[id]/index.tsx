@@ -17,6 +17,7 @@ import EventCoverTab from '@/components/events/EventCoverTab';
 import EventInfoTab from '@/components/events/EventInfoTab';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
 import EventTrackCard from '@/components/events/EventTrackCard';
+import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
@@ -109,7 +110,11 @@ const EventDetailScreen = () => {
   }, [currentTrack]);
 
   const isEventEnded = useMemo(() => {
-    return event ? EventService.hasEventEnded(event) : false;
+    return event ? event.status === 'ended' : false;
+  }, [event]);
+
+  const hasEventStarted = useMemo(() => {
+    return event ? event.status === 'live' || event.status === 'ended' : false;
   }, [event]);
 
   const canVote = useMemo(() => {
@@ -120,6 +125,21 @@ const EventDetailScreen = () => {
   const canAddTrack = useMemo(() => {
     if (!event || !user) return false;
     return EventService.canUserAddTrack(event, user.uid);
+  }, [event, user]);
+
+  const canManageEvent = useMemo(() => {
+    if (!event || !user) return false;
+    return EventService.canUserManageEvent(event, user.uid);
+  }, [event, user]);
+
+  const isPublicInvitedNonParticipant = useMemo(() => {
+    if (!event || !user) return false;
+    return (
+      event.visibility === 'public' &&
+      event.voteLicense === 'invited' &&
+      !event.participantIds.includes(user.uid) &&
+      !event.hostIds.includes(user.uid)
+    );
   }, [event, user]);
 
   const currentTrackIds = useMemo(
@@ -243,6 +263,58 @@ const EventDetailScreen = () => {
     }
   };
 
+  const handleStartEventEarly = async () => {
+    if (!id || !user || !event) return;
+
+    Alert.confirm(
+      'Start Event Early?',
+      'Are you sure you want to start this event now? The event will begin immediately.',
+      async () => {
+        try {
+          await EventService.startEventEarly(id, user.uid);
+          Notifier.shoot({
+            type: 'success',
+            title: 'Event Started',
+            message: 'Event has been started early'
+          });
+        } catch (error: any) {
+          Logger.error('Error starting event early:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'Failed to start event early'
+          });
+        }
+      }
+    );
+  };
+
+  const handleEndEventEarly = async () => {
+    if (!id || !user || !event) return;
+
+    Alert.confirm(
+      'End Event Early?',
+      'Are you sure you want to end this event now? The event will be closed immediately and participants will no longer be able to vote or add tracks.',
+      async () => {
+        try {
+          await EventService.endEventEarly(id, user.uid);
+          Notifier.shoot({
+            type: 'success',
+            title: 'Event Ended',
+            message: 'Event has been ended early'
+          });
+        } catch (error: any) {
+          Logger.error('Error ending event early:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'Failed to end event early'
+          });
+        }
+      }
+    );
+  };
+
   const handleSendInvitations = async (selectedUsers: UserProfile[]) => {
     if (!event || !user || selectedUsers.length === 0) return;
 
@@ -301,7 +373,7 @@ const EventDetailScreen = () => {
       case 'participants':
         return (
           <EventParticipantsTab
-            ownerId={event!.createdBy}
+            hostIds={event!.hostIds || []}
             participantIds={event!.participantIds || []}
           />
         );
@@ -373,6 +445,40 @@ const EventDetailScreen = () => {
             renderTabBar={() => null}
           />
 
+          {/* Event status indicator */}
+          <View
+            style={{
+              position: 'absolute',
+              zIndex: 10,
+              left: 12,
+              bottom: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderRadius: 6,
+              paddingVertical: 1,
+              paddingHorizontal: 4,
+              backgroundColor: themeColors[theme]['bg-secondary'] + '99',
+              borderColor: themeColors[theme]['border'],
+              borderWidth: 1
+            }}
+          >
+            <TextCustom
+              size="s"
+              type="semibold"
+              color={
+                event.status === 'live'
+                  ? themeColors[theme]['intent-success']
+                  : event.status === 'ended'
+                    ? themeColors[theme]['intent-error']
+                    : themeColors[theme]['intent-warning']
+              }
+              className={event.status === 'live' ? 'animate-pulse' : ''}
+            >
+              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+            </TextCustom>
+
+            {/* Event actions bar */}
+          </View>
           {!isEventEnded && (
             <View
               style={{
@@ -389,44 +495,57 @@ const EventDetailScreen = () => {
                 borderWidth: 1
               }}
             >
-              {event && user && event.createdBy === user.uid && (
-                <IconButton
-                  accessibilityLabel="Edit event"
-                  onPress={() => setShowEditModal(true)}
-                >
-                  <MaterialCommunityIcons
-                    name="pencil-outline"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
+              {canManageEvent && (
+                <>
+                  {!hasEventStarted && (
+                    <IconButton
+                      accessibilityLabel="Start event early"
+                      onPress={handleStartEventEarly}
+                    >
+                      <MaterialCommunityIcons
+                        name="flag-triangle"
+                        size={20}
+                        color={themeColors[theme]['primary']}
+                      />
+                    </IconButton>
+                  )}
+                  {hasEventStarted && !isEventEnded && (
+                    <IconButton
+                      accessibilityLabel="End event early"
+                      onPress={handleEndEventEarly}
+                    >
+                      <MaterialCommunityIcons
+                        name="flag-variant-remove-outline"
+                        size={20}
+                        color={themeColors[theme]['intent-error']}
+                      />
+                    </IconButton>
+                  )}
+                  <IconButton
+                    accessibilityLabel="Edit event"
+                    onPress={() => setShowEditModal(true)}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil-outline"
+                      size={20}
+                      color={themeColors[theme]['text-main']}
+                    />
+                  </IconButton>
+                  <IconButton
+                    accessibilityLabel="Invite participants"
+                    onPress={() => {
+                      if (!event || !user) return;
+                      setShowInviteModal(true);
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="account-plus-outline"
+                      size={20}
+                      color={themeColors[theme]['text-main']}
+                    />
+                  </IconButton>
+                </>
               )}
-              <IconButton
-                accessibilityLabel="Invite participants"
-                onPress={() => {
-                  if (!event || !user) return;
-                  const canInvite = EventService.canUserManageEvent(
-                    event,
-                    user.uid
-                  );
-                  if (!canInvite) {
-                    Notifier.shoot({
-                      type: 'error',
-                      title: 'Permission Denied',
-                      message:
-                        'You do not have permission to invite users to this event'
-                    });
-                    return;
-                  }
-                  setShowInviteModal(true);
-                }}
-              >
-                <MaterialCommunityIcons
-                  name="account-plus-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
             </View>
           )}
         </View>
@@ -498,7 +617,22 @@ const EventDetailScreen = () => {
             </TextCustom>
           </View>
 
-          {canAddTrack ? (
+          {isPublicInvitedNonParticipant ? (
+            <View
+              style={{
+                borderRadius: 6,
+                padding: 12,
+                backgroundColor: themeColors[theme]['intent-warning'] + '22',
+                borderWidth: 1,
+                borderColor: themeColors[theme]['intent-warning']
+              }}
+            >
+              <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
+                You can view this event, but only invited participants can add
+                tracks and vote.
+              </TextCustom>
+            </View>
+          ) : canAddTrack ? (
             <RippleButton
               title="Add track"
               size="sm"
