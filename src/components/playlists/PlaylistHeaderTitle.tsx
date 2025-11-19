@@ -15,7 +15,7 @@ const PlaylistHeaderTitle: React.FC = () => {
   const segments = useSegments();
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  console.log('segments', segments);
+
   // Only use id if we're on a playlist route
   const isPlaylistRoute = (segments as string[]).includes('playlists');
   const playlistId = isPlaylistRoute ? id : null;

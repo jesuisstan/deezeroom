@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  View
+} from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -8,7 +14,6 @@ import CreateEventModal from '@/components/events/CreateEventModal';
 import EventCard from '@/components/events/EventCard';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
-import RippleButton from '@/components/ui/buttons/RippleButton';
 import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -176,14 +181,6 @@ const EventsScreen = () => {
                 ? 'No events you participate in yet'
                 : 'No past events to display'}
         </TextCustom>
-        {activeTab === 'my' ? (
-          <RippleButton
-            title="Create first event"
-            size="md"
-            onPress={() => setShowCreateModal(true)}
-            className="mt-4"
-          />
-        ) : null}
       </View>
     );
   };
@@ -271,10 +268,9 @@ const EventsScreen = () => {
 
           {isLoading ? (
             <View className="items-center justify-center py-12">
-              <MaterialCommunityIcons
-                name="progress-clock"
-                size={42}
-                color={themeColors[theme]['text-secondary']}
+              <ActivityIndicator
+                size="large"
+                color={themeColors[theme]['primary']}
               />
               <TextCustom
                 className="mt-4 animate-pulse"

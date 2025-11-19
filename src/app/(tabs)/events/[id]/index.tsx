@@ -114,9 +114,9 @@ const EventDetailScreen = () => {
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
     return currentTrack
-      ? MINI_PLAYER_HEIGHT + Platform.OS === 'web'
-        ? 16
-        : 0
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
       : 0;
   }, [currentTrack]);
 
@@ -416,7 +416,7 @@ const EventDetailScreen = () => {
       >
         <MaterialCommunityIcons
           name="alert-circle"
-          size={48}
+          size={42}
           color={themeColors[theme]['text-secondary']}
         />
         <TextCustom className="mt-4 text-center opacity-70">
@@ -658,10 +658,7 @@ const EventDetailScreen = () => {
                 className="mt-4 text-center"
                 color={themeColors[theme]['text-secondary']}
               >
-                No tracks yet.{' '}
-                {canAddTrack
-                  ? 'Be the first to add one!'
-                  : 'Ask the host to add some music.'}
+                No tracks added{canAddTrack ? '. Be the first to add one!' : ''}
               </TextCustom>
             </View>
           ) : (
