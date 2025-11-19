@@ -16,6 +16,7 @@ import EditEventModal from '@/components/events/EditEventModal';
 import EventCoverTab from '@/components/events/EventCoverTab';
 import EventInfoTab from '@/components/events/EventInfoTab';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
+import EventStatusIndicator from '@/components/events/EventStatusIndicator';
 import EventTrackCard from '@/components/events/EventTrackCard';
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger';
@@ -29,6 +30,7 @@ import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
+import { useEventStatus } from '@/hooks/useEventStatus';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -58,6 +60,7 @@ const EventDetailScreen = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [processingVote, setProcessingVote] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
@@ -76,6 +79,12 @@ const EventDetailScreen = () => {
         setIsLoading(false);
         return;
       }
+      // Ignore subscription updates while we're manually updating status
+      // This prevents intermediate status changes (draft -> live -> ended)
+      // We'll use the forced refresh data instead
+      if (isUpdatingStatus) {
+        return;
+      }
       setEvent(updatedEvent);
       setError(null);
       setIsLoading(false);
@@ -84,7 +93,7 @@ const EventDetailScreen = () => {
     return () => {
       unsubscribe();
     };
-  }, [id]);
+  }, [id, isUpdatingStatus]);
 
   useEffect(() => {
     if (!id) return;
@@ -100,6 +109,8 @@ const EventDetailScreen = () => {
     });
   }, [id, user]);
 
+  // Use custom hook for real-time event status updates
+  const { eventStatus, isEventEnded, hasEventStarted } = useEventStatus(event);
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
     return currentTrack
@@ -108,14 +119,6 @@ const EventDetailScreen = () => {
         : 0
       : 0;
   }, [currentTrack]);
-
-  const isEventEnded = useMemo(() => {
-    return event ? event.status === 'ended' : false;
-  }, [event]);
-
-  const hasEventStarted = useMemo(() => {
-    return event ? event.status === 'live' || event.status === 'ended' : false;
-  }, [event]);
 
   const canVote = useMemo(() => {
     if (!event || !user) return false;
@@ -264,14 +267,20 @@ const EventDetailScreen = () => {
   };
 
   const handleStartEventEarly = async () => {
-    if (!id || !user || !event) return;
+    if (!id || !user || !event || isUpdatingStatus) return;
 
     Alert.confirm(
       'Start Event Early?',
       'Are you sure you want to start this event now? The event will begin immediately.',
       async () => {
+        setIsUpdatingStatus(true);
         try {
           await EventService.startEventEarly(id, user.uid);
+          // Force refresh event data from server to get updated status
+          const freshEvent = await EventService.getEvent(id);
+          if (freshEvent) {
+            setEvent(freshEvent);
+          }
           Notifier.shoot({
             type: 'success',
             title: 'Event Started',
@@ -284,20 +293,28 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to start event early'
           });
+        } finally {
+          setIsUpdatingStatus(false);
         }
       }
     );
   };
 
   const handleEndEventEarly = async () => {
-    if (!id || !user || !event) return;
+    if (!id || !user || !event || isUpdatingStatus) return;
 
     Alert.confirm(
       'End Event Early?',
       'Are you sure you want to end this event now? The event will be closed immediately and participants will no longer be able to vote or add tracks.',
       async () => {
+        setIsUpdatingStatus(true);
         try {
           await EventService.endEventEarly(id, user.uid);
+          // Force refresh event data from server to get updated status
+          const freshEvent = await EventService.getEvent(id);
+          if (freshEvent) {
+            setEvent(freshEvent);
+          }
           Notifier.shoot({
             type: 'success',
             title: 'Event Ended',
@@ -310,6 +327,8 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to end event early'
           });
+        } finally {
+          setIsUpdatingStatus(false);
         }
       }
     );
@@ -446,39 +465,12 @@ const EventDetailScreen = () => {
           />
 
           {/* Event status indicator */}
-          <View
-            style={{
-              position: 'absolute',
-              zIndex: 10,
-              left: 12,
-              bottom: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              borderRadius: 6,
-              paddingVertical: 1,
-              paddingHorizontal: 4,
-              backgroundColor: themeColors[theme]['bg-secondary'] + '99',
-              borderColor: themeColors[theme]['border'],
-              borderWidth: 1
-            }}
-          >
-            <TextCustom
-              size="s"
-              type="semibold"
-              color={
-                event.status === 'live'
-                  ? themeColors[theme]['intent-success']
-                  : event.status === 'ended'
-                    ? themeColors[theme]['intent-error']
-                    : themeColors[theme]['intent-warning']
-              }
-              className={event.status === 'live' ? 'animate-pulse' : ''}
-            >
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-            </TextCustom>
+          <EventStatusIndicator
+            eventStatus={eventStatus}
+            isUpdatingStatus={isUpdatingStatus}
+          />
 
-            {/* Event actions bar */}
-          </View>
+          {/* Event actions bar */}
           {!isEventEnded && (
             <View
               style={{
@@ -492,7 +484,8 @@ const EventDetailScreen = () => {
                 padding: 2,
                 backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                 borderColor: themeColors[theme]['border'],
-                borderWidth: 1
+                borderWidth: 1,
+                opacity: isUpdatingStatus ? 0.5 : 1
               }}
             >
               {canManageEvent && (
@@ -501,6 +494,8 @@ const EventDetailScreen = () => {
                     <IconButton
                       accessibilityLabel="Start event early"
                       onPress={handleStartEventEarly}
+                      disabled={isUpdatingStatus}
+                      loading={isUpdatingStatus}
                     >
                       <MaterialCommunityIcons
                         name="flag-triangle"
@@ -513,6 +508,8 @@ const EventDetailScreen = () => {
                     <IconButton
                       accessibilityLabel="End event early"
                       onPress={handleEndEventEarly}
+                      disabled={isUpdatingStatus}
+                      loading={isUpdatingStatus}
                     >
                       <MaterialCommunityIcons
                         name="flag-variant-remove-outline"
@@ -524,6 +521,7 @@ const EventDetailScreen = () => {
                   <IconButton
                     accessibilityLabel="Edit event"
                     onPress={() => setShowEditModal(true)}
+                    disabled={isUpdatingStatus}
                   >
                     <MaterialCommunityIcons
                       name="pencil-outline"
@@ -534,9 +532,10 @@ const EventDetailScreen = () => {
                   <IconButton
                     accessibilityLabel="Invite participants"
                     onPress={() => {
-                      if (!event || !user) return;
+                      if (!event || !user || isUpdatingStatus) return;
                       setShowInviteModal(true);
                     }}
+                    disabled={isUpdatingStatus}
                   >
                     <MaterialCommunityIcons
                       name="account-plus-outline"
@@ -632,7 +631,7 @@ const EventDetailScreen = () => {
                 tracks and vote.
               </TextCustom>
             </View>
-          ) : canAddTrack ? (
+          ) : canAddTrack && eventStatus !== 'ended' ? (
             <RippleButton
               title="Add track"
               size="sm"

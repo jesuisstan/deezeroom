@@ -158,14 +158,19 @@ export class EventService {
     const now = new Date();
     const startAt = new Date(data.startAt);
     const endAt = new Date(data.endAt);
-    if (startAt < now) {
-      throw new Error('Event start time must be in the future');
+    // Allow 1 minute tolerance for slow users (e.g., if user sets 13:10:00 but creates event at 13:10:30)
+    const TIME_TOLERANCE_MS = 60 * 1000; // 1 minute
+    const minAllowedTime = new Date(now.getTime() - TIME_TOLERANCE_MS);
+    if (startAt < minAllowedTime) {
+      throw new Error(
+        'Event start time must be in the future (within 1 minute tolerance)'
+      );
     }
     if (endAt <= startAt) {
       throw new Error('Event end time must be after start time');
     }
 
-    const status = this.computeStatus(startAt, endAt);
+    // Status will be computed automatically from startAt/endAt, no need to store it
     const eventData = {
       name: data.name.trim(),
       description: data.description?.trim() || null,
@@ -180,7 +185,6 @@ export class EventService {
       updatedAt: serverTimestamp(),
       startAt: Timestamp.fromDate(startAt),
       endAt: Timestamp.fromDate(endAt),
-      status,
       participantIds: [createdBy],
       pendingInviteIds: [],
       trackCount: 0
@@ -281,18 +285,10 @@ export class EventService {
 
     if (updates.startAt !== undefined && newStartAt) {
       updateData.startAt = Timestamp.fromDate(newStartAt);
-      // Recompute status
-      if (newEndAt) {
-        updateData.status = this.computeStatus(newStartAt, newEndAt);
-      }
     }
 
     if (updates.endAt !== undefined && newEndAt) {
       updateData.endAt = Timestamp.fromDate(newEndAt);
-      // Recompute status
-      if (newStartAt) {
-        updateData.status = this.computeStatus(newStartAt, newEndAt);
-      }
     }
 
     await updateDoc(eventRef, updateData);
@@ -949,7 +945,6 @@ export class EventService {
     // Use serverTimestamp() to ensure it's exactly the current server time
     await updateDoc(eventRef, {
       startAt: serverTimestamp(),
-      status: 'live', // Event becomes live when started
       updatedAt: serverTimestamp()
     });
   }
@@ -976,9 +971,9 @@ export class EventService {
 
     // Set endAt to current server time (exactly now, not earlier or later)
     // Use serverTimestamp() to ensure it's exactly the current server time
+    // Status will be computed automatically from startAt/endAt, no need to store it
     await updateDoc(eventRef, {
       endAt: serverTimestamp(),
-      status: 'ended', // Event becomes ended when finished early
       updatedAt: serverTimestamp()
     });
   }
@@ -1262,6 +1257,17 @@ export class EventService {
     return new Date(value).getTime();
   }
 
+  /**
+   * Compute event status from startAt and endAt timestamps
+   * IMPORTANT: Uses exact timestamp comparison (to the millisecond, not rounded)
+   * This ensures consistent status determination between Firebase Rules and frontend
+   * Time must be precise to avoid incorrect live/draft/ended status in UI
+   *
+   * Status logic:
+   * - 'ended': endAt <= now (event has finished)
+   * - 'draft': startAt > now (event hasn't started yet, or missing dates)
+   * - 'live': startAt <= now && endAt > now (event is currently running)
+   */
   private static computeStatus(startAt: Date, endAt: Date): EventStatus {
     const now = Date.now();
     if (endAt.getTime() <= now) {
@@ -1273,6 +1279,8 @@ export class EventService {
     return 'live';
   }
 
+  // IMPORTANT: Uses exact timestamp comparison (to the millisecond, not rounded)
+  // This ensures consistent status determination between Firebase Rules and frontend
   static hasEventEnded(event: Event): boolean {
     const end = this.toDate(event.endAt);
     if (!end) return false;
@@ -1289,16 +1297,30 @@ export class EventService {
     return !this.hasEventEnded(event);
   }
 
+  /**
+   * Get event status computed from startAt and endAt timestamps
+   * Status is always computed on-the-fly, never stored in database
+   *
+   * Returns 'draft' if:
+   * - Event has no startAt or endAt dates, OR
+   * - Event's startAt is in the future (hasn't started yet)
+   */
+  static getStatus(event: Event): EventStatus {
+    if (!event.startAt || !event.endAt) {
+      return 'draft';
+    }
+    return this.computeStatus(
+      new Date(event.startAt as any),
+      new Date(event.endAt as any)
+    );
+  }
+
   private static deserializeEventDoc(id: string, data: any): Event {
     const startAt = this.toDate(data?.startAt) ?? null;
     const endAt = this.toDate(data?.endAt) ?? null;
-    // Use status from database if available, otherwise compute it
+    // Always compute status from startAt/endAt, never use status from database
     const status =
-      data?.status && ['draft', 'live', 'ended'].includes(data.status)
-        ? (data.status as EventStatus)
-        : startAt && endAt
-          ? this.computeStatus(startAt, endAt)
-          : 'draft';
+      startAt && endAt ? this.computeStatus(startAt, endAt) : 'draft';
 
     return {
       id,

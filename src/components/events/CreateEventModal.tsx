@@ -35,7 +35,8 @@ interface CreateEventModalProps {
 }
 
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-const MIN_EVENT_DURATION_MS = 60 * 1000;
+const MIN_EVENT_DURATION_MS = 15 * 60 * 1000; // Minimum duration: 15 minutes
+const TIME_TOLERANCE_MS = 60 * 1000; // Allow 1 minute tolerance for slow users
 
 const CreateEventModal: React.FC<CreateEventModalProps> = ({
   visible,
@@ -77,6 +78,11 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
   const resetSchedule = () => {
     const now = new Date();
     now.setSeconds(0, 0);
+    // Round up to the nearest 15-minute interval
+    // Examples:
+    // - 13:21:00 -> 13:30:00 (rounds up to next 15-min mark)
+    // - 13:15:00 -> 13:15:00 (already on 15-min mark, stays the same)
+    // - 13:00:00 -> 13:00:00 (already on 15-min mark, stays the same)
     const roundedStart = new Date(
       Math.ceil(now.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000)
     );
@@ -124,14 +130,17 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   const handleStartChange = (next: Date) => {
     let adjusted = new Date(next);
+    // Round seconds to 0 for UI display only, but preserve exact time for storage
     adjusted.setSeconds(0, 0);
     const now = new Date();
-    now.setSeconds(0, 0);
-    if (adjusted < now) {
-      adjusted = now;
+    // Allow 1 minute tolerance for slow users
+    const minAllowedTime = new Date(now.getTime() - TIME_TOLERANCE_MS);
+    if (adjusted < minAllowedTime) {
+      adjusted = minAllowedTime;
     }
     setHasStartSelection(true);
     setStartAt(adjusted);
+    // Ensure minimum duration of 15 minutes
     const effectiveDuration = Math.max(durationMs, MIN_EVENT_DURATION_MS);
     const newEnd = new Date(adjusted.getTime() + effectiveDuration);
     setEndAt(newEnd);
@@ -141,6 +150,7 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
 
   const handleEndChange = (next: Date) => {
     let adjusted = new Date(next);
+    // Round seconds to 0 for UI display only, but preserve exact time for storage
     adjusted.setSeconds(0, 0);
     if (adjusted <= startAt) {
       setEndError('End time must be after start time');
@@ -149,10 +159,10 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     }
     const diff = adjusted.getTime() - startAt.getTime();
     if (diff < MIN_EVENT_DURATION_MS) {
-      setEndError('Event duration must be at least 1 minute');
+      setEndError('Event duration must be at least 15 minutes');
       Alert.alert(
         'Invalid Duration',
-        'Event duration must be at least 1 minute'
+        'Event duration must be at least 15 minutes'
       );
       return;
     }
@@ -181,8 +191,13 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({
     }
 
     const now = new Date();
-    if (startAt < now) {
-      Alert.alert('Invalid Schedule', 'Start time must be in the future');
+    // Allow 1 minute tolerance for slow users (e.g., if user sets 13:10:00 but creates event at 13:10:30)
+    const minAllowedTime = new Date(now.getTime() - TIME_TOLERANCE_MS);
+    if (startAt < minAllowedTime) {
+      Alert.alert(
+        'Invalid Schedule',
+        'Start time must be in the future (within 1 minute tolerance)'
+      );
       return;
     }
 

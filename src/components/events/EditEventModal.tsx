@@ -17,7 +17,7 @@ interface EditEventModalProps {
   onEventUpdated: () => void;
 }
 
-const MIN_EVENT_DURATION_MS = 60 * 1000;
+const MIN_EVENT_DURATION_MS = 15 * 60 * 1000; // Minimum duration: 15 minutes
 
 const EditEventModal: React.FC<EditEventModalProps> = ({
   visible,
@@ -128,10 +128,10 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
     const diff = adjusted.getTime() - startAt.getTime();
     if (diff < MIN_EVENT_DURATION_MS) {
-      setEndError('Event duration must be at least 1 minute');
+      setEndError('Event duration must be at least 15 minutes');
       Alert.alert(
         'Invalid Duration',
-        'Event duration must be at least 1 minute'
+        'Event duration must be at least 15 minutes'
       );
       return;
     }
