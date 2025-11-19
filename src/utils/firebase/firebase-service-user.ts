@@ -4,6 +4,7 @@ import {
   collectionGroup,
   deleteDoc,
   doc,
+  FirestoreError,
   getDoc,
   getDocs,
   limit,
@@ -686,13 +687,29 @@ export class UserService {
     callback: (user: UserProfile | null) => void
   ) {
     const userRef = doc(db, this.collection, uid);
-    return onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        callback(doc.data() as UserProfile);
-      } else {
+    return onSnapshot(
+      userRef,
+      (doc) => {
+        if (doc.exists()) {
+          callback(doc.data() as UserProfile);
+        } else {
+          callback(null);
+        }
+      },
+      (error) => {
+        const firestoreError = error as FirestoreError;
+        // Suppress permission-denied errors silently (expected for non-friends)
+        if (firestoreError?.code !== 'permission-denied') {
+          Logger.warn(
+            'Error in subscribeToUserProfile',
+            error,
+            '👤 UserService'
+          );
+        }
+        // Call callback with null to indicate no access
         callback(null);
       }
-    });
+    );
   }
 
   // Upload user avatar and update profile

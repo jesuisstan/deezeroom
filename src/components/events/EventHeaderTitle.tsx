@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useGlobalSearchParams } from 'expo-router';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -9,20 +9,28 @@ import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 
 const EventHeaderTitle: React.FC = () => {
   const { theme } = useTheme();
+  const segments = useSegments();
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const [event, setEvent] = useState<Event | null>(null);
 
-  useEffect(() => {
-    if (!id) return;
+  // Only use id if we're on an event route
+  const isEventRoute = (segments as string[]).includes('events');
+  const eventId = isEventRoute ? id : null;
 
-    const unsubscribe = EventService.subscribeToEvent(id, (updatedEvent) => {
-      setEvent(updatedEvent);
-    });
+  useEffect(() => {
+    if (!eventId) return;
+
+    const unsubscribe = EventService.subscribeToEvent(
+      eventId,
+      (updatedEvent) => {
+        setEvent(updatedEvent);
+      }
+    );
 
     return () => {
       unsubscribe();
     };
-  }, [id]);
+  }, [eventId]);
 
   return (
     <TextCustom type="subtitle" color={themeColors[theme]['text-main']}>

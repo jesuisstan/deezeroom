@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useGlobalSearchParams } from 'expo-router';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -12,18 +12,23 @@ import {
 
 const PlaylistHeaderTitle: React.FC = () => {
   const { theme } = useTheme();
+  const segments = useSegments();
   const { id } = useGlobalSearchParams<{ id?: string }>();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  console.log('segments', segments);
+  // Only use id if we're on a playlist route
+  const isPlaylistRoute = (segments as string[]).includes('playlists');
+  const playlistId = isPlaylistRoute ? id : null;
 
   useEffect(() => {
-    if (!id) return;
+    if (!playlistId) return;
 
     let isMounted = true;
 
     // Initial load
     const load = async () => {
       try {
-        const data = await PlaylistService.getPlaylist(id);
+        const data = await PlaylistService.getPlaylist(playlistId);
         if (isMounted) setPlaylist(data);
       } catch {
         // swallow
@@ -34,7 +39,7 @@ const PlaylistHeaderTitle: React.FC = () => {
 
     // Subscribe to real-time updates
     const unsubscribe = PlaylistService.subscribeToPlaylist(
-      id,
+      playlistId,
       (updatedPlaylist) => {
         if (!isMounted) return;
         if (updatedPlaylist) {
@@ -49,7 +54,7 @@ const PlaylistHeaderTitle: React.FC = () => {
       isMounted = false;
       unsubscribe();
     };
-  }, [id]);
+  }, [playlistId]);
 
   return (
     <TextCustom type="subtitle" color={themeColors[theme]['text-main']}>
