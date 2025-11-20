@@ -311,7 +311,7 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
             Loaded {loadedTracks.length} of {favoriteTrackIds.length} tracks
           </TextCustom>
           <RippleButton
-            title="Load more"
+            title="More"
             size="sm"
             onPress={handleLoadMore}
             loading={isLoadingMore}

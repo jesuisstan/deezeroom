@@ -7,7 +7,7 @@ import {
   View
 } from 'react-native';
 
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { usePathname, useRouter } from 'expo-router';
 
@@ -136,15 +136,27 @@ const MiniPlayer = () => {
               />
             </IconButton>
             <View className="flex-1">
-              <TextCustom
-                type="semibold"
-                size="s"
-                className="w-full"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {currentTrack?.title ?? 'No track selected'}
-              </TextCustom>
+              <View className="flex-row items-center gap-2">
+                {/* Track title */}
+                <TextCustom
+                  type="semibold"
+                  size="s"
+                  className="flex-shrink"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {currentTrack?.title ?? 'No track selected'}
+                </TextCustom>
+                {/* Explicit lyrics icon */}
+                {currentTrack?.explicitLyrics && (
+                  <MaterialIcons
+                    name="explicit"
+                    size={15}
+                    color={themeColors[theme]['intent-warning']}
+                  />
+                )}
+              </View>
+              {/* Artist and album name */}
               <TextCustom
                 size="xs"
                 color={themeColors[theme]['text-secondary']}

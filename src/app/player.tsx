@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { Dimensions, Platform, View } from 'react-native';
 
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -235,15 +235,24 @@ const PlayerScreen = () => {
                     trackDuration={currentTrack?.duration}
                   />
                   <View className="w-full items-center gap-1 px-4">
-                    <TextCustom
-                      type="title"
-                      size="3xl"
-                      className="w-full text-center"
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {currentTrack?.title ?? 'Start playing a track'}
-                    </TextCustom>
+                    <View className="flex-row items-center gap-2">
+                      {currentTrack?.explicitLyrics && (
+                        <MaterialIcons
+                          name="explicit"
+                          size={21}
+                          color={themeColors[theme]['intent-warning']}
+                        />
+                      )}
+                      <TextCustom
+                        type="title"
+                        size="3xl"
+                        className="flex-shrink text-center"
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {currentTrack?.title ?? 'Start playing a track'}
+                      </TextCustom>
+                    </View>
                     <TextCustom
                       type="semibold"
                       color={themeColors[theme]['text-secondary']}

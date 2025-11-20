@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Image, Platform, View } from 'react-native';
 
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import ProgressBar from '@/components/player/ProgressBar';
@@ -109,14 +109,23 @@ const WebPlayerBar = () => {
                 resizeMode="cover"
               />
               <View style={{ flexShrink: 1 }}>
-                <TextCustom
-                  type="semibold"
-                  size="s"
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {track.title}
-                </TextCustom>
+                <View className="flex-row items-center gap-2">
+                  <TextCustom
+                    type="semibold"
+                    size="s"
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {track.title}
+                  </TextCustom>
+                  {track.explicitLyrics && (
+                    <MaterialIcons
+                      name="explicit"
+                      size={18}
+                      color={themeColors[theme]['intent-warning']}
+                    />
+                  )}
+                </View>
                 {track.artist?.name ? (
                   <TextCustom
                     size="xs"
