@@ -264,7 +264,9 @@ const EventsScreen = () => {
               : { width: '100%' }
           }
         >
-          <CreateEventButton onPress={() => setShowCreateModal(true)} />
+          <View className="mb-4">
+            <CreateEventButton onPress={() => setShowCreateModal(true)} />
+          </View>
 
           {isLoading ? (
             <View className="items-center justify-center py-12">

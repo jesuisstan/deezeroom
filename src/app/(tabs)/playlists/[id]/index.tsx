@@ -980,162 +980,191 @@ const PlaylistDetailScreen = () => {
           ...containerWidthStyle
         }}
       >
-        {/* Swipeable Cover/Description Section with floating action buttons */}
-        <View style={{ position: 'relative' }}>
-          <TabView
-            navigationState={{ index, routes }}
-            renderScene={renderScene}
-            onIndexChange={setIndex}
-            initialLayout={{ width: Dimensions.get('window').width }}
-            style={{ height: Dimensions.get('window').width }}
-            renderTabBar={() => null}
-          />
+        {/* Adaptive layout: horizontal for web, vertical for mobile */}
+        <View
+          style={
+            Platform.OS === 'web'
+              ? { flexDirection: 'row', gap: 24, paddingHorizontal: 16 }
+              : {}
+          }
+        >
+          {/* Left Column (Web) / Top Section (Mobile): TabView with info */}
+          <View
+            style={
+              Platform.OS === 'web'
+                ? { width: 450, flexShrink: 0 }
+                : { width: '100%' }
+            }
+          >
+            {/* Swipeable Cover/Description Section with floating action buttons */}
+            <View style={{ position: 'relative' }}>
+              <TabView
+                navigationState={{ index, routes }}
+                renderScene={renderScene}
+                onIndexChange={setIndex}
+                initialLayout={{
+                  width:
+                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                }}
+                style={{
+                  height:
+                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                }}
+                renderTabBar={() => null}
+              />
 
-          {/* Action buttons - visible for owner and participants */}
-          {(canEdit ||
-            playlist.ownerId === user?.uid ||
-            playlist.participantIds.includes(user?.uid || '')) && (
-            <View
-              style={{
-                position: 'absolute',
-                zIndex: 10,
-                right: 12,
-                bottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderRadius: 6,
-                padding: 2,
-                backgroundColor: themeColors[theme]['bg-secondary'] + '99',
-                borderColor: themeColors[theme]['border'],
-                borderWidth: 1
-              }}
-            >
-              {playlist.ownerId === user?.uid && (
-                <IconButton
-                  accessibilityLabel="Delete playlist"
-                  onPress={handleDeletePlaylist}
+              {/* Action buttons - visible for owner and participants */}
+              {(canEdit ||
+                playlist.ownerId === user?.uid ||
+                playlist.participantIds.includes(user?.uid || '')) && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    zIndex: 10,
+                    right: 12,
+                    bottom: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderRadius: 6,
+                    padding: 2,
+                    backgroundColor: themeColors[theme]['bg-secondary'] + '99',
+                    borderColor: themeColors[theme]['border'],
+                    borderWidth: 1
+                  }}
                 >
-                  <MaterialCommunityIcons
-                    name="delete-outline"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
-              )}
+                  {playlist.ownerId === user?.uid && (
+                    <IconButton
+                      accessibilityLabel="Delete playlist"
+                      onPress={handleDeletePlaylist}
+                    >
+                      <MaterialCommunityIcons
+                        name="delete-outline"
+                        size={20}
+                        color={themeColors[theme]['text-main']}
+                      />
+                    </IconButton>
+                  )}
 
-              <IconButton
-                accessibilityLabel="Edit playlist"
-                onPress={handleEditPlaylist}
-              >
-                <MaterialCommunityIcons
-                  name="pencil-outline"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-              </IconButton>
+                  <IconButton
+                    accessibilityLabel="Edit playlist"
+                    onPress={handleEditPlaylist}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil-outline"
+                      size={20}
+                      color={themeColors[theme]['text-main']}
+                    />
+                  </IconButton>
 
-              {(canEdit || playlist.ownerId === user?.uid) && (
-                <IconButton
-                  accessibilityLabel="Invite users"
-                  onPress={handleInviteUsers}
-                >
-                  <MaterialCommunityIcons
-                    name="account-plus-outline"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
-              )}
+                  {(canEdit || playlist.ownerId === user?.uid) && (
+                    <IconButton
+                      accessibilityLabel="Invite users"
+                      onPress={handleInviteUsers}
+                      className="h-10 w-10"
+                    >
+                      <MaterialCommunityIcons
+                        name="account-plus-outline"
+                        size={20}
+                        color={themeColors[theme]['text-main']}
+                      />
+                    </IconButton>
+                  )}
 
-              {Platform.OS === 'web' && (
-                <IconButton
-                  accessibilityLabel="Refresh playlist"
-                  onPress={handleRefresh}
-                >
-                  <MaterialCommunityIcons
-                    name="refresh"
-                    size={20}
-                    color={themeColors[theme]['text-main']}
-                  />
-                </IconButton>
+                  {Platform.OS === 'web' && (
+                    <IconButton
+                      accessibilityLabel="Refresh playlist"
+                      onPress={handleRefresh}
+                    >
+                      <MaterialCommunityIcons
+                        name="refresh"
+                        size={20}
+                        color={themeColors[theme]['text-main']}
+                      />
+                    </IconButton>
+                  )}
+                </View>
               )}
             </View>
-          )}
-        </View>
 
-        {/* Rectangular indicators-switches under tabs (no labels) */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 4,
-            paddingVertical: 4
-          }}
-        >
-          {routes.map((r, i) => (
-            <Pressable
-              key={r.key}
-              onPress={() => setIndex(i)}
+            {/* Rectangular indicators-switches under tabs (no labels) */}
+            <View
               style={{
-                width: 15,
-                height: 4,
-                borderRadius: 3,
-                backgroundColor:
-                  i === index
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['text-secondary'] + '55'
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 4,
+                paddingVertical: 4
               }}
-            />
-          ))}
-        </View>
-
-        {/* Action Buttons moved to floating group above cover */}
-
-        {/* Add Track Button - only visible if user can edit */}
-        {canEdit ? (
-          <AddTracksButton onPress={handleAddTrack} />
-        ) : (
-          <View
-            style={{
-              borderRadius: 6,
-              padding: 12,
-              backgroundColor: themeColors[theme]['intent-warning'] + '22',
-              borderWidth: 1,
-              borderColor: themeColors[theme]['intent-warning'],
-              marginHorizontal: 16,
-              marginBottom: 8
-            }}
-          >
-            <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
-              You don't have permission to edit this playlist
-            </TextCustom>
+            >
+              {routes.map((r, i) => (
+                <Pressable
+                  key={r.key}
+                  onPress={() => setIndex(i)}
+                  style={{
+                    width: 15,
+                    height: 4,
+                    borderRadius: 3,
+                    backgroundColor:
+                      i === index
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary'] + '55'
+                  }}
+                />
+              ))}
+            </View>
           </View>
-        )}
 
-        {/* Tracks List */}
-        <View>
-          {tracksLoading ? (
-            <ActivityIndicator
-              size="small"
-              color={themeColors[theme]['primary']}
-              className="m-4"
-            />
-          ) : tracks && tracks.length > 0 ? (
-            <DraggableTracksList
-              tracks={tracks}
-              currentTrackId={currentTrack?.id}
-              isPlaying={isPlaying}
-              onPress={handlePlayTrack}
-              onRemove={handleRemoveTrack}
-              onReorder={handleReorderTrack}
-              canEdit={canEdit}
-              draggedIndex={draggedIndex}
-              offsetY={offsetY}
-              autoScroll={autoScroll}
-              scrollOffsetY={scrollOffsetY}
-            />
-          ) : null}
+          {/* Right Column (Web) / Bottom Section (Mobile): Tracks list */}
+          <View style={{ flex: 1 }}>
+            {/* Add Track Button - only visible if user can edit */}
+            {canEdit ? (
+              <AddTracksButton onPress={handleAddTrack} />
+            ) : (
+              <View
+                style={{
+                  borderRadius: 6,
+                  padding: 12,
+                  backgroundColor: themeColors[theme]['intent-warning'] + '22',
+                  borderWidth: 1,
+                  borderColor: themeColors[theme]['intent-warning'],
+                  marginHorizontal: Platform.OS === 'web' ? 0 : 16,
+                  marginBottom: 8
+                }}
+              >
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['intent-warning']}
+                >
+                  You don't have permission to edit this playlist
+                </TextCustom>
+              </View>
+            )}
+
+            {/* Tracks List */}
+            <View>
+              {tracksLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={themeColors[theme]['primary']}
+                  className="m-4"
+                />
+              ) : tracks && tracks.length > 0 ? (
+                <DraggableTracksList
+                  tracks={tracks}
+                  currentTrackId={currentTrack?.id}
+                  isPlaying={isPlaying}
+                  onPress={handlePlayTrack}
+                  onRemove={handleRemoveTrack}
+                  onReorder={handleReorderTrack}
+                  canEdit={canEdit}
+                  draggedIndex={draggedIndex}
+                  offsetY={offsetY}
+                  autoScroll={autoScroll}
+                  scrollOffsetY={scrollOffsetY}
+                />
+              ) : null}
+            </View>
+          </View>
         </View>
       </ScrollView>
 

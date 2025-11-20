@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import clsx from 'clsx';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TabView } from 'react-native-tab-view';
 
@@ -454,227 +455,274 @@ const EventDetailScreen = () => {
         }}
         showsVerticalScrollIndicator={true}
       >
-        <View style={{ position: 'relative' }}>
-          <TabView
-            navigationState={{ index: tabIndex, routes }}
-            renderScene={renderScene}
-            onIndexChange={setTabIndex}
-            initialLayout={{ width: Dimensions.get('window').width }}
-            style={{ height: Dimensions.get('window').width }}
-            renderTabBar={() => null}
-          />
+        {/* Adaptive layout: horizontal for web, vertical for mobile */}
+        <View
+          style={
+            Platform.OS === 'web'
+              ? { flexDirection: 'row', gap: 24, paddingHorizontal: 16 }
+              : {}
+          }
+        >
+          {/* Left Column (Web) / Top Section (Mobile): TabView with info */}
+          <View
+            style={
+              Platform.OS === 'web'
+                ? { width: 450, flexShrink: 0 }
+                : { width: '100%' }
+            }
+          >
+            <View style={{ position: 'relative' }}>
+              <TabView
+                navigationState={{ index: tabIndex, routes }}
+                renderScene={renderScene}
+                onIndexChange={setTabIndex}
+                initialLayout={{
+                  width:
+                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                }}
+                style={{
+                  height:
+                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                }}
+                renderTabBar={() => null}
+              />
 
-          {/* Event status indicator */}
-          <EventStatusIndicator
-            eventStatus={eventStatus}
-            isUpdatingStatus={isUpdatingStatus}
-          />
+              {/* Event status indicator */}
+              <EventStatusIndicator
+                eventStatus={eventStatus}
+                isUpdatingStatus={isUpdatingStatus}
+              />
 
-          {/* Event actions bar */}
-          {!isEventEnded && (
-            <View
-              style={{
-                position: 'absolute',
-                zIndex: 10,
-                right: 12,
-                bottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                borderRadius: 6,
-                padding: 2,
-                backgroundColor: themeColors[theme]['bg-secondary'] + '99',
-                borderColor: themeColors[theme]['border'],
-                borderWidth: 1,
-                opacity: isUpdatingStatus ? 0.5 : 1
-              }}
-            >
-              {canManageEvent && (
-                <>
-                  {!hasEventStarted && (
-                    <IconButton
-                      accessibilityLabel="Start event early"
-                      onPress={handleStartEventEarly}
-                      disabled={isUpdatingStatus}
-                      loading={isUpdatingStatus}
-                    >
-                      <MaterialCommunityIcons
-                        name="flag-triangle"
-                        size={20}
-                        color={themeColors[theme]['primary']}
-                      />
-                    </IconButton>
+              {/* Event actions bar */}
+              {!isEventEnded && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    zIndex: 10,
+                    right: 12,
+                    bottom: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderRadius: 6,
+                    padding: 2,
+                    backgroundColor: themeColors[theme]['bg-secondary'] + '99',
+                    borderColor: themeColors[theme]['border'],
+                    borderWidth: 1,
+                    opacity: isUpdatingStatus ? 0.5 : 1
+                  }}
+                >
+                  {canManageEvent && (
+                    <>
+                      {!hasEventStarted && (
+                        <IconButton
+                          accessibilityLabel="Start event early"
+                          onPress={handleStartEventEarly}
+                          disabled={isUpdatingStatus}
+                          loading={isUpdatingStatus}
+                        >
+                          <MaterialCommunityIcons
+                            name="flag-triangle"
+                            size={20}
+                            color={themeColors[theme]['primary']}
+                          />
+                        </IconButton>
+                      )}
+                      {hasEventStarted && !isEventEnded && (
+                        <IconButton
+                          accessibilityLabel="End event early"
+                          onPress={handleEndEventEarly}
+                          disabled={isUpdatingStatus}
+                          loading={isUpdatingStatus}
+                        >
+                          <MaterialCommunityIcons
+                            name="flag-variant-remove-outline"
+                            size={20}
+                            color={themeColors[theme]['intent-error']}
+                          />
+                        </IconButton>
+                      )}
+                      <IconButton
+                        accessibilityLabel="Edit event"
+                        onPress={() => setShowEditModal(true)}
+                        disabled={isUpdatingStatus}
+                      >
+                        <MaterialCommunityIcons
+                          name="pencil-outline"
+                          size={20}
+                          color={themeColors[theme]['text-main']}
+                        />
+                      </IconButton>
+                      <IconButton
+                        accessibilityLabel="Invite participants"
+                        onPress={() => {
+                          if (!event || !user || isUpdatingStatus) return;
+                          setShowInviteModal(true);
+                        }}
+                        disabled={isUpdatingStatus}
+                      >
+                        <MaterialCommunityIcons
+                          name="account-plus-outline"
+                          size={20}
+                          color={themeColors[theme]['text-main']}
+                        />
+                      </IconButton>
+                    </>
                   )}
-                  {hasEventStarted && !isEventEnded && (
-                    <IconButton
-                      accessibilityLabel="End event early"
-                      onPress={handleEndEventEarly}
-                      disabled={isUpdatingStatus}
-                      loading={isUpdatingStatus}
-                    >
-                      <MaterialCommunityIcons
-                        name="flag-variant-remove-outline"
-                        size={20}
-                        color={themeColors[theme]['intent-error']}
-                      />
-                    </IconButton>
-                  )}
-                  <IconButton
-                    accessibilityLabel="Edit event"
-                    onPress={() => setShowEditModal(true)}
-                    disabled={isUpdatingStatus}
-                  >
-                    <MaterialCommunityIcons
-                      name="pencil-outline"
-                      size={20}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </IconButton>
-                  <IconButton
-                    accessibilityLabel="Invite participants"
-                    onPress={() => {
-                      if (!event || !user || isUpdatingStatus) return;
-                      setShowInviteModal(true);
-                    }}
-                    disabled={isUpdatingStatus}
-                  >
-                    <MaterialCommunityIcons
-                      name="account-plus-outline"
-                      size={20}
-                      color={themeColors[theme]['text-main']}
-                    />
-                  </IconButton>
-                </>
+                </View>
               )}
             </View>
-          )}
-        </View>
 
-        {/* Rectangular indicators-switches under tabs (no labels) */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: 4,
-            paddingVertical: 4
-          }}
-        >
-          {routes.map((route, idx) => (
-            <Pressable
-              key={route.key}
-              onPress={() => setTabIndex(idx)}
-              style={{
-                width: 16,
-                height: 4,
-                borderRadius: 4,
-                backgroundColor:
-                  idx === tabIndex
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['text-secondary'] + '55'
-              }}
-            />
-          ))}
-        </View>
-
-        {isEventEnded ? (
-          <View
-            style={{
-              borderRadius: 6,
-              padding: 16,
-              backgroundColor: themeColors[theme]['intent-warning'] + '22',
-              borderWidth: 1,
-              borderColor: themeColors[theme]['intent-warning'],
-              marginHorizontal: 16
-            }}
-          >
-            <TextCustom
-              type="semibold"
-              color={themeColors[theme]['intent-warning']}
-            >
-              This event has ended
-            </TextCustom>
-            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-              Voting and editing are no longer available.
-            </TextCustom>
-            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-              You can still review the playlist below.
-            </TextCustom>
-          </View>
-        ) : null}
-
-        <View className="gap-4 p-4">
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <TextCustom type="semibold">Tracks</TextCustom>
-            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-              {tracks.length} total
-            </TextCustom>
-          </View>
-
-          {isPublicInvitedNonParticipant ? (
+            {/* Rectangular indicators-switches under tabs (no labels) */}
             <View
               style={{
-                borderRadius: 6,
-                padding: 12,
-                backgroundColor: themeColors[theme]['intent-warning'] + '22',
-                borderWidth: 1,
-                borderColor: themeColors[theme]['intent-warning']
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 4,
+                paddingVertical: 4
               }}
             >
-              <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
-                You can view this event, but only invited participants can add
-                tracks and vote.
-              </TextCustom>
-            </View>
-          ) : canAddTrack && eventStatus !== 'ended' ? (
-            <RippleButton
-              title="Add track"
-              size="sm"
-              onPress={() => setShowAddTrackModal(true)}
-              variant="outline"
-              leftIcon={
-                <MaterialCommunityIcons
-                  name="plus"
-                  size={18}
-                  color={themeColors[theme]['primary']}
+              {routes.map((route, idx) => (
+                <Pressable
+                  key={route.key}
+                  onPress={() => setTabIndex(idx)}
+                  style={{
+                    width: 16,
+                    height: 4,
+                    borderRadius: 4,
+                    backgroundColor:
+                      idx === tabIndex
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary'] + '55'
+                  }}
                 />
-              }
-            />
-          ) : null}
-
-          {tracks.length === 0 ? (
-            <View className="items-center justify-center py-12">
-              <MaterialCommunityIcons
-                name="playlist-music"
-                size={42}
-                color={themeColors[theme]['text-secondary']}
-              />
-              <TextCustom
-                className="mt-4 text-center"
-                color={themeColors[theme]['text-secondary']}
-              >
-                No tracks added{canAddTrack ? '. Be the first to add one!' : ''}
-              </TextCustom>
+              ))}
             </View>
-          ) : (
-            tracks.map((eventTrack) => (
-              <EventTrackCard
-                key={eventTrack.id}
-                track={eventTrack}
-                hasVoted={!!userVotes[eventTrack.trackId]}
-                canVote={canVote}
-                isVoting={processingVote === eventTrack.trackId}
-                onToggleVote={() => handleToggleVote(eventTrack.trackId)}
-                currentUserId={user?.uid}
-                onRemoveTrack={() => handleRemoveTrack(eventTrack.trackId)}
-              />
-            ))
-          )}
+          </View>
+
+          {/* Right Column (Web) / Bottom Section (Mobile): Tracks list */}
+          <View className={clsx(Platform.OS === 'web' ? 'mt-4' : '', 'flex-1')}>
+            {isEventEnded ? (
+              <View
+                style={{
+                  borderRadius: 6,
+                  padding: 16,
+                  backgroundColor: themeColors[theme]['intent-warning'] + '22',
+                  borderWidth: 1,
+                  borderColor: themeColors[theme]['intent-warning'],
+                  marginHorizontal: Platform.OS === 'web' ? 0 : 16
+                }}
+              >
+                <TextCustom
+                  type="semibold"
+                  color={themeColors[theme]['intent-warning']}
+                >
+                  This event has ended
+                </TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  Voting and editing are no longer available.
+                </TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  You can still review the playlist below.
+                </TextCustom>
+              </View>
+            ) : null}
+
+            <View
+              className="gap-4"
+              style={{
+                padding: Platform.OS === 'web' ? 0 : 16,
+                paddingTop: Platform.OS === 'web' && !isEventEnded ? 0 : 16
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <TextCustom type="semibold">Tracks</TextCustom>
+                <TextCustom
+                  size="s"
+                  color={themeColors[theme]['text-secondary']}
+                >
+                  {tracks.length} total
+                </TextCustom>
+              </View>
+
+              {isPublicInvitedNonParticipant ? (
+                <View
+                  style={{
+                    borderRadius: 6,
+                    padding: 12,
+                    backgroundColor:
+                      themeColors[theme]['intent-warning'] + '22',
+                    borderWidth: 1,
+                    borderColor: themeColors[theme]['intent-warning']
+                  }}
+                >
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['intent-warning']}
+                  >
+                    You can view this event, but only invited participants can
+                    add tracks and vote.
+                  </TextCustom>
+                </View>
+              ) : canAddTrack && eventStatus !== 'ended' ? (
+                <RippleButton
+                  title="Add track"
+                  size="sm"
+                  onPress={() => setShowAddTrackModal(true)}
+                  variant="outline"
+                  leftIcon={
+                    <MaterialCommunityIcons
+                      name="plus"
+                      size={18}
+                      color={themeColors[theme]['primary']}
+                    />
+                  }
+                />
+              ) : null}
+
+              {tracks.length === 0 ? (
+                <View className="items-center justify-center py-12">
+                  <MaterialCommunityIcons
+                    name="playlist-music"
+                    size={42}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                  <TextCustom
+                    className="mt-4 text-center"
+                    color={themeColors[theme]['text-secondary']}
+                  >
+                    No tracks added
+                    {canAddTrack ? '. Be the first to add one!' : ''}
+                  </TextCustom>
+                </View>
+              ) : (
+                tracks.map((eventTrack) => (
+                  <EventTrackCard
+                    key={eventTrack.id}
+                    track={eventTrack}
+                    hasVoted={!!userVotes[eventTrack.trackId]}
+                    canVote={canVote}
+                    isVoting={processingVote === eventTrack.trackId}
+                    onToggleVote={() => handleToggleVote(eventTrack.trackId)}
+                    currentUserId={user?.uid}
+                    onRemoveTrack={() => handleRemoveTrack(eventTrack.trackId)}
+                  />
+                ))
+              )}
+            </View>
+          </View>
         </View>
       </ScrollView>
 
