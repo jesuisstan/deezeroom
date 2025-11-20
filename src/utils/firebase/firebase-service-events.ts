@@ -45,6 +45,26 @@ export interface EventTimeWindow {
   endAt?: Date;
 }
 
+export interface CurrentlyPlayingTrack {
+  trackId: string;
+  title: string;
+  artist: string;
+  albumCover?: string;
+  duration: number;
+  explicitLyrics?: boolean;
+}
+
+export interface PlayedTrack {
+  trackId: string;
+  title: string;
+  artist: string;
+  albumCover?: string;
+  duration: number;
+  playedAt: Date | any; // Firestore Timestamp
+  voteCount: number;
+  skipped: boolean;
+}
+
 export interface Event {
   id: string;
   name: string;
@@ -64,6 +84,11 @@ export interface Event {
   participantIds: string[];
   pendingInviteIds?: string[];
   trackCount: number;
+  
+  // Playback state
+  currentlyPlayingTrack?: CurrentlyPlayingTrack | null;
+  isPlaying: boolean;
+  playedTracks?: PlayedTrack[];
 }
 
 export interface EventTrack {
@@ -187,7 +212,11 @@ export class EventService {
       endAt: Timestamp.fromDate(endAt),
       participantIds: [createdBy],
       pendingInviteIds: [],
-      trackCount: 0
+      trackCount: 0,
+      // Playback state
+      currentlyPlayingTrack: null,
+      isPlaying: false,
+      playedTracks: []
     };
 
     const docRef = await addDoc(collection(db, this.collection), eventData);
@@ -1350,7 +1379,199 @@ export class EventService {
       pendingInviteIds: Array.isArray(data?.pendingInviteIds)
         ? data.pendingInviteIds
         : [],
-      trackCount: data?.trackCount ?? 0
+      trackCount: data?.trackCount ?? 0,
+      // Playback state
+      currentlyPlayingTrack: data?.currentlyPlayingTrack ?? null,
+      isPlaying: data?.isPlaying ?? false,
+      playedTracks: Array.isArray(data?.playedTracks)
+        ? data.playedTracks.map((pt: any) => ({
+            ...pt,
+            playedAt: this.toDate(pt.playedAt)
+          }))
+        : []
     } as Event;
+  }
+
+  // ===== PLAYBACK MANAGEMENT =====
+
+  /**
+   * Start playback of a track
+   * Sets currentlyPlayingTrack with track metadata
+   */
+  static async startTrackPlayback(
+    eventId: string,
+    track: EventTrack,
+    hostId: string
+  ): Promise<void> {
+    const eventRef = doc(db, this.collection, eventId);
+
+    const currentlyPlayingTrack: CurrentlyPlayingTrack = {
+      trackId: track.trackId,
+      title: track.track.title || 'Unknown',
+      artist: track.track.artist?.name || 'Unknown',
+      albumCover: track.track.album?.coverMedium,
+      duration: track.track.duration || 0,
+      explicitLyrics: track.track.explicitLyrics || false
+    };
+
+    await updateDoc(eventRef, {
+      currentlyPlayingTrack,
+      isPlaying: true,
+      updatedAt: serverTimestamp()
+    });
+
+    Logger.info('Track playback started', { eventId, trackId: track.trackId });
+  }
+
+  /**
+   * Pause playback
+   */
+  static async pausePlayback(eventId: string, hostId: string): Promise<void> {
+    await updateDoc(doc(db, this.collection, eventId), {
+      isPlaying: false,
+      updatedAt: serverTimestamp()
+    });
+
+    Logger.info('Playback paused', { eventId });
+  }
+
+  /**
+   * Resume playback
+   */
+  static async resumePlayback(eventId: string, hostId: string): Promise<void> {
+    await updateDoc(doc(db, this.collection, eventId), {
+      isPlaying: true,
+      updatedAt: serverTimestamp()
+    });
+
+    Logger.info('Playback resumed', { eventId });
+  }
+
+  /**
+   * Finish track (played to the end)
+   * Moves track to playedTracks and deletes from queue
+   */
+  static async finishTrack(eventId: string, hostId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const eventRef = doc(db, this.collection, eventId);
+      const eventSnap = await transaction.get(eventRef);
+
+      if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+      }
+
+      const event = eventSnap.data() as Event;
+      const currentTrack = event.currentlyPlayingTrack;
+
+      if (!currentTrack) {
+        throw new Error('No track is currently playing');
+      }
+
+      // Get voteCount from tracks subcollection
+      const trackRef = doc(
+        db,
+        this.collection,
+        eventId,
+        this.tracksCollection,
+        currentTrack.trackId
+      );
+      const trackSnap = await transaction.get(trackRef);
+      const trackData = trackSnap.exists()
+        ? (trackSnap.data() as EventTrackDoc)
+        : null;
+
+      // Create PlayedTrack
+      // Note: serverTimestamp() cannot be used inside arrayUnion() in transactions
+      // Use Timestamp.now() instead
+      const playedTrack: PlayedTrack = {
+        trackId: currentTrack.trackId,
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        albumCover: currentTrack.albumCover,
+        duration: currentTrack.duration,
+        playedAt: Timestamp.now(),
+        voteCount: trackData?.voteCount || 0,
+        skipped: false
+      };
+
+      // Update event
+      transaction.update(eventRef, {
+        currentlyPlayingTrack: null,
+        isPlaying: false,
+        playedTracks: arrayUnion(playedTrack),
+        updatedAt: serverTimestamp()
+      });
+
+      // Delete track from queue if exists
+      if (trackSnap.exists()) {
+        transaction.delete(trackRef);
+      }
+    });
+
+    Logger.info('Track finished', { eventId });
+  }
+
+  /**
+   * Skip track (didn't play to the end)
+   * Moves track to playedTracks with skipped flag and deletes from queue
+   */
+  static async skipTrack(eventId: string, hostId: string): Promise<void> {
+    await runTransaction(db, async (transaction) => {
+      const eventRef = doc(db, this.collection, eventId);
+      const eventSnap = await transaction.get(eventRef);
+
+      if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+      }
+
+      const event = eventSnap.data() as Event;
+      const currentTrack = event.currentlyPlayingTrack;
+
+      if (!currentTrack) {
+        throw new Error('No track is currently playing');
+      }
+
+      // Get voteCount from tracks subcollection
+      const trackRef = doc(
+        db,
+        this.collection,
+        eventId,
+        this.tracksCollection,
+        currentTrack.trackId
+      );
+      const trackSnap = await transaction.get(trackRef);
+      const trackData = trackSnap.exists()
+        ? (trackSnap.data() as EventTrackDoc)
+        : null;
+
+      // Create PlayedTrack with skipped: true
+      // Note: serverTimestamp() cannot be used inside arrayUnion() in transactions
+      // Use Timestamp.now() instead
+      const playedTrack: PlayedTrack = {
+        trackId: currentTrack.trackId,
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        albumCover: currentTrack.albumCover,
+        duration: currentTrack.duration,
+        playedAt: Timestamp.now(),
+        voteCount: trackData?.voteCount || 0,
+        skipped: true
+      };
+
+      // Update event
+      transaction.update(eventRef, {
+        currentlyPlayingTrack: null,
+        isPlaying: false,
+        playedTracks: arrayUnion(playedTrack),
+        updatedAt: serverTimestamp()
+      });
+
+      // Delete track from queue if exists
+      if (trackSnap.exists()) {
+        transaction.delete(trackRef);
+      }
+    });
+
+    Logger.info('Track skipped', { eventId });
   }
 }

@@ -16,9 +16,11 @@ import { TabView } from 'react-native-tab-view';
 import EditEventModal from '@/components/events/EditEventModal';
 import EventCoverTab from '@/components/events/EventCoverTab';
 import EventInfoTab from '@/components/events/EventInfoTab';
+import EventMonitor from '@/components/events/EventMonitor';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
 import EventStatusIndicator from '@/components/events/EventStatusIndicator';
 import EventTrackCard from '@/components/events/EventTrackCard';
+import PlayedTrackCard from '@/components/events/PlayedTrackCard';
 import { Alert } from '@/components/modules/alert';
 import { Logger } from '@/components/modules/logger';
 import { Notifier } from '@/components/modules/notifier';
@@ -63,6 +65,7 @@ const EventDetailScreen = () => {
   const [processingVote, setProcessingVote] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
+  const [tracksTabIndex, setTracksTabIndex] = useState(0); // 0 = Queue, 1 = Played
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
     { key: 'info', title: 'Info' },
@@ -150,6 +153,24 @@ const EventDetailScreen = () => {
     () => tracks.map((track) => track.trackId),
     [tracks]
   );
+
+  // Filter queue tracks (exclude currently playing track)
+  const queueTracks = useMemo(() => {
+    if (!event?.currentlyPlayingTrack) return tracks;
+    return tracks.filter(
+      (track) => track.trackId !== event.currentlyPlayingTrack?.trackId
+    );
+  }, [tracks, event?.currentlyPlayingTrack]);
+
+  // Get played tracks from event
+  const playedTracks = useMemo(() => {
+    return event?.playedTracks || [];
+  }, [event?.playedTracks]);
+
+  const isHost = useMemo(() => {
+    if (!event || !user) return false;
+    return event.hostIds.includes(user.uid);
+  }, [event, user]);
 
   const handleBack = () => {
     router.back();
@@ -277,11 +298,7 @@ const EventDetailScreen = () => {
         setIsUpdatingStatus(true);
         try {
           await EventService.startEventEarly(id, user.uid);
-          // Force refresh event data from server to get updated status
-          const freshEvent = await EventService.getEvent(id);
-          if (freshEvent) {
-            setEvent(freshEvent);
-          }
+          // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
             title: 'Event Started',
@@ -311,11 +328,7 @@ const EventDetailScreen = () => {
         setIsUpdatingStatus(true);
         try {
           await EventService.endEventEarly(id, user.uid);
-          // Force refresh event data from server to get updated status
-          const freshEvent = await EventService.getEvent(id);
-          if (freshEvent) {
-            setEvent(freshEvent);
-          }
+          // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
             title: 'Event Ended',
@@ -641,85 +654,166 @@ const EventDetailScreen = () => {
                 paddingTop: Platform.OS === 'web' && !isEventEnded ? 0 : 16
               }}
             >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <TextCustom type="semibold">Tracks</TextCustom>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  {tracks.length} total
-                </TextCustom>
-              </View>
+              {/* Event Monitor - показывается всегда для хостов, для участников только когда трек играет */}
+              {(isHost || event?.currentlyPlayingTrack) && (
+                <EventMonitor
+                  event={event}
+                  currentTrack={event.currentlyPlayingTrack || null}
+                  isHost={isHost}
+                  queueTracks={queueTracks}
+                />
+              )}
 
-              {isPublicInvitedNonParticipant ? (
-                <View
+              {/* Tracks tabs - Queue / Played */}
+              <View className="flex-row items-center gap-4">
+                <Pressable
+                  onPress={() => setTracksTabIndex(0)}
                   style={{
-                    borderRadius: 6,
-                    padding: 12,
-                    backgroundColor:
-                      themeColors[theme]['intent-warning'] + '22',
-                    borderWidth: 1,
-                    borderColor: themeColors[theme]['intent-warning']
+                    paddingBottom: 8,
+                    borderBottomWidth: 2,
+                    borderBottomColor:
+                      tracksTabIndex === 0
+                        ? themeColors[theme]['primary']
+                        : 'transparent'
                   }}
                 >
                   <TextCustom
-                    size="s"
-                    color={themeColors[theme]['intent-warning']}
+                    type={tracksTabIndex === 0 ? 'semibold' : 'default'}
+                    color={
+                      tracksTabIndex === 0
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
                   >
-                    You can view this event, but only invited participants can
-                    add tracks and vote.
+                    Queue ({queueTracks.length})
                   </TextCustom>
-                </View>
-              ) : canAddTrack && eventStatus !== 'ended' ? (
-                <RippleButton
-                  title="Add track"
-                  size="sm"
-                  onPress={() => setShowAddTrackModal(true)}
-                  variant="outline"
-                  leftIcon={
-                    <MaterialCommunityIcons
-                      name="plus"
-                      size={18}
-                      color={themeColors[theme]['primary']}
-                    />
-                  }
-                />
-              ) : null}
+                </Pressable>
 
-              {tracks.length === 0 ? (
-                <View className="items-center justify-center py-12">
-                  <MaterialCommunityIcons
-                    name="playlist-music"
-                    size={42}
-                    color={themeColors[theme]['text-secondary']}
-                  />
+                <Pressable
+                  onPress={() => setTracksTabIndex(1)}
+                  style={{
+                    paddingBottom: 8,
+                    borderBottomWidth: 2,
+                    borderBottomColor:
+                      tracksTabIndex === 1
+                        ? themeColors[theme]['primary']
+                        : 'transparent'
+                  }}
+                >
                   <TextCustom
-                    className="mt-4 text-center"
-                    color={themeColors[theme]['text-secondary']}
+                    type={tracksTabIndex === 1 ? 'semibold' : 'default'}
+                    color={
+                      tracksTabIndex === 1
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
                   >
-                    No tracks added
-                    {canAddTrack ? '. Be the first to add one!' : ''}
+                    Played ({playedTracks.length})
                   </TextCustom>
-                </View>
+                </Pressable>
+              </View>
+
+              {/* Queue tab */}
+              {tracksTabIndex === 0 ? (
+                <>
+                  {isPublicInvitedNonParticipant ? (
+                    <View
+                      style={{
+                        borderRadius: 6,
+                        padding: 12,
+                        backgroundColor:
+                          themeColors[theme]['intent-warning'] + '22',
+                        borderWidth: 1,
+                        borderColor: themeColors[theme]['intent-warning']
+                      }}
+                    >
+                      <TextCustom
+                        size="s"
+                        color={themeColors[theme]['intent-warning']}
+                      >
+                        You can view this event, but only invited participants
+                        can add tracks and vote.
+                      </TextCustom>
+                    </View>
+                  ) : canAddTrack && eventStatus !== 'ended' ? (
+                    <RippleButton
+                      title="Add track"
+                      size="sm"
+                      onPress={() => setShowAddTrackModal(true)}
+                      variant="outline"
+                      leftIcon={
+                        <MaterialCommunityIcons
+                          name="plus"
+                          size={18}
+                          color={themeColors[theme]['primary']}
+                        />
+                      }
+                    />
+                  ) : null}
+
+                  {queueTracks.length === 0 ? (
+                    <View className="items-center justify-center py-12">
+                      <MaterialCommunityIcons
+                        name="playlist-music"
+                        size={42}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                      <TextCustom
+                        className="mt-4 text-center"
+                        color={themeColors[theme]['text-secondary']}
+                      >
+                        No tracks in queue
+                        {canAddTrack ? '. Be the first to add one!' : ''}
+                      </TextCustom>
+                    </View>
+                  ) : (
+                    queueTracks.map((eventTrack) => (
+                      <EventTrackCard
+                        key={eventTrack.id}
+                        track={eventTrack}
+                        hasVoted={!!userVotes[eventTrack.trackId]}
+                        canVote={canVote}
+                        isVoting={processingVote === eventTrack.trackId}
+                        onToggleVote={() =>
+                          handleToggleVote(eventTrack.trackId)
+                        }
+                        currentUserId={user?.uid}
+                        onRemoveTrack={() =>
+                          handleRemoveTrack(eventTrack.trackId)
+                        }
+                      />
+                    ))
+                  )}
+                </>
               ) : (
-                tracks.map((eventTrack) => (
-                  <EventTrackCard
-                    key={eventTrack.id}
-                    track={eventTrack}
-                    hasVoted={!!userVotes[eventTrack.trackId]}
-                    canVote={canVote}
-                    isVoting={processingVote === eventTrack.trackId}
-                    onToggleVote={() => handleToggleVote(eventTrack.trackId)}
-                    currentUserId={user?.uid}
-                    onRemoveTrack={() => handleRemoveTrack(eventTrack.trackId)}
-                  />
-                ))
+                /* Played tab */
+                <>
+                  {playedTracks.length === 0 ? (
+                    <View className="items-center justify-center py-12">
+                      <MaterialCommunityIcons
+                        name="history"
+                        size={42}
+                        color={themeColors[theme]['text-secondary']}
+                      />
+                      <TextCustom
+                        className="mt-4 text-center"
+                        color={themeColors[theme]['text-secondary']}
+                      >
+                        No tracks played yet
+                      </TextCustom>
+                    </View>
+                  ) : (
+                    playedTracks
+                      .slice()
+                      .reverse()
+                      .map((playedTrack, index) => (
+                        <PlayedTrackCard
+                          key={`${playedTrack.trackId}-${index}`}
+                          playedTrack={playedTrack}
+                        />
+                      ))
+                  )}
+                </>
               )}
             </View>
           </View>

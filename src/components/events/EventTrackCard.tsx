@@ -17,6 +17,7 @@ interface EventTrackCardProps {
   onToggleVote: () => void;
   currentUserId?: string;
   onRemoveTrack?: () => void;
+  isCurrentlyPlaying?: boolean;
 }
 
 const EventTrackCard: React.FC<EventTrackCardProps> = ({
@@ -26,7 +27,8 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
   isVoting = false,
   onToggleVote,
   currentUserId,
-  onRemoveTrack
+  onRemoveTrack,
+  isCurrentlyPlaying = false
 }) => {
   const { theme } = useTheme();
 
@@ -126,7 +128,7 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               />
             </IconButton>
           ) : null}
-          {canVote ? (
+          {canVote && !isCurrentlyPlaying ? (
             <IconButton
               onPress={onToggleVote}
               accessibilityLabel={hasVoted ? 'Remove vote' : 'Vote'}
@@ -143,11 +145,31 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
                 }
               />
             </IconButton>
-          ) : (
+          ) : isCurrentlyPlaying ? (
+            <View
+              className="flex-row items-center gap-1 rounded px-2 py-1"
+              style={{
+                backgroundColor: themeColors[theme]['primary'] + '22'
+              }}
+            >
+              <MaterialCommunityIcons
+                name="music-note"
+                size={14}
+                color={themeColors[theme]['primary']}
+              />
+              <TextCustom
+                size="xs"
+                type="semibold"
+                color={themeColors[theme]['primary']}
+              >
+                Playing
+              </TextCustom>
+            </View>
+          ) : !canVote ? (
             <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
               Voting disabled
             </TextCustom>
-          )}
+          ) : null}
         </View>
       </View>
     </View>
