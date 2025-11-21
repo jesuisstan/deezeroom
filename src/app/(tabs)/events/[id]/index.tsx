@@ -64,11 +64,28 @@ const EventDetailScreen = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [tracksTabIndex, setTracksTabIndex] = useState(0); // 0 = Queue, 1 = Played
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
     { key: 'info', title: 'Info' },
     { key: 'participants', title: 'Participants' }
   ]);
+
+  // Check if screen is wide enough for horizontal layout (desktop)
+  const isWideScreen = Platform.OS === 'web' && screenWidth >= 768;
+
+  // Track screen width changes for responsive layout
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -252,21 +269,27 @@ const EventDetailScreen = () => {
   const handleRemoveTrack = async (trackId: string) => {
     if (!id || !user) return;
 
-    try {
-      await EventService.removeTrackFromEvent(id, trackId, user.uid);
-      Notifier.shoot({
-        type: 'warn',
-        title: 'Track removed',
-        message: 'Track has been removed from the event'
-      });
-    } catch (error: any) {
-      Logger.error('Error removing track from event:', error);
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: error?.message || 'Failed to remove track'
-      });
-    }
+    Alert.delete(
+      'Remove Track',
+      'Are you sure you want to remove this track from the event?',
+      async () => {
+        try {
+          await EventService.removeTrackFromEvent(id, trackId, user.uid);
+          Notifier.shoot({
+            type: 'warn',
+            title: 'Track removed',
+            message: 'Track has been removed from the event'
+          });
+        } catch (error: any) {
+          Logger.error('Error removing track from event:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'Failed to remove track'
+          });
+        }
+      }
+    );
   };
 
   const handleEventUpdated = async () => {
@@ -463,20 +486,18 @@ const EventDetailScreen = () => {
         }}
         showsVerticalScrollIndicator={true}
       >
-        {/* Adaptive layout: horizontal for web, vertical for mobile */}
+        {/* Adaptive layout: horizontal for wide screens, vertical for narrow */}
         <View
           style={
-            Platform.OS === 'web'
+            isWideScreen
               ? { flexDirection: 'row', gap: 24, paddingHorizontal: 16 }
               : {}
           }
         >
-          {/* Left Column (Web) / Top Section (Mobile): TabView with info */}
+          {/* Left Column (Wide screens) / Top Section (Narrow screens): TabView with info */}
           <View
             style={
-              Platform.OS === 'web'
-                ? { width: 450, flexShrink: 0 }
-                : { width: '100%' }
+              isWideScreen ? { width: 450, flexShrink: 0 } : { width: '100%' }
             }
           >
             <View style={{ position: 'relative' }}>
@@ -485,12 +506,10 @@ const EventDetailScreen = () => {
                 renderScene={renderScene}
                 onIndexChange={setTabIndex}
                 initialLayout={{
-                  width:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  width: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 style={{
-                  height:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  height: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 renderTabBar={() => null}
               />
@@ -608,8 +627,8 @@ const EventDetailScreen = () => {
             </View>
           </View>
 
-          {/* Right Column (Web) / Bottom Section (Mobile): Tracks list */}
-          <View className={clsx(Platform.OS === 'web' ? 'mt-4' : '', 'flex-1')}>
+          {/* Right Column (Wide screens) / Bottom Section (Narrow screens): Tracks list */}
+          <View className={clsx(isWideScreen ? 'mt-4' : '', 'flex-1')}>
             {isEventEnded ? (
               <View
                 style={{
@@ -618,7 +637,7 @@ const EventDetailScreen = () => {
                   backgroundColor: themeColors[theme]['intent-warning'] + '22',
                   borderWidth: 1,
                   borderColor: themeColors[theme]['intent-warning'],
-                  marginHorizontal: Platform.OS === 'web' ? 0 : 16
+                  marginHorizontal: isWideScreen ? 0 : 16
                 }}
               >
                 <TextCustom
@@ -645,8 +664,8 @@ const EventDetailScreen = () => {
             <View
               className="gap-4"
               style={{
-                padding: Platform.OS === 'web' ? 0 : 16,
-                paddingTop: Platform.OS === 'web' && !isEventEnded ? 0 : 16
+                padding: isWideScreen ? 0 : 16,
+                paddingTop: isWideScreen && !isEventEnded ? 0 : 16
               }}
             >
               {/* Event Monitor - visible to all, play/pause button only for hosts */}
@@ -655,6 +674,10 @@ const EventDetailScreen = () => {
                 currentTrack={event.currentlyPlayingTrack || null}
                 isHost={isHost}
                 queueTracks={queueTracks}
+                hasEventStarted={hasEventStarted}
+                onStartEventEarly={
+                  canManageEvent ? handleStartEventEarly : undefined
+                }
               />
 
               {/* Tracks tabs - Queue / Played */}

@@ -506,7 +506,11 @@ export class EventService {
         callback(events);
       },
       (error) => {
-        Logger.error('Error in subscribeToPublicEvents:', error);
+        Logger.error(
+          'Error in subscribeToPublicEvents:',
+          error,
+          '🔥 Firebase EventService'
+        );
       }
     );
   }
@@ -542,12 +546,16 @@ export class EventService {
       // Check if track already exists in the array
       const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
 
-      Logger.info('Adding track to event', {
-        eventId,
-        trackId: track.id,
-        currentTracksCount: tracks.length,
-        currentTrackIds: tracks.map((t) => t.trackId)
-      });
+      Logger.info(
+        'Adding track to event',
+        {
+          eventId,
+          trackId: track.id,
+          currentTracksCount: tracks.length,
+          currentTrackIds: tracks.map((t) => t.trackId)
+        },
+        '🔥 Firebase EventService'
+      );
 
       const existingTrackIndex = tracks.findIndex(
         (t) => t.trackId === track.id
@@ -573,9 +581,13 @@ export class EventService {
           });
         }
         // If not autoVote, track already exists - nothing to do
-        Logger.info('Track already exists, not adding again', {
-          trackId: track.id
-        });
+        Logger.info(
+          'Track already exists, not adding again',
+          {
+            trackId: track.id
+          },
+          '🔥 Firebase EventService'
+        );
         return;
       }
 
@@ -590,11 +602,15 @@ export class EventService {
 
       const updatedTracks = [...tracks, newTrack];
 
-      Logger.info('Adding new track', {
-        trackId: track.id,
-        newTracksCount: updatedTracks.length,
-        newTrackIds: updatedTracks.map((t) => t.trackId)
-      });
+      Logger.info(
+        'Adding new track',
+        {
+          trackId: track.id,
+          newTracksCount: updatedTracks.length,
+          newTrackIds: updatedTracks.map((t) => t.trackId)
+        },
+        '🔥 Firebase EventService'
+      );
 
       transaction.update(eventRef, {
         tracks: updatedTracks,
@@ -968,10 +984,17 @@ export class EventService {
       );
 
       if (uniqueTokens.size > 0) {
-        Logger.info('Push notification sent to invited user');
+        Logger.info(
+          'Push notification sent to invited user',
+          '🔥 Firebase EventService'
+        );
       }
     } catch (error) {
-      Logger.error('Error sending push notification:', error);
+      Logger.error(
+        'Error sending push notification:',
+        error,
+        '🔥 Firebase EventService'
+      );
       // Don't throw - invitation is created, notification is optional
     }
 
@@ -1079,7 +1102,11 @@ export class EventService {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         errors.push(`${user.userId} - ${errorMessage}`);
-        Logger.error('Error inviting user to event:', error);
+        Logger.error(
+          'Error inviting user to event:',
+          error,
+          '🔥 Firebase EventService'
+        );
       }
     }
 
@@ -1124,7 +1151,8 @@ export class EventService {
       (error) => {
         Logger.error(
           'Error in real-time event invitation subscriptions:',
-          error
+          error,
+          '🔥 Firebase EventService'
         );
       }
     );
@@ -1320,7 +1348,11 @@ export class EventService {
       });
     });
 
-    Logger.info('Track playback started', { eventId, trackId: track.trackId });
+    Logger.info(
+      'Track playback started',
+      { eventId, trackId: track.trackId },
+      '🔥 Firebase EventService'
+    );
   }
 
   /**
@@ -1332,7 +1364,7 @@ export class EventService {
       updatedAt: serverTimestamp()
     });
 
-    Logger.info('Playback paused', { eventId });
+    Logger.info('Playback paused', { eventId }, '🔥 Firebase EventService');
   }
 
   /**
@@ -1344,7 +1376,7 @@ export class EventService {
       updatedAt: serverTimestamp()
     });
 
-    Logger.info('Playback resumed', { eventId });
+    Logger.info('Playback resumed', { eventId }, '🔥 Firebase EventService');
   }
 
   /**
@@ -1406,6 +1438,6 @@ export class EventService {
       });
     });
 
-    Logger.info('Track finished', { eventId });
+    Logger.info('Track finished', { eventId }, '🔥 Firebase EventService');
   }
 }

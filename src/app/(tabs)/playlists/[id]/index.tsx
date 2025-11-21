@@ -85,6 +85,12 @@ const PlaylistDetailScreen = () => {
   const [tracksLoading, setTracksLoading] = useState<boolean>(false);
   const [canEdit, setCanEdit] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
+
+  // Check if screen is wide enough for horizontal layout (desktop)
+  const isWideScreen = Platform.OS === 'web' && screenWidth >= 768;
 
   // Drag and drop state
   const draggedIndex = useSharedValue<number | null>(null);
@@ -145,6 +151,17 @@ const PlaylistDetailScreen = () => {
   // Playback hooks
   const { isPlaying } = usePlaybackUI();
   const { startPlayback, togglePlayPause, updateQueue } = usePlaybackActions();
+
+  // Track screen width changes for responsive layout
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
 
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
@@ -980,20 +997,18 @@ const PlaylistDetailScreen = () => {
           ...containerWidthStyle
         }}
       >
-        {/* Adaptive layout: horizontal for web, vertical for mobile */}
+        {/* Adaptive layout: horizontal for wide screens, vertical for narrow */}
         <View
           style={
-            Platform.OS === 'web'
+            isWideScreen
               ? { flexDirection: 'row', gap: 24, paddingHorizontal: 16 }
               : {}
           }
         >
-          {/* Left Column (Web) / Top Section (Mobile): TabView with info */}
+          {/* Left Column (Wide screens) / Top Section (Narrow screens): TabView with info */}
           <View
             style={
-              Platform.OS === 'web'
-                ? { width: 450, flexShrink: 0 }
-                : { width: '100%' }
+              isWideScreen ? { width: 450, flexShrink: 0 } : { width: '100%' }
             }
           >
             {/* Swipeable Cover/Description Section with floating action buttons */}
@@ -1003,12 +1018,10 @@ const PlaylistDetailScreen = () => {
                 renderScene={renderScene}
                 onIndexChange={setIndex}
                 initialLayout={{
-                  width:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  width: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 style={{
-                  height:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  height: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 renderTabBar={() => null}
               />
@@ -1114,7 +1127,7 @@ const PlaylistDetailScreen = () => {
             </View>
           </View>
 
-          {/* Right Column (Web) / Bottom Section (Mobile): Tracks list */}
+          {/* Right Column (Wide screens) / Bottom Section (Narrow screens): Tracks list */}
           <View style={{ flex: 1 }}>
             {/* Add Track Button - only visible if user can edit */}
             {canEdit ? (
@@ -1127,7 +1140,7 @@ const PlaylistDetailScreen = () => {
                   backgroundColor: themeColors[theme]['intent-warning'] + '22',
                   borderWidth: 1,
                   borderColor: themeColors[theme]['intent-warning'],
-                  marginHorizontal: Platform.OS === 'web' ? 0 : 16,
+                  marginHorizontal: isWideScreen ? 0 : 16,
                   marginBottom: 8
                 }}
               >
