@@ -65,6 +65,7 @@ const TabLayout = () => {
           name="index"
           options={{
             title: 'Home',
+            href: '/',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons
                 name="home-search"
@@ -79,6 +80,7 @@ const TabLayout = () => {
           name="events"
           options={{
             title: 'Events',
+            href: '/events',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons
                 name="party-popper"
@@ -93,6 +95,7 @@ const TabLayout = () => {
           name="playlists"
           options={{
             title: 'Playlists',
+            href: '/playlists',
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons
                 name="playlist-music"
@@ -107,6 +110,7 @@ const TabLayout = () => {
           name="profile"
           options={{
             title: 'Profile',
+            href: '/profile',
             tabBarIcon: ({ color }) =>
               profile?.photoURL ? (
                 <Image

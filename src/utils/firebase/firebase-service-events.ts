@@ -60,9 +60,7 @@ export interface PlayedTrack {
   artist: string;
   albumCover?: string;
   duration: number;
-  playedAt: Date | any; // Firestore Timestamp
   voteCount: number;
-  skipped: boolean;
 }
 
 export interface Event {
@@ -84,21 +82,22 @@ export interface Event {
   participantIds: string[];
   pendingInviteIds?: string[];
   trackCount: number;
-  
+
+  // Tracks array (inline, sorted by votes on client)
+  tracks: EventTrack[];
+
   // Playback state
   currentlyPlayingTrack?: CurrentlyPlayingTrack | null;
   isPlaying: boolean;
-  playedTracks?: PlayedTrack[];
+  playedTracks: PlayedTrack[];
 }
 
 export interface EventTrack {
-  id: string;
-  trackId: string;
-  track: Track;
-  addedBy: string;
-  addedAt: Date;
-  updatedAt?: Date;
+  trackId: string; // Deezer track ID
+  track: Track; // Full Deezer track data
   voteCount: number;
+  votedBy: string[]; // Array of user IDs who voted
+  addedBy: string;
 }
 
 export interface EventInvitation {
@@ -118,24 +117,10 @@ const resolveDisplayName = (
   uid: string
 ) => publicProfile?.displayName || uid?.slice(0, 6) || FALLBACK_DISPLAY_NAME;
 
-interface EventTrackDoc {
-  trackId: string;
-  track: Track;
-  addedBy: string;
-  addedAt: Timestamp;
-  updatedAt?: Timestamp;
-  voteCount: number;
-}
-
-interface EventVoteDoc {
-  trackVotes: Record<string, boolean>;
-  updatedAt: Timestamp;
-}
+// Old interfaces removed - tracks now stored inline in Event document
 
 export class EventService {
   private static collection = 'events';
-  private static tracksCollection = 'tracks';
-  private static votesCollection = 'votes';
   private static invitationsCollection = 'eventInvitations';
 
   // ===== EVENTS CRUD =====
@@ -213,6 +198,8 @@ export class EventService {
       participantIds: [createdBy],
       pendingInviteIds: [],
       trackCount: 0,
+      // Tracks array (inline)
+      tracks: [],
       // Playback state
       currentlyPlayingTrack: null,
       isPlaying: false,
@@ -222,6 +209,7 @@ export class EventService {
     const docRef = await addDoc(collection(db, this.collection), eventData);
     const eventId = docRef.id;
 
+    // Add initial tracks to the event document
     if (initialTracks.length > 0) {
       const batchWrites = initialTracks.map((track) =>
         this.addTrackToEvent(eventId, track, createdBy, { autoVote: false })
@@ -350,64 +338,27 @@ export class EventService {
     eventId: string,
     callback: (tracks: EventTrack[]) => void
   ): () => void {
-    const tracksRef = collection(
-      db,
-      this.collection,
-      eventId,
-      this.tracksCollection
-    );
-    return onSnapshot(tracksRef, (querySnapshot) => {
-      const tracks: EventTrack[] = querySnapshot.docs.map((docSnap) => {
-        const data = docSnap.data() as EventTrackDoc;
-        return {
-          id: docSnap.id,
-          trackId: data.trackId,
-          track: data.track,
-          voteCount: data.voteCount || 0,
-          addedBy: data.addedBy,
-          addedAt: data.addedAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate()
-        };
-      });
-      // Sort by voteCount descending (most votes first), then by addedAt ascending (older first)
-      tracks.sort((a, b) => {
-        if (b.voteCount !== a.voteCount) {
-          return b.voteCount - a.voteCount;
-        }
-        return a.addedAt.getTime() - b.addedAt.getTime();
-      });
-      callback(tracks);
+    const eventRef = doc(db, this.collection, eventId);
+    return onSnapshot(eventRef, (docSnap) => {
+      if (!docSnap.exists()) {
+        callback([]);
+        return;
+      }
+
+      const event = this.deserializeEventDoc(docSnap.id, docSnap.data());
+      const tracks = Array.isArray(event.tracks) ? event.tracks : [];
+
+      // Sort by voteCount descending (most votes first)
+      // No need to sort by addedAt since it's removed
+      const sortedTracks = [...tracks].sort(
+        (a, b) => b.voteCount - a.voteCount
+      );
+
+      callback(sortedTracks);
     });
   }
 
-  static subscribeToUserVotes(
-    eventId: string,
-    userId: string,
-    callback: (trackVotes: Record<string, boolean>) => void
-  ): () => void {
-    const voteRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.votesCollection,
-      userId
-    );
-    return onSnapshot(
-      voteRef,
-      (docSnap) => {
-        if (!docSnap.exists()) {
-          callback({});
-          return;
-        }
-        const data = docSnap.data() as EventVoteDoc | undefined;
-        callback(data?.trackVotes ?? {});
-      },
-      (error) => {
-        Logger.error('Error in subscribeToUserVotes:', error);
-        callback({});
-      }
-    );
-  }
+  // subscribeToUserVotes removed - votes are now stored in votedBy array of each track
 
   static async getPublicEvents(limitCount: number = 50): Promise<Event[]> {
     const eventsRef = collection(db, this.collection);
@@ -570,20 +521,6 @@ export class EventService {
   ): Promise<void> {
     const { autoVote = false } = options;
     const eventRef = doc(db, this.collection, eventId);
-    const trackRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.tracksCollection,
-      track.id
-    );
-    const voteRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.votesCollection,
-      userId
-    );
 
     await runTransaction(db, async (transaction) => {
       const eventSnap = await transaction.get(eventRef);
@@ -602,59 +539,68 @@ export class EventService {
         );
       }
 
-      const trackSnap = await transaction.get(trackRef);
-      const voteSnap = await transaction.get(voteRef);
-      const trackVotes =
-        (voteSnap.exists()
-          ? (voteSnap.data() as EventVoteDoc).trackVotes
-          : {}) || {};
+      // Check if track already exists in the array
+      const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
 
-      if (trackSnap.exists()) {
+      Logger.info('Adding track to event', {
+        eventId,
+        trackId: track.id,
+        currentTracksCount: tracks.length,
+        currentTrackIds: tracks.map((t) => t.trackId)
+      });
+
+      const existingTrackIndex = tracks.findIndex(
+        (t) => t.trackId === track.id
+      );
+
+      if (existingTrackIndex !== -1) {
+        // Track already exists
         if (autoVote) {
-          if (trackVotes[track.id]) {
+          const existingTrack = tracks[existingTrackIndex];
+          if (existingTrack.votedBy.includes(userId)) {
             throw new Error('You already voted for this track');
           }
+          // Add vote - create NEW object
+          tracks[existingTrackIndex] = {
+            ...existingTrack,
+            votedBy: [...existingTrack.votedBy, userId],
+            voteCount: existingTrack.voteCount + 1
+          };
 
-          const trackData = trackSnap.data() as EventTrackDoc;
-          transaction.update(trackRef, {
-            voteCount: (trackData.voteCount || 0) + 1,
+          transaction.update(eventRef, {
+            tracks: tracks,
             updatedAt: serverTimestamp()
           });
-          trackVotes[track.id] = true;
-        } else {
-          // Nothing to do, track already exists
-          return;
         }
-      } else {
-        transaction.set(trackRef, {
-          trackId: track.id,
-          track,
-          addedBy: userId,
-          addedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          voteCount: autoVote ? 1 : 0
+        // If not autoVote, track already exists - nothing to do
+        Logger.info('Track already exists, not adding again', {
+          trackId: track.id
         });
-        transaction.update(eventRef, {
-          trackCount: increment(1),
-          updatedAt: serverTimestamp()
-        });
-        if (autoVote) {
-          trackVotes[track.id] = true;
-        }
+        return;
       }
 
-      if (autoVote) {
-        transaction.set(
-          voteRef,
-          {
-            trackVotes: {
-              ...trackVotes
-            },
-            updatedAt: serverTimestamp()
-          },
-          { merge: true }
-        );
-      }
+      // Add new track - serialize Track object to plain object
+      const newTrack: EventTrack = {
+        trackId: track.id,
+        track: JSON.parse(JSON.stringify(track)), // Deep copy to plain object
+        voteCount: autoVote ? 1 : 0,
+        votedBy: autoVote ? [userId] : [],
+        addedBy: userId
+      };
+
+      const updatedTracks = [...tracks, newTrack];
+
+      Logger.info('Adding new track', {
+        trackId: track.id,
+        newTracksCount: updatedTracks.length,
+        newTrackIds: updatedTracks.map((t) => t.trackId)
+      });
+
+      transaction.update(eventRef, {
+        tracks: updatedTracks,
+        trackCount: updatedTracks.length,
+        updatedAt: serverTimestamp()
+      });
     });
   }
 
@@ -664,20 +610,6 @@ export class EventService {
     userId: string
   ): Promise<void> {
     const eventRef = doc(db, this.collection, eventId);
-    const trackRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.tracksCollection,
-      trackId
-    );
-    const voteRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.votesCollection,
-      userId
-    );
 
     await runTransaction(db, async (transaction) => {
       const eventSnap = await transaction.get(eventRef);
@@ -694,37 +626,31 @@ export class EventService {
         throw new Error('You do not have permission to vote in this event');
       }
 
-      const trackSnap = await transaction.get(trackRef);
-      if (!trackSnap.exists()) {
+      const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
+      const trackIndex = tracks.findIndex((t) => t.trackId === trackId);
+
+      if (trackIndex === -1) {
         throw new Error('Track not found in this event');
       }
 
-      const voteSnap = await transaction.get(voteRef);
-      const trackVotes =
-        (voteSnap.exists()
-          ? (voteSnap.data() as EventVoteDoc).trackVotes
-          : {}) || {};
+      const track = tracks[trackIndex];
 
       // Allow toggle voting - if already voted, just return (no error)
-      if (trackVotes[trackId]) {
+      if (track.votedBy.includes(userId)) {
         return;
       }
 
-      const trackData = trackSnap.data() as EventTrackDoc;
-      transaction.update(trackRef, {
-        voteCount: (trackData.voteCount || 0) + 1,
+      // Add vote - create NEW object
+      tracks[trackIndex] = {
+        ...track,
+        votedBy: [...track.votedBy, userId],
+        voteCount: track.voteCount + 1
+      };
+
+      transaction.update(eventRef, {
+        tracks: tracks,
         updatedAt: serverTimestamp()
       });
-
-      trackVotes[trackId] = true;
-      transaction.set(
-        voteRef,
-        {
-          trackVotes,
-          updatedAt: serverTimestamp()
-        },
-        { merge: true }
-      );
     });
   }
 
@@ -734,20 +660,6 @@ export class EventService {
     userId: string
   ): Promise<void> {
     const eventRef = doc(db, this.collection, eventId);
-    const trackRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.tracksCollection,
-      trackId
-    );
-    const voteRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.votesCollection,
-      userId
-    );
 
     await runTransaction(db, async (transaction) => {
       const eventSnap = await transaction.get(eventRef);
@@ -760,45 +672,31 @@ export class EventService {
         throw new Error('Event has already ended');
       }
 
-      const trackSnap = await transaction.get(trackRef);
-      if (!trackSnap.exists()) {
+      const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
+      const trackIndex = tracks.findIndex((t) => t.trackId === trackId);
+
+      if (trackIndex === -1) {
         throw new Error('Track not found');
       }
 
-      const trackData = trackSnap.data() as EventTrackDoc;
-
-      const voteSnap = await transaction.get(voteRef);
-      const trackVotes =
-        (voteSnap.exists()
-          ? (voteSnap.data() as EventVoteDoc).trackVotes
-          : {}) || {};
+      const track = tracks[trackIndex];
 
       // Allow toggle - if not voted, just return (no error)
-      if (!trackVotes[trackId]) {
+      if (!track.votedBy.includes(userId)) {
         return;
       }
 
-      const updatedVotes = { ...trackVotes };
-      delete updatedVotes[trackId];
+      // Remove vote - create NEW object
+      tracks[trackIndex] = {
+        ...track,
+        votedBy: track.votedBy.filter((id) => id !== userId),
+        voteCount: track.voteCount - 1
+      };
 
-      transaction.update(trackRef, {
-        voteCount: Math.max((trackData.voteCount || 0) - 1, 0),
+      transaction.update(eventRef, {
+        tracks: tracks,
         updatedAt: serverTimestamp()
       });
-
-      // If no votes left, delete the vote document, otherwise update it
-      if (Object.keys(updatedVotes).length === 0) {
-        transaction.delete(voteRef);
-      } else {
-        transaction.set(
-          voteRef,
-          {
-            trackVotes: updatedVotes,
-            updatedAt: serverTimestamp()
-          },
-          { merge: true }
-        );
-      }
     });
   }
 
@@ -808,13 +706,6 @@ export class EventService {
     userId: string
   ): Promise<void> {
     const eventRef = doc(db, this.collection, eventId);
-    const trackRef = doc(
-      db,
-      this.collection,
-      eventId,
-      this.tracksCollection,
-      trackId
-    );
 
     await runTransaction(db, async (transaction) => {
       const eventSnap = await transaction.get(eventRef);
@@ -822,26 +713,32 @@ export class EventService {
         throw new Error('Event not found');
       }
 
-      const trackSnap = await transaction.get(trackRef);
-      if (!trackSnap.exists()) {
-        return;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+      const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
+      const trackIndex = tracks.findIndex((t) => t.trackId === trackId);
+
+      if (trackIndex === -1) {
+        return; // Track not found, nothing to remove
       }
 
-      const trackData = trackSnap.data() as EventTrackDoc;
+      const track = tracks[trackIndex];
 
       // Only the user who added the track can remove it
-      if (trackData.addedBy !== userId) {
+      if (track.addedBy !== userId) {
         throw new Error('Only the user who added this track can remove it');
       }
 
       // Track can only be removed if it has no votes
-      if ((trackData.voteCount || 0) > 0) {
+      if (track.voteCount > 0) {
         throw new Error('Cannot remove track that has votes');
       }
 
-      transaction.delete(trackRef);
+      // Remove track from array
+      tracks.splice(trackIndex, 1);
+
       transaction.update(eventRef, {
-        trackCount: increment(-1),
+        tracks: tracks,
+        trackCount: tracks.length,
         updatedAt: serverTimestamp()
       });
     });
@@ -857,31 +754,21 @@ export class EventService {
     if (this.hasEventEnded(event)) {
       throw new Error('Ended events cannot be deleted');
     }
-    const tracksSnapshot = await getDocs(
-      collection(eventRef, this.tracksCollection)
-    );
-    const votesSnapshot = await getDocs(
-      collection(eventRef, this.votesCollection)
-    );
+
+    // Delete invitations subcollection (still exists)
     const invitationsSnapshot = await getDocs(
       collection(eventRef, this.invitationsCollection)
     );
 
     const batchDeletes: Promise<void>[] = [];
 
-    tracksSnapshot.docs.forEach((docSnap) => {
-      batchDeletes.push(deleteDoc(docSnap.ref));
-    });
-
-    votesSnapshot.docs.forEach((docSnap) => {
-      batchDeletes.push(deleteDoc(docSnap.ref));
-    });
-
     invitationsSnapshot.docs.forEach((docSnap) => {
       batchDeletes.push(deleteDoc(docSnap.ref));
     });
 
     await Promise.all(batchDeletes);
+
+    // Delete event document (tracks are now inline, so they'll be deleted with the document)
     await deleteDoc(eventRef);
   }
 
@@ -1380,15 +1267,12 @@ export class EventService {
         ? data.pendingInviteIds
         : [],
       trackCount: data?.trackCount ?? 0,
+      // Tracks array (inline)
+      tracks: Array.isArray(data?.tracks) ? data.tracks : [],
       // Playback state
       currentlyPlayingTrack: data?.currentlyPlayingTrack ?? null,
       isPlaying: data?.isPlaying ?? false,
-      playedTracks: Array.isArray(data?.playedTracks)
-        ? data.playedTracks.map((pt: any) => ({
-            ...pt,
-            playedAt: this.toDate(pt.playedAt)
-          }))
-        : []
+      playedTracks: Array.isArray(data?.playedTracks) ? data.playedTracks : []
     } as Event;
   }
 
@@ -1405,19 +1289,35 @@ export class EventService {
   ): Promise<void> {
     const eventRef = doc(db, this.collection, eventId);
 
-    const currentlyPlayingTrack: CurrentlyPlayingTrack = {
-      trackId: track.trackId,
-      title: track.track.title || 'Unknown',
-      artist: track.track.artist?.name || 'Unknown',
-      albumCover: track.track.album?.coverMedium,
-      duration: track.track.duration || 0,
-      explicitLyrics: track.track.explicitLyrics || false
-    };
+    // Verify track exists in the queue
+    await runTransaction(db, async (transaction) => {
+      const eventSnap = await transaction.get(eventRef);
+      if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+      }
 
-    await updateDoc(eventRef, {
-      currentlyPlayingTrack,
-      isPlaying: true,
-      updatedAt: serverTimestamp()
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+      const tracks = Array.isArray(event.tracks) ? event.tracks : [];
+
+      const trackExists = tracks.some((t) => t.trackId === track.trackId);
+      if (!trackExists) {
+        throw new Error('Track not found in queue');
+      }
+
+      const currentlyPlayingTrack: CurrentlyPlayingTrack = {
+        trackId: track.trackId,
+        title: track.track.title || 'Unknown',
+        artist: track.track.artist?.name || 'Unknown',
+        albumCover: track.track.album?.coverMedium,
+        duration: track.track.duration || 0,
+        explicitLyrics: track.track.explicitLyrics || false
+      };
+
+      transaction.update(eventRef, {
+        currentlyPlayingTrack,
+        isPlaying: true,
+        updatedAt: serverTimestamp()
+      });
     });
 
     Logger.info('Track playback started', { eventId, trackId: track.trackId });
@@ -1449,7 +1349,7 @@ export class EventService {
 
   /**
    * Finish track (played to the end)
-   * Moves track to playedTracks and deletes from queue
+   * Moves track from tracks array to playedTracks array
    */
   static async finishTrack(eventId: string, hostId: string): Promise<void> {
     await runTransaction(db, async (transaction) => {
@@ -1460,118 +1360,52 @@ export class EventService {
         throw new Error('Event not found');
       }
 
-      const event = eventSnap.data() as Event;
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
       const currentTrack = event.currentlyPlayingTrack;
 
       if (!currentTrack) {
         throw new Error('No track is currently playing');
       }
 
-      // Get voteCount from tracks subcollection
-      const trackRef = doc(
-        db,
-        this.collection,
-        eventId,
-        this.tracksCollection,
-        currentTrack.trackId
+      // Get track from tracks array
+      const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
+      const trackIndex = tracks.findIndex(
+        (t) => t.trackId === currentTrack.trackId
       );
-      const trackSnap = await transaction.get(trackRef);
-      const trackData = trackSnap.exists()
-        ? (trackSnap.data() as EventTrackDoc)
-        : null;
 
-      // Create PlayedTrack
-      // Note: serverTimestamp() cannot be used inside arrayUnion() in transactions
-      // Use Timestamp.now() instead
+      let voteCount = 0;
+      if (trackIndex !== -1) {
+        voteCount = tracks[trackIndex].voteCount;
+        // Remove track from queue
+        tracks.splice(trackIndex, 1);
+      }
+
+      // Create PlayedTrack (without playedAt)
       const playedTrack: PlayedTrack = {
         trackId: currentTrack.trackId,
         title: currentTrack.title,
         artist: currentTrack.artist,
         albumCover: currentTrack.albumCover,
         duration: currentTrack.duration,
-        playedAt: Timestamp.now(),
-        voteCount: trackData?.voteCount || 0,
-        skipped: false
+        voteCount: voteCount
       };
+
+      // Get current playedTracks array
+      const playedTracks = Array.isArray(event.playedTracks)
+        ? [...event.playedTracks, playedTrack]
+        : [playedTrack];
 
       // Update event
       transaction.update(eventRef, {
+        tracks: tracks,
+        trackCount: tracks.length,
         currentlyPlayingTrack: null,
         isPlaying: false,
-        playedTracks: arrayUnion(playedTrack),
+        playedTracks: playedTracks,
         updatedAt: serverTimestamp()
       });
-
-      // Delete track from queue if exists
-      if (trackSnap.exists()) {
-        transaction.delete(trackRef);
-      }
     });
 
     Logger.info('Track finished', { eventId });
-  }
-
-  /**
-   * Skip track (didn't play to the end)
-   * Moves track to playedTracks with skipped flag and deletes from queue
-   */
-  static async skipTrack(eventId: string, hostId: string): Promise<void> {
-    await runTransaction(db, async (transaction) => {
-      const eventRef = doc(db, this.collection, eventId);
-      const eventSnap = await transaction.get(eventRef);
-
-      if (!eventSnap.exists()) {
-        throw new Error('Event not found');
-      }
-
-      const event = eventSnap.data() as Event;
-      const currentTrack = event.currentlyPlayingTrack;
-
-      if (!currentTrack) {
-        throw new Error('No track is currently playing');
-      }
-
-      // Get voteCount from tracks subcollection
-      const trackRef = doc(
-        db,
-        this.collection,
-        eventId,
-        this.tracksCollection,
-        currentTrack.trackId
-      );
-      const trackSnap = await transaction.get(trackRef);
-      const trackData = trackSnap.exists()
-        ? (trackSnap.data() as EventTrackDoc)
-        : null;
-
-      // Create PlayedTrack with skipped: true
-      // Note: serverTimestamp() cannot be used inside arrayUnion() in transactions
-      // Use Timestamp.now() instead
-      const playedTrack: PlayedTrack = {
-        trackId: currentTrack.trackId,
-        title: currentTrack.title,
-        artist: currentTrack.artist,
-        albumCover: currentTrack.albumCover,
-        duration: currentTrack.duration,
-        playedAt: Timestamp.now(),
-        voteCount: trackData?.voteCount || 0,
-        skipped: true
-      };
-
-      // Update event
-      transaction.update(eventRef, {
-        currentlyPlayingTrack: null,
-        isPlaying: false,
-        playedTracks: arrayUnion(playedTrack),
-        updatedAt: serverTimestamp()
-      });
-
-      // Delete track from queue if exists
-      if (trackSnap.exists()) {
-        transaction.delete(trackRef);
-      }
-    });
-
-    Logger.info('Track skipped', { eventId });
   }
 }

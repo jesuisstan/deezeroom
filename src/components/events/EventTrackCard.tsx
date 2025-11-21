@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -57,22 +57,33 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 6,
-            backgroundColor: `${themeColors[theme]['primary']}20`,
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <MaterialCommunityIcons
-            name="music"
-            size={22}
-            color={themeColors[theme]['primary']}
+        {track.track?.album?.coverMedium ? (
+          <Image
+            source={{ uri: track.track.album.coverMedium }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 6
+            }}
           />
-        </View>
+        ) : (
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 6,
+              backgroundColor: `${themeColors[theme]['primary']}20`,
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <MaterialCommunityIcons
+              name="music"
+              size={22}
+              color={themeColors[theme]['primary']}
+            />
+          </View>
+        )}
         <View style={{ flex: 1 }}>
           <TextCustom
             type="semibold"

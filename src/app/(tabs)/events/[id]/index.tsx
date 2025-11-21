@@ -54,8 +54,6 @@ const EventDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [event, setEvent] = useState<Event | null>(null);
-  const [tracks, setTracks] = useState<EventTrack[]>([]);
-  const [userVotes, setUserVotes] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddTrackModal, setShowAddTrackModal] = useState(false);
@@ -99,20 +97,6 @@ const EventDetailScreen = () => {
     };
   }, [id, isUpdatingStatus]);
 
-  useEffect(() => {
-    if (!id) return;
-    return EventService.subscribeToEventTracks(id, (updatedTracks) => {
-      setTracks(updatedTracks);
-    });
-  }, [id]);
-
-  useEffect(() => {
-    if (!id || !user) return;
-    return EventService.subscribeToUserVotes(id, user.uid, (votes) => {
-      setUserVotes(votes);
-    });
-  }, [id, user]);
-
   // Use custom hook for real-time event status updates
   const { eventStatus, isEventEnded, hasEventStarted } = useEventStatus(event);
   // Add padding when mini player is visible
@@ -148,6 +132,13 @@ const EventDetailScreen = () => {
       !event.hostIds.includes(user.uid)
     );
   }, [event, user]);
+
+  // Get tracks from event and sort by voteCount
+  const tracks = useMemo(() => {
+    const eventTracks = event?.tracks || [];
+    // Sort by voteCount descending (most votes first)
+    return [...eventTracks].sort((a, b) => b.voteCount - a.voteCount);
+  }, [event?.tracks]);
 
   const currentTrackIds = useMemo(
     () => tracks.map((track) => track.trackId),
@@ -237,7 +228,11 @@ const EventDetailScreen = () => {
 
     try {
       setProcessingVote(trackId);
-      if (userVotes[trackId]) {
+      // Check if user has voted by looking at the track's votedBy array
+      const track = tracks.find((t) => t.trackId === trackId);
+      const hasVoted = track?.votedBy.includes(user.uid) ?? false;
+
+      if (hasVoted) {
         await EventService.removeVoteFromTrack(id, trackId, user.uid);
       } else {
         await EventService.voteForTrack(id, trackId, user.uid);
@@ -654,15 +649,13 @@ const EventDetailScreen = () => {
                 paddingTop: Platform.OS === 'web' && !isEventEnded ? 0 : 16
               }}
             >
-              {/* Event Monitor - показывается всегда для хостов, для участников только когда трек играет */}
-              {(isHost || event?.currentlyPlayingTrack) && (
-                <EventMonitor
-                  event={event}
-                  currentTrack={event.currentlyPlayingTrack || null}
-                  isHost={isHost}
-                  queueTracks={queueTracks}
-                />
-              )}
+              {/* Event Monitor - visible to all, play/pause button only for hosts */}
+              <EventMonitor
+                event={event}
+                currentTrack={event.currentlyPlayingTrack || null}
+                isHost={isHost}
+                queueTracks={queueTracks}
+              />
 
               {/* Tracks tabs - Queue / Played */}
               <View className="flex-row items-center gap-4">
@@ -769,9 +762,11 @@ const EventDetailScreen = () => {
                   ) : (
                     queueTracks.map((eventTrack) => (
                       <EventTrackCard
-                        key={eventTrack.id}
+                        key={eventTrack.trackId}
                         track={eventTrack}
-                        hasVoted={!!userVotes[eventTrack.trackId]}
+                        hasVoted={
+                          user ? eventTrack.votedBy.includes(user.uid) : false
+                        }
                         canVote={canVote}
                         isVoting={processingVote === eventTrack.trackId}
                         onToggleVote={() =>
