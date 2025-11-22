@@ -4,11 +4,11 @@ import { ActivityIndicator, Image, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
@@ -26,6 +26,7 @@ interface EventMonitorProps {
   isHost: boolean;
   queueTracks: EventTrack[];
   hasEventStarted: boolean;
+  isEventEnded: boolean;
   onStartEventEarly?: () => void;
 }
 
@@ -36,6 +37,7 @@ const EventMonitor = memo(
     isHost,
     queueTracks,
     hasEventStarted,
+    isEventEnded,
     onStartEventEarly
   }: EventMonitorProps) => {
     const { theme } = useTheme();
@@ -103,6 +105,7 @@ const EventMonitor = memo(
 
         loadPreview();
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack?.trackId, isHost]);
 
     // Cleanup finished tracks when queue changes
@@ -124,9 +127,33 @@ const EventMonitor = memo(
       );
     }, [queueTracks, currentTrack]);
 
+    // Stop audio player immediately when event ends
+    useEffect(() => {
+      if (!isHost || !audioPlayer || !isEventEnded) return;
+
+      const stopPlayback = async () => {
+        try {
+          await audioPlayer.pause();
+          Logger.info(
+            'Audio player stopped: event ended',
+            { eventId: event.id, eventName: event.name },
+            '📺 EventMonitor'
+          );
+        } catch (error) {
+          Logger.error(
+            'Error stopping audio player:',
+            { eventId: event.id, eventName: event.name, error: error },
+            '📺 EventMonitor'
+          );
+        }
+      };
+
+      stopPlayback();
+    }, [isEventEnded, isHost, audioPlayer, event.id, event.name]);
+
     // Sync audio player with isPlaying state
     useEffect(() => {
-      if (!isHost || !audioPlayer || !previewUrl) return;
+      if (!isHost || !audioPlayer || !previewUrl || isEventEnded) return;
 
       const sync = async () => {
         try {
@@ -149,7 +176,15 @@ const EventMonitor = memo(
       };
 
       sync();
-    }, [event.isPlaying, isHost, audioPlayer, previewUrl]);
+    }, [
+      event.isPlaying,
+      isHost,
+      audioPlayer,
+      previewUrl,
+      isEventEnded,
+      event.id,
+      event.name
+    ]);
 
     // Get next track from queue (already sorted by voteCount)
     // queueTracks comes already sorted: voteCount DESC
@@ -174,7 +209,14 @@ const EventMonitor = memo(
 
     // Auto-finish when track ends and start next track
     useEffect(() => {
-      if (!isHost || !user || !currentTrack || !audioPlayer || !previewUrl) {
+      if (
+        !isHost ||
+        !user ||
+        !currentTrack ||
+        !audioPlayer ||
+        !previewUrl ||
+        isEventEnded
+      ) {
         return;
       }
 
@@ -281,6 +323,7 @@ const EventMonitor = memo(
       }, 500); // Check every 500ms
 
       return () => clearInterval(checkInterval);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       isHost,
       event.id,
@@ -288,11 +331,28 @@ const EventMonitor = memo(
       currentTrack,
       queueTracks,
       audioPlayer,
-      previewUrl
+      previewUrl,
+      isEventEnded
     ]);
 
     const handlePlayPause = useCallback(async () => {
       if (!user) return;
+
+      // Check if event has ended - no playback control allowed
+      if (isEventEnded) {
+        Alert.show({
+          title: 'Event Ended',
+          message:
+            'This event has ended. Playback control is no longer available.',
+          buttons: [
+            {
+              text: 'OK',
+              style: 'cancel'
+            }
+          ]
+        });
+        return;
+      }
 
       // Check if event has started before allowing playback
       if (!hasEventStarted && !currentTrack) {
@@ -357,6 +417,7 @@ const EventMonitor = memo(
           message: 'Failed to toggle playback'
         });
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       event.id,
       event.isPlaying,
@@ -364,6 +425,7 @@ const EventMonitor = memo(
       currentTrack,
       getNextTrack,
       hasEventStarted,
+      isEventEnded,
       onStartEventEarly
     ]);
 
@@ -532,6 +594,7 @@ const EventMonitor = memo(
       prevProps.currentTrack?.trackId === nextProps.currentTrack?.trackId &&
       prevProps.isHost === nextProps.isHost &&
       prevProps.hasEventStarted === nextProps.hasEventStarted &&
+      prevProps.isEventEnded === nextProps.isEventEnded &&
       prevProps.queueTracks.length === nextProps.queueTracks.length &&
       prevProps.queueTracks.every(
         (track, index) =>

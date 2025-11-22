@@ -15,7 +15,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 import { auth, db } from '@/utils/firebase/firebase-init';
 
 export interface PushTokenDocument {

@@ -3,7 +3,7 @@
  * This is used for sending notifications when user performs an action
  */
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 
 interface NotificationPayload {
   to: string;

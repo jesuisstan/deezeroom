@@ -1,7 +1,7 @@
 import AntDesign from '@expo/vector-icons/AntDesign';
 
-import { Alert } from '@/components/modules/alert';
 import IconButton from '@/components/ui/buttons/IconButton';
+import { Alert } from '@/modules/alert';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';

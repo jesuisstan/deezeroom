@@ -17,7 +17,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import { setPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';

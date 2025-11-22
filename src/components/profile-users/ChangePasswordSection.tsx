@@ -7,13 +7,13 @@ import {
   updatePassword
 } from 'firebase/auth';
 
-import { Logger } from '@/components/modules/logger/LoggerModule';
-import { Notifier } from '@/components/modules/notifier';
 import LineButton from '@/components/ui/buttons/LineButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';

@@ -4,12 +4,12 @@ import { GestureResponderEvent, Image, View } from 'react-native';
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
-import { Alert } from '@/components/modules/alert';
 import IconButton from '@/components/ui/buttons/IconButton';
 import LineButton from '@/components/ui/buttons/LineButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { Track } from '@/graphql/schema';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
+import { Alert } from '@/modules/alert';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { usePressAnimation } from '@/style/usePressAnimation';

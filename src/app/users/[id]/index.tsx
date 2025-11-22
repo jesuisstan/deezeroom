@@ -3,8 +3,6 @@ import { Image, RefreshControl, ScrollView, View } from 'react-native';
 
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
 import FriendsList from '@/components/profile-users/FriendsList';
@@ -15,6 +13,8 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';

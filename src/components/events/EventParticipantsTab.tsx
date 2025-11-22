@@ -85,7 +85,7 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
 
   return (
     <ScrollView
-      className="h-full w-full flex-1"
+      className="h-full w-full flex-1 select-none"
       style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       contentContainerStyle={{
         padding: Platform.OS === 'web' ? 32 : 16,

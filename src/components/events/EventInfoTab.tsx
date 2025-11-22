@@ -71,7 +71,7 @@ const EventInfoTab: FC<EventInfoTabProps> = ({ event }) => {
 
   return (
     <ScrollView
-      className="h-full w-full flex-1"
+      className="h-full w-full flex-1 select-none"
       style={{
         backgroundColor:
           event.visibility === 'public'
@@ -136,7 +136,7 @@ const EventInfoTab: FC<EventInfoTabProps> = ({ event }) => {
               size="m"
               color={themeColors[theme]['text-main']}
             >
-              Starts at
+              Start time
             </TextCustom>
             <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
               {formattedStart}
@@ -150,7 +150,7 @@ const EventInfoTab: FC<EventInfoTabProps> = ({ event }) => {
               color={themeColors[theme]['text-main']}
               className="text-right"
             >
-              Ends at
+              End time
             </TextCustom>
             <TextCustom
               size="m"

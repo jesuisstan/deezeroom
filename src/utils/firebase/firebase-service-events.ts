@@ -7,7 +7,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  increment,
   limit,
   onSnapshot,
   query,
@@ -18,8 +17,8 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
 import { Track } from '@/graphql/schema';
+import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
 import {
@@ -901,13 +900,28 @@ export class EventService {
 
     const eventRef = doc(db, this.collection, eventId);
 
-    // Set endAt to current server time (exactly now, not earlier or later)
+    // First stop playback if currently playing
+    if (event.isPlaying || event.currentlyPlayingTrack) {
+      await updateDoc(eventRef, {
+        isPlaying: false,
+        currentlyPlayingTrack: null,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    // Then set endAt to current server time (exactly now, not earlier or later)
     // Use serverTimestamp() to ensure it's exactly the current server time
     // Status will be computed automatically from startAt/endAt, no need to store it
     await updateDoc(eventRef, {
       endAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    Logger.info(
+      'Event ended early, playback stopped',
+      { eventId, userId },
+      '🔥 Firebase EventService'
+    );
   }
 
   // ===== INVITATIONS =====
@@ -1325,6 +1339,17 @@ export class EventService {
       }
 
       const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      // Check if event has ended
+      if (this.hasEventEnded(event)) {
+        throw new Error('Cannot start playback: event has ended');
+      }
+
+      // Check if event has started
+      if (!this.hasEventStarted(event)) {
+        throw new Error('Cannot start playback: event has not started yet');
+      }
+
       const tracks = Array.isArray(event.tracks) ? event.tracks : [];
 
       const trackExists = tracks.some((t) => t.trackId === track.trackId);
@@ -1359,6 +1384,15 @@ export class EventService {
    * Pause playback
    */
   static async pausePlayback(eventId: string, hostId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (this.hasEventEnded(event)) {
+      throw new Error('Cannot pause playback: event has ended');
+    }
+
     await updateDoc(doc(db, this.collection, eventId), {
       isPlaying: false,
       updatedAt: serverTimestamp()
@@ -1371,6 +1405,15 @@ export class EventService {
    * Resume playback
    */
   static async resumePlayback(eventId: string, hostId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (this.hasEventEnded(event)) {
+      throw new Error('Cannot resume playback: event has ended');
+    }
+
     await updateDoc(doc(db, this.collection, eventId), {
       isPlaying: true,
       updatedAt: serverTimestamp()
@@ -1393,6 +1436,12 @@ export class EventService {
       }
 
       const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      // Check if event has ended
+      if (this.hasEventEnded(event)) {
+        throw new Error('Cannot finish track: event has ended');
+      }
+
       const currentTrack = event.currentlyPlayingTrack;
 
       if (!currentTrack) {

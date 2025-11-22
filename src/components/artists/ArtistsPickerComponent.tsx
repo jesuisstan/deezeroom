@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
-import { Logger } from '@/components/modules/logger/LoggerModule';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
 import type { Artist as GqlArtist } from '@/graphql/schema';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { deezerService } from '@/utils/deezer/deezer-service';

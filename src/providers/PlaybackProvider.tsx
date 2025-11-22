@@ -16,8 +16,8 @@ import {
   useAudioPlayerStatus
 } from 'expo-audio';
 
-import { Notifier } from '@/components/modules/notifier';
 import { Track } from '@/graphql/schema';
+import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 
 export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';

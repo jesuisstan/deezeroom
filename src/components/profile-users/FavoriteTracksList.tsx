@@ -4,14 +4,14 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { useClient } from 'urql';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { LIMIT_DEFAULT } from '@/constants/deezer';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   usePlaybackActions,

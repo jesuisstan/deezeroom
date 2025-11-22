@@ -21,9 +21,6 @@ import EventParticipantsTab from '@/components/events/EventParticipantsTab';
 import EventStatusIndicator from '@/components/events/EventStatusIndicator';
 import EventTrackCard from '@/components/events/EventTrackCard';
 import PlayedTrackCard from '@/components/events/PlayedTrackCard';
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -34,16 +31,15 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { Track } from '@/graphql/schema';
 import { useEventStatus } from '@/hooks/useEventStatus';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import {
-  Event,
-  EventService,
-  EventTrack
-} from '@/utils/firebase/firebase-service-events';
+import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 import { UserProfile } from '@/utils/firebase/firebase-service-user';
 
 const EventDetailScreen = () => {
@@ -675,6 +671,7 @@ const EventDetailScreen = () => {
                 isHost={isHost}
                 queueTracks={queueTracks}
                 hasEventStarted={hasEventStarted}
+                isEventEnded={isEventEnded}
                 onStartEventEarly={
                   canManageEvent ? handleStartEventEarly : undefined
                 }

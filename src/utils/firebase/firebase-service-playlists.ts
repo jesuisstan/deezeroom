@@ -21,7 +21,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
 import {

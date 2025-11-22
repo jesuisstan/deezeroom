@@ -7,8 +7,6 @@ import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent'
 import LocationPicker, {
   LocationValue
 } from '@/components/location/LocationPicker';
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger/LoggerModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import LineButton from '@/components/ui/buttons/LineButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
@@ -20,6 +18,8 @@ import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';

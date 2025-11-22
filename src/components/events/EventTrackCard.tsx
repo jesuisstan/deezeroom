@@ -170,9 +170,11 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
             </TextCustom>
           </View>
         ) : !canVote ? (
-          <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
-            Voting disabled
-          </TextCustom>
+          <MaterialCommunityIcons
+            name="email-remove-outline"
+            size={16}
+            color={themeColors[theme]['intent-warning']}
+          />
         ) : null}
       </View>
     </View>

@@ -25,9 +25,6 @@ import { useSharedValue } from 'react-native-reanimated';
 import { TabView } from 'react-native-tab-view';
 import { useClient } from 'urql';
 
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import AddTracksButton from '@/components/playlists/AddTracksButton';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import CoverTab from '@/components/playlists/CoverTab';
@@ -44,6 +41,9 @@ import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
 import { GET_TRACK } from '@/graphql/queries';
 import { Track } from '@/graphql/schema';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import {
   usePlaybackActions,
   usePlaybackState,

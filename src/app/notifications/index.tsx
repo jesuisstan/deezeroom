@@ -5,8 +5,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import { EventInvitationCard } from '@/components/notifications/EventInvitationCard';
 import OwnershipTransferCard from '@/components/notifications/OwnershipTransferCard';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -19,6 +17,8 @@ import {
 } from '@/hooks/useFriendRequests';
 import { useOwnershipTransfers } from '@/hooks/useOwnershipTransfers';
 import { usePlaylistInvitations } from '@/hooks/usePlaylistInvitations';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';

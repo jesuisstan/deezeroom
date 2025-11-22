@@ -10,8 +10,8 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 
-import { Logger } from '@/components/modules/logger';
 import { useOwnershipTransfers } from '@/hooks/useOwnershipTransfers';
+import { Logger } from '@/modules/logger';
 import { useUser } from '@/providers/UserProvider';
 import {
   ConnectionWithId,
