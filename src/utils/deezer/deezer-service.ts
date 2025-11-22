@@ -24,6 +24,8 @@ export class DeezerService {
 
   /**
    * Search for artists using Deezer API (server-side)
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use searchArtistsViaGraphQL() for client-side calls
    */
   async searchArtists(
     query: string,
@@ -62,6 +64,8 @@ export class DeezerService {
 
   /**
    * Get single artist by ID from Deezer API (server-side)
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use getArtistsByIdsViaGraphQL() for client-side calls
    */
   async getArtistById(id: string): Promise<Artist> {
     const url = `${DEEZER_API_BASE_URL}/artist/${encodeURIComponent(id)}`;
@@ -75,6 +79,8 @@ export class DeezerService {
 
   /**
    * Get multiple artists by IDs from Deezer API (server-side)
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use getArtistsByIdsViaGraphQL() for client-side calls
    */
   async getArtistsByIds(ids: string[]): Promise<Artist[]> {
     if (!Array.isArray(ids) || ids.length === 0) return [];
@@ -147,7 +153,11 @@ export class DeezerService {
     return (json.data.artistsByIds as Artist[]) || [];
   }
 
-  // Get popular tracks from Deezer charts
+  /**
+   * Get popular tracks from Deezer charts
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use urqlClient.query(GET_POPULAR_TRACKS) for client-side calls
+   */
   async getPopularTracks(
     limit: number = LIMIT_DEFAULT,
     index: number = 0
@@ -177,6 +187,11 @@ export class DeezerService {
     }
   }
 
+  /**
+   * Search for tracks using Deezer API (server-side)
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use urqlClient.query(SEARCH_TRACKS) for client-side calls
+   */
   async searchTracks(
     query: string,
     limit: number = LIMIT_DEFAULT,
@@ -265,6 +280,8 @@ export class DeezerService {
 
   /**
    * Get track by ID from Deezer API
+   * ⚠️ SERVER-SIDE ONLY - Do NOT call from components (CORS issues)
+   * Use urqlClient.query(GET_TRACK, { id: trackId }) for client-side calls
    * @param trackId Deezer track ID
    * @returns Promise with track data
    */

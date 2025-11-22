@@ -120,29 +120,12 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         android_ripple={null}
         style={{ width: '100%', marginBottom: 12 }}
       >
-        <View
-          style={{
-            flexDirection: 'row',
-            backgroundColor: themeColors[theme]['bg-secondary'],
-            borderRadius: 6,
-            padding: 14,
-            borderWidth: 1,
-            borderColor: themeColors[theme].border,
-            shadowColor: themeColors[theme]['bg-inverse'],
-            shadowOpacity: 0.08,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 2 },
-            alignItems: 'stretch',
-            gap: 14
-          }}
-        >
+        <View className="flex-row items-center justify-between gap-4 rounded-md border border-border bg-bg-secondary px-4 py-3 shadow-sm">
           {renderCover()}
 
-          <View style={{ flex: 1, justifyContent: 'space-between', gap: 8 }}>
-            <View style={{ gap: 6 }}>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-              >
+          <View className="flex-1 justify-between gap-2">
+            <View className="gap-2">
+              <View className="flex-row items-center gap-2">
                 <MaterialCommunityIcons
                   name={event.visibility === 'public' ? 'earth' : 'lock'}
                   size={18}
@@ -158,21 +141,15 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                 </TextCustom>
               </View>
 
-              <View style={{ gap: 4 }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
+              <View className="gap-1">
+                <View className="flex-row items-center gap-2">
                   <MaterialCommunityIcons
                     name="calendar-start"
                     size={18}
                     color={themeColors[theme]['text-secondary']}
                     style={{ flexShrink: 0 }}
                   />
-                  <View style={{ flex: 1, minWidth: 0 }}>
+                  <View className="min-w-0 flex-1">
                     <TextCustom
                       size="xs"
                       color={themeColors[theme]['text-secondary']}
@@ -183,20 +160,14 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   </View>
                 </View>
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
+                <View className="flex-row items-center gap-2">
                   <MaterialCommunityIcons
                     name="calendar-end"
                     size={18}
                     color={themeColors[theme]['text-secondary']}
                     style={{ flexShrink: 0 }}
                   />
-                  <View style={{ flex: 1, minWidth: 0 }}>
+                  <View className="min-w-0 flex-1">
                     <TextCustom
                       size="xs"
                       color={themeColors[theme]['text-secondary']}
@@ -207,13 +178,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                   </View>
                 </View>
 
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
+                <View className="flex-row items-center gap-2">
                   <MaterialCommunityIcons
                     name={
                       event.geofence?.locationName
@@ -224,7 +189,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                     color={themeColors[theme]['text-secondary']}
                     style={{ flexShrink: 0 }}
                   />
-                  <View style={{ flex: 1, minWidth: 0 }}>
+                  <View className="min-w-0 flex-1">
                     <TextCustom
                       size="xs"
                       color={themeColors[theme]['text-secondary']}

@@ -4,6 +4,7 @@ import { Image, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -46,137 +47,143 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
   };
 
   return (
-    <View
-      style={{
-        backgroundColor: themeColors[theme]['bg-secondary'],
-        borderRadius: 6,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: themeColors[theme]['border'],
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10
-      }}
-    >
-      {/* Album cover */}
-      {track.track?.album?.coverMedium ? (
-        <Image
-          source={{ uri: track.track.album.coverMedium }}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 6
-          }}
-        />
-      ) : (
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 6,
-            backgroundColor: `${themeColors[theme]['primary']}20`,
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <MaterialCommunityIcons
-            name="music"
-            size={22}
-            color={themeColors[theme]['primary']}
-          />
-        </View>
-      )}
-
-      {/* Track info */}
-      <View style={{ flex: 1 }}>
-        <TextCustom
-          type="semibold"
-          size="m"
-          color={themeColors[theme]['text-main']}
-          numberOfLines={1}
-        >
-          {track.track?.title || 'Unknown title'}
-        </TextCustom>
-        <TextCustom
-          size="xs"
-          color={themeColors[theme]['text-secondary']}
-          numberOfLines={1}
-        >
-          {renderArtists() || 'Unknown artist'}
-        </TextCustom>
-      </View>
-
-      {/* Vote count and actions */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {canRemove ? (
-          <IconButton
-            onPress={onRemoveTrack}
-            accessibilityLabel="Remove track from event"
-            className="h-8 w-8"
-          >
-            <MaterialCommunityIcons
-              name="delete-outline"
-              size={18}
-              color={themeColors[theme]['intent-error']}
-            />
-          </IconButton>
-        ) : null}
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <MaterialCommunityIcons
-            name="vote"
-            size={16}
-            color={themeColors[theme]['text-secondary']}
-          />
-          <TextCustom
-            size="xs"
-            color={themeColors[theme]['text-secondary']}
-            type="semibold"
-          >
-            {track.voteCount}
-          </TextCustom>
-        </View>
-        {canVote && !isCurrentlyPlaying ? (
-          <IconButton
-            onPress={onToggleVote}
-            accessibilityLabel={hasVoted ? 'Remove vote' : 'Vote'}
-            disabled={isVoting}
-            className="h-8 w-8"
-          >
-            <MaterialCommunityIcons
-              name={hasVoted ? 'thumb-up' : 'thumb-up-outline'}
-              size={18}
-              color={themeColors[theme]['primary']}
-            />
-          </IconButton>
-        ) : isCurrentlyPlaying ? (
-          <View
-            className="flex-row items-center gap-1 rounded px-2 py-1"
+    <View className="gap-2">
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10
+        }}
+      >
+        {/* Album cover */}
+        {track.track?.album?.coverMedium ? (
+          <Image
+            source={{ uri: track.track.album.coverMedium }}
             style={{
-              backgroundColor: themeColors[theme]['primary'] + '22'
+              width: 44,
+              height: 44,
+              borderRadius: 6
+            }}
+          />
+        ) : (
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 6,
+              backgroundColor: `${themeColors[theme]['primary']}20`,
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <MaterialCommunityIcons
-              name="music-note"
-              size={14}
+              name="music"
+              size={22}
               color={themeColors[theme]['primary']}
+            />
+          </View>
+        )}
+
+        {/* Track info */}
+        <View style={{ flex: 1 }}>
+          <TextCustom
+            type="semibold"
+            size="m"
+            color={themeColors[theme]['text-main']}
+            numberOfLines={1}
+          >
+            {track.track?.title || 'Unknown title'}
+          </TextCustom>
+          <TextCustom
+            size="xs"
+            color={themeColors[theme]['text-secondary']}
+            numberOfLines={1}
+          >
+            {renderArtists() || 'Unknown artist'}
+          </TextCustom>
+        </View>
+
+        {/* Vote count and actions */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {canRemove ? (
+            <IconButton
+              onPress={onRemoveTrack}
+              accessibilityLabel="Remove track from event"
+              className="h-8 w-8"
+            >
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={18}
+                color={themeColors[theme]['intent-error']}
+              />
+            </IconButton>
+          ) : null}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialCommunityIcons
+              name="vote"
+              size={16}
+              color={
+                track.voteCount > 0
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['text-secondary']
+              }
             />
             <TextCustom
               size="xs"
+              color={
+                track.voteCount > 0
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['text-secondary']
+              }
               type="semibold"
-              color={themeColors[theme]['primary']}
             >
-              Playing
+              {track.voteCount}
             </TextCustom>
           </View>
-        ) : !canVote ? (
-          <MaterialCommunityIcons
-            name="email-remove-outline"
-            size={16}
-            color={themeColors[theme]['intent-warning']}
-          />
-        ) : null}
+          {canVote && !isCurrentlyPlaying ? (
+            <IconButton
+              onPress={onToggleVote}
+              accessibilityLabel={hasVoted ? 'Remove vote' : 'Vote'}
+              disabled={isVoting}
+              className="h-8 w-8"
+            >
+              <MaterialCommunityIcons
+                name={hasVoted ? 'thumb-up' : 'thumb-up-outline'}
+                size={18}
+                color={themeColors[theme]['primary']}
+              />
+            </IconButton>
+          ) : isCurrentlyPlaying ? (
+            <View
+              className="flex-row items-center gap-1 rounded px-2 py-1"
+              style={{
+                backgroundColor: themeColors[theme]['primary'] + '22'
+              }}
+            >
+              <MaterialCommunityIcons
+                name="music-note"
+                size={14}
+                color={themeColors[theme]['primary']}
+              />
+              <TextCustom
+                size="xs"
+                type="semibold"
+                color={themeColors[theme]['primary']}
+              >
+                Playing
+              </TextCustom>
+            </View>
+          ) : !canVote ? (
+            <MaterialCommunityIcons
+              name="email-remove-outline"
+              size={16}
+              color={themeColors[theme]['intent-warning']}
+            />
+          ) : null}
+        </View>
       </View>
+      <Divider />
     </View>
   );
 };

@@ -20,7 +20,7 @@ import EventMonitor from '@/components/events/EventMonitor';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
 import EventStatusIndicator from '@/components/events/EventStatusIndicator';
 import EventTrackCard from '@/components/events/EventTrackCard';
-import PlayedTrackCard from '@/components/events/PlayedTrackCard';
+import PlayedTracksTab from '@/components/events/PlayedTracksTab';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -802,33 +802,7 @@ const EventDetailScreen = () => {
                 </>
               ) : (
                 /* Played tab */
-                <>
-                  {playedTracks.length === 0 ? (
-                    <View className="items-center justify-center py-12">
-                      <MaterialCommunityIcons
-                        name="history"
-                        size={42}
-                        color={themeColors[theme]['text-secondary']}
-                      />
-                      <TextCustom
-                        className="mt-4 text-center"
-                        color={themeColors[theme]['text-secondary']}
-                      >
-                        No tracks played yet
-                      </TextCustom>
-                    </View>
-                  ) : (
-                    playedTracks
-                      .slice()
-                      .reverse()
-                      .map((playedTrack, index) => (
-                        <PlayedTrackCard
-                          key={`${playedTrack.trackId}-${index}`}
-                          playedTrack={playedTrack}
-                        />
-                      ))
-                  )}
-                </>
+                <PlayedTracksTab playedTracks={playedTracks} />
               )}
             </View>
           </View>

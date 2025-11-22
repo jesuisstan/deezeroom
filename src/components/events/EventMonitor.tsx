@@ -4,17 +4,18 @@ import { ActivityIndicator, Image, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useClient } from 'urql';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { GET_TRACK } from '@/graphql/queries';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
-import { DeezerService } from '@/utils/deezer/deezer-service';
 import {
   CurrentlyPlayingTrack,
   Event,
@@ -44,6 +45,8 @@ const EventMonitor = memo(
   }: EventMonitorProps) => {
     const { theme } = useTheme();
     const { user } = useUser();
+    const router = useRouter();
+    const urqlClient = useClient();
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
     const [isListening, setIsListening] = useState(false); // For participants only
@@ -52,6 +55,7 @@ const EventMonitor = memo(
     const currentTrackIdRef = useRef<string | null>(null);
     const finishedTracksRef = useRef<Set<string>>(new Set());
     const isMountedRef = useRef(true);
+    const wasPausedByBlurRef = useRef(false); // Track if pause was due to blur
 
     // Audio player for host OR listening participants
     const shouldUseAudioPlayer = isHost || (!isHost && isListening);
@@ -65,6 +69,8 @@ const EventMonitor = memo(
     const eventIdRef = useRef(event.id);
     const isPlayingRef = useRef(event.isPlaying);
     const audioPlayerRef = useRef(audioPlayer);
+    const routerRef = useRef(router);
+    const currentTrackRef = useRef(currentTrack);
 
     // Update refs when values change
     useEffect(() => {
@@ -73,7 +79,17 @@ const EventMonitor = memo(
       eventIdRef.current = event.id;
       isPlayingRef.current = event.isPlaying;
       audioPlayerRef.current = audioPlayer;
-    }, [isHost, user, event.id, event.isPlaying, audioPlayer]);
+      routerRef.current = router;
+      currentTrackRef.current = currentTrack;
+    }, [
+      isHost,
+      user,
+      event.id,
+      event.isPlaying,
+      audioPlayer,
+      router,
+      currentTrack
+    ]);
 
     // Load listening state from AsyncStorage for participants
     useEffect(() => {
@@ -90,13 +106,14 @@ const EventMonitor = memo(
         } catch (error) {
           Logger.error(
             'Error loading listening state:',
-            { eventId: event.id, error: error },
+            { eventId: event.id, eventName: event.name, error: error },
             '📺 EventMonitor'
           );
         }
       };
 
       loadListeningState();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [event.id, isHost]);
 
     // Save listening state to AsyncStorage when it changes
@@ -110,13 +127,14 @@ const EventMonitor = memo(
         } catch (error) {
           Logger.error(
             'Error saving listening state:',
-            { eventId: event.id, error: error },
+            { eventId: event.id, eventName: event.name, error: error },
             '📺 EventMonitor'
           );
         }
       };
 
       saveListeningState();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isListening, event.id, isHost]);
 
     // Handle screen focus/blur - immediate pause for host
@@ -125,11 +143,34 @@ const EventMonitor = memo(
         // Screen is focused
         isMountedRef.current = true;
 
-        Logger.info(
-          'Screen focused',
-          { eventId: eventIdRef.current, isHost: isHostRef.current },
-          '📺 EventMonitor'
-        );
+        const currentIsHost = isHostRef.current;
+        const currentUser = userRef.current;
+        const currentEventId = eventIdRef.current;
+
+        // Auto-resume playback for host if it was paused due to blur
+        if (currentIsHost && wasPausedByBlurRef.current && currentUser) {
+          setTimeout(() => {
+            const currentCurrentTrack = currentTrackRef.current;
+            // Check if there's a current track
+            if (currentCurrentTrack) {
+              EventService.resumePlayback(currentEventId, currentUser.uid)
+                .then(() => {
+                  wasPausedByBlurRef.current = false;
+                })
+                .catch((error) => {
+                  Logger.error(
+                    'Error auto-resuming playback:',
+                    {
+                      eventId: currentEventId,
+                      eventName: event.name,
+                      error: error
+                    },
+                    '📺 EventMonitor'
+                  );
+                });
+            }
+          }, 100);
+        }
 
         return () => {
           // Screen lost focus (blur)
@@ -140,16 +181,11 @@ const EventMonitor = memo(
           const currentUser = userRef.current;
           const currentIsPlaying = isPlayingRef.current;
           const currentAudioPlayer = audioPlayerRef.current;
+          const hadPreviousAutoResume = wasPausedByBlurRef.current;
 
-          Logger.info(
-            'Screen blurred',
-            {
-              eventId: currentEventId,
-              isHost: currentIsHost,
-              isPlaying: currentIsPlaying
-            },
-            '📺 EventMonitor'
-          );
+          // If there was a previous auto-resume flag set, it means user didn't return
+          // Clear it before setting new one
+          if (hadPreviousAutoResume) wasPausedByBlurRef.current = false;
 
           // Reset finish handlers to prevent stale finish events
           didFinishHandledRef.current = false;
@@ -169,8 +205,31 @@ const EventMonitor = memo(
             }
           }
 
+          // Show alert for host only
+          if (currentIsHost && currentIsPlaying) {
+            setTimeout(() => {
+              const currentRouter = routerRef.current;
+
+              Alert.confirm(
+                'You left the event',
+                'Music playback has been paused for all event participants. Do you want to return to the event?',
+                () => {
+                  // User wants to return
+                  currentRouter.push(`/events/${currentEventId}`);
+                },
+                () => {
+                  // User chose not to return - clear auto-resume flag
+                  wasPausedByBlurRef.current = false;
+                }
+              );
+            }, 300);
+          }
+
           // For host: pause playback in database immediately
           if (currentIsHost && currentUser && currentIsPlaying) {
+            // Mark that pause was due to blur (for auto-resume on return)
+            wasPausedByBlurRef.current = true;
+
             EventService.pausePlayback(currentEventId, currentUser.uid)
               .then(() => {
                 Logger.info(
@@ -188,19 +247,16 @@ const EventMonitor = memo(
               });
           }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
     );
 
     // Cleanup on unmount (real unmount, not just blur)
     useEffect(() => {
       return () => {
-        Logger.info(
-          'EventMonitor unmounted',
-          { eventId: event.id, isHost },
-          '📺 EventMonitor'
-        );
+        // Clear auto-resume flag on unmount
+        wasPausedByBlurRef.current = false;
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [event.id]);
 
     // Load preview URL for host OR listening participants (only when track changes)
@@ -215,27 +271,14 @@ const EventMonitor = memo(
 
       // Reset finish handlers when track changes
       if (currentTrackIdRef.current !== currentTrack.trackId) {
-        Logger.info(
-          'Track changed, resetting finish handlers',
-          {
-            eventId: event.id,
-            eventName: event.name,
-            oldTrack: currentTrackIdRef.current,
-            newTrack: currentTrack.trackId
-          },
-          '📺 EventMonitor'
-        );
+        // Clear auto-resume flag when track changes
+        wasPausedByBlurRef.current = false;
 
         // IMPORTANT: First stop audio player and reset state
         const stopAndLoad = async () => {
           if (audioPlayer) {
             try {
               await audioPlayer.pause();
-              Logger.info(
-                'Audio player paused before track change',
-                { eventId: event.id, trackId: currentTrack.trackId },
-                '📺 EventMonitor'
-              );
             } catch {
               // Silently ignore
             }
@@ -254,10 +297,11 @@ const EventMonitor = memo(
           // Load new preview
           setIsLoadingPreview(true);
           try {
-            const deezerService = DeezerService.getInstance();
-            const track = await deezerService.getTrackById(
-              currentTrack.trackId
-            );
+            const result = await urqlClient
+              .query(GET_TRACK, { id: currentTrack.trackId })
+              .toPromise();
+
+            const track = result?.data?.track;
             setPreviewUrl(track?.preview || null);
           } catch (error) {
             Logger.error(
@@ -334,31 +378,17 @@ const EventMonitor = memo(
           const isCurrentlyPlaying = currentStatus?.playing ?? false;
 
           if (event.isPlaying) {
-            // Only play if not already playing
+            // Event should be playing - start if not already playing
             if (!isCurrentlyPlaying) {
               await audioPlayer.play();
-              Logger.info(
-                'Audio player synced: playing',
-                { eventId: event.id, isHost, isListening },
-                '📺 EventMonitor'
-              );
-            } else {
-              Logger.info(
-                'Audio player already playing, skipping play()',
-                { eventId: event.id },
-                '📺 EventMonitor'
-              );
             }
+            // If already playing - do nothing
           } else {
-            // Only pause if currently playing
+            // Event is paused - stop if currently playing
             if (isCurrentlyPlaying) {
               await audioPlayer.pause();
-              Logger.info(
-                'Audio player synced: paused',
-                { eventId: event.id, isHost, isListening },
-                '📺 EventMonitor'
-              );
             }
+            // If already paused - do nothing
           }
         } catch (error) {
           Logger.error(
@@ -450,26 +480,10 @@ const EventMonitor = memo(
         didFinishHandledRef.current = true;
         isProcessingFinishRef.current = true;
 
-        Logger.info(
-          'Track finished, starting next...',
-          {
-            eventId: event.id,
-            eventName: event.name,
-            currentTrackId: currentTrack.trackId,
-            queueLength: queueTracks.length
-          },
-          '📺 EventMonitor'
-        );
-
         const processFinish = async () => {
           try {
             // Check if component is still in focus
             if (!isMountedRef.current) {
-              Logger.info(
-                'Component lost focus, skipping track finish',
-                { eventId: event.id, trackId: currentTrack.trackId },
-                '📺 EventMonitor'
-              );
               isProcessingFinishRef.current = false;
               return;
             }
@@ -486,19 +500,8 @@ const EventMonitor = memo(
                   !finishedTracksRef.current.has(t.trackId)
               ) || null;
 
-            Logger.info(
-              'Selected next track',
-              { event: event.name },
-              '📺 EventMonitor'
-            );
-
             // Check focus again before Firebase operations
             if (!isMountedRef.current) {
-              Logger.info(
-                'Component lost focus before Firebase operations',
-                { eventId: event.id },
-                '📺 EventMonitor'
-              );
               isProcessingFinishRef.current = false;
               return;
             }
@@ -512,25 +515,7 @@ const EventMonitor = memo(
                 nextTrack,
                 user.uid
               );
-              Logger.info(
-                'Auto-started next track',
-                {
-                  eventId: event.id,
-                  eventName: event.name,
-                  trackId: nextTrack.trackId,
-                  title: nextTrack.track.title,
-                  voteCount: nextTrack.voteCount
-                },
-                '📺 EventMonitor'
-              );
             } else {
-              Logger.info(
-                'No more tracks in queue, playback stopped',
-                {
-                  event: event.name
-                },
-                '📺 EventMonitor'
-              );
               // Clear finished tracks list when queue is empty
               finishedTracksRef.current.clear();
             }
@@ -639,8 +624,12 @@ const EventMonitor = memo(
           // Toggle pause/resume for current track
           if (event.isPlaying) {
             await EventService.pausePlayback(event.id, user.uid);
+            // Manual pause - clear auto-resume flag
+            wasPausedByBlurRef.current = false;
           } else {
             await EventService.resumePlayback(event.id, user.uid);
+            // Manual resume - clear auto-resume flag
+            wasPausedByBlurRef.current = false;
           }
         }
       } catch (error) {
@@ -683,201 +672,221 @@ const EventMonitor = memo(
 
         Logger.info(
           'Listening toggled',
-          { eventId: event.id, listening: newValue },
+          {
+            eventId: event.id,
+            eventName: event.name,
+            userId: user?.uid,
+            listening: newValue
+          },
           '📺 EventMonitor'
         );
 
         return newValue;
       });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [audioPlayer, event.id]);
 
     return (
-      <View
-        className="overflow-hidden rounded-lg border"
-        style={{
-          backgroundColor: `${themeColors[theme]['primary']}20`,
-          borderColor: currentTrack
-            ? themeColors[theme]['primary']
-            : themeColors[theme]['border'],
-          minHeight: 80 // Fixed height
-        }}
-      >
-        <View className="flex-row items-center gap-3 p-4">
-          {/* Loading or no track state */}
-          {!currentTrack || isLoadingPreview ? (
-            <>
-              <View
-                className="h-16 w-16 items-center justify-center rounded"
-                style={{ backgroundColor: themeColors[theme]['bg-tertiary'] }}
-              >
-                {isLoadingPreview ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={themeColors[theme]['primary']}
+      <View>
+        <View
+          className="overflow-hidden rounded-lg border"
+          style={{
+            backgroundColor: `${themeColors[theme]['primary']}20`,
+            borderColor: currentTrack
+              ? themeColors[theme]['primary']
+              : themeColors[theme]['border'],
+            minHeight: 80 // Fixed height
+          }}
+        >
+          <View className="flex-row items-center gap-3 px-4 py-2">
+            {/* Loading or no track state */}
+            {!currentTrack || isLoadingPreview ? (
+              <>
+                <View
+                  className="h-16 w-16 items-center justify-center rounded"
+                  style={{ backgroundColor: themeColors[theme]['bg-tertiary'] }}
+                >
+                  {isLoadingPreview ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={themeColors[theme]['primary']}
+                    />
+                  ) : (
+                    <Image
+                      source={require('@/assets/images/logo/logo-heart-transparent.png')}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        opacity: 0.6,
+                        resizeMode: 'contain'
+                      }}
+                    />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <TextCustom type="semibold">
+                    {isLoadingPreview ? 'Loading track...' : 'Event Monitor'}
+                  </TextCustom>
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                  >
+                    {queueTracks.length > 0
+                      ? `${queueTracks.length} track(s) in queue`
+                      : 'No tracks in queue'}
+                  </TextCustom>
+                  {/* Third line spacer to maintain consistent height */}
+                  <TextCustom
+                    size="xs"
+                    color={themeColors[theme]['text-secondary']}
+                    style={{ opacity: 0 }}
+                  >
+                    {' '}
+                  </TextCustom>
+                </View>
+                {!isEventEnded &&
+                  isHost &&
+                  queueTracks.length > 0 &&
+                  !currentTrack && (
+                    <IconButton
+                      accessibilityLabel="Start playback"
+                      onPress={handlePlayPause}
+                      className="h-12 w-12"
+                      backgroundColor={themeColors[theme]['primary']}
+                    >
+                      <MaterialCommunityIcons
+                        name="play"
+                        size={24}
+                        color={themeColors[theme]['text-inverse']}
+                      />
+                    </IconButton>
+                  )}
+              </>
+            ) : (
+              <>
+                {/* Album cover */}
+                {currentTrack.albumCover ? (
+                  <Image
+                    source={{ uri: currentTrack.albumCover }}
+                    className="h-16 w-16 rounded"
                   />
                 ) : (
-                  <Image
-                    source={require('@/assets/images/logo/logo-heart-transparent.png')}
+                  <View
+                    className="h-16 w-16 items-center justify-center rounded"
                     style={{
-                      width: 48,
-                      height: 48,
-                      opacity: 0.6,
-                      resizeMode: 'contain'
+                      backgroundColor: themeColors[theme]['bg-tertiary']
                     }}
-                  />
+                  >
+                    <MaterialCommunityIcons
+                      name="music"
+                      size={32}
+                      color={themeColors[theme]['text-secondary']}
+                    />
+                  </View>
                 )}
-              </View>
-              <View className="flex-1">
-                <TextCustom type="semibold">
-                  {isLoadingPreview ? 'Loading track...' : 'Event Monitor'}
-                </TextCustom>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                >
-                  {queueTracks.length > 0
-                    ? `${queueTracks.length} track(s) in queue`
-                    : 'No tracks in queue'}
-                </TextCustom>
-                {/* Third line spacer to maintain consistent height */}
-                <TextCustom
-                  size="xs"
-                  color={themeColors[theme]['text-secondary']}
-                  style={{ opacity: 0 }}
-                >
-                  {' '}
-                </TextCustom>
-              </View>
-              {!isEventEnded &&
-                isHost &&
-                queueTracks.length > 0 &&
-                !currentTrack && (
+
+                {/* Track info */}
+                <View className="flex-1">
+                  <View className="flex-row items-center gap-1">
+                    {currentTrack.explicitLyrics && (
+                      <MaterialCommunityIcons
+                        name="alpha-e-box"
+                        size={14}
+                        color={themeColors[theme]['intent-warning']}
+                      />
+                    )}
+                    <TextCustom
+                      type="bold"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                      style={{ flex: 1 }}
+                    >
+                      {currentTrack.title}
+                    </TextCustom>
+                  </View>
+                  <TextCustom
+                    size="s"
+                    color={themeColors[theme]['text-secondary']}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {currentTrack.artist}
+                  </TextCustom>
+                  <TextCustom
+                    size="xs"
+                    color={
+                      event.isPlaying && !isEventEnded
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['intent-warning']
+                    }
+                    type="semibold"
+                  >
+                    {isEventEnded
+                      ? 'Ended'
+                      : event.isPlaying
+                        ? 'Currently playing'
+                        : 'Paused'}
+                  </TextCustom>
+                </View>
+
+                {/* Control buttons - different for hosts and participants */}
+                {!isEventEnded && isHost && (
+                  /* Host: Play/Pause button */
                   <IconButton
-                    accessibilityLabel="Start playback"
+                    accessibilityLabel={
+                      event.isPlaying ? 'Pause playback' : 'Resume playback'
+                    }
                     onPress={handlePlayPause}
                     className="h-12 w-12"
                     backgroundColor={themeColors[theme]['primary']}
+                    disabled={!previewUrl}
                   >
                     <MaterialCommunityIcons
-                      name="play"
+                      name={event.isPlaying ? 'pause' : 'play'}
                       size={24}
                       color={themeColors[theme]['text-inverse']}
                     />
                   </IconButton>
                 )}
-            </>
-          ) : (
-            <>
-              {/* Album cover */}
-              {currentTrack.albumCover ? (
-                <Image
-                  source={{ uri: currentTrack.albumCover }}
-                  className="h-16 w-16 rounded"
-                />
-              ) : (
-                <View
-                  className="h-16 w-16 items-center justify-center rounded"
-                  style={{ backgroundColor: themeColors[theme]['bg-tertiary'] }}
-                >
-                  <MaterialCommunityIcons
-                    name="music"
-                    size={32}
-                    color={themeColors[theme]['text-secondary']}
-                  />
-                </View>
-              )}
-
-              {/* Track info */}
-              <View className="flex-1">
-                <View className="flex-row items-center gap-1">
-                  {currentTrack.explicitLyrics && (
-                    <MaterialCommunityIcons
-                      name="alpha-e-box"
-                      size={14}
-                      color={themeColors[theme]['intent-warning']}
-                    />
-                  )}
-                  <TextCustom
-                    type="bold"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={{ flex: 1 }}
-                  >
-                    {currentTrack.title}
-                  </TextCustom>
-                </View>
-                <TextCustom
-                  size="s"
-                  color={themeColors[theme]['text-secondary']}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {currentTrack.artist}
-                </TextCustom>
-                <TextCustom
-                  size="xs"
-                  color={
-                    event.isPlaying && !isEventEnded
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['intent-warning']
-                  }
-                  type="semibold"
-                >
-                  {isEventEnded
-                    ? 'Ended'
-                    : event.isPlaying
-                      ? 'Currently playing'
-                      : 'Paused'}
-                </TextCustom>
-              </View>
-
-              {/* Control buttons - different for hosts and participants */}
-              {!isEventEnded && isHost && (
-                /* Host: Play/Pause button */
-                <IconButton
-                  accessibilityLabel={
-                    event.isPlaying ? 'Pause playback' : 'Resume playback'
-                  }
-                  onPress={handlePlayPause}
-                  className="h-12 w-12"
-                  backgroundColor={themeColors[theme]['primary']}
-                  disabled={!previewUrl}
-                >
-                  <MaterialCommunityIcons
-                    name={event.isPlaying ? 'pause' : 'play'}
-                    size={24}
-                    color={themeColors[theme]['text-inverse']}
-                  />
-                </IconButton>
-              )}
-              {!isEventEnded && !isHost && (
-                /* Participant: Listening toggle button */
-                <IconButton
-                  accessibilityLabel={
-                    isListening ? 'Stop listening' : 'Start listening'
-                  }
-                  onPress={handleToggleListening}
-                  className="h-12 w-12"
-                  backgroundColor={
-                    isListening
-                      ? themeColors[theme]['primary']
-                      : themeColors[theme]['bg-tertiary']
-                  }
-                >
-                  <MaterialCommunityIcons
-                    name={isListening ? 'ear-hearing' : 'ear-hearing-off'}
-                    size={24}
-                    color={
-                      isListening
-                        ? themeColors[theme]['text-inverse']
-                        : themeColors[theme]['text-secondary']
+                {!isEventEnded && !isHost && (
+                  /* Participant: Listening toggle button */
+                  <IconButton
+                    accessibilityLabel={
+                      isListening ? 'Stop listening' : 'Start listening'
                     }
-                  />
-                </IconButton>
-              )}
-            </>
-          )}
+                    onPress={handleToggleListening}
+                    className="h-12 w-12"
+                    backgroundColor={
+                      isListening
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['bg-tertiary']
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name={isListening ? 'broadcast' : 'broadcast-off'}
+                      size={24}
+                      color={
+                        isListening
+                          ? themeColors[theme]['text-inverse']
+                          : themeColors[theme]['text-secondary']
+                      }
+                    />
+                  </IconButton>
+                )}
+              </>
+            )}
+          </View>
         </View>
+        {isHost && !isEventEnded ? (
+          <TextCustom
+            size="xs"
+            color={themeColors[theme]['intent-warning']}
+            className="text-center"
+          >
+            If you leave the event tab, music will be paused for all
+            participants.
+          </TextCustom>
+        ) : null}
       </View>
     );
   },
