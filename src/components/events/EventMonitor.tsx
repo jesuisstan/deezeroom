@@ -552,13 +552,17 @@ const EventMonitor = memo(
                 <TextCustom
                   size="xs"
                   color={
-                    event.isPlaying
+                    event.isPlaying && !isEventEnded
                       ? themeColors[theme]['primary']
                       : themeColors[theme]['intent-warning']
                   }
                   type="semibold"
                 >
-                  {event.isPlaying ? 'Currently playing' : 'Paused'}
+                  {isEventEnded
+                    ? 'Ended'
+                    : event.isPlaying
+                      ? 'Currently playing'
+                      : 'Paused'}
                 </TextCustom>
               </View>
 
