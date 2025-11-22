@@ -10,6 +10,7 @@ import {
   configureReanimatedLogger,
   ReanimatedLogLevel
 } from 'react-native-reanimated';
+import TrackPlayer from 'react-native-track-player';
 import {
   cacheExchange,
   Client as UrqlClient,
@@ -27,8 +28,12 @@ import { NotificationsProvider } from '@/providers/NotificationsProvider';
 import { PlaybackProvider } from '@/providers/PlaybackProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { UserProvider } from '@/providers/UserProvider';
+import { PlaybackService } from '@/services/playbackService';
 
 import '@/global.css';
+
+// Register TrackPlayer playback service once at module initialization
+TrackPlayer.registerPlaybackService(() => PlaybackService);
 
 const urqlClient = new UrqlClient({
   url: process.env.EXPO_PUBLIC_APP_URL + '/api/graphql',

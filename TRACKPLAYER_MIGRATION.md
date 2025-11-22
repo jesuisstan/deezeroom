@@ -11,13 +11,12 @@
 
 - ✅ `src/services/trackPlayerService.ts` - утилиты для TrackPlayer
 - ✅ `src/services/playbackService.ts` - обработчик фоновых событий
-- ✅ `index.js` - регистрация playback service
 
 ### 3. Изменённые файлы:
 
 - ✅ `src/providers/PlaybackProvider.tsx` - **полностью переписан** на TrackPlayer
+- ✅ `src/app/_layout.tsx` - регистрация TrackPlayer service
 - ✅ `app.config.js` - настроен для TrackPlayer
-- ✅ `package.json` - изменен `main` на `index.js`
 
 ### 4. Что НЕ изменилось (работает как раньше):
 
@@ -118,11 +117,16 @@ await TrackPlayer.getQueue();
 
 ## ⚠️ Возможные проблемы:
 
-### 1. "TrackPlayer is not initialized"
+### 1. "Cannot read property 'CAPABILITY_PLAY' of null"
+
+**Причина:** Приложение запущено через Expo Go
+**Решение:** Используйте `npx expo run:android` для development build
+
+### 2. "TrackPlayer is not initialized"
 
 **Решение:** Подождите несколько секунд после запуска приложения
 
-### 2. Треки не переключаются в фоне
+### 3. Треки не переключаются в фоне
 
 **Проверить:**
 
@@ -130,7 +134,7 @@ await TrackPlayer.getQueue();
 - [ ] `UIBackgroundModes: ['audio']` в app.config.js
 - [ ] Battery optimization отключена на устройстве
 
-### 3. EventMonitor не работает
+### 4. EventMonitor не работает
 
 **Проверить:**
 
@@ -170,6 +174,22 @@ Events Playback (EventMonitor)
 - ✅ **Нативная производительность**
 - ✅ **Не требует wake lock** (не держит экран)
 - ✅ **Events остались гибкими** (expo-audio для динамической очереди)
+
+---
+
+## 🔧 Регистрация Service:
+
+TrackPlayer service зарегистрирован в `src/app/_layout.tsx`:
+
+```typescript
+import TrackPlayer from 'react-native-track-player';
+import { PlaybackService } from '@/services/playbackService';
+
+// Регистрация при инициализации модуля
+TrackPlayer.registerPlaybackService(() => PlaybackService);
+```
+
+Это правильный подход для Expo Router - не нужно менять `package.json` main!
 
 ---
 
