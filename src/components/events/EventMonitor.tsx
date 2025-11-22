@@ -2,7 +2,9 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
+import { useFocusEffect } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -44,19 +46,168 @@ const EventMonitor = memo(
     const { user } = useUser();
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+    const [isListening, setIsListening] = useState(false); // For participants only
     const didFinishHandledRef = useRef(false);
     const isProcessingFinishRef = useRef(false);
     const currentTrackIdRef = useRef<string | null>(null);
     const finishedTracksRef = useRef<Set<string>>(new Set());
+    const isMountedRef = useRef(true);
 
-    // Audio player for host only
+    // Audio player for host OR listening participants
+    const shouldUseAudioPlayer = isHost || (!isHost && isListening);
     const audioPlayer = useAudioPlayer(
-      isHost && previewUrl ? { uri: previewUrl } : undefined
+      shouldUseAudioPlayer && previewUrl ? { uri: previewUrl } : undefined
     );
 
-    // Load preview URL for host (only when track changes)
+    // Refs for useFocusEffect to avoid recreating callback
+    const isHostRef = useRef(isHost);
+    const userRef = useRef(user);
+    const eventIdRef = useRef(event.id);
+    const isPlayingRef = useRef(event.isPlaying);
+    const audioPlayerRef = useRef(audioPlayer);
+
+    // Update refs when values change
     useEffect(() => {
-      if (!isHost || !currentTrack?.trackId) {
+      isHostRef.current = isHost;
+      userRef.current = user;
+      eventIdRef.current = event.id;
+      isPlayingRef.current = event.isPlaying;
+      audioPlayerRef.current = audioPlayer;
+    }, [isHost, user, event.id, event.isPlaying, audioPlayer]);
+
+    // Load listening state from AsyncStorage for participants
+    useEffect(() => {
+      if (isHost) return; // Hosts don't need this
+
+      const loadListeningState = async () => {
+        try {
+          const storageKey = `event_listening_${event.id}`;
+          const stored = await AsyncStorage.getItem(storageKey);
+          if (stored !== null) {
+            setIsListening(stored === 'true');
+          }
+          // Default is false (already set in useState)
+        } catch (error) {
+          Logger.error(
+            'Error loading listening state:',
+            { eventId: event.id, error: error },
+            '📺 EventMonitor'
+          );
+        }
+      };
+
+      loadListeningState();
+    }, [event.id, isHost]);
+
+    // Save listening state to AsyncStorage when it changes
+    useEffect(() => {
+      if (isHost) return; // Hosts don't need this
+
+      const saveListeningState = async () => {
+        try {
+          const storageKey = `event_listening_${event.id}`;
+          await AsyncStorage.setItem(storageKey, isListening.toString());
+        } catch (error) {
+          Logger.error(
+            'Error saving listening state:',
+            { eventId: event.id, error: error },
+            '📺 EventMonitor'
+          );
+        }
+      };
+
+      saveListeningState();
+    }, [isListening, event.id, isHost]);
+
+    // Handle screen focus/blur - immediate pause for host
+    useFocusEffect(
+      useCallback(() => {
+        // Screen is focused
+        isMountedRef.current = true;
+
+        Logger.info(
+          'Screen focused',
+          { eventId: eventIdRef.current, isHost: isHostRef.current },
+          '📺 EventMonitor'
+        );
+
+        return () => {
+          // Screen lost focus (blur)
+          isMountedRef.current = false;
+
+          const currentEventId = eventIdRef.current;
+          const currentIsHost = isHostRef.current;
+          const currentUser = userRef.current;
+          const currentIsPlaying = isPlayingRef.current;
+          const currentAudioPlayer = audioPlayerRef.current;
+
+          Logger.info(
+            'Screen blurred',
+            {
+              eventId: currentEventId,
+              isHost: currentIsHost,
+              isPlaying: currentIsPlaying
+            },
+            '📺 EventMonitor'
+          );
+
+          // Reset finish handlers to prevent stale finish events
+          didFinishHandledRef.current = false;
+          isProcessingFinishRef.current = false;
+
+          // Stop local audio player immediately
+          if (currentAudioPlayer) {
+            try {
+              currentAudioPlayer.pause();
+              Logger.info(
+                'Local audio paused on blur',
+                { eventId: currentEventId },
+                '📺 EventMonitor'
+              );
+            } catch {
+              // Silently ignore errors
+            }
+          }
+
+          // For host: pause playback in database immediately
+          if (currentIsHost && currentUser && currentIsPlaying) {
+            EventService.pausePlayback(currentEventId, currentUser.uid)
+              .then(() => {
+                Logger.info(
+                  'Paused playback immediately on blur',
+                  { eventId: currentEventId },
+                  '📺 EventMonitor'
+                );
+              })
+              .catch((error) => {
+                Logger.error(
+                  'Error pausing playback on blur:',
+                  { eventId: currentEventId, error: error },
+                  '📺 EventMonitor'
+                );
+              });
+          }
+        };
+      }, [])
+    );
+
+    // Cleanup on unmount (real unmount, not just blur)
+    useEffect(() => {
+      return () => {
+        Logger.info(
+          'EventMonitor unmounted',
+          { eventId: event.id, isHost },
+          '📺 EventMonitor'
+        );
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [event.id]);
+
+    // Load preview URL for host OR listening participants (only when track changes)
+    useEffect(() => {
+      const shouldLoadPreview = isHost || (!isHost && isListening);
+
+      if (!shouldLoadPreview || !currentTrack?.trackId) {
         setPreviewUrl(null);
         currentTrackIdRef.current = null;
         return;
@@ -75,15 +226,32 @@ const EventMonitor = memo(
           '📺 EventMonitor'
         );
 
-        // IMPORTANT: First reset flags and preview URL
-        didFinishHandledRef.current = false;
-        isProcessingFinishRef.current = false;
-        setPreviewUrl(null); // Reset preview before loading new one
+        // IMPORTANT: First stop audio player and reset state
+        const stopAndLoad = async () => {
+          if (audioPlayer) {
+            try {
+              await audioPlayer.pause();
+              Logger.info(
+                'Audio player paused before track change',
+                { eventId: event.id, trackId: currentTrack.trackId },
+                '📺 EventMonitor'
+              );
+            } catch {
+              // Silently ignore
+            }
+          }
 
-        // Then set new track ID
-        currentTrackIdRef.current = currentTrack.trackId;
+          didFinishHandledRef.current = false;
+          isProcessingFinishRef.current = false;
+          setPreviewUrl(null); // Reset preview before loading new one
 
-        const loadPreview = async () => {
+          // Wait a bit for old player to fully stop
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Then set new track ID
+          currentTrackIdRef.current = currentTrack.trackId;
+
+          // Load new preview
           setIsLoadingPreview(true);
           try {
             const deezerService = DeezerService.getInstance();
@@ -103,10 +271,10 @@ const EventMonitor = memo(
           }
         };
 
-        loadPreview();
+        stopAndLoad();
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentTrack?.trackId, isHost]);
+    }, [currentTrack?.trackId, isHost, isListening]);
 
     // Cleanup finished tracks when queue changes
     useEffect(() => {
@@ -127,16 +295,16 @@ const EventMonitor = memo(
       );
     }, [queueTracks, currentTrack]);
 
-    // Stop audio player immediately when event ends
+    // Stop audio player immediately when event ends (for all users)
     useEffect(() => {
-      if (!isHost || !audioPlayer || !isEventEnded) return;
+      if (!audioPlayer || !isEventEnded) return;
 
       const stopPlayback = async () => {
         try {
           await audioPlayer.pause();
           Logger.info(
             'Audio player stopped: event ended',
-            { eventId: event.id, eventName: event.name },
+            { eventId: event.id, eventName: event.name, isHost },
             '📺 EventMonitor'
           );
         } catch (error) {
@@ -149,18 +317,48 @@ const EventMonitor = memo(
       };
 
       stopPlayback();
-    }, [isEventEnded, isHost, audioPlayer, event.id, event.name]);
+    }, [isEventEnded, audioPlayer, event.id, event.name, isHost]);
 
-    // Sync audio player with isPlaying state
+    // Sync audio player with isPlaying state (for host and listening participants)
     useEffect(() => {
-      if (!isHost || !audioPlayer || !previewUrl || isEventEnded) return;
+      const shouldSync = isHost || (!isHost && isListening);
+      if (!shouldSync || !audioPlayer || !previewUrl || isEventEnded) return;
+
+      // Only sync if component is in focus
+      if (!isMountedRef.current) return;
 
       const sync = async () => {
         try {
+          // Check current player status to avoid duplicate play/pause
+          const currentStatus = audioPlayer.currentStatus;
+          const isCurrentlyPlaying = currentStatus?.playing ?? false;
+
           if (event.isPlaying) {
-            await audioPlayer.play();
+            // Only play if not already playing
+            if (!isCurrentlyPlaying) {
+              await audioPlayer.play();
+              Logger.info(
+                'Audio player synced: playing',
+                { eventId: event.id, isHost, isListening },
+                '📺 EventMonitor'
+              );
+            } else {
+              Logger.info(
+                'Audio player already playing, skipping play()',
+                { eventId: event.id },
+                '📺 EventMonitor'
+              );
+            }
           } else {
-            await audioPlayer.pause();
+            // Only pause if currently playing
+            if (isCurrentlyPlaying) {
+              await audioPlayer.pause();
+              Logger.info(
+                'Audio player synced: paused',
+                { eventId: event.id, isHost, isListening },
+                '📺 EventMonitor'
+              );
+            }
           }
         } catch (error) {
           Logger.error(
@@ -179,6 +377,7 @@ const EventMonitor = memo(
     }, [
       event.isPlaying,
       isHost,
+      isListening,
       audioPlayer,
       previewUrl,
       isEventEnded,
@@ -221,6 +420,11 @@ const EventMonitor = memo(
       }
 
       const checkInterval = setInterval(() => {
+        // Check if component is in focus before processing
+        if (!isMountedRef.current) {
+          return;
+        }
+
         const status = audioPlayer.currentStatus;
 
         // Reset flags if track is not finished
@@ -259,6 +463,17 @@ const EventMonitor = memo(
 
         const processFinish = async () => {
           try {
+            // Check if component is still in focus
+            if (!isMountedRef.current) {
+              Logger.info(
+                'Component lost focus, skipping track finish',
+                { eventId: event.id, trackId: currentTrack.trackId },
+                '📺 EventMonitor'
+              );
+              isProcessingFinishRef.current = false;
+              return;
+            }
+
             // Add current track to finished list
             finishedTracksRef.current.add(currentTrack.trackId);
 
@@ -277,10 +492,21 @@ const EventMonitor = memo(
               '📺 EventMonitor'
             );
 
+            // Check focus again before Firebase operations
+            if (!isMountedRef.current) {
+              Logger.info(
+                'Component lost focus before Firebase operations',
+                { eventId: event.id },
+                '📺 EventMonitor'
+              );
+              isProcessingFinishRef.current = false;
+              return;
+            }
+
             await EventService.finishTrack(event.id, user.uid);
 
-            // Start next track if available
-            if (nextTrack) {
+            // Start next track if available and still in focus
+            if (nextTrack && isMountedRef.current) {
               await EventService.startTrackPlayback(
                 event.id,
                 nextTrack,
@@ -308,12 +534,24 @@ const EventMonitor = memo(
               // Clear finished tracks list when queue is empty
               finishedTracksRef.current.clear();
             }
-          } catch (error) {
-            Logger.error(
-              'Error finishing track:',
-              { eventId: event.id, eventName: event.name, error: error },
-              '📺 EventMonitor'
+          } catch (error: any) {
+            // Silently ignore "Track not found in queue" errors when component is not focused
+            const isTrackNotFoundError = error?.message?.includes(
+              'Track not found in queue'
             );
+            if (isTrackNotFoundError && !isMountedRef.current) {
+              Logger.info(
+                'Track not found (component lost focus)',
+                { eventId: event.id, trackId: currentTrack.trackId },
+                '📺 EventMonitor'
+              );
+            } else {
+              Logger.error(
+                'Error finishing track:',
+                { eventId: event.id, eventName: event.name, error: error },
+                '📺 EventMonitor'
+              );
+            }
           } finally {
             isProcessingFinishRef.current = false;
           }
@@ -429,6 +667,30 @@ const EventMonitor = memo(
       onStartEventEarly
     ]);
 
+    // Handler for participant listening toggle
+    const handleToggleListening = useCallback(() => {
+      setIsListening((prev) => {
+        const newValue = !prev;
+
+        // If stopping listening, pause the audio player immediately
+        if (!newValue && audioPlayer) {
+          try {
+            audioPlayer.pause();
+          } catch {
+            // Silently ignore
+          }
+        }
+
+        Logger.info(
+          'Listening toggled',
+          { eventId: event.id, listening: newValue },
+          '📺 EventMonitor'
+        );
+
+        return newValue;
+      });
+    }, [audioPlayer, event.id]);
+
     return (
       <View
         className="overflow-hidden rounded-lg border"
@@ -486,20 +748,23 @@ const EventMonitor = memo(
                   {' '}
                 </TextCustom>
               </View>
-              {isHost && queueTracks.length > 0 && !currentTrack && (
-                <IconButton
-                  accessibilityLabel="Start playback"
-                  onPress={handlePlayPause}
-                  className="h-12 w-12"
-                  backgroundColor={themeColors[theme]['primary']}
-                >
-                  <MaterialCommunityIcons
-                    name="play"
-                    size={24}
-                    color={themeColors[theme]['text-inverse']}
-                  />
-                </IconButton>
-              )}
+              {!isEventEnded &&
+                isHost &&
+                queueTracks.length > 0 &&
+                !currentTrack && (
+                  <IconButton
+                    accessibilityLabel="Start playback"
+                    onPress={handlePlayPause}
+                    className="h-12 w-12"
+                    backgroundColor={themeColors[theme]['primary']}
+                  >
+                    <MaterialCommunityIcons
+                      name="play"
+                      size={24}
+                      color={themeColors[theme]['text-inverse']}
+                    />
+                  </IconButton>
+                )}
             </>
           ) : (
             <>
@@ -566,8 +831,9 @@ const EventMonitor = memo(
                 </TextCustom>
               </View>
 
-              {/* Play/Pause button - only for hosts */}
-              {isHost && (
+              {/* Control buttons - different for hosts and participants */}
+              {!isEventEnded && isHost && (
+                /* Host: Play/Pause button */
                 <IconButton
                   accessibilityLabel={
                     event.isPlaying ? 'Pause playback' : 'Resume playback'
@@ -581,6 +847,31 @@ const EventMonitor = memo(
                     name={event.isPlaying ? 'pause' : 'play'}
                     size={24}
                     color={themeColors[theme]['text-inverse']}
+                  />
+                </IconButton>
+              )}
+              {!isEventEnded && !isHost && (
+                /* Participant: Listening toggle button */
+                <IconButton
+                  accessibilityLabel={
+                    isListening ? 'Stop listening' : 'Start listening'
+                  }
+                  onPress={handleToggleListening}
+                  className="h-12 w-12"
+                  backgroundColor={
+                    isListening
+                      ? themeColors[theme]['primary']
+                      : themeColors[theme]['bg-tertiary']
+                  }
+                >
+                  <MaterialCommunityIcons
+                    name={isListening ? 'ear-hearing' : 'ear-hearing-off'}
+                    size={24}
+                    color={
+                      isListening
+                        ? themeColors[theme]['text-inverse']
+                        : themeColors[theme]['text-secondary']
+                    }
                   />
                 </IconButton>
               )}
