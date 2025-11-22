@@ -15,9 +15,8 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
         './credentials/ios/GoogleService-Info.plist',
-      backgroundModes: ['audio'],
       infoPlist: {
-        UIBackgroundModes: ['remote-notification']
+        UIBackgroundModes: ['audio', 'remote-notification', 'fetch']
       }
     },
     android: {
@@ -32,7 +31,11 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
         './credentials/android/google-services.json',
-      permissions: ['POST_NOTIFICATIONS']
+      permissions: [
+        'POST_NOTIFICATIONS',
+        'FOREGROUND_SERVICE',
+        'FOREGROUND_SERVICE_MEDIA_PLAYBACK'
+      ]
     },
     web: {
       bundler: 'metro',
