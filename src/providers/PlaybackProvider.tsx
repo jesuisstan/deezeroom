@@ -15,6 +15,7 @@ import {
   useAudioPlayer,
   useAudioPlayerStatus
 } from 'expo-audio';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { Track } from '@/graphql/schema';
 import { Notifier } from '@/modules/notifier';
@@ -268,6 +269,54 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     repeatModeRef.current = repeatMode;
   }, [repeatMode]);
+
+  // Keep device awake during playback to prevent JS throttling
+  useEffect(() => {
+    if (currentTrack && playbackIntent) {
+      // Activate wake lock when playing
+      console.log('[PlaybackProvider] Activating wake lock');
+      activateKeepAwakeAsync('playback').catch((error) => {
+        console.warn('[PlaybackProvider] Failed to activate wake lock:', error);
+      });
+
+      return () => {
+        // Deactivate wake lock when stopped
+        console.log('[PlaybackProvider] Deactivating wake lock');
+        deactivateKeepAwake('playback');
+      };
+    }
+  }, [currentTrack, playbackIntent]);
+
+  // Periodic status check - helps catch track finish while app is in foreground
+  // Note: With wake lock active, this should work even with screen off
+  useEffect(() => {
+    if (!currentTrack || !playbackIntent) {
+      return;
+    }
+
+    const checkInterval = setInterval(() => {
+      const status = statusRef.current;
+
+      // Skip if already handled or no status
+      if (!status || didFinishHandledRef.current) {
+        return;
+      }
+
+      // Check if track finished
+      const isFinished =
+        status.didJustFinish ||
+        (status.currentTime &&
+          status.duration &&
+          status.currentTime >= status.duration - 0.5);
+
+      if (isFinished) {
+        console.log('[PlaybackProvider] Periodic check: track finished');
+        handleStatusChange(status);
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(checkInterval);
+  }, [currentTrack, playbackIntent, handleStatusChange]);
 
   // Clear playback state when user logs out
   useEffect(() => {

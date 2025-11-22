@@ -34,7 +34,8 @@ module.exports = () => ({
       permissions: [
         'POST_NOTIFICATIONS',
         'FOREGROUND_SERVICE',
-        'FOREGROUND_SERVICE_MEDIA_PLAYBACK'
+        'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+        'WAKE_LOCK'
       ]
     },
     web: {
