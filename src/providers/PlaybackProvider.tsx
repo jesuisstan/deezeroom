@@ -5,21 +5,25 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useState,
-  useSyncExternalStore
+  useState
 } from 'react';
 
-import type { AudioStatus } from 'expo-audio';
-import {
-  setAudioModeAsync,
-  useAudioPlayer,
-  useAudioPlayerStatus
-} from 'expo-audio';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import TrackPlayer, {
+  Event,
+  State,
+  usePlaybackState as useTrackPlayerState,
+  useProgress,
+  useTrackPlayerEvents
+} from 'react-native-track-player';
 
 import { Track } from '@/graphql/schema';
 import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
+import {
+  convertRepeatMode,
+  convertToTrackPlayerTrack,
+  setupTrackPlayer
+} from '@/services/trackPlayerService';
 
 export type PlaybackQueueSource = 'search' | 'playlist' | 'event' | 'custom';
 export type RepeatMode = 'off' | 'one' | 'all';
@@ -60,14 +64,22 @@ interface PlaybackActionsContextValue {
   cycleRepeatMode: () => void;
 }
 
-const PlaybackStateContext = createContext<
-  PlaybackStateContextValue | undefined
->(undefined);
+// For compatibility with ProgressBar and other components expecting AudioStatus
+interface AudioStatus {
+  playing: boolean;
+  currentTime: number;
+  duration: number;
+  didJustFinish: boolean;
+}
 
 interface PlaybackStatusStore {
   getSnapshot: () => AudioStatus | null;
   subscribe: (listener: () => void) => () => void;
 }
+
+const PlaybackStateContext = createContext<
+  PlaybackStateContextValue | undefined
+>(undefined);
 
 const PlaybackStatusStoreContext = createContext<
   PlaybackStatusStore | undefined
@@ -98,312 +110,133 @@ const findNextPlayableIndex = (
 
 const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useUser();
-  const player = useAudioPlayer(null, { keepAudioSessionActive: true });
-  const statusRef = useRef<AudioStatus | null>(null);
-  const statusListenersRef = useRef(new Set<() => void>());
-
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [queue, setQueue] = useState<Track[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [queueContext, setQueueContext] = useState<PlaybackQueueContext | null>(
     null
   );
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [playbackIntent, setPlaybackIntentState] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('off');
 
-  const autoPlayRef = useRef(false);
-  const playbackIntentRef = useRef(false);
-  const currentTrackRef = useRef<Track | null>(null);
-  const currentIndexRef = useRef<number>(-1);
-  const didFinishHandledRef = useRef(false);
+  // Use TrackPlayer hooks
+  const playerState = useTrackPlayerState();
+  const progress = useProgress();
+
+  // Refs for stable access
   const queueRef = useRef<Track[]>([]);
-  const repeatModeRef = useRef<RepeatMode>('off');
+  const currentIndexRef = useRef<number>(-1);
+  const statusListenersRef = useRef(new Set<() => void>());
+  const statusRef = useRef<AudioStatus | null>(null);
 
-  const setPlaybackIntent = useCallback((intent: boolean) => {
-    playbackIntentRef.current = intent;
-    setPlaybackIntentState(intent);
-  }, []);
+  // Initialize TrackPlayer
+  useEffect(() => {
+    let isMounted = true;
 
-  const cycleRepeatMode = useCallback(() => {
-    setRepeatMode((previous) => {
-      switch (previous) {
-        case 'off':
-          return 'all';
-        case 'all':
-          return 'one';
-        default:
-          return 'off';
-      }
-    });
-  }, []);
-
-  const notifyStatusListeners = useCallback(() => {
-    statusListenersRef.current.forEach((listener) => listener());
-  }, []);
-
-  const handleStatusChange = useCallback(
-    (nextStatus: AudioStatus | null) => {
-      if (!nextStatus?.didJustFinish) {
-        didFinishHandledRef.current = false;
-      }
-
-      statusRef.current = nextStatus ?? null;
-      notifyStatusListeners();
-
-      if (!nextStatus?.didJustFinish) {
-        return;
-      }
-
-      if (didFinishHandledRef.current) {
-        return;
-      }
-
-      didFinishHandledRef.current = true;
-
-      if (repeatModeRef.current === 'one') {
-        player.seekTo(0).catch(() => null);
-
-        if (playbackIntentRef.current) {
-          autoPlayRef.current = true;
-          setPlaybackIntent(true);
-          try {
-            player.play();
-          } catch {
-            setPlaybackIntent(false);
-            autoPlayRef.current = false;
-          }
-        } else {
-          autoPlayRef.current = false;
+    setupTrackPlayer()
+      .then(() => {
+        if (isMounted) {
+          setIsPlayerReady(true);
+          console.log('[PlaybackProvider] TrackPlayer ready');
         }
-
-        return;
-      }
-
-      const queueSnapshot = queueRef.current;
-      const previousIndex = currentIndexRef.current;
-      const nextIndex = findNextPlayableIndex(
-        queueSnapshot,
-        previousIndex + 1,
-        1
-      );
-
-      if (nextIndex !== -1) {
-        autoPlayRef.current = true;
-        setPlaybackIntent(true);
-        currentIndexRef.current = nextIndex;
-        currentTrackRef.current = queueSnapshot[nextIndex] ?? null;
-        setCurrentIndex(nextIndex);
-        return;
-      }
-
-      const firstPlayableIndex = findNextPlayableIndex(queueSnapshot, 0, 1);
-      if (repeatModeRef.current === 'all' && firstPlayableIndex !== -1) {
-        autoPlayRef.current = true;
-        setPlaybackIntent(true);
-        currentIndexRef.current = firstPlayableIndex;
-        currentTrackRef.current = queueSnapshot[firstPlayableIndex] ?? null;
-        setCurrentIndex(firstPlayableIndex);
-        return;
-      }
-
-      autoPlayRef.current = false;
-      setPlaybackIntent(false);
-
-      try {
-        player.pause();
-      } catch {
-        // no-op
-      }
-
-      if (firstPlayableIndex !== -1) {
-        currentIndexRef.current = firstPlayableIndex;
-        currentTrackRef.current = queueSnapshot[firstPlayableIndex] ?? null;
-
-        if (previousIndex === firstPlayableIndex) {
-          player.seekTo(0).catch(() => null);
-        } else {
-          setCurrentIndex(firstPlayableIndex);
+      })
+      .catch((error) => {
+        console.error('[PlaybackProvider] TrackPlayer setup failed:', error);
+        if (isMounted) {
+          setError('Failed to initialize player');
         }
-        return;
-      }
+      });
 
-      currentIndexRef.current = -1;
-      currentTrackRef.current = null;
-      setCurrentIndex(-1);
-    },
-    [notifyStatusListeners, player, setPlaybackIntent]
-  );
-
-  const currentTrack =
-    currentIndex >= 0 && currentIndex < queue.length
-      ? queue[currentIndex]
-      : null;
-  // Use playbackIntent as the source of truth for UI to avoid delays
-  // This provides instant feedback without waiting for expo-audio status updates
-  const isPlaying = playbackIntent;
-
-  useEffect(() => {
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      interruptionMode: 'mixWithOthers',
-      interruptionModeAndroid: 'duckOthers'
-    }).catch((audioModeError) => {
-      console.warn('Failed to configure audio session', audioModeError);
-    });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  useEffect(() => {
-    currentTrackRef.current = currentTrack;
-  }, [currentTrack]);
-
-  useEffect(() => {
-    currentIndexRef.current = currentIndex;
-  }, [currentIndex]);
-
+  // Update refs
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
 
   useEffect(() => {
-    repeatModeRef.current = repeatMode;
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  // Compute isPlaying and isLoading from TrackPlayer state
+  const isPlaying = playerState.state === State.Playing;
+  const isLoading =
+    playerState.state === State.Buffering ||
+    playerState.state === State.None ||
+    playerState.state === State.Ready;
+
+  const currentTrack =
+    currentIndex >= 0 && currentIndex < queue.length
+      ? queue[currentIndex]
+      : null;
+
+  // Create AudioStatus for compatibility
+  const notifyStatusListeners = useCallback(() => {
+    statusListenersRef.current.forEach((listener) => listener());
+  }, []);
+
+  useEffect(() => {
+    const audioStatus: AudioStatus = {
+      playing: isPlaying,
+      currentTime: progress.position,
+      duration: progress.duration,
+      didJustFinish: false
+    };
+    statusRef.current = audioStatus;
+    notifyStatusListeners();
+  }, [isPlaying, progress.position, progress.duration, notifyStatusListeners]);
+
+  // Handle track changes
+  useTrackPlayerEvents([Event.PlaybackActiveTrackChanged], async (event) => {
+    if (event.type === Event.PlaybackActiveTrackChanged) {
+      const trackIndex = event.index;
+      if (trackIndex !== null && trackIndex !== undefined) {
+        console.log('[PlaybackProvider] Track changed to index:', trackIndex);
+        setCurrentIndex(trackIndex);
+      }
+    }
+  });
+
+  // Cycle repeat mode
+  const cycleRepeatMode = useCallback(async () => {
+    const nextMode: RepeatMode =
+      repeatMode === 'off' ? 'all' : repeatMode === 'all' ? 'one' : 'off';
+
+    setRepeatMode(nextMode);
+    await TrackPlayer.setRepeatMode(convertRepeatMode(nextMode));
+    console.log('[PlaybackProvider] Repeat mode:', nextMode);
   }, [repeatMode]);
-
-  // Keep device awake during playback to prevent JS throttling
-  useEffect(() => {
-    if (currentTrack && playbackIntent) {
-      // Activate wake lock when playing
-      console.log('[PlaybackProvider] Activating wake lock');
-      activateKeepAwakeAsync('playback').catch((error) => {
-        console.warn('[PlaybackProvider] Failed to activate wake lock:', error);
-      });
-
-      return () => {
-        // Deactivate wake lock when stopped
-        console.log('[PlaybackProvider] Deactivating wake lock');
-        deactivateKeepAwake('playback');
-      };
-    }
-  }, [currentTrack, playbackIntent]);
-
-  // Periodic status check - helps catch track finish while app is in foreground
-  // Note: With wake lock active, this should work even with screen off
-  useEffect(() => {
-    if (!currentTrack || !playbackIntent) {
-      return;
-    }
-
-    const checkInterval = setInterval(() => {
-      const status = statusRef.current;
-
-      // Skip if already handled or no status
-      if (!status || didFinishHandledRef.current) {
-        return;
-      }
-
-      // Check if track finished
-      const isFinished =
-        status.didJustFinish ||
-        (status.currentTime &&
-          status.duration &&
-          status.currentTime >= status.duration - 0.5);
-
-      if (isFinished) {
-        console.log('[PlaybackProvider] Periodic check: track finished');
-        handleStatusChange(status);
-      }
-    }, 1000); // Check every second
-
-    return () => clearInterval(checkInterval);
-  }, [currentTrack, playbackIntent, handleStatusChange]);
 
   // Clear playback state when user logs out
   useEffect(() => {
     if (!user) {
-      // User logged out - stop playback and clear queue
-      try {
-        player.pause();
-      } catch {
-        // Ignore errors if player is already stopped
-      }
+      TrackPlayer.reset().catch(() => null);
       setQueue([]);
       setCurrentIndex(-1);
       setQueueContext(null);
-      setPlaybackIntent(false);
       setError(null);
-      setIsLoading(false);
-      autoPlayRef.current = false;
-      currentTrackRef.current = null;
-      currentIndexRef.current = -1;
       queueRef.current = [];
+      currentIndexRef.current = -1;
     }
-  }, [user, player, setPlaybackIntent]);
-
-  useEffect(() => {
-    if (!currentTrack) {
-      setIsLoading(false);
-      setError(null);
-      setPlaybackIntent(false);
-      autoPlayRef.current = false;
-      return;
-    }
-
-    if (!currentTrack.preview) {
-      const message = 'Preview not available for this track';
-      setError(message);
-      Notifier.error(message);
-      autoPlayRef.current = false;
-      setPlaybackIntent(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadAndPlay = async () => {
-      try {
-        setIsLoading(true);
-        await player.replace({ uri: currentTrack.preview });
-        if (cancelled) {
-          return;
-        }
-        setError((previous) => (previous !== null ? null : previous));
-        if (autoPlayRef.current) {
-          await player.play();
-        }
-      } catch {
-        if (!cancelled) {
-          setError('Unable to load this preview');
-          Notifier.error('Unable to load this preview');
-          setPlaybackIntent(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-          autoPlayRef.current = false;
-        }
-      }
-    };
-
-    loadAndPlay();
-
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack?.id, player, setPlaybackIntent]);
+  }, [user]);
 
   const updateQueue = useCallback(
-    (tracks: Track[], context?: PlaybackQueueContext | null) => {
-      const activeId = currentTrackRef.current?.id ?? null;
+    async (tracks: Track[], context?: PlaybackQueueContext | null) => {
+      if (!isPlayerReady) {
+        console.warn('[PlaybackProvider] Player not ready');
+        return;
+      }
+
+      const activeId = currentTrack?.id ?? null;
       const nextIndex =
         activeId !== null
           ? tracks.findIndex((track) => track.id === activeId)
           : -1;
 
-      // Preserve the existing playback queue if the updated list no longer
-      // contains the currently playing track. This keeps playback alive while
-      // new search results stream in.
+      // Preserve queue if current track not in new list
       if (activeId !== null && nextIndex === -1) {
         return;
       }
@@ -419,27 +252,47 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!sameOrder) {
         setQueue([...tracks]);
+
+        // Update TrackPlayer queue
+        try {
+          await TrackPlayer.reset();
+          const trackPlayerTracks = tracks
+            .filter((t) => t.preview)
+            .map((t, idx) => convertToTrackPlayerTrack(t, idx));
+
+          if (trackPlayerTracks.length > 0) {
+            await TrackPlayer.add(trackPlayerTracks);
+          }
+        } catch (error) {
+          console.error('[PlaybackProvider] Error updating queue:', error);
+        }
       }
 
       if (activeId !== null && nextIndex !== -1) {
         currentIndexRef.current = nextIndex;
-        currentTrackRef.current = tracks[nextIndex] ?? null;
         setCurrentIndex(nextIndex);
       } else if (activeId === null) {
         currentIndexRef.current = -1;
-        currentTrackRef.current = null;
         setCurrentIndex(-1);
-        setPlaybackIntent(false);
-        autoPlayRef.current = false;
         setQueueContext(context ?? null);
       } else if (tracks.length === 0) {
         setQueueContext(context ?? null);
       }
     },
-    [queue, setPlaybackIntent, setQueueContext]
+    [queue, currentTrack, isPlayerReady]
   );
+
   const startPlayback = useCallback(
-    (tracks: Track[], trackId: string, context?: PlaybackQueueContext) => {
+    async (
+      tracks: Track[],
+      trackId: string,
+      context?: PlaybackQueueContext
+    ) => {
+      if (!isPlayerReady) {
+        Notifier.error('Player is initializing...');
+        return;
+      }
+
       if (!tracks.length) {
         Notifier.error('No tracks to play yet');
         return;
@@ -462,173 +315,154 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         label: 'MIX'
       };
 
-      const isSameTrack = currentTrackRef.current?.id === targetTrack.id;
+      const isSameTrack = currentTrack?.id === targetTrack.id;
 
-      if (isSameTrack) {
-        if (!statusRef.current?.playing) {
-          try {
-            setPlaybackIntent(true);
-            autoPlayRef.current = true;
-            player.play();
-          } catch (resumeError) {
-            console.warn('Failed to resume playback', resumeError);
-            Notifier.error('Unable to resume playback');
-            setPlaybackIntent(false);
-            autoPlayRef.current = false;
+      try {
+        if (isSameTrack) {
+          // Resume if same track
+          const state = await TrackPlayer.getPlaybackState();
+          if (state.state !== State.Playing) {
+            await TrackPlayer.play();
+          }
+          await updateQueue(tracks, queueContextToUse);
+          return;
+        }
+
+        // Set up new queue
+        setQueue([...tracks]);
+        setQueueContext(queueContextToUse);
+        setCurrentIndex(targetIndex);
+        currentIndexRef.current = targetIndex;
+
+        // Load tracks into TrackPlayer
+        await TrackPlayer.reset();
+        const trackPlayerTracks = tracks
+          .filter((t) => t.preview)
+          .map((t, idx) => convertToTrackPlayerTrack(t, idx));
+
+        if (trackPlayerTracks.length > 0) {
+          await TrackPlayer.add(trackPlayerTracks);
+
+          // Find index in filtered tracks
+          const playableIndex = trackPlayerTracks.findIndex(
+            (t) => t.id === trackId
+          );
+          if (playableIndex !== -1) {
+            await TrackPlayer.skip(playableIndex);
+            await TrackPlayer.play();
           }
         }
-        updateQueue(tracks, queueContextToUse);
-        return;
-      }
-
-      currentTrackRef.current = targetTrack;
-      currentIndexRef.current = targetIndex;
-
-      updateQueue(tracks, queueContextToUse);
-
-      setPlaybackIntent(true);
-      autoPlayRef.current = true;
-      setCurrentIndex(targetIndex);
-    },
-    [player, setPlaybackIntent, updateQueue]
-  );
-
-  const togglePlayPause = useCallback(() => {
-    if (!currentTrackRef.current) {
-      if (queue.length === 0) {
-        Notifier.error('No track selected');
-        return;
-      }
-
-      const firstPlayable = findNextPlayableIndex(queue, 0, 1);
-      if (firstPlayable === -1) {
-        Notifier.error('No playable previews in the list');
-        return;
-      }
-
-      setPlaybackIntent(true);
-      autoPlayRef.current = true;
-      currentIndexRef.current = firstPlayable;
-      currentTrackRef.current = queue[firstPlayable] ?? null;
-      setCurrentIndex(firstPlayable);
-      return;
-    }
-
-    try {
-      // Use playbackIntentRef instead of player status for instant toggle
-      // This avoids delays waiting for expo-audio status updates
-      if (playbackIntentRef.current) {
-        setPlaybackIntent(false);
-        autoPlayRef.current = false;
-        player.pause();
-      } else {
-        setPlaybackIntent(true);
-        autoPlayRef.current = true;
-        player.play();
-      }
-    } catch (playbackError) {
-      console.warn('Playback toggle failed', playbackError);
-      if (!playbackIntentRef.current) {
+      } catch (error) {
+        console.error('[PlaybackProvider] Error starting playback:', error);
         Notifier.error('Unable to start playback');
       }
-      setPlaybackIntent(false);
-      autoPlayRef.current = false;
-    }
-  }, [player, queue, setPlaybackIntent]);
+    },
+    [currentTrack, isPlayerReady, updateQueue]
+  );
 
-  const playNext = useCallback(() => {
-    if (!queue.length) {
+  const togglePlayPause = useCallback(async () => {
+    if (!isPlayerReady) {
       return;
     }
 
-    const nextIndex = findNextPlayableIndex(queue, currentIndex + 1, 1);
-    if (nextIndex === -1) {
-      Notifier.error('Reached the end of the list');
-      return;
-    }
+    try {
+      if (!currentTrack) {
+        if (queue.length === 0) {
+          Notifier.error('No track selected');
+          return;
+        }
 
-    setPlaybackIntent(true);
-    autoPlayRef.current = true;
-    currentIndexRef.current = nextIndex;
-    currentTrackRef.current = queue[nextIndex] ?? null;
-    setCurrentIndex(nextIndex);
-  }, [currentIndex, queue, setPlaybackIntent]);
+        const firstPlayable = findNextPlayableIndex(queue, 0, 1);
+        if (firstPlayable === -1) {
+          Notifier.error('No playable previews in the list');
+          return;
+        }
 
-  const playPrevious = useCallback(() => {
-    if (!queue.length) {
-      return;
-    }
-
-    const hasCurrentTrack =
-      currentIndex >= 0 && currentIndex < queue.length && queue[currentIndex];
-    const positionSeconds = statusRef.current?.currentTime ?? 0;
-
-    if (!hasCurrentTrack) {
-      return;
-    }
-
-    const restartCurrentTrack = (shouldPlay: boolean) => {
-      player.seekTo(0).catch(() => null);
-      if (shouldPlay) {
-        setPlaybackIntent(true);
-        autoPlayRef.current = true;
-        player.play();
-      } else {
-        autoPlayRef.current = false;
+        // Start first playable track
+        await startPlayback(queue, queue[firstPlayable].id);
+        return;
       }
-    };
 
-    const shouldResume = playbackIntentRef.current;
+      const state = await TrackPlayer.getPlaybackState();
+      if (state.state === State.Playing) {
+        await TrackPlayer.pause();
+      } else {
+        await TrackPlayer.play();
+      }
+    } catch (error) {
+      console.error('[PlaybackProvider] Toggle play/pause error:', error);
+      Notifier.error('Unable to toggle playback');
+    }
+  }, [currentTrack, queue, isPlayerReady, startPlayback]);
 
-    if (positionSeconds > 5) {
-      restartCurrentTrack(shouldResume);
+  const playNext = useCallback(async () => {
+    if (!isPlayerReady || !queue.length) {
       return;
     }
 
-    const previousIndex = findNextPlayableIndex(queue, currentIndex - 1, -1);
-    if (previousIndex === -1) {
-      restartCurrentTrack(shouldResume);
-      return;
-    }
-
-    setPlaybackIntent(true);
-    autoPlayRef.current = true;
-    currentIndexRef.current = previousIndex;
-    currentTrackRef.current = queue[previousIndex] ?? null;
-    setCurrentIndex(previousIndex);
-  }, [currentIndex, player, queue, setPlaybackIntent]);
-
-  const pause = useCallback(() => {
     try {
-      setPlaybackIntent(false);
-      autoPlayRef.current = false;
-      player.pause();
-    } catch (pauseError) {
-      console.warn('Failed to pause playback', pauseError);
+      await TrackPlayer.skipToNext();
+    } catch (error) {
+      console.warn('[PlaybackProvider] Skip next error:', error);
+      Notifier.error('Reached the end of the list');
     }
-  }, [player, setPlaybackIntent]);
+  }, [isPlayerReady, queue]);
 
-  const resume = useCallback(() => {
-    if (!currentTrackRef.current) {
+  const playPrevious = useCallback(async () => {
+    if (!isPlayerReady || !queue.length) {
       return;
     }
+
     try {
-      setPlaybackIntent(true);
-      autoPlayRef.current = true;
-      player.play();
-    } catch (resumeError) {
-      console.warn('Failed to resume playback', resumeError);
+      // Reset if > 5 seconds, otherwise skip to previous
+      if (progress.position > 5) {
+        await TrackPlayer.seekTo(0);
+      } else {
+        await TrackPlayer.skipToPrevious();
+      }
+    } catch (error) {
+      console.warn('[PlaybackProvider] Skip previous error:', error);
+    }
+  }, [isPlayerReady, queue, progress.position]);
+
+  const pause = useCallback(async () => {
+    if (!isPlayerReady) {
+      return;
+    }
+
+    try {
+      await TrackPlayer.pause();
+    } catch (error) {
+      console.warn('[PlaybackProvider] Pause error:', error);
+    }
+  }, [isPlayerReady]);
+
+  const resume = useCallback(async () => {
+    if (!isPlayerReady || !currentTrack) {
+      return;
+    }
+
+    try {
+      await TrackPlayer.play();
+    } catch (error) {
+      console.warn('[PlaybackProvider] Resume error:', error);
       Notifier.error('Unable to resume playback');
-      setPlaybackIntent(false);
-      autoPlayRef.current = false;
     }
-  }, [player, setPlaybackIntent]);
+  }, [isPlayerReady, currentTrack]);
 
   const seekTo = useCallback(
-    (seconds: number) => {
-      player.seekTo(Math.max(0, seconds)).catch(() => null);
+    async (seconds: number) => {
+      if (!isPlayerReady) {
+        return;
+      }
+
+      try {
+        await TrackPlayer.seekTo(Math.max(0, seconds));
+      } catch (error) {
+        console.warn('[PlaybackProvider] Seek error:', error);
+      }
     },
-    [player]
+    [isPlayerReady]
   );
 
   // Separate context values for optimal re-renders
@@ -655,7 +489,6 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     []
   );
 
-  // UI-only status value that does NOT include `status` ticks
   const uiStatusValue: PlaybackUIStatusContextValue = useMemo(
     () => ({
       isPlaying,
@@ -697,32 +530,12 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
         <PlaybackActionsContext.Provider value={actionsValue}>
           <PlaybackStatusStoreContext.Provider value={statusStore}>
             {children}
-            <PlaybackStatusBridge
-              player={player}
-              onStatusChange={handleStatusChange}
-            />
           </PlaybackStatusStoreContext.Provider>
         </PlaybackActionsContext.Provider>
       </PlaybackUIStatusContext.Provider>
     </PlaybackStateContext.Provider>
   );
 };
-
-function PlaybackStatusBridge({
-  player,
-  onStatusChange
-}: {
-  player: ReturnType<typeof useAudioPlayer>;
-  onStatusChange: (status: AudioStatus | null) => void;
-}) {
-  const status = useAudioPlayerStatus(player);
-
-  useEffect(() => {
-    onStatusChange(status ?? null);
-  }, [status, onStatusChange]);
-
-  return null;
-}
 
 /**
  * Hook for accessing playback state (queue, currentTrack, currentIndex).
@@ -737,20 +550,26 @@ const usePlaybackState = () => {
 };
 
 /**
- * Hook for accessing playback status (isPlaying, isLoading, status, error).
- * Components using this hook will re-render on status changes (including progress updates).
- * Use sparingly for components that need real-time playback status.
+ * Hook for accessing playback status (compatible with expo-audio AudioStatus).
+ * For ProgressBar and other components expecting AudioStatus format.
  */
 const useAudioStatus = () => {
   const store = useContext(PlaybackStatusStoreContext);
   if (!store) {
     throw new Error('useAudioStatus must be used within a PlaybackProvider');
   }
-  const status = useSyncExternalStore(
-    store.subscribe,
-    store.getSnapshot,
-    store.getSnapshot
-  );
+
+  // Simple hook that returns the status without useSyncExternalStore
+  // since we update it via useEffect
+  const [status, setStatus] = React.useState(store.getSnapshot());
+
+  React.useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setStatus(store.getSnapshot());
+    });
+    return unsubscribe;
+  }, [store]);
+
   return { status };
 };
 
