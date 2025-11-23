@@ -1188,7 +1188,7 @@ const PlaylistDetailScreen = () => {
         onInvite={handleSendInvitations}
         excludeUserId={user?.uid}
         existingUsers={playlist.participantIds}
-        placeholder="Search users by email or name..."
+        placeholder="Search users by name..."
       />
 
       {/* Search Tracks Modal */}

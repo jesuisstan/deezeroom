@@ -883,7 +883,7 @@ const EventMonitor = memo(
             color={themeColors[theme]['intent-warning']}
             className="text-center"
           >
-            If you leave the event tab, music will be paused for all
+            ⚠️ If you leave the event tab, music will be paused for all
             participants.
           </TextCustom>
         ) : null}

@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import UserChip from '@/components/profile-users/UserChip';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -55,7 +56,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   selectedUsers: externalSelectedUsers,
   existingUsers = [],
   excludeUserId,
-  placeholder = 'Search users by email or name...',
+  placeholder = 'Search users by name...',
   maxUsers = MAX_USERS_INVITE,
 
   // Modal customization
@@ -222,41 +223,40 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
     <Pressable
       onPress={() => handleUserSelect(item)}
-      className="flex-row items-center rounded-md border border-border bg-bg-secondary px-3 py-1"
+      className="flex-col items-center bg-bg-secondary"
     >
-      {/* Avatar */}
-      <View className="mr-3">
-        {item.photoURL ? (
-          <Image
-            source={{ uri: item.photoURL }}
-            className="h-10 w-10 rounded-full"
-          />
-        ) : (
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-bg-main">
-            <MaterialCommunityIcons
-              name="account"
-              size={20}
-              color={themeColors[theme]['text-secondary']}
+      <View className="w-full flex-row items-center justify-between gap-4 px-4 py-2">
+        {/* Avatar */}
+        <View className="mr-3">
+          {item.photoURL ? (
+            <Image
+              source={{ uri: item.photoURL }}
+              className="h-8 w-8 rounded-full"
             />
-          </View>
-        )}
-      </View>
+          ) : (
+            <View className="h-8 w-8 items-center justify-center rounded-full bg-bg-main">
+              <MaterialCommunityIcons
+                name="account"
+                size={18}
+                color={themeColors[theme]['text-secondary']}
+              />
+            </View>
+          )}
+        </View>
 
-      {/* User Info */}
-      <View className="flex-1">
-        <TextCustom type="subtitle" numberOfLines={1} size="l">
-          {item.displayName || 'Unknown User'}
-        </TextCustom>
-      </View>
+        {/* User Info */}
+        <View className="flex-1">
+          <TextCustom
+            type="semibold"
+            size="m"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.displayName || 'Unknown User'}
+          </TextCustom>
+        </View>
 
-      {/* Selection Indicator */}
-      <IconButton
-        accessibilityLabel={
-          item.isSelected ? 'Remove from selection' : 'Add to selection'
-        }
-        onPress={() => handleUserSelect(item)}
-        className="h-10 w-10"
-      >
+        {/* Selection Indicator */}
         <MaterialCommunityIcons
           name={item.isSelected ? 'check-circle' : 'circle-outline'}
           size={20}
@@ -266,7 +266,8 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
               : themeColors[theme]['text-secondary']
           }
         />
-      </IconButton>
+      </View>
+      <Divider />
     </Pressable>
   );
 

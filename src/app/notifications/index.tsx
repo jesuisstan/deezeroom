@@ -26,6 +26,7 @@ import { containerWidthStyle } from '@/style/container-width-style';
 import { usePressAnimation } from '@/style/usePressAnimation';
 import { EventInvitation } from '@/utils/firebase/firebase-service-events';
 import { PlaylistInvitation } from '@/utils/firebase/firebase-service-playlists';
+import { UserProfile } from '@/utils/firebase/firebase-service-user';
 import { parseFirestoreDate } from '@/utils/firebase/firestore-date-utils';
 
 const NotificationsScreen = () => {
@@ -547,7 +548,7 @@ const NotificationsScreen = () => {
               <EventInvitationCard
                 key={notification.id}
                 invitation={invitation}
-                profile={profile}
+                profile={profile as UserProfile}
                 animatedStyle={animatedStyle}
                 processingEventInvitations={processingEventInvitations}
                 onAccept={handleAcceptEventInvitation}

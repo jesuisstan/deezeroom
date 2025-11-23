@@ -174,8 +174,8 @@ export const EventInvitationCard = ({
         // Show alert explaining the issue
         const message =
           geofenceCheck.reason === 'Location not set'
-            ? `This event requires you to be within ${formatRadius(eventData.geofence.radiusMeters)} of ${eventData.geofence.locationName || 'the event location'}. Please set your exact location to continue.`
-            : `You are currently ${geofenceCheck.formattedDistance || 'too far'} away from ${eventData.geofence.locationName || 'the event location'}. You need to be within ${formatRadius(eventData.geofence.radiusMeters)}.\n\nYou can use the exact event location or set your current GPS position.`;
+            ? `This event requires you to be within ${formatRadius(eventData.geofence.radiusMeters)} of ${eventData.geofence.locationName || 'the event location'}.`
+            : `You are currently ${geofenceCheck.formattedDistance || 'too far'} away from ${eventData.geofence.locationName || 'the event location'}. You need to be within ${formatRadius(eventData.geofence.radiusMeters)}.`;
 
         Alert.confirm(
           'Location Required',
@@ -251,13 +251,15 @@ export const EventInvitationCard = ({
           await onAccept(invitation);
         } else {
           // Still outside radius
+          const locationName =
+            eventData.geofence.locationName || 'the event location';
           const distanceText = newGeofenceCheck.formattedDistance
-            ? `You are ${newGeofenceCheck.formattedDistance} away from the event location.`
-            : 'You are too far from the event location.';
+            ? `You are ${newGeofenceCheck.formattedDistance} away from ${locationName}.`
+            : `You are too far from ${locationName}.`;
 
           Alert.alert(
             'Too Far Away',
-            `${distanceText} You need to be within ${formatRadius(eventData.geofence.radiusMeters)} to join.\n\nIf you're not physically at the event, use the "Use Event Location & Accept" button instead.`
+            `${distanceText} You need to be within ${formatRadius(eventData.geofence.radiusMeters)} to join.`
           );
         }
       } catch (error) {
@@ -339,109 +341,20 @@ export const EventInvitationCard = ({
                 )}
               </>
             )}
-            <TextCustom
-              size="xs"
-              color={themeColors[theme]['intent-warning']}
-              className="mt-1"
-            >
-              ⚠️ You need to be at the exact event location, not just the city.
-            </TextCustom>
           </View>
-
-          <RippleButton
-            title="Use Event Location & Accept"
-            size="sm"
-            onPress={async () => {
-              if (eventData?.geofence) {
-                const eventLocation = {
-                  coords: {
-                    lat: eventData.geofence.latitude,
-                    lng: eventData.geofence.longitude
-                  },
-                  formattedAddress: eventData.geofence.locationName,
-                  description: eventData.geofence.locationName
-                };
-
-                setTemporaryLocation(eventLocation);
-
-                // Automatically save and accept
-                try {
-                  const { UserService } = await import(
-                    '@/utils/firebase/firebase-service-user'
-                  );
-                  await UserService.updateUserLocation(profile.uid, {
-                    placeId: '',
-                    formattedAddress: eventLocation.formattedAddress,
-                    description: eventLocation.description,
-                    coords: eventLocation.coords
-                  });
-
-                  // Auto-accept since we're using event location
-                  setShowLocationModal(false);
-                  await onAccept(invitation);
-
-                  Alert.alert(
-                    'Success',
-                    'Your location has been updated to the event location and invitation accepted!'
-                  );
-                } catch (error) {
-                  Logger.error('Error using event location:', error);
-                  Alert.alert(
-                    'Error',
-                    'Failed to update location. Please try again.'
-                  );
-                }
-              }
-            }}
-            width="full"
-            leftIcon={
-              <MaterialCommunityIcons
-                name="map-marker-check"
-                size={20}
-                color={themeColors[theme]['primary']}
-              />
-            }
-          />
-
-          <View className="my-2 flex-row items-center gap-2">
-            <View
-              className="h-[1px] flex-1"
-              style={{ backgroundColor: themeColors[theme]['border'] }}
-            />
-            <TextCustom
-              size="xs"
-              color={themeColors[theme]['text-secondary']}
-              type="bold"
-            >
-              OR
-            </TextCustom>
-            <View
-              className="h-[1px] flex-1"
-              style={{ backgroundColor: themeColors[theme]['border'] }}
-            />
-          </View>
-
-          <TextCustom
-            size="xs"
-            color={themeColors[theme]['text-secondary']}
-            className="mb-2"
-          >
-            If you are physically at the event location, use your real GPS:
-          </TextCustom>
 
           <LocationPicker
             value={temporaryLocation}
             onChange={handleLocationChange}
-            placeholder="Use my current GPS location"
+            placeholder="Set your location"
             allowCurrentLocation={true}
           />
 
           <RippleButton
-            title="Verify Location & Accept"
+            title="Save Location & Accept"
             onPress={handleSaveLocation}
             disabled={!temporaryLocation?.coords}
             width="full"
-            variant="outline"
           />
         </View>
       </SwipeModal>

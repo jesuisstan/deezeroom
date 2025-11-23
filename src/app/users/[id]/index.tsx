@@ -610,8 +610,17 @@ const OtherProfileScreen: FC = () => {
               </View>
             </>
           ) : (
-            <View className="rounded-md border border-border bg-bg-tertiary p-4">
-              <TextCustom>
+            <View
+              className="rounded-md border border-intent-warning p-2"
+              style={{
+                backgroundColor: themeColors[theme]['intent-warning'] + '22'
+              }}
+            >
+              <TextCustom
+                className="text-center"
+                size="s"
+                color={themeColors[theme]['intent-warning']}
+              >
                 Phone, birth date, location and friends list are visible to
                 friends only.
               </TextCustom>
@@ -621,6 +630,7 @@ const OtherProfileScreen: FC = () => {
         <View className="mb-4 flex-1">
           <RippleButton
             title="Home"
+            size="md"
             onPress={() => router.push('/')}
             disabled={actionLoading}
           />

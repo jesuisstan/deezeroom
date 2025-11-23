@@ -53,7 +53,7 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
         const message =
           geofenceCheck.reason === 'Location not set'
             ? `This event requires you to be within ${formatRadius(event.geofence.radiusMeters)} of ${event.geofence.locationName || 'the event location'}. Please set your location in your profile to access this event.`
-            : `You are currently ${geofenceCheck.formattedDistance || 'too far'} away from the event location. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
+            : `You are currently ${geofenceCheck.formattedDistance || 'too far'} away from ${event.geofence.locationName || 'the event location'}. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
 
         Alert.confirm(
           'Location Required',
@@ -228,13 +228,21 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
                         : 'map-marker-off'
                     }
                     size={18}
-                    color={themeColors[theme]['text-secondary']}
+                    color={
+                      event.geofence
+                        ? themeColors[theme]['primary']
+                        : themeColors[theme]['text-secondary']
+                    }
                     style={{ flexShrink: 0 }}
                   />
                   <View className="min-w-0 flex-1">
                     <TextCustom
                       size="xs"
-                      color={themeColors[theme]['text-secondary']}
+                      color={
+                        event.geofence
+                          ? themeColors[theme]['primary']
+                          : themeColors[theme]['text-secondary']
+                      }
                       numberOfLines={2}
                     >
                       {getLocationText()}

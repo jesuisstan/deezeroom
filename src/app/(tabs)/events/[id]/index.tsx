@@ -188,7 +188,7 @@ const EventDetailScreen = () => {
         const message =
           geofenceCheck.reason === 'Location not set'
             ? `This event requires you to be within ${formatRadius(event.geofence.radiusMeters)} of ${event.geofence.locationName || 'the event location'}. Please set your location in your profile.`
-            : `You are ${geofenceCheck.formattedDistance || 'too far'} away from the event location. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
+            : `You are ${geofenceCheck.formattedDistance || 'too far'} away from ${event.geofence.locationName || 'the event location'}. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
 
         Alert.alert('Location Required', message);
 
@@ -932,7 +932,7 @@ const EventDetailScreen = () => {
           onInvite={handleSendInvitations}
           excludeUserId={user?.uid}
           existingUsers={[]}
-          placeholder="Search users by email or name..."
+          placeholder="Search users by name..."
           title="Invite Participants"
         />
       )}
