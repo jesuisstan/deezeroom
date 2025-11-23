@@ -11,6 +11,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import clsx from 'clsx';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Timestamp } from 'firebase/firestore';
 import { TabView } from 'react-native-tab-view';
 
 import EditEventModal from '@/components/events/EditEventModal';
@@ -58,7 +59,6 @@ const EventDetailScreen = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [processingVote, setProcessingVote] = useState<string | null>(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [tracksTabIndex, setTracksTabIndex] = useState(0); // 0 = Queue, 1 = Played
   const [screenWidth, setScreenWidth] = useState(
@@ -97,12 +97,17 @@ const EventDetailScreen = () => {
           setIsLoading(false);
           return;
         }
-        // Ignore subscription updates while we're manually updating status
-        // This prevents intermediate status changes (draft -> live -> ended)
-        // We'll use the forced refresh data instead
-        if (isUpdatingStatus) {
-          return;
-        }
+
+        Logger.info(
+          'Event subscription update received',
+          {
+            eventId: updatedEvent.id,
+            status: updatedEvent.status,
+            isPlaying: updatedEvent.isPlaying
+          },
+          '🔄 EventDetailScreen'
+        );
+
         setEvent(updatedEvent);
         setError(null);
         setIsLoading(false);
@@ -142,7 +147,7 @@ const EventDetailScreen = () => {
     return () => {
       unsubscribe();
     };
-  }, [id, isUpdatingStatus, router]);
+  }, [id, router]);
 
   // Check geofence when event is first loaded
   useEffect(() => {
@@ -394,15 +399,32 @@ const EventDetailScreen = () => {
   };
 
   const handleStartEventEarly = async () => {
-    if (!id || !user || !event || isUpdatingStatus) return;
+    if (!id || !user || !event) return;
 
     Alert.confirm(
       'Start Event Early?',
       'Are you sure you want to start this event now? The event will begin immediately.',
       async () => {
-        setIsUpdatingStatus(true);
         try {
           await EventService.startEventEarly(id, user.uid);
+
+          // Immediately update local state with current time
+          // This ensures UI updates instantly without waiting for Firebase sync
+          setEvent((prevEvent) =>
+            prevEvent
+              ? {
+                  ...prevEvent,
+                  startAt: Timestamp.now()
+                }
+              : null
+          );
+
+          Logger.info(
+            'Event started - local state updated immediately',
+            { eventId: id },
+            '🔄 EventDetailScreen'
+          );
+
           // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
@@ -416,23 +438,50 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to start event early'
           });
-        } finally {
-          setIsUpdatingStatus(false);
         }
       }
     );
   };
 
   const handleEndEventEarly = async () => {
-    if (!id || !user || !event || isUpdatingStatus) return;
+    if (!id || !user || !event) return;
 
     Alert.confirm(
       'End Event Early?',
       'Are you sure you want to end this event now? The event will be closed immediately and participants will no longer be able to vote or add tracks.',
       async () => {
-        setIsUpdatingStatus(true);
         try {
+          // Step 1: Stop music playback if it's currently playing
+          if (event.isPlaying) {
+            await EventService.pausePlayback(id, user.uid);
+            Logger.info('Stopped playback before ending event', {
+              eventId: id,
+              eventName: event.name
+            });
+          }
+
+          // Step 2: End the event
           await EventService.endEventEarly(id, user.uid);
+
+          // Immediately update local state with current time
+          // This ensures UI updates instantly without waiting for Firebase sync
+          setEvent((prevEvent) =>
+            prevEvent
+              ? {
+                  ...prevEvent,
+                  endAt: Timestamp.now(),
+                  isPlaying: false,
+                  currentlyPlayingTrack: null
+                }
+              : null
+          );
+
+          Logger.info(
+            'Event ended - local state updated immediately',
+            { eventId: id },
+            '🔄 EventDetailScreen'
+          );
+
           // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
@@ -446,8 +495,6 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to end event early'
           });
-        } finally {
-          setIsUpdatingStatus(false);
         }
       }
     );
@@ -602,10 +649,7 @@ const EventDetailScreen = () => {
               />
 
               {/* Event status indicator */}
-              <EventStatusIndicator
-                eventStatus={eventStatus}
-                isUpdatingStatus={isUpdatingStatus}
-              />
+              <EventStatusIndicator eventStatus={eventStatus} />
 
               {/* Event actions bar */}
               {!isEventEnded && (
@@ -621,8 +665,7 @@ const EventDetailScreen = () => {
                     padding: 2,
                     backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                     borderColor: themeColors[theme]['border'],
-                    borderWidth: 1,
-                    opacity: isUpdatingStatus ? 0.5 : 1
+                    borderWidth: 1
                   }}
                 >
                   {canManageEvent && (
@@ -631,8 +674,6 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="Start event early"
                           onPress={handleStartEventEarly}
-                          disabled={isUpdatingStatus}
-                          loading={isUpdatingStatus}
                         >
                           <MaterialCommunityIcons
                             name="flag-triangle"
@@ -645,8 +686,6 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="End event early"
                           onPress={handleEndEventEarly}
-                          disabled={isUpdatingStatus}
-                          loading={isUpdatingStatus}
                         >
                           <MaterialCommunityIcons
                             name="flag-variant-remove-outline"
@@ -658,7 +697,6 @@ const EventDetailScreen = () => {
                       <IconButton
                         accessibilityLabel="Edit event"
                         onPress={() => setShowEditModal(true)}
-                        disabled={isUpdatingStatus}
                       >
                         <MaterialCommunityIcons
                           name="pencil-outline"
@@ -669,10 +707,9 @@ const EventDetailScreen = () => {
                       <IconButton
                         accessibilityLabel="Invite participants"
                         onPress={() => {
-                          if (!event || !user || isUpdatingStatus) return;
+                          if (!event || !user) return;
                           setShowInviteModal(true);
                         }}
-                        disabled={isUpdatingStatus}
                       >
                         <MaterialCommunityIcons
                           name="account-plus-outline"

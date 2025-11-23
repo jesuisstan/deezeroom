@@ -71,6 +71,7 @@ const EventMonitor = memo(
     const audioPlayerRef = useRef(audioPlayer);
     const routerRef = useRef(router);
     const currentTrackRef = useRef(currentTrack);
+    const isEventEndedRef = useRef(isEventEnded);
 
     // Update refs when values change
     useEffect(() => {
@@ -81,6 +82,7 @@ const EventMonitor = memo(
       audioPlayerRef.current = audioPlayer;
       routerRef.current = router;
       currentTrackRef.current = currentTrack;
+      isEventEndedRef.current = isEventEnded;
     }, [
       isHost,
       user,
@@ -88,7 +90,8 @@ const EventMonitor = memo(
       event.isPlaying,
       audioPlayer,
       router,
-      currentTrack
+      currentTrack,
+      isEventEnded
     ]);
 
     // Load listening state from AsyncStorage for participants
@@ -203,6 +206,18 @@ const EventMonitor = memo(
             } catch {
               // Silently ignore errors
             }
+          }
+
+          const currentIsEventEnded = isEventEndedRef.current;
+
+          // Skip alerts and pause logic if event has ended
+          if (currentIsEventEnded) {
+            Logger.info(
+              'Skipping blur pause - event has ended',
+              { eventId: currentEventId },
+              '📺 EventMonitor'
+            );
+            return;
           }
 
           // Show alert for host only
