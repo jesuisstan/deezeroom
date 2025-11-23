@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, View } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -271,19 +271,572 @@ const AboutScreen = () => {
   );
 
   const renderDevelopersContent = () => (
-    <View className="items-center justify-center py-12">
-      <MaterialCommunityIcons
-        name="code-braces"
-        size={64}
-        color={themeColors[theme]['text-secondary']}
-      />
-      <TextCustom
-        size="l"
-        color={themeColors[theme]['text-secondary']}
-        className="mt-4"
+    <View className="gap-6">
+      {/* API Overview */}
+      <View className="gap-3">
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons
+            name="api"
+            size={32}
+            color={themeColors[theme]['primary']}
+          />
+          <TextCustom size="2xl" color={themeColors[theme]['text-main']}>
+            API Reference
+          </TextCustom>
+        </View>
+        <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+          DEEZERoom implements a hybrid backend architecture combining GraphQL
+          for music data operations and Firebase for real-time collaborative
+          features.
+        </TextCustom>
+      </View>
+
+      <Divider />
+
+      {/* GraphQL API Section */}
+      <View className="gap-4">
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons
+            name="graphql"
+            size={28}
+            color={themeColors[theme]['primary']}
+          />
+          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+            GraphQL API
+          </TextCustom>
+        </View>
+
+        <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+          Our GraphQL API serves as a proxy layer for Deezer music data,
+          providing a unified interface for track and artist searches.
+        </TextCustom>
+
+        {/* Endpoint */}
+        <View className="gap-2">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Endpoint
+          </TextCustom>
+          <View
+            className="rounded-lg p-3"
+            style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+          >
+            <TextCustom size="m" color={themeColors[theme]['primary']}>
+              https://deezeroom.expo.app/api/graphql
+            </TextCustom>
+          </View>
+        </View>
+
+        {/* Available Queries */}
+        <View className="gap-3">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Available Queries
+          </TextCustom>
+
+          {/* searchTracks */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                searchTracks
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Search for tracks by keyword
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Parameters: query (String!), limit (Int), index (Int)',
+                'Returns: SearchTracksResult with tracks array, total count, hasMore flag',
+                'Use case: Track search in events and playlists'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* getPopularTracks */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                getPopularTracks
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Get trending tracks
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Parameters: limit (Int), index (Int)',
+                'Returns: SearchTracksResult',
+                'Use case: Homepage recommendations'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* track */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                track
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Get track details by ID
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Parameters: id (ID!)',
+                'Returns: Track object',
+                'Use case: Track detail view, playback'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* searchArtists */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                searchArtists
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Search for artists by name
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Parameters: query (String!), limit (Int), index (Int)',
+                'Returns: SearchArtistsResult',
+                'Use case: Artist preferences, search'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* artistsByIds */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                artistsByIds
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Batch fetch artists by IDs
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Parameters: ids ([ID!]!)',
+                'Returns: Array of Artist objects',
+                'Use case: Loading favorite artists'
+              ]}
+              size="s"
+            />
+          </View>
+        </View>
+
+        {/* GraphQL Example */}
+        <View className="gap-2">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Example Query
+          </TextCustom>
+          <View
+            className="rounded-lg p-3"
+            style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+          >
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['text-secondary']}
+              type="italic"
+            >
+              query SearchTracks {'{'}
+              {'\n'}
+              {'  '}searchTracks(query: "jazz", limit: 10) {'{'}
+              {'\n'}
+              {'    '}tracks {'{ id title artist { name } }'}
+              {'\n'}
+              {'    '}total hasMore{'\n'}
+              {'  }'}
+              {'\n'}
+              {'}'}
+            </TextCustom>
+          </View>
+          <TextCustom
+            size="m"
+            color={themeColors[theme]['primary']}
+            type="link"
+            onPress={() =>
+              handleLinkPress('https://deezeroom.expo.app/api/graphql')
+            }
+          >
+            Try it in GraphQL Playground →
+          </TextCustom>
+        </View>
+      </View>
+
+      <Divider />
+
+      {/* Firebase Backend Section */}
+      <View className="gap-4">
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons
+            name="firebase"
+            size={28}
+            color={themeColors[theme]['primary']}
+          />
+          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+            Firebase Backend
+          </TextCustom>
+        </View>
+
+        <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+          Firebase provides real-time database, authentication, storage, and
+          cloud messaging for collaborative features. All services implement
+          optimistic updates and conflict resolution.
+        </TextCustom>
+
+        {/* Core Services */}
+        <View className="gap-3">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Core Services
+          </TextCustom>
+
+          {/* UserService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                UserService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                User authentication and profile management
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Email/password & Google OAuth authentication',
+                'Profile CRUD operations with public/private data separation',
+                'Email verification flow',
+                'Password reset functionality',
+                'Avatar upload to Firebase Storage',
+                'Favorite artists & tracks management'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* EventService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                EventService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Music Track Vote events (live voting system)
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Real-time event creation and management',
+                'Track voting with optimistic updates',
+                'Geofencing with location-based access control',
+                'Time window restrictions for voting',
+                'Public/private visibility modes',
+                'Everyone/invited-only vote licensing',
+                'Playback state synchronization',
+                'Transaction-based vote counting to prevent conflicts',
+                'Participant & invitation management'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* PlaylistService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                PlaylistService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Collaborative real-time playlist editing
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Multi-user real-time playlist creation',
+                'Track add/remove/reorder operations',
+                'Conflict resolution with version control',
+                'Public/private visibility management',
+                'Everyone/invited-only edit permissions',
+                'Participant & invitation system',
+                'Batch operations with Firestore transactions',
+                'Cover image upload support',
+                'Playlist metadata (duration, track count)'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* ConnectionsService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                ConnectionsService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Social connections and friend management
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Friend request system',
+                'Connection approval/rejection flow',
+                'Bi-directional friend relationships',
+                'Real-time connection status updates'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* NotificationService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                NotificationService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Push notifications via Expo
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'Push token management per device',
+                'Event invitations',
+                'Playlist collaboration invites',
+                'Friend requests',
+                'System notifications'
+              ]}
+              size="s"
+            />
+          </View>
+
+          {/* StorageService */}
+          <View className="gap-2">
+            <View
+              className="rounded-lg p-3"
+              style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+            >
+              <TextCustom
+                size="m"
+                color={themeColors[theme]['text-main']}
+                type="semibold"
+              >
+                StorageService
+              </TextCustom>
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                File storage and management
+              </TextCustom>
+            </View>
+            <BulletList
+              items={[
+                'User avatar uploads',
+                'Event cover images',
+                'Playlist cover images',
+                'Automatic image optimization',
+                'Secure file deletion'
+              ]}
+              size="s"
+            />
+          </View>
+        </View>
+
+        {/* Data Models */}
+        <View className="gap-3">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Key Data Models
+          </TextCustom>
+
+          <View
+            className="rounded-lg p-3"
+            style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+          >
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-main']}
+              type="semibold"
+            >
+              Firestore Collections
+            </TextCustom>
+          </View>
+
+          <BulletList
+            items={[
+              'users/ - User profiles with nested private data',
+              'public_profiles/ - Public user information',
+              'events/ - Music Track Vote events',
+              'events/{id}/tracks - Event track subcollection',
+              'playlists/ - Collaborative playlists',
+              'playlists/{id}/tracks - Playlist track subcollection',
+              'connections/ - Friend relationships',
+              'notifications/ - User notifications',
+              'push_tokens/ - Device push notification tokens'
+            ]}
+            size="s"
+          />
+        </View>
+
+        {/* Real-time Features */}
+        <View className="gap-3">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Real-time Capabilities
+          </TextCustom>
+
+          <BulletList
+            items={[
+              'Firestore real-time listeners for instant updates',
+              'Optimistic UI updates for better UX',
+              'Transaction-based operations for data consistency',
+              'Conflict resolution with version control',
+              'Server-side timestamp for synchronization',
+              'Push notifications for offline users',
+              'Automatic retry mechanisms for failed operations'
+            ]}
+            size="m"
+          />
+        </View>
+
+        {/* Security */}
+        <View className="gap-3">
+          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            Security Implementation
+          </TextCustom>
+
+          <BulletList
+            items={[
+              'Firebase Authentication for user identity',
+              'Firestore Security Rules for data access control',
+              'Server-side validation in Cloud Functions',
+              'JWT token-based API authentication',
+              'Role-based access control (owner, participant, guest)',
+              'Secure file storage with permission checks',
+              'Environment variables for sensitive data'
+            ]}
+            size="m"
+          />
+        </View>
+      </View>
+
+      <Divider />
+
+      {/* Architecture Notes */}
+      <View className="gap-3">
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons
+            name="layers"
+            size={24}
+            color={themeColors[theme]['primary']}
+          />
+          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+            Architecture Highlights
+          </TextCustom>
+        </View>
+
+        <BulletList
+          items={[
+            'Hybrid approach: GraphQL for read-heavy music data, Firebase for real-time collaboration',
+            'Client-server separation: mobile app acts as thin client',
+            'Backend as source of truth for all user data',
+            'RESTful principles in GraphQL query design',
+            'JSON format for all data exchange',
+            'Comprehensive error handling and logging',
+            'Cross-platform support (iOS, Android, Web)'
+          ]}
+          size="m"
+        />
+      </View>
+
+      {/* Footer Note */}
+      <View
+        className="mt-4 rounded-lg p-4"
+        style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       >
-        Developer documentation coming soon...
-      </TextCustom>
+        <TextCustom
+          size="s"
+          color={themeColors[theme]['text-secondary']}
+          type="italic"
+        >
+          This API documentation fulfills the requirement IV.4 from the project
+          specification. For implementation details, please refer to the source
+          code repository.
+        </TextCustom>
+      </View>
     </View>
   );
 
