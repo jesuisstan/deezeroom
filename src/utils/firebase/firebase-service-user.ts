@@ -418,6 +418,18 @@ export class UserService {
     }
   }
 
+  // Update user location (convenience method)
+  static async updateUserLocation(
+    uid: string,
+    location: NonNullable<UserProfile['privateInfo']>['location']
+  ): Promise<void> {
+    return this.updateUserProfile(uid, {
+      privateInfo: {
+        location
+      }
+    } as Partial<UserProfile>);
+  }
+
   // Update auth providers information for existing user
   static async updateAuthProviders(user: User): Promise<void> {
     try {

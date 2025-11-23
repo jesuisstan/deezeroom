@@ -321,16 +321,28 @@ export class EventService {
 
   static subscribeToEvent(
     id: string,
-    callback: (event: Event | null) => void
+    callback: (event: Event | null) => void,
+    onError?: (error: Error) => void
   ): () => void {
     const eventRef = doc(db, this.collection, id);
-    return onSnapshot(eventRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        callback(null);
-        return;
+    return onSnapshot(
+      eventRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          callback(null);
+          return;
+        }
+        callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
+      },
+      (error) => {
+        Logger.error('Error in event subscription:', error);
+        if (onError) {
+          onError(error);
+        } else {
+          callback(null);
+        }
       }
-      callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
-    });
+    );
   }
 
   static subscribeToEventTracks(

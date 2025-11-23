@@ -6,10 +6,13 @@ import { useRouter } from 'expo-router';
 import Animated from 'react-native-reanimated';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { usePressAnimation } from '@/style/usePressAnimation';
 import { Event } from '@/utils/firebase/firebase-service-events';
+import { checkGeofenceAccess, formatRadius } from '@/utils/geofence-utils';
 
 interface EventCardProps {
   event: Event;
@@ -19,6 +22,7 @@ const COVER_SIZE = 96;
 
 const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const { theme } = useTheme();
+  const { user, profile } = useUser();
   const router = useRouter();
   const { animatedStyle, handlePressIn, handlePressOut } = usePressAnimation({
     appearAnimation: true,
@@ -27,6 +31,44 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   });
 
   const handlePress = () => {
+    // Check if user is already a participant
+    const isParticipant = user && event.participantIds.includes(user.uid);
+    const isHost = user && event.hostIds.includes(user.uid);
+
+    // If user is participant or host, allow direct access
+    if (isParticipant || isHost) {
+      router.push(`/(tabs)/events/${event.id}` as any);
+      return;
+    }
+
+    // For public events with geofence, check location
+    if (event.visibility === 'public' && event.geofence) {
+      const geofenceCheck = checkGeofenceAccess(
+        profile?.privateInfo?.location?.coords,
+        event.geofence,
+        false
+      );
+
+      if (!geofenceCheck.canAccess) {
+        const message =
+          geofenceCheck.reason === 'Location not set'
+            ? `This event requires you to be within ${formatRadius(event.geofence.radiusMeters)} of ${event.geofence.locationName || 'the event location'}. Please set your location in your profile to access this event.`
+            : `You are currently ${geofenceCheck.formattedDistance || 'too far'} away from the event location. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
+
+        Alert.confirm(
+          'Location Required',
+          message,
+          () => {
+            // Redirect to profile edit
+            router.push('/(tabs)/profile/edit-profile');
+          },
+          undefined // Cancel button
+        );
+        return;
+      }
+    }
+
+    // Allow access
     router.push(`/(tabs)/events/${event.id}` as any);
   };
 

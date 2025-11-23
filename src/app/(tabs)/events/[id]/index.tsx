@@ -41,10 +41,11 @@ import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 import { UserProfile } from '@/utils/firebase/firebase-service-user';
+import { checkGeofenceAccess, formatRadius } from '@/utils/geofence-utils';
 
 const EventDetailScreen = () => {
   const { theme } = useTheme();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const router = useRouter();
   const { currentTrack } = usePlaybackState();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -87,28 +88,118 @@ const EventDetailScreen = () => {
     if (!id) return;
     setIsLoading(true);
 
-    const unsubscribe = EventService.subscribeToEvent(id, (updatedEvent) => {
-      if (!updatedEvent) {
-        setError('Event not found');
-        setEvent(null);
+    const unsubscribe = EventService.subscribeToEvent(
+      id,
+      (updatedEvent) => {
+        if (!updatedEvent) {
+          setError('Event not found');
+          setEvent(null);
+          setIsLoading(false);
+          return;
+        }
+        // Ignore subscription updates while we're manually updating status
+        // This prevents intermediate status changes (draft -> live -> ended)
+        // We'll use the forced refresh data instead
+        if (isUpdatingStatus) {
+          return;
+        }
+        setEvent(updatedEvent);
+        setError(null);
         setIsLoading(false);
-        return;
+      },
+      (error: any) => {
+        // Handle permission-denied or other errors
+        Logger.error(
+          'Error subscribing to event:',
+          {
+            eventId: id,
+            errorCode: error?.code,
+            errorMessage: error?.message,
+            error
+          },
+          '🚫 EventDetailScreen'
+        );
+
+        setIsLoading(false);
+
+        if (error?.code === 'permission-denied') {
+          // Show alert and redirect
+          Alert.alert(
+            'Access Denied',
+            'You do not have permission to access this event. It may be private or require you to be within a specific location.'
+          );
+
+          // Redirect after a short delay
+          setTimeout(() => {
+            router.replace('/(tabs)/events');
+          }, 1500);
+        } else {
+          setError('Failed to load event');
+        }
       }
-      // Ignore subscription updates while we're manually updating status
-      // This prevents intermediate status changes (draft -> live -> ended)
-      // We'll use the forced refresh data instead
-      if (isUpdatingStatus) {
-        return;
-      }
-      setEvent(updatedEvent);
-      setError(null);
-      setIsLoading(false);
-    });
+    );
 
     return () => {
       unsubscribe();
     };
-  }, [id, isUpdatingStatus]);
+  }, [id, isUpdatingStatus, router]);
+
+  // Check geofence when event is first loaded
+  useEffect(() => {
+    if (!event || isLoading || !user || !profile) return;
+
+    // Check if user is participant or host
+    const isParticipant = event.participantIds.includes(user.uid);
+    const isHost = event.hostIds.includes(user.uid);
+
+    // Skip geofence check if user is already participant or host
+    if (isParticipant || isHost) {
+      return;
+    }
+
+    // Check geofence for public events with geofence
+    if (event.visibility === 'public' && event.geofence) {
+      const geofenceCheck = checkGeofenceAccess(
+        profile?.privateInfo?.location?.coords,
+        event.geofence,
+        false
+      );
+
+      Logger.info(
+        'Geofence check on event screen',
+        {
+          eventId: event.id,
+          eventName: event.name,
+          userCoords: profile?.privateInfo?.location?.coords,
+          eventCoords: {
+            lat: event.geofence.latitude,
+            lng: event.geofence.longitude
+          },
+          radius: event.geofence.radiusMeters,
+          distance: geofenceCheck.distance,
+          formattedDistance: geofenceCheck.formattedDistance,
+          canAccess: geofenceCheck.canAccess,
+          reason: geofenceCheck.reason
+        },
+        '📍 EventDetailScreen'
+      );
+
+      if (!geofenceCheck.canAccess) {
+        const message =
+          geofenceCheck.reason === 'Location not set'
+            ? `This event requires you to be within ${formatRadius(event.geofence.radiusMeters)} of ${event.geofence.locationName || 'the event location'}. Please set your location in your profile.`
+            : `You are ${geofenceCheck.formattedDistance || 'too far'} away from the event location. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
+
+        Alert.alert('Location Required', message);
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.replace('/(tabs)/events');
+        }, 1500);
+        return;
+      }
+    }
+  }, [event, isLoading, user, profile, router]);
 
   // Use custom hook for real-time event status updates
   const { eventStatus, isEventEnded, hasEventStarted } = useEventStatus(event);
