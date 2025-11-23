@@ -11,7 +11,7 @@ const NotificationsLayout = () => {
       <Stack.Screen
         name="index"
         options={{
-          title: 'About',
+          title: 'What is this app about?',
           headerShown: true,
           headerStyle: {
             backgroundColor: themeColors[theme]['primary']
