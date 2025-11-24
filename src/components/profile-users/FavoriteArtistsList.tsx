@@ -18,59 +18,64 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  if (loading) {
-    return (
-      <View className="items-center p-4">
-        <ActivityIndicator color={themeColors[theme]['primary']} />
-        <TextCustom
-          color={themeColors[theme]['text-secondary']}
-          className="mt-2 animate-pulse text-center"
-        >
-          Loading favorite artists...
-        </TextCustom>
-      </View>
-    );
-  }
-
-  if (!artists || artists.length === 0) {
-    return (
-      <View className="items-center py-4">
-        <TextCustom
-          size="s"
-          color={themeColors[theme]['text-secondary']}
-          className="text-center"
-        >
-          No favorite artists yet
-        </TextCustom>
-        <TextCustom
-          size="xs"
-          color={themeColors[theme]['text-secondary']}
-          className="text-center"
-        >
-          Add artists to your favorites from the Edit Profile screen
-        </TextCustom>
-      </View>
-    );
-  }
+  const hasArtists = artists && artists.length > 0;
 
   return (
     <View className="w-full gap-4 p-4">
-      <View className="flex-row items-center justify-between">
-        <TextCustom type="semibold" size="xl">
-          Favorite Artists
-        </TextCustom>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          gap: 2
-        }}
-      >
-        {artists.map((artist) => (
-          <ArtistLabel key={artist.id} artist={artist} />
-        ))}
-      </ScrollView>
+      {/* Loading state */}
+      {loading && (
+        <View className="items-center">
+          <ActivityIndicator color={themeColors[theme]['primary']} />
+          <TextCustom
+            color={themeColors[theme]['text-secondary']}
+            className="mt-2 animate-pulse text-center"
+          >
+            Loading favorite artists...
+          </TextCustom>
+        </View>
+      )}
+
+      {/* Empty state */}
+      {!loading && !hasArtists && (
+        <View className="items-center">
+          <TextCustom
+            size="s"
+            color={themeColors[theme]['text-secondary']}
+            className="text-center"
+          >
+            No favorite artists yet
+          </TextCustom>
+          <TextCustom
+            size="xs"
+            color={themeColors[theme]['text-secondary']}
+            className="text-center"
+          >
+            Add artists to your favorites from the Edit Profile screen
+          </TextCustom>
+        </View>
+      )}
+
+      {/* Artists list */}
+      {!loading && hasArtists && (
+        <>
+          <View className="flex-row items-center justify-between">
+            <TextCustom type="semibold" size="xl">
+              Favorite Artists
+            </TextCustom>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              gap: 2
+            }}
+          >
+            {artists.map((artist) => (
+              <ArtistLabel key={artist.id} artist={artist} />
+            ))}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 };
