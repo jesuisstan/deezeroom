@@ -359,43 +359,43 @@ export const EventInvitationCard = ({
         </View>
       </SwipeModal>
 
-    <Animated.View style={animatedStyle}>
-      <View className="gap-2 rounded-md border border-border bg-bg-secondary px-4 py-3">
-        <View className="flex-row items-center">
-          <MaterialCommunityIcons
-            name="party-popper"
-            size={18}
-            color={themeColors[theme]['primary']}
-            style={{ marginRight: 8 }}
-          />
-          <TextCustom
-            type="semibold"
-            size="m"
-            color={themeColors[theme]['text-main']}
-          >
-            Event Invitation
-          </TextCustom>
-        </View>
-
-        <View>
-          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-            {`You've been invited to join ${invitation.eventName ? `"${invitation.eventName}"` : 'an'} event.`}
-          </TextCustom>
-        </View>
-
-        {eventEnded && (
-          <TextCustom size="s" color={themeColors[theme]['intent-error']}>
-            This event has already ended.
-          </TextCustom>
-        )}
-
-        {hasGeofence && !eventEnded && (
-          <View>
-            <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
-              ⚠️ This event requires you to be within{' '}
-                {formatRadius(eventData.geofence.radiusMeters)} of{' '}
-              {eventData.geofence.locationName || 'the event location'}.
+      <Animated.View style={animatedStyle}>
+        <View className="gap-2 rounded-md border border-border bg-bg-secondary px-4 py-3">
+          <View className="flex-row items-center">
+            <MaterialCommunityIcons
+              name="party-popper"
+              size={18}
+              color={themeColors[theme]['primary']}
+              style={{ marginRight: 8 }}
+            />
+            <TextCustom
+              type="semibold"
+              size="m"
+              color={themeColors[theme]['text-main']}
+            >
+              Event Invitation
             </TextCustom>
+          </View>
+
+          <View>
+            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+              {`You've been invited to join ${invitation.eventName ? `"${invitation.eventName}"` : 'an'} event.`}
+            </TextCustom>
+          </View>
+
+          {eventEnded && (
+            <TextCustom size="s" color={themeColors[theme]['intent-error']}>
+              This event has already ended.
+            </TextCustom>
+          )}
+
+          {hasGeofence && !eventEnded && (
+            <View>
+              <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
+                ⚠️ This event requires you to be within{' '}
+                {formatRadius(eventData.geofence.radiusMeters)} of{' '}
+                {eventData.geofence.locationName || 'the event location'}.
+              </TextCustom>
               {geofenceCheck.formattedDistance && (
                 <TextCustom
                   size="s"
@@ -415,12 +415,12 @@ export const EventInvitationCard = ({
                   </TextCustom>
                 </TextCustom>
               )}
-            {!hasUserLocation && (
-              <TextCustom
-                type="link"
-                size="s"
+              {!hasUserLocation && (
+                <TextCustom
+                  type="link"
+                  size="s"
                   onPress={() => setShowLocationModal(true)}
-              >
+                >
                   Set your location to participate →
                 </TextCustom>
               )}
@@ -431,38 +431,38 @@ export const EventInvitationCard = ({
                   onPress={() => setShowLocationModal(true)}
                 >
                   Update your location to participate →
-              </TextCustom>
-            )}
-          </View>
-        )}
+                </TextCustom>
+              )}
+            </View>
+          )}
 
-        <View className="flex-row items-center gap-2">
-          <View className="flex-1">
-            <RippleButton
-              title={eventEnded ? 'Delete' : 'Accept'}
-              size="sm"
-              loading={processingEventInvitations.has(invitation.id)}
-                disabled={processingEventInvitations.has(invitation.id)}
-                onPress={handleAcceptInvitation}
-              width="full"
-            />
-          </View>
-          {!eventEnded && (
+          <View className="flex-row items-center gap-2">
             <View className="flex-1">
               <RippleButton
-                title="Decline"
+                title={eventEnded ? 'Delete' : 'Accept'}
                 size="sm"
-                variant="outline"
                 loading={processingEventInvitations.has(invitation.id)}
                 disabled={processingEventInvitations.has(invitation.id)}
-                onPress={() => onDecline(invitation)}
+                onPress={handleAcceptInvitation}
                 width="full"
               />
             </View>
-          )}
+            {!eventEnded && (
+              <View className="flex-1">
+                <RippleButton
+                  title="Decline"
+                  size="sm"
+                  variant="outline"
+                  loading={processingEventInvitations.has(invitation.id)}
+                  disabled={processingEventInvitations.has(invitation.id)}
+                  onPress={() => onDecline(invitation)}
+                  width="full"
+                />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
     </>
   );
 };
