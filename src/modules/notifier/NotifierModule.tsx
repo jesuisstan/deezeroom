@@ -235,14 +235,13 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               </View>
               {/* Text content with title */}
               <View style={{ flex: 1 }}>
-                {state.title ? (
-                  <TextCustom
-                    type="bold"
-                    color={themeColors[theme]['text-main']}
-                  >
-                    {state.title}
-                  </TextCustom>
-                ) : null}
+                <TextCustom
+                  type="bold"
+                  color={themeColors[theme]['text-main']}
+                  style={{ display: state.title ? 'flex' : 'none' }}
+                >
+                  {state.title || ''}
+                </TextCustom>
                 <TextCustom
                   type="default"
                   color={themeColors[theme]['text-main']}
