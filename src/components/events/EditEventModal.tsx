@@ -1,20 +1,41 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  View
+} from 'react-native';
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+
+import UserChip from '@/components/profile-users/UserChip';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import DateTimePickerField from '@/components/ui/DateTimePickerField';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
+import { TextCustom } from '@/components/ui/TextCustom';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
+import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
+import { themeColors } from '@/style/color-theme';
 import { Event, EventService } from '@/utils/firebase/firebase-service-events';
+import { getPublicProfilesByUserIds } from '@/utils/firebase/firebase-service-profiles';
 
 interface EditEventModalProps {
   visible: boolean;
   onClose: () => void;
   event: Event;
   onEventUpdated: () => void;
+}
+
+interface ParticipantWithProfile {
+  uid: string;
+  displayName?: string;
+  photoURL?: string;
 }
 
 const MIN_EVENT_DURATION_MS = 15 * 60 * 1000; // Minimum duration: 15 minutes
@@ -25,6 +46,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   event,
   onEventUpdated
 }) => {
+  const { user } = useUser();
+  const { theme } = useTheme();
+
   const [name, setName] = useState(event.name || '');
   const [description, setDescription] = useState(event.description || '');
   const [startAt, setStartAt] = useState<Date | null>(null);
@@ -32,6 +56,14 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const [endError, setEndError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStartSelection, setHasStartSelection] = useState(false);
+
+  // Delegation state
+  const [participants, setParticipants] = useState<ParticipantWithProfile[]>(
+    []
+  );
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+  const [showDelegateDropdown, setShowDelegateDropdown] = useState(false);
+  const [selectedNewHost, setSelectedNewHost] = useState<string | null>(null);
 
   const timezone = useMemo(() => {
     try {
@@ -50,6 +82,19 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     return EventService.hasEventStarted(event);
   }, [event]);
 
+  const isCurrentUserHost = useMemo(() => {
+    if (!user) return false;
+    return event.hostIds?.includes(user.uid) ?? false;
+  }, [event.hostIds, user]);
+
+  // Get other participants (exclude current user and other hosts)
+  const otherParticipants = useMemo(() => {
+    if (!user) return [];
+    return event.participantIds.filter(
+      (id) => id !== user.uid && !event.hostIds.includes(id)
+    );
+  }, [event.participantIds, event.hostIds, user]);
+
   // Initialize dates from event
   useEffect(() => {
     if (visible && event) {
@@ -63,8 +108,43 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setEndAt(end);
       setHasStartSelection(!!start);
       setEndError(null);
+      setShowDelegateDropdown(false);
+      setSelectedNewHost(null);
     }
   }, [visible, event]);
+
+  // Load participants with profiles
+  useEffect(() => {
+    if (!visible || otherParticipants.length === 0) {
+      setParticipants([]);
+      return;
+    }
+
+    const loadParticipants = async () => {
+      setLoadingParticipants(true);
+      try {
+        const profilesMap = await getPublicProfilesByUserIds(otherParticipants);
+
+        const participantsList: ParticipantWithProfile[] =
+          otherParticipants.map((uid) => {
+            const profile = profilesMap.get(uid);
+            return {
+              uid,
+              displayName: profile?.displayName,
+              photoURL: profile?.photoURL
+            };
+          });
+
+        setParticipants(participantsList);
+      } catch (error) {
+        Logger.error('Error loading participants:', error);
+      } finally {
+        setLoadingParticipants(false);
+      }
+    };
+
+    loadParticipants();
+  }, [visible, otherParticipants]);
 
   const handleStartChange = (next: Date) => {
     let adjusted = new Date(next);
@@ -138,6 +218,46 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
     setEndAt(adjusted);
     setEndError(null);
+  };
+
+  const handleDelegateHosting = () => {
+    if (!user || !selectedNewHost) return;
+
+    Alert.confirm(
+      'Delegate Hosting Rights?',
+      'Are you sure you want to delegate hosting rights? You will become a regular participant and lose host privileges.',
+      async () => {
+        setIsLoading(true);
+        try {
+          await EventService.delegateHosting(
+            event.id,
+            user.uid,
+            selectedNewHost
+          );
+
+          Notifier.shoot({
+            type: 'success',
+            title: 'Success',
+            message: 'Hosting rights delegated successfully'
+          });
+
+          onEventUpdated();
+          onClose();
+        } catch (error) {
+          Logger.error('Error delegating hosting:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to delegate hosting'
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    );
   };
 
   const handleSave = async () => {
@@ -312,6 +432,117 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               disabled={!hasStartSelection}
             />
           </View>
+
+          {/* Delegate Hosting Section */}
+          {isCurrentUserHost && participants.length > 0 && (
+            <View className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
+              <View className="mb-3 flex-row items-center gap-2">
+                <MaterialCommunityIcons
+                  name="account-arrow-right"
+                  size={20}
+                  color={themeColors[theme]['text-main']}
+                />
+                <TextCustom type="semibold" size="m">
+                  Delegate Hosting
+                </TextCustom>
+              </View>
+
+              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+                Transfer hosting rights to another participant. You will become
+                a regular participant.
+              </TextCustom>
+
+              {/* Dropdown Toggle */}
+              <Pressable
+                onPress={() => setShowDelegateDropdown(!showDelegateDropdown)}
+                className="mt-3 rounded-lg border border-border bg-bg-main p-3"
+              >
+                <View className="flex-row items-center justify-between">
+                  <TextCustom
+                    size="m"
+                    color={
+                      selectedNewHost
+                        ? themeColors[theme]['text-main']
+                        : themeColors[theme]['text-secondary']
+                    }
+                  >
+                    {selectedNewHost
+                      ? participants.find((p) => p.uid === selectedNewHost)
+                          ?.displayName || 'Selected Participant'
+                      : 'Select New Host'}
+                  </TextCustom>
+                  <MaterialCommunityIcons
+                    name={showDelegateDropdown ? 'chevron-up' : 'chevron-down'}
+                    size={24}
+                    color={themeColors[theme]['text-secondary']}
+                  />
+                </View>
+              </Pressable>
+
+              {/* Dropdown List */}
+              {showDelegateDropdown && (
+                <View className="mt-2 gap-2 rounded-lg border border-border bg-bg-main p-2">
+                  {loadingParticipants ? (
+                    <View className="items-center py-4">
+                      <ActivityIndicator
+                        size="small"
+                        color={themeColors[theme]['primary']}
+                      />
+                    </View>
+                  ) : participants.length === 0 ? (
+                    <View className="py-4">
+                      <TextCustom
+                        size="s"
+                        color={themeColors[theme]['text-secondary']}
+                        className="text-center"
+                      >
+                        No other participants
+                      </TextCustom>
+                    </View>
+                  ) : (
+                    participants.map((participant) => (
+                      <Pressable
+                        key={participant.uid}
+                        onPress={() => {
+                          setSelectedNewHost(participant.uid);
+                          setShowDelegateDropdown(false);
+                        }}
+                        className="rounded-lg p-2"
+                        style={{
+                          backgroundColor:
+                            selectedNewHost === participant.uid
+                              ? themeColors[theme]['primary'] + '20'
+                              : 'transparent'
+                        }}
+                      >
+                        <UserChip
+                          user={{
+                            uid: participant.uid,
+                            displayName: participant.displayName,
+                            photoURL: participant.photoURL
+                          }}
+                        />
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              )}
+
+              {/* Delegate Button */}
+              {selectedNewHost && (
+                <View className="mt-3">
+                  <RippleButton
+                    title="Confirm Delegation"
+                    size="sm"
+                    onPress={handleDelegateHosting}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    width="full"
+                  />
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Action Button */}
           <View className="mt-4">

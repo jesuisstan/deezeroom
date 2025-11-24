@@ -813,6 +813,11 @@ export class EventService {
       return false;
     }
 
+    // Hosts can always add tracks
+    if (event.hostIds?.includes(userId)) {
+      return true;
+    }
+
     // Private events: only participants can add tracks
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
@@ -835,6 +840,11 @@ export class EventService {
   static canUserVoteWithEvent(event: Event, userId: string): boolean {
     if (this.hasEventEnded(event)) {
       return false;
+    }
+
+    // Hosts can always vote
+    if (event.hostIds?.includes(userId)) {
+      return true;
     }
 
     // Private events: only participants can vote
@@ -932,6 +942,68 @@ export class EventService {
     Logger.info(
       'Event ended early, playback stopped',
       { eventId, userId },
+      '🔥 Firebase EventService'
+    );
+  }
+
+  /**
+   * Delegate hosting rights to another participant
+   * Current host becomes a regular participant
+   * New host is removed from participants and added to hosts
+   */
+  static async delegateHosting(
+    eventId: string,
+    currentHostId: string,
+    newHostId: string
+  ): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    // Validate current host
+    if (!this.canUserManageEvent(event, currentHostId)) {
+      throw new Error('Only hosts can delegate hosting rights');
+    }
+
+    // Validate new host is a participant
+    if (!event.participantIds.includes(newHostId)) {
+      throw new Error('New host must be a participant in this event');
+    }
+
+    // Cannot delegate to yourself
+    if (currentHostId === newHostId) {
+      throw new Error('Cannot delegate hosting rights to yourself');
+    }
+
+    // Cannot delegate if new host is already a host
+    if (event.hostIds.includes(newHostId)) {
+      throw new Error('Selected user is already a host');
+    }
+
+    const eventRef = doc(db, this.collection, eventId);
+
+    // Remove current host from hostIds, add new host
+    const updatedHostIds = event.hostIds.filter((id) => id !== currentHostId);
+    updatedHostIds.push(newHostId);
+
+    // Remove new host from participantIds, add current host (if not already there)
+    const updatedParticipantIds = event.participantIds.filter(
+      (id) => id !== newHostId
+    );
+    if (!updatedParticipantIds.includes(currentHostId)) {
+      updatedParticipantIds.push(currentHostId);
+    }
+
+    await updateDoc(eventRef, {
+      hostIds: updatedHostIds,
+      participantIds: updatedParticipantIds,
+      updatedAt: serverTimestamp()
+    });
+
+    Logger.info(
+      'Hosting rights delegated',
+      { eventId, from: currentHostId, to: newHostId },
       '🔥 Firebase EventService'
     );
   }
