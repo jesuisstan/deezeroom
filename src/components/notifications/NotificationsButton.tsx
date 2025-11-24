@@ -35,7 +35,7 @@ const NotificationsButton = () => {
             position: 'absolute',
             top: -2,
             right: -2,
-            backgroundColor: themeColors[theme]['bg-tertiary'],
+            backgroundColor: themeColors[theme]['primary'] + '50',
             borderRadius: 10,
             minWidth: 20,
             height: 20,
@@ -44,7 +44,11 @@ const NotificationsButton = () => {
             paddingHorizontal: 4
           }}
         >
-          <TextCustom size="xs" color={themeColors[theme]['primary']}>
+          <TextCustom
+            type="semibold"
+            size="xs"
+            color={themeColors[theme]['text-main']}
+          >
             {badgeCount > 99 ? '99+' : badgeCount.toString()}
           </TextCustom>
         </View>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
+import { Image, Linking, ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -33,20 +33,22 @@ const AboutScreen = () => {
     <View className="gap-6">
       {/* Project Overview */}
       <View className="gap-3">
-        <View className="flex-row items-center gap-2">
-          <MaterialCommunityIcons
-            name="music-circle"
-            size={32}
-            color={themeColors[theme]['primary']}
+        <View className="items-center">
+          <Image
+            source={
+              theme === 'dark'
+                ? require('@/assets/images/logo/logo-text-white-bg-transparent.png')
+                : require('@/assets/images/logo/logo-text-black-bg-transparent.png')
+            }
+            style={{ height: 60, width: 280 }}
+            resizeMode="contain"
           />
-          <TextCustom size="2xl" color={themeColors[theme]['text-main']}>
-            DEEZERoom
-          </TextCustom>
         </View>
         <TextCustom
           size="m"
-          color={themeColors[theme]['text-secondary']}
+          color={themeColors[theme]['text-main']}
           type="italic"
+          className="text-center"
         >
           A complete mobile solution focused on music and collaborative user
           experience
@@ -63,7 +65,11 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Educational Project
           </TextCustom>
         </View>
@@ -92,16 +98,21 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Music Data Source
           </TextCustom>
         </View>
         <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
           DEEZERoom uses the open Deezer API to load track and artist
-          information. All music data and metadata are provided by Deezer with
-          full respect to their terms of service.
+          information. Due to the free tier of the API, only track previews are
+          available (30 seconds). All music data and metadata are provided by
+          Deezer with full respect to their terms of service.
         </TextCustom>
-        <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+        <TextCustom size="s" color={themeColors[theme]['intent-warning']}>
           This application is not affiliated with, endorsed by, or sponsored by
           Deezer. All trademarks and copyrights belong to their respective
           owners.
@@ -126,7 +137,11 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Key Features
           </TextCustom>
         </View>
@@ -139,7 +154,11 @@ const AboutScreen = () => {
               size={20}
               color={themeColors[theme]['primary']}
             />
-            <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            <TextCustom
+              type="semibold"
+              size="l"
+              color={themeColors[theme]['text-main']}
+            >
               Music Track Vote Events
             </TextCustom>
           </View>
@@ -167,7 +186,11 @@ const AboutScreen = () => {
               size={20}
               color={themeColors[theme]['primary']}
             />
-            <TextCustom size="l" color={themeColors[theme]['text-main']}>
+            <TextCustom
+              type="semibold"
+              size="l"
+              color={themeColors[theme]['text-main']}
+            >
               Collaborative Playlists
             </TextCustom>
           </View>
@@ -198,7 +221,11 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Built With
           </TextCustom>
         </View>
@@ -224,38 +251,48 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Developer
           </TextCustom>
         </View>
-        <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+        {/*<TextCustom size="m" color={themeColors[theme]['text-secondary']}>
           Developed by Stanislav Krivtsov as part of École 42 curriculum.
-        </TextCustom>
+        </TextCustom>*/}
         <View className="gap-2">
-          <TextCustom
-            size="m"
-            color={themeColors[theme]['primary']}
-            type="link"
-            onPress={() => handleLinkPress('https://www.krivtsoff.site/')}
-          >
-            🌐 Portfolio: www.krivtsoff.site
-          </TextCustom>
-          <TextCustom
-            size="m"
-            color={themeColors[theme]['primary']}
-            type="link"
-            onPress={() =>
-              handleLinkPress('https://github.com/jesuisstan/deezeroom')
-            }
-          >
-            💻 Source Code: github.com/jesuisstan/deezeroom
+          {/*<TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+            🌐 Portfolio:{' '}
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() => handleLinkPress('https://www.krivtsoff.site/')}
+            >
+              www.krivtsoff.site
+            </TextCustom>
+          </TextCustom>*/}
+          <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+            💻 Source Code:{' '}
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() =>
+                handleLinkPress('https://github.com/jesuisstan/deezeroom')
+              }
+            >
+              github.com/jesuisstan/deezeroom
+            </TextCustom>
           </TextCustom>
         </View>
       </View>
 
       {/* Footer Note */}
       <View
-        className="mt-4 rounded-lg p-4"
+        className="rounded-md p-4"
         style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       >
         <TextCustom
@@ -280,7 +317,11 @@ const AboutScreen = () => {
             size={32}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="2xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="2xl"
+            color={themeColors[theme]['text-main']}
+          >
             API Reference
           </TextCustom>
         </View>
@@ -301,7 +342,11 @@ const AboutScreen = () => {
             size={28}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             GraphQL API
           </TextCustom>
         </View>
@@ -313,11 +358,15 @@ const AboutScreen = () => {
 
         {/* Endpoint */}
         <View className="gap-2">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Endpoint
           </TextCustom>
           <View
-            className="rounded-lg p-3"
+            className="rounded-md p-3"
             style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
           >
             <TextCustom size="m" color={themeColors[theme]['primary']}>
@@ -328,14 +377,18 @@ const AboutScreen = () => {
 
         {/* Available Queries */}
         <View className="gap-3">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Available Queries
           </TextCustom>
 
           {/* searchTracks */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -362,7 +415,7 @@ const AboutScreen = () => {
           {/* getPopularTracks */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -389,7 +442,7 @@ const AboutScreen = () => {
           {/* track */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -416,7 +469,7 @@ const AboutScreen = () => {
           {/* searchArtists */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -443,7 +496,7 @@ const AboutScreen = () => {
           {/* artistsByIds */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -470,11 +523,15 @@ const AboutScreen = () => {
 
         {/* GraphQL Example */}
         <View className="gap-2">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Example Query
           </TextCustom>
           <View
-            className="rounded-lg p-3"
+            className="rounded-md p-3"
             style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
           >
             <TextCustom
@@ -494,6 +551,137 @@ const AboutScreen = () => {
               {'}'}
             </TextCustom>
           </View>
+        </View>
+
+        {/* Live API Examples */}
+        <View className="gap-3">
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
+            Try Live Examples
+          </TextCustom>
+          <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+            Click on the links below to see live API responses in your browser:
+          </TextCustom>
+
+          {/* Search Tracks Example */}
+          <View className="gap-1">
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-main']}
+              type="semibold"
+            >
+              🎵 Search tracks "jazz":
+            </TextCustom>
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() =>
+                handleLinkPress(
+                  'https://deezeroom.expo.app/api/graphql?query={searchTracks(query:"jazz",limit:5){tracks{id title artist{name}}total}}'
+                )
+              }
+            >
+              /api/graphql?query={'{'}searchTracks...{'}'}
+            </TextCustom>
+          </View>
+
+          {/* Popular Tracks Example */}
+          <View className="gap-1">
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-main']}
+              type="semibold"
+            >
+              🔥 Get popular tracks:
+            </TextCustom>
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() =>
+                handleLinkPress(
+                  'https://deezeroom.expo.app/api/graphql?query={getPopularTracks(limit:5){tracks{id title artist{name}album{title}}}}'
+                )
+              }
+            >
+              /api/graphql?query={'{'}getPopularTracks...{'}'}
+            </TextCustom>
+          </View>
+
+          {/* Search Artists Example */}
+          <View className="gap-1">
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-main']}
+              type="semibold"
+            >
+              🎤 Search artists "daft punk":
+            </TextCustom>
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() =>
+                handleLinkPress(
+                  'https://deezeroom.expo.app/api/graphql?query={searchArtists(query:"daft punk",limit:3){artists{id name picture}}}'
+                )
+              }
+            >
+              /api/graphql?query={'{'}searchArtists...{'}'}
+            </TextCustom>
+          </View>
+
+          {/* Track by ID Example */}
+          <View className="gap-1">
+            <TextCustom
+              size="m"
+              color={themeColors[theme]['text-main']}
+              type="semibold"
+            >
+              🎧 Get track by ID:
+            </TextCustom>
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['primary']}
+              type="link"
+              onPress={() =>
+                handleLinkPress(
+                  'https://deezeroom.expo.app/api/graphql?query={track(id:"3135556"){id title duration artist{name}album{title}}}'
+                )
+              }
+            >
+              /api/graphql?query={'{'}track(id:"3135556")...{'}'}
+            </TextCustom>
+          </View>
+        </View>
+
+        {/* GraphQL Playground Link */}
+        <View
+          className="rounded-md p-4"
+          style={{
+            backgroundColor: themeColors[theme]['primary'] + '15',
+            borderWidth: 1,
+            borderColor: themeColors[theme]['primary'] + '40'
+          }}
+        >
+          <TextCustom
+            size="m"
+            color={themeColors[theme]['text-main']}
+            type="semibold"
+          >
+            🚀 GraphQL Playground
+          </TextCustom>
+          <TextCustom
+            size="s"
+            color={themeColors[theme]['text-secondary']}
+            className="mb-2"
+          >
+            Interactive API explorer with schema documentation and autocomplete:
+          </TextCustom>
           <TextCustom
             size="m"
             color={themeColors[theme]['primary']}
@@ -502,7 +690,7 @@ const AboutScreen = () => {
               handleLinkPress('https://deezeroom.expo.app/api/graphql')
             }
           >
-            Try it in GraphQL Playground →
+            Open GraphQL Playground →
           </TextCustom>
         </View>
       </View>
@@ -517,7 +705,11 @@ const AboutScreen = () => {
             size={28}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Firebase Backend
           </TextCustom>
         </View>
@@ -530,14 +722,18 @@ const AboutScreen = () => {
 
         {/* Core Services */}
         <View className="gap-3">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Core Services
           </TextCustom>
 
           {/* UserService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -567,7 +763,7 @@ const AboutScreen = () => {
           {/* EventService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -600,7 +796,7 @@ const AboutScreen = () => {
           {/* PlaylistService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -633,7 +829,7 @@ const AboutScreen = () => {
           {/* ConnectionsService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -661,7 +857,7 @@ const AboutScreen = () => {
           {/* NotificationService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -690,7 +886,7 @@ const AboutScreen = () => {
           {/* StorageService */}
           <View className="gap-2">
             <View
-              className="rounded-lg p-3"
+              className="rounded-md p-3"
               style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
             >
               <TextCustom
@@ -719,12 +915,16 @@ const AboutScreen = () => {
 
         {/* Data Models */}
         <View className="gap-3">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Key Data Models
           </TextCustom>
 
           <View
-            className="rounded-lg p-3"
+            className="rounded-md p-3"
             style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
           >
             <TextCustom
@@ -754,7 +954,11 @@ const AboutScreen = () => {
 
         {/* Real-time Features */}
         <View className="gap-3">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Real-time Capabilities
           </TextCustom>
 
@@ -774,7 +978,11 @@ const AboutScreen = () => {
 
         {/* Security */}
         <View className="gap-3">
-          <TextCustom size="l" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="semibold"
+            size="l"
+            color={themeColors[theme]['text-main']}
+          >
             Security Implementation
           </TextCustom>
 
@@ -803,7 +1011,11 @@ const AboutScreen = () => {
             size={24}
             color={themeColors[theme]['primary']}
           />
-          <TextCustom size="xl" color={themeColors[theme]['text-main']}>
+          <TextCustom
+            type="bold"
+            size="xl"
+            color={themeColors[theme]['text-main']}
+          >
             Architecture Highlights
           </TextCustom>
         </View>
@@ -824,7 +1036,7 @@ const AboutScreen = () => {
 
       {/* Footer Note */}
       <View
-        className="mt-4 rounded-lg p-4"
+        className="rounded-md p-4"
         style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
       >
         <TextCustom
@@ -832,9 +1044,17 @@ const AboutScreen = () => {
           color={themeColors[theme]['text-secondary']}
           type="italic"
         >
-          This API documentation fulfills the requirement IV.4 from the project
-          specification. For implementation details, please refer to the source
-          code repository.
+          For implementation details, please refer to the source code repository
+          on GitHub:{' '}
+          <TextCustom
+            size="s"
+            type="link"
+            onPress={() =>
+              handleLinkPress('https://github.com/jesuisstan/deezeroom')
+            }
+          >
+            jesuisstan/deezeroom
+          </TextCustom>
         </TextCustom>
       </View>
     </View>

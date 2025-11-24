@@ -12,6 +12,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import UserChip from '@/components/profile-users/UserChip';
 import RippleButton from '@/components/ui/buttons/RippleButton';
+import TabButton from '@/components/ui/buttons/TabButton';
 import DateTimePickerField from '@/components/ui/DateTimePickerField';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
@@ -65,6 +66,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const [showDelegateDropdown, setShowDelegateDropdown] = useState(false);
   const [selectedNewHost, setSelectedNewHost] = useState<string | null>(null);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'details' | 'hosting'>('details');
+
   const timezone = useMemo(() => {
     try {
       return (
@@ -110,6 +114,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setEndError(null);
       setShowDelegateDropdown(false);
       setSelectedNewHost(null);
+      setActiveTab('details');
     }
   }, [visible, event]);
 
@@ -347,6 +352,258 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     }
   };
 
+  const renderDetailsContent = () => (
+    <>
+      {/* Name Input */}
+      <View>
+        <InputCustom
+          label="Name *"
+          value={name}
+          onChangeText={setName}
+          placeholder="Enter event name"
+          variant="default"
+        />
+      </View>
+
+      {/* Description Input */}
+      <View>
+        <InputCustom
+          label="Description"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Event description (optional)"
+          multiline
+          numberOfLines={3}
+          variant="default"
+        />
+      </View>
+
+      {/* Date/Time Pickers */}
+      <View className="gap-4">
+        <DateTimePickerField
+          label="Start *"
+          value={startAt || new Date()}
+          onChange={handleStartChange}
+          minimumDate={hasEventStarted ? undefined : new Date()}
+          timezoneLabel={timezone}
+          helperText={
+            hasEventStarted
+              ? 'Event has started. Start time cannot be changed.'
+              : undefined
+          }
+          disabled={hasEventStarted}
+          onOpen={() => setHasStartSelection(true)}
+        />
+
+        <DateTimePickerField
+          label="End *"
+          value={endAt || new Date()}
+          onChange={handleEndChange}
+          minimumDate={
+            startAt
+              ? new Date(
+                  Math.max(
+                    startAt.getTime() + MIN_EVENT_DURATION_MS,
+                    Date.now()
+                  )
+                )
+              : new Date()
+          }
+          timezoneLabel={timezone}
+          helperText={
+            !hasStartSelection
+              ? 'Select start time first'
+              : endError || undefined
+          }
+          disabled={!hasStartSelection}
+        />
+      </View>
+
+      {/* Action Button */}
+      <View className="mt-4">
+        <RippleButton
+          title="Save Changes"
+          size="md"
+          onPress={handleSave}
+          loading={isLoading}
+          disabled={isLoading || !name.trim()}
+          width="full"
+        />
+      </View>
+    </>
+  );
+
+  const renderHostingContent = () => (
+    <>
+      {!isCurrentUserHost ? (
+        <View className="items-center justify-center py-8">
+          <MaterialCommunityIcons
+            name="shield-lock"
+            size={48}
+            color={themeColors[theme]['text-secondary']}
+          />
+          <TextCustom
+            size="l"
+            color={themeColors[theme]['text-secondary']}
+            className="mt-4 text-center"
+          >
+            Only hosts can manage hosting rights
+          </TextCustom>
+        </View>
+      ) : participants.length === 0 ? (
+        <View className="items-center justify-center py-8">
+          <MaterialCommunityIcons
+            name="account-off"
+            size={48}
+            color={themeColors[theme]['text-secondary']}
+          />
+          <TextCustom
+            size="l"
+            color={themeColors[theme]['text-secondary']}
+            className="mt-4 text-center"
+          >
+            No other participants to delegate to
+          </TextCustom>
+          <TextCustom
+            size="m"
+            color={themeColors[theme]['text-secondary']}
+            className="mt-2 text-center"
+          >
+            Invite participants to your event first
+          </TextCustom>
+        </View>
+      ) : (
+        <View className="gap-4">
+          {/* Info Section */}
+          <View
+            className="rounded-md border p-4"
+            style={{
+              backgroundColor: themeColors[theme]['intent-warning'] + '22',
+              borderColor: themeColors[theme]['intent-warning']
+            }}
+          >
+            <View className="mb-3 flex-row items-center gap-2">
+              <MaterialCommunityIcons
+                name="information"
+                size={20}
+                color={themeColors[theme]['primary']}
+              />
+              <TextCustom
+                type="semibold"
+                size="m"
+                color={themeColors[theme]['intent-warning']}
+              >
+                About Hosting Delegation
+              </TextCustom>
+            </View>
+            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+              Transfer hosting rights to another participant. You will become a
+              regular participant and lose host privileges.
+            </TextCustom>
+          </View>
+
+          {/* Delegate Section */}
+          <View className="rounded-md border border-border bg-bg-secondary p-4">
+            <View className="mb-3 flex-row items-center gap-2">
+              <MaterialCommunityIcons
+                name="account-arrow-right"
+                size={20}
+                color={themeColors[theme]['text-main']}
+              />
+              <TextCustom type="semibold" size="m">
+                Select New Host
+              </TextCustom>
+            </View>
+
+            {/* Dropdown Toggle */}
+            <Pressable
+              onPress={() => setShowDelegateDropdown(!showDelegateDropdown)}
+              className="rounded-md border border-border bg-bg-main p-3"
+            >
+              <View className="flex-row items-center justify-between">
+                <TextCustom
+                  size="m"
+                  color={
+                    selectedNewHost
+                      ? themeColors[theme]['text-main']
+                      : themeColors[theme]['text-secondary']
+                  }
+                >
+                  {selectedNewHost
+                    ? participants.find((p) => p.uid === selectedNewHost)
+                        ?.displayName || 'Selected Participant'
+                    : 'Choose a participant'}
+                </TextCustom>
+                <MaterialCommunityIcons
+                  name={showDelegateDropdown ? 'chevron-up' : 'chevron-down'}
+                  size={24}
+                  color={themeColors[theme]['text-secondary']}
+                />
+              </View>
+            </Pressable>
+
+            {/* Dropdown List */}
+            {showDelegateDropdown && (
+              <View className="mt-2 flex-row flex-wrap gap-2 rounded-md border border-border bg-bg-main p-2">
+                {loadingParticipants ? (
+                  <View className="w-full items-center py-4">
+                    <ActivityIndicator
+                      size="small"
+                      color={themeColors[theme]['primary']}
+                    />
+                  </View>
+                ) : (
+                  participants.map((participant) => (
+                    <UserChip
+                      key={participant.uid}
+                      user={{
+                        uid: participant.uid,
+                        displayName: participant.displayName,
+                        photoURL: participant.photoURL
+                      }}
+                      onPress={() => {
+                        setSelectedNewHost(participant.uid);
+                        setShowDelegateDropdown(false);
+                      }}
+                      className={
+                        selectedNewHost === participant.uid
+                          ? 'border-2 border-primary'
+                          : ''
+                      }
+                      rightAccessory={
+                        selectedNewHost === participant.uid ? (
+                          <MaterialCommunityIcons
+                            name="check-circle"
+                            size={18}
+                            color={themeColors[theme]['primary']}
+                          />
+                        ) : null
+                      }
+                    />
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* Delegate Button */}
+            {selectedNewHost && (
+              <View className="mt-3">
+                <RippleButton
+                  title="Confirm Delegation"
+                  size="md"
+                  onPress={handleDelegateHosting}
+                  loading={isLoading}
+                  disabled={isLoading}
+                  width="full"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+    </>
+  );
+
   return (
     <SwipeModal
       modalVisible={visible}
@@ -357,206 +614,42 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       title="Edit Event"
       disableSwipe
     >
-      <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
-      >
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{ padding: 16, gap: 16 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+      <View className="flex-1">
+        {/* Tabs Header */}
+        <View
+          className="flex-row gap-2 px-4 py-2"
+          style={{ backgroundColor: themeColors[theme]['bg-main'] + '15' }}
         >
-          {/* Name Input */}
-          <View>
-            <InputCustom
-              label="Name *"
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter event name"
-              variant="default"
-            />
-          </View>
+          <TabButton
+            title="Details"
+            isActive={activeTab === 'details'}
+            onPress={() => setActiveTab('details')}
+          />
+          <TabButton
+            title="Hosting"
+            isActive={activeTab === 'hosting'}
+            onPress={() => setActiveTab('hosting')}
+          />
+        </View>
 
-          {/* Description Input */}
-          <View>
-            <InputCustom
-              label="Description"
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Event description (optional)"
-              multiline
-              numberOfLines={3}
-              variant="default"
-            />
-          </View>
-
-          {/* Date/Time Pickers */}
-          <View className="gap-4">
-            <DateTimePickerField
-              label="Start *"
-              value={startAt || new Date()}
-              onChange={handleStartChange}
-              minimumDate={hasEventStarted ? undefined : new Date()}
-              timezoneLabel={timezone}
-              helperText={
-                hasEventStarted
-                  ? 'Event has started. Start time cannot be changed.'
-                  : undefined
-              }
-              disabled={hasEventStarted}
-              onOpen={() => setHasStartSelection(true)}
-            />
-
-            <DateTimePickerField
-              label="End *"
-              value={endAt || new Date()}
-              onChange={handleEndChange}
-              minimumDate={
-                startAt
-                  ? new Date(
-                      Math.max(
-                        startAt.getTime() + MIN_EVENT_DURATION_MS,
-                        Date.now()
-                      )
-                    )
-                  : new Date()
-              }
-              timezoneLabel={timezone}
-              helperText={
-                !hasStartSelection
-                  ? 'Select start time first'
-                  : endError || undefined
-              }
-              disabled={!hasStartSelection}
-            />
-          </View>
-
-          {/* Delegate Hosting Section */}
-          {isCurrentUserHost && participants.length > 0 && (
-            <View className="mt-4 rounded-xl border border-border bg-bg-secondary p-4">
-              <View className="mb-3 flex-row items-center gap-2">
-                <MaterialCommunityIcons
-                  name="account-arrow-right"
-                  size={20}
-                  color={themeColors[theme]['text-main']}
-                />
-                <TextCustom type="semibold" size="m">
-                  Delegate Hosting
-                </TextCustom>
-              </View>
-
-              <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
-                Transfer hosting rights to another participant. You will become
-                a regular participant.
-              </TextCustom>
-
-              {/* Dropdown Toggle */}
-              <Pressable
-                onPress={() => setShowDelegateDropdown(!showDelegateDropdown)}
-                className="mt-3 rounded-lg border border-border bg-bg-main p-3"
-              >
-                <View className="flex-row items-center justify-between">
-                  <TextCustom
-                    size="m"
-                    color={
-                      selectedNewHost
-                        ? themeColors[theme]['text-main']
-                        : themeColors[theme]['text-secondary']
-                    }
-                  >
-                    {selectedNewHost
-                      ? participants.find((p) => p.uid === selectedNewHost)
-                          ?.displayName || 'Selected Participant'
-                      : 'Select New Host'}
-                  </TextCustom>
-                  <MaterialCommunityIcons
-                    name={showDelegateDropdown ? 'chevron-up' : 'chevron-down'}
-                    size={24}
-                    color={themeColors[theme]['text-secondary']}
-                  />
-                </View>
-              </Pressable>
-
-              {/* Dropdown List */}
-              {showDelegateDropdown && (
-                <View className="mt-2 gap-2 rounded-lg border border-border bg-bg-main p-2">
-                  {loadingParticipants ? (
-                    <View className="items-center py-4">
-                      <ActivityIndicator
-                        size="small"
-                        color={themeColors[theme]['primary']}
-                      />
-                    </View>
-                  ) : participants.length === 0 ? (
-                    <View className="py-4">
-                      <TextCustom
-                        size="s"
-                        color={themeColors[theme]['text-secondary']}
-                        className="text-center"
-                      >
-                        No other participants
-                      </TextCustom>
-                    </View>
-                  ) : (
-                    participants.map((participant) => (
-                      <Pressable
-                        key={participant.uid}
-                        onPress={() => {
-                          setSelectedNewHost(participant.uid);
-                          setShowDelegateDropdown(false);
-                        }}
-                        className="rounded-lg p-2"
-                        style={{
-                          backgroundColor:
-                            selectedNewHost === participant.uid
-                              ? themeColors[theme]['primary'] + '20'
-                              : 'transparent'
-                        }}
-                      >
-                        <UserChip
-                          user={{
-                            uid: participant.uid,
-                            displayName: participant.displayName,
-                            photoURL: participant.photoURL
-                          }}
-                        />
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              )}
-
-              {/* Delegate Button */}
-              {selectedNewHost && (
-                <View className="mt-3">
-                  <RippleButton
-                    title="Confirm Delegation"
-                    size="sm"
-                    onPress={handleDelegateHosting}
-                    loading={isLoading}
-                    disabled={isLoading}
-                    width="full"
-                  />
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Action Button */}
-          <View className="mt-4">
-            <RippleButton
-              title="Save Changes"
-              size="md"
-              onPress={handleSave}
-              loading={isLoading}
-              disabled={isLoading || !name.trim()}
-              width="full"
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {/* Content */}
+        <KeyboardAvoidingView
+          className="flex-1"
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
+        >
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ padding: 16, gap: 16 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+            {activeTab === 'details'
+              ? renderDetailsContent()
+              : renderHostingContent()}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
     </SwipeModal>
   );
 };

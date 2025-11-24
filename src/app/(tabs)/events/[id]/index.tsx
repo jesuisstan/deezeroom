@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import Octicons from '@expo/vector-icons/Octicons';
 import clsx from 'clsx';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Timestamp } from 'firebase/firestore';
@@ -560,6 +562,7 @@ const EventDetailScreen = () => {
           <EventParticipantsTab
             hostIds={event!.hostIds || []}
             participantIds={event!.participantIds || []}
+            eventVisibility={event!.visibility}
           />
         );
       default:
@@ -657,15 +660,16 @@ const EventDetailScreen = () => {
                   style={{
                     position: 'absolute',
                     zIndex: 10,
-                    right: 12,
-                    bottom: 12,
+                    right: 8,
+                    bottom: 8,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderRadius: 6,
+                    borderRadius: 4,
                     padding: 2,
                     backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                     borderColor: themeColors[theme]['border'],
-                    borderWidth: 1
+                    borderWidth: 1,
+                    gap: 4
                   }}
                 >
                   {canManageEvent && (
@@ -674,10 +678,11 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="Start event early"
                           onPress={handleStartEventEarly}
+                          className="h-9 w-9"
                         >
                           <MaterialCommunityIcons
-                            name="flag-triangle"
-                            size={20}
+                            name="clock-start"
+                            size={18}
                             color={themeColors[theme]['primary']}
                           />
                         </IconButton>
@@ -686,10 +691,11 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="End event early"
                           onPress={handleEndEventEarly}
+                          className="h-9 w-9"
                         >
-                          <MaterialCommunityIcons
-                            name="flag-variant-remove-outline"
-                            size={20}
+                          <Octicons
+                            name="stop"
+                            size={16}
                             color={themeColors[theme]['intent-error']}
                           />
                         </IconButton>
@@ -697,10 +703,11 @@ const EventDetailScreen = () => {
                       <IconButton
                         accessibilityLabel="Edit event"
                         onPress={() => setShowEditModal(true)}
+                        className="h-9 w-9"
                       >
-                        <MaterialCommunityIcons
-                          name="pencil-outline"
-                          size={20}
+                        <Ionicons
+                          name="settings-outline"
+                          size={18}
                           color={themeColors[theme]['text-main']}
                         />
                       </IconButton>
@@ -710,10 +717,11 @@ const EventDetailScreen = () => {
                           if (!event || !user) return;
                           setShowInviteModal(true);
                         }}
+                        className="h-9 w-9"
                       >
                         <MaterialCommunityIcons
                           name="account-plus-outline"
-                          size={20}
+                          size={18}
                           color={themeColors[theme]['text-main']}
                         />
                       </IconButton>

@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
-const NotificationsLayout = () => {
+const AboutLayout = () => {
   const { theme } = useTheme();
 
   return (
@@ -27,4 +27,4 @@ const NotificationsLayout = () => {
   );
 };
 
-export default NotificationsLayout;
+export default AboutLayout;

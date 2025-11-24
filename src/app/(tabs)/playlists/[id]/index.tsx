@@ -1034,25 +1034,27 @@ const PlaylistDetailScreen = () => {
                   style={{
                     position: 'absolute',
                     zIndex: 10,
-                    right: 12,
-                    bottom: 12,
+                    right: 8,
+                    bottom: 8,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderRadius: 6,
+                    borderRadius: 4,
                     padding: 2,
                     backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                     borderColor: themeColors[theme]['border'],
-                    borderWidth: 1
+                    borderWidth: 1,
+                    gap: 4
                   }}
                 >
                   {playlist.ownerId === user?.uid && (
                     <IconButton
                       accessibilityLabel="Delete playlist"
                       onPress={handleDeletePlaylist}
+                      className="h-9 w-9"
                     >
                       <MaterialCommunityIcons
                         name="delete-outline"
-                        size={20}
+                        size={18}
                         color={themeColors[theme]['text-main']}
                       />
                     </IconButton>
@@ -1061,10 +1063,11 @@ const PlaylistDetailScreen = () => {
                   <IconButton
                     accessibilityLabel="Edit playlist"
                     onPress={handleEditPlaylist}
+                    className="h-9 w-9"
                   >
                     <MaterialCommunityIcons
                       name="pencil-outline"
-                      size={20}
+                      size={18}
                       color={themeColors[theme]['text-main']}
                     />
                   </IconButton>
@@ -1073,11 +1076,11 @@ const PlaylistDetailScreen = () => {
                     <IconButton
                       accessibilityLabel="Invite users"
                       onPress={handleInviteUsers}
-                      className="h-10 w-10"
+                      className="h-9 w-9"
                     >
                       <MaterialCommunityIcons
                         name="account-plus-outline"
-                        size={20}
+                        size={18}
                         color={themeColors[theme]['text-main']}
                       />
                     </IconButton>
@@ -1087,10 +1090,11 @@ const PlaylistDetailScreen = () => {
                     <IconButton
                       accessibilityLabel="Refresh playlist"
                       onPress={handleRefresh}
+                      className="h-9 w-9"
                     >
                       <MaterialCommunityIcons
                         name="refresh"
-                        size={20}
+                        size={18}
                         color={themeColors[theme]['text-main']}
                       />
                     </IconButton>

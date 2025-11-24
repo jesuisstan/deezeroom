@@ -169,7 +169,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        pointerEvents: 'box-none'
+        pointerEvents: 'box-none',
+        userSelect: 'none'
       }}
     >
       <View

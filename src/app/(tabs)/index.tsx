@@ -93,14 +93,6 @@ const HomeScreen = () => {
             </TextCustom>
           </View>
 
-          <TextCustom
-            size="m"
-            color={themeColors[theme]['text-secondary']}
-            className="text-center"
-          >
-            Create playlists with friends, vote for tracks at events and enjoy
-            music together
-          </TextCustom>
           <RippleButton
             title="About"
             variant="ghost"
@@ -114,6 +106,15 @@ const HomeScreen = () => {
               />
             }
           />
+
+          <TextCustom
+            size="m"
+            color={themeColors[theme]['text-secondary']}
+            className="text-center"
+          >
+            Create playlists with friends, vote for tracks at events and enjoy
+            music together
+          </TextCustom>
         </View>
 
         {/* Feature Tiles */}

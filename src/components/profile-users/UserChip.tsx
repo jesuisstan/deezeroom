@@ -68,7 +68,8 @@ const UserChip: FC<UserChipProps> = ({
         {
           backgroundColor,
           opacity: isPressable ? 1 : 0.9,
-          maxWidth: MAX_WIDTH
+          maxWidth: MAX_WIDTH,
+          alignSelf: 'flex-start'
         }
       ]}
     >

@@ -521,7 +521,7 @@ const OtherProfileScreen: FC = () => {
                     }
                     // Incoming request from the other user
                     return (
-                      <View className="flex-row items-center gap-2">
+                      <View className="w-full flex-row items-center gap-2">
                         <View className="flex-1">
                           <RippleButton
                             title="Accept"
