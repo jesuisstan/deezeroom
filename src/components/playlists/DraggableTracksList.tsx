@@ -12,7 +12,7 @@ import Animated, {
 import { runOnJS } from 'react-native-worklets';
 
 import TrackCard from '@/components/search-tracks/TrackCard';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { PlaylistTrackPosition } from '@/utils/firebase/firebase-service-playlists';

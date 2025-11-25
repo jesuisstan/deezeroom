@@ -15,7 +15,7 @@ import EventCard from '@/components/events/EventCard';
 import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';

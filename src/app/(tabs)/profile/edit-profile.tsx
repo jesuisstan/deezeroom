@@ -2,6 +2,7 @@ import { FC, forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useClient } from 'urql';
 
 import ArtistsPickerComponent from '@/components/artists/ArtistsPickerComponent';
 import LocationPicker, {
@@ -17,7 +18,9 @@ import ImageUploader, {
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { GET_ARTISTS_BY_IDS } from '@/graphql/queries';
+import type { Artist } from '@/graphql/types-return';
 import { Alert } from '@/modules/alert';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
@@ -25,8 +28,6 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import { deezerService } from '@/utils/deezer/deezer-service';
-import { DeezerArtist } from '@/utils/deezer/deezer-types';
 import { updateAvatar } from '@/utils/profile-utils';
 
 // Guarded runtime import so the screen works even before native rebuild
@@ -84,6 +85,7 @@ const EditProfileScreen: FC = () => {
   const { user, profile, updateProfile } = useUser();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const urqlClient = useClient();
 
   // Ref to control avatar uploader
   const uploaderRef = useRef<ImageUploaderHandle>(null);
@@ -100,7 +102,7 @@ const EditProfileScreen: FC = () => {
   });
 
   // Artist selection state
-  const [selectedArtists, setSelectedArtists] = useState<DeezerArtist[]>([]);
+  const [selectedArtists, setSelectedArtists] = useState<Artist[]>([]);
   // Artist picker state is managed inside reusable component. Keep only selected here.
 
   // Modals visibility
@@ -130,28 +132,23 @@ const EditProfileScreen: FC = () => {
       // Load selected artists details by IDs (preferred), fallback to deprecated stored objects
       const ids = profile.favoriteArtistIds;
       if (ids && ids.length) {
-        deezerService
-          .getArtistsByIdsViaGraphQL(ids)
-          .then((artists) => {
-            setSelectedArtists(
-              artists.map((a) => ({
-                id: a.id,
-                name: a.name,
-                link: a.link,
-                picture: a.picture,
-                picture_small: a.pictureSmall,
-                picture_medium: a.pictureMedium,
-                picture_big: a.pictureBig,
-                picture_xl: a.pictureXl,
-                type: 'artist'
-              }))
-            );
-          })
-          .catch(() => setSelectedArtists([]));
+        (async () => {
+          try {
+            const result = await urqlClient.query(GET_ARTISTS_BY_IDS, { ids });
+            if (result.error) {
+              throw result.error;
+            }
+            const artists = result.data?.artistsByIds || [];
+            setSelectedArtists(artists);
+          } catch {
+            setSelectedArtists([]);
+          }
+        })();
       } else {
         setSelectedArtists([]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const handleImageUploaded = async (imageUrl: string) => {
@@ -267,16 +264,16 @@ const EditProfileScreen: FC = () => {
                   onPress={() => uploaderRef.current?.open()}
                 />
               </View>
-              <View className="flex-1">
-                {!!profile?.photoURL && (
+              {!!profile?.photoURL && (
+                <View className="flex-1">
                   <RippleButton
                     title="Remove"
                     size="sm"
                     variant="outline"
                     onPress={() => uploaderRef.current?.remove()}
                   />
-                )}
-              </View>
+                </View>
+              )}
             </View>
           </View>
           <Divider />

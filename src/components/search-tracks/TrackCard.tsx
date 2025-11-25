@@ -7,7 +7,7 @@ import Animated from 'react-native-reanimated';
 import IconButton from '@/components/ui/buttons/IconButton';
 import LineButton from '@/components/ui/buttons/LineButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
 import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { Alert } from '@/modules/alert';
 import { useTheme } from '@/providers/ThemeProvider';

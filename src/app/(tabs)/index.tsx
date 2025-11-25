@@ -8,8 +8,8 @@ import SearchTracksComponent from '@/components/search-tracks/SearchTracksCompon
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import FeatureTile from '@/components/ui/FeatureTile';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Track } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { Track } from '@/graphql/types-return';
 import {
   usePlaybackActions,
   usePlaybackState,

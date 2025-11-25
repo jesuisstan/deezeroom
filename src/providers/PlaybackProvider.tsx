@@ -17,7 +17,7 @@ import {
 } from 'expo-audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
 import { Notifier } from '@/modules/notifier';
 import { useUser } from '@/providers/UserProvider';
 

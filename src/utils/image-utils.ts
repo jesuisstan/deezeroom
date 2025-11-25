@@ -1,4 +1,4 @@
-import { Album, Artist } from '@/graphql/schema';
+import { Album, Artist } from '@/graphql/types-return';
 
 export type ImageSize = 'small' | 'medium' | 'big' | 'xl';
 

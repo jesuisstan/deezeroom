@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '1.54.9',
+    version: '2.54.0',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
@@ -118,7 +118,8 @@ module.exports = () => ({
       eas: {
         projectId: '18bc0796-aebe-48d1-b5c5-60f8c3ace65f'
       },
-      appUrl: process.env.EXPO_PUBLIC_APP_URL || 'https://deezeroom.expo.app'
+      appUrl: process.env.EXPO_PUBLIC_APP_URL || 'https://deezeroom.expo.app',
+      serverUrl: process.env.EXPO_PUBLIC_SERVER_URL
     }
   }
 });

@@ -17,7 +17,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
 import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
@@ -328,11 +328,11 @@ export class EventService {
     return onSnapshot(
       eventRef,
       (docSnap) => {
-      if (!docSnap.exists()) {
-        callback(null);
-        return;
-      }
-      callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
+        if (!docSnap.exists()) {
+          callback(null);
+          return;
+        }
+        callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
       },
       (error) => {
         Logger.error('Error in event subscription:', error);
@@ -351,10 +351,10 @@ export class EventService {
   ): () => void {
     const eventRef = doc(db, this.collection, eventId);
     return onSnapshot(eventRef, (docSnap) => {
-        if (!docSnap.exists()) {
+      if (!docSnap.exists()) {
         callback([]);
-          return;
-        }
+        return;
+      }
 
       const event = this.deserializeEventDoc(docSnap.id, docSnap.data());
       const tracks = Array.isArray(event.tracks) ? event.tracks : [];
@@ -586,10 +586,10 @@ export class EventService {
             voteCount: existingTrack.voteCount + 1
           };
 
-        transaction.update(eventRef, {
+          transaction.update(eventRef, {
             tracks: tracks,
-          updatedAt: serverTimestamp()
-        });
+            updatedAt: serverTimestamp()
+          });
         }
         // If not autoVote, track already exists - nothing to do
         Logger.info(
@@ -626,7 +626,7 @@ export class EventService {
       transaction.update(eventRef, {
         tracks: updatedTracks,
         trackCount: updatedTracks.length,
-            updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
     });
   }
@@ -676,7 +676,7 @@ export class EventService {
 
       transaction.update(eventRef, {
         tracks: tracks,
-          updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
     });
   }

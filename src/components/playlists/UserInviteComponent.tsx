@@ -10,7 +10,7 @@ import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MAX_USERS_INVITE } from '@/constants/deezer';
+import { MAX_USERS_INVITE } from '@/constants';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';

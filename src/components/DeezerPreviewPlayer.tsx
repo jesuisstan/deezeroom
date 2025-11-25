@@ -6,7 +6,7 @@ import { useAudioPlayer } from 'expo-audio';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 

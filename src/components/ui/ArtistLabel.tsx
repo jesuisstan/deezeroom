@@ -2,20 +2,20 @@ import { FC } from 'react';
 import { Image, View } from 'react-native';
 
 import { TextCustom } from '@/components/ui/TextCustom';
+import type { Artist } from '@/graphql/types-return';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 
-const ArtistLabel: FC<{ artist: DeezerArtist }> = ({ artist }) => {
+const ArtistLabel: FC<{ artist: Artist }> = ({ artist }) => {
   const { theme } = useTheme();
-  const hasPicture = !!artist.picture_medium;
+  const hasPicture = !!artist.pictureMedium;
 
   return (
     <View className="flex-col items-center gap-1" style={{ width: 70 }}>
       <View className="h-16 w-16 overflow-hidden rounded-full">
         {hasPicture ? (
           <Image
-            source={{ uri: artist.picture_medium }}
+            source={{ uri: artist.pictureMedium }}
             className="h-full w-full"
           />
         ) : (

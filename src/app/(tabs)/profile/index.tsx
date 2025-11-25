@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
+import { useClient } from 'urql';
 
 import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
@@ -17,24 +18,24 @@ import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Track } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { GET_ARTISTS_BY_IDS } from '@/graphql/queries';
+import type { Artist, Track } from '@/graphql/types-return';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import { DeezerService } from '@/utils/deezer/deezer-service';
-import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 const ProfileScreen: FC = () => {
   const { user, profile, profileLoading, refreshProfile } = useUser();
   const { theme } = useTheme();
   const router = useRouter();
+  const urqlClient = useClient();
   const [currentPlayingTrackId, setCurrentPlayingTrackId] = useState<
     string | undefined
   >();
-  const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
+  const [favoriteArtists, setFavoriteArtists] = useState<Artist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -64,19 +65,15 @@ const ProfileScreen: FC = () => {
 
       try {
         if (active) setFavoriteArtistsLoading(true);
-        const svc = DeezerService.getInstance();
-        const artists = await svc.getArtistsByIdsViaGraphQL(ids.slice(0, 20));
+        const result = await urqlClient.query(GET_ARTISTS_BY_IDS, {
+          ids: ids.slice(0, 20)
+        });
+        if (result.error) {
+          throw result.error;
+        }
+        const artists = result.data?.artistsByIds || [];
         if (!active) return;
-        const mapped = artists.map((a) => ({
-          id: a.id,
-          name: a.name,
-          picture: a.picture,
-          picture_small: a.pictureSmall,
-          picture_medium: a.pictureMedium,
-          picture_big: a.pictureBig,
-          picture_xl: a.pictureXl
-        })) as DeezerArtist[];
-        setFavoriteArtists(mapped);
+        setFavoriteArtists(artists);
       } catch {
         if (active) {
           setFavoriteArtists([]);
@@ -88,6 +85,7 @@ const ProfileScreen: FC = () => {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.favoriteArtistIds]);
 
   if (profileLoading && !profile) {

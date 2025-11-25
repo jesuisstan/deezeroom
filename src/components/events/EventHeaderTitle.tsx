@@ -23,7 +23,7 @@ const EventHeaderTitle: React.FC = () => {
     const unsubscribe = EventService.subscribeToEvent(
       eventId,
       (updatedEvent) => {
-      setEvent(updatedEvent);
+        setEvent(updatedEvent);
       },
       () => {
         // On error, just show default title

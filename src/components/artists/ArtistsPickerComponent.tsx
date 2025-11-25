@@ -1,37 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, TouchableOpacity, View } from 'react-native';
 
+import { useClient } from 'urql';
+
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import type { Artist as GqlArtist } from '@/graphql/schema';
+import { SEARCH_ARTISTS } from '@/graphql/queries';
+import type { Artist } from '@/graphql/types-return';
 import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
-import { deezerService } from '@/utils/deezer/deezer-service';
-import { DeezerArtist } from '@/utils/deezer/deezer-types';
 
 export interface ArtistsPickerComponentProps {
-  selected: DeezerArtist[];
-  onChange: (artists: DeezerArtist[]) => void;
+  selected: Artist[];
+  onChange: (artists: Artist[]) => void;
   max?: number;
   isVisible?: boolean; // kept for API parity with other pickers
   onDone?: () => void;
 }
 
 const DEFAULT_LIMIT = 8;
-
-const mapGqlArtistToDeezer = (a: GqlArtist): DeezerArtist => ({
-  id: a.id,
-  name: a.name,
-  link: a.link,
-  picture: a.picture,
-  picture_small: a.pictureSmall,
-  picture_medium: a.pictureMedium,
-  picture_big: a.pictureBig,
-  picture_xl: a.pictureXl,
-  type: 'artist'
-});
 
 const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
   selected,
@@ -41,8 +30,9 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
   onDone
 }) => {
   const { theme } = useTheme();
+  const urqlClient = useClient();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<GqlArtist[]>([]);
+  const [results, setResults] = useState<Artist[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,12 +61,15 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
     debounceRef.current = setTimeout(async () => {
       try {
         setSearching(true);
-        const res = await deezerService.searchArtistsViaGraphQL(
-          text.trim(),
-          DEFAULT_LIMIT,
-          0
-        );
-        setResults(res.artists || []);
+        const result = await urqlClient.query(SEARCH_ARTISTS, {
+          query: text.trim(),
+          limit: DEFAULT_LIMIT,
+          index: 0
+        });
+        if (result.error) {
+          throw result.error;
+        }
+        setResults(result.data?.searchArtists?.artists || []);
       } catch (e) {
         Logger.error('Artist search failed', e, 'ArtistsPicker');
         setError('Failed to search');
@@ -86,12 +79,11 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
     }, 300);
   };
 
-  const addArtist = (artist: GqlArtist) => {
-    const toAdd = mapGqlArtistToDeezer(artist);
+  const addArtist = (artist: Artist) => {
     onChange(
-      selected.find((a) => a.id === toAdd.id) || selected.length >= max
+      selected.find((a) => a.id === artist.id) || selected.length >= max
         ? selected
-        : [...selected, toAdd]
+        : [...selected, artist]
     );
     // clear suggestions after add for quicker multiple picks
     setQuery('');
@@ -194,9 +186,9 @@ const ArtistsPickerComponent: React.FC<ArtistsPickerComponentProps> = ({
                 key={a.id}
                 className="mb-2 mr-2 flex-row items-center rounded-full border border-border bg-bg-secondary px-2 py-1"
               >
-                {a.picture_small ? (
+                {a.pictureSmall ? (
                   <Image
-                    source={{ uri: a.picture_small }}
+                    source={{ uri: a.pictureSmall }}
                     style={{
                       width: 20,
                       height: 20,

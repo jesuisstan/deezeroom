@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 
 import ShareLinkModal from '@/components/share/ShareLinkModal';
@@ -36,8 +37,12 @@ const ShareButton = ({
   const shareUrl = useMemo(() => {
     if (url) return url;
     if (Platform.OS === 'android') {
-      const base = 'https://deezeroom.expo.app';
-      return `${base.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
+      // Use EXPO_PUBLIC_APP_URL for Universal Links on Android
+      const appUrl =
+        process.env.EXPO_PUBLIC_APP_URL ||
+        Constants.expoConfig?.extra?.appUrl ||
+        'https://deezeroom.expo.app';
+      return `${appUrl.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
     }
     return webStyleUrl;
   }, [url, p, webStyleUrl]);
