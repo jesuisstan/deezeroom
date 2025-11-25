@@ -48,7 +48,9 @@ export class DeezerService {
       }
 
       const data: DeezerArtistSearchResponse = await response.json();
-      const artists: Artist[] = data.data.map(this.transformDeezerArtist);
+      const artists: Artist[] = data.data.map((artist) =>
+        this.transformDeezerArtist(artist)
+      );
 
       return {
         artists,
@@ -171,7 +173,7 @@ export class DeezerService {
       }
 
       const data: DeezerSearchResponse = await response.json();
-      const tracks = data.data.map(this.transformDeezerTrack);
+      const tracks = data.data.map((track) => this.transformDeezerTrack(track));
 
       // For chart API, hasMore is true only if tracks were returned
       // When API returns empty data[], there are no more results
@@ -213,7 +215,7 @@ export class DeezerService {
       }
 
       const data: DeezerSearchResponse = await response.json();
-      const tracks = data.data.map(this.transformDeezerTrack);
+      const tracks = data.data.map((track) => this.transformDeezerTrack(track));
 
       return {
         tracks,
