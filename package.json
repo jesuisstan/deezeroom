@@ -4,6 +4,8 @@
   "version": "1.54.9",
   "scripts": {
     "before": "npm install -g eas-cli && npm install --global @expo/ngrok@^4.1.0",
+    "export:web": "npx expo export --platform web",
+    "export:web:vercel": "npx expo export --platform web && node scripts/prepare-vercel.js",
     "start": "expo start",
     "start:clear": "npx expo start --clear",
     "start:tunnel": "npx expo start --tunnel",
