@@ -118,17 +118,17 @@ const VerifyEmailScreen: FC = () => {
         <View className="gap-4">
           <RippleButton
             width="full"
-            title="Resend verification email"
-            size="lg"
-            onPress={handleResend}
-            loading={sending}
-          />
-          <RippleButton
-            width="full"
             title="I have verified"
             size="lg"
             onPress={handleIHaveVerified}
             loading={checking}
+          />
+          <RippleButton
+            width="full"
+            title="Resend verification email"
+            size="lg"
+            onPress={handleResend}
+            loading={sending}
             variant="secondary"
           />
         </View>

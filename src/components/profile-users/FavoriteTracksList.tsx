@@ -288,7 +288,11 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         loadedTracks.length === 0 &&
         favoriteTrackIds.length > 0 && (
           <View className="rounded-md bg-bg-secondary p-4">
-            <TextCustom color={themeColors[theme]['intent-warning']}>
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['intent-warning']}
+              className="text-center"
+            >
               Unable to load favorite tracks. Please check if the server is
               running.
             </TextCustom>

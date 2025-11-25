@@ -42,7 +42,11 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
       {/* Server unavailable indicator */}
       {isOnline && !loading && artists.length === 0 && expectedCount > 0 && (
         <View className="rounded-md bg-bg-secondary">
-          <TextCustom color={themeColors[theme]['intent-warning']}>
+          <TextCustom
+            size="s"
+            color={themeColors[theme]['intent-warning']}
+            className="text-center"
+          >
             Unable to load favorite artists. Please check if the server is
             running.
           </TextCustom>

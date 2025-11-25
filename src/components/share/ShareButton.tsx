@@ -30,22 +30,34 @@ const ShareButton = ({
 
   const p = path || '/';
 
-  // Web-style URL (used for QR always)
-  const webStyleUrl = useMemo(() => Linking.createURL(p), [p]);
+  // Get app URL for HTTP links (works everywhere: web, mobile with App Links, fallback to web if app not installed)
+  const appUrl = useMemo(() => {
+    return (
+      process.env.EXPO_PUBLIC_APP_URL ||
+      Constants.expoConfig?.extra?.appUrl ||
+      (__DEV__ ? 'http://localhost:8081' : 'https://deezeroom.expo.app')
+    );
+  }, []);
 
-  // Sharing URL (Android override unless explicit url prop)
-  const shareUrl = useMemo(() => {
-    if (url) return url;
-    if (Platform.OS === 'android') {
-      // Use EXPO_PUBLIC_APP_URL for Universal Links on Android
-      const appUrl =
-        process.env.EXPO_PUBLIC_APP_URL ||
-        Constants.expoConfig?.extra?.appUrl ||
-        'https://deezeroom.expo.app';
-      return `${appUrl.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
+  // HTTP URL for sharing (works everywhere, can be opened in browser)
+  const httpUrl = useMemo(() => {
+    if (url) return url; // Explicit URL prop takes precedence
+    return `${appUrl.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
+  }, [url, appUrl, p]);
+
+  // Deep link URL (deezeroom://) for QR code on native platforms
+  // This ensures QR code opens the app directly when scanned on mobile devices
+  const deepLinkUrl = useMemo(() => Linking.createURL(p), [p]);
+
+  // QR code URL: use deep link on native platforms (opens app), HTTP URL on web (opens browser)
+  const qrUrl = useMemo(() => {
+    if (Platform.OS === 'web') {
+      // On web, use HTTP URL so QR code can be scanned and opened in browser
+      return httpUrl;
     }
-    return webStyleUrl;
-  }, [url, p, webStyleUrl]);
+    // On native platforms (iOS/Android), use deep link to open app directly
+    return deepLinkUrl;
+  }, [httpUrl, deepLinkUrl]);
 
   return (
     <>
@@ -62,8 +74,8 @@ const ShareButton = ({
       <ShareLinkModal
         visible={visible}
         onClose={() => setVisible(false)}
-        url={shareUrl}
-        qrUrl={webStyleUrl}
+        url={httpUrl}
+        qrUrl={qrUrl}
         title={title}
         message={message}
       />

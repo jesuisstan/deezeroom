@@ -1,12 +1,10 @@
-import { Platform } from 'react-native';
-
 import Constants from 'expo-constants';
 
 /**
  * Get GraphQL API URL based on platform and environment
  * - Dev mode: uses EXPO_PUBLIC_SERVER_URL if set, otherwise defaults to http://localhost:3000/api/graphql
  * - Production: uses EXPO_PUBLIC_SERVER_URL (should point to Next.js API server)
- * - Web: uses relative path in production, full URL in dev
+ * - All platforms (web, iOS, Android) use the same server URL in production
  */
 export function getGraphQLUrl(): string {
   // Get server URL from environment variable or config
@@ -24,13 +22,8 @@ export function getGraphQLUrl(): string {
     return 'http://localhost:3000/api/graphql';
   }
 
-  // Production mode
-  if (Platform.OS === 'web') {
-    // For web production, use relative path (same domain)
-    return '/api/graphql';
-  }
-
-  // For native production, use EXPO_PUBLIC_SERVER_URL (should point to Next.js API server)
+  // Production mode: use EXPO_PUBLIC_SERVER_URL for all platforms (web, iOS, Android)
+  // This ensures web production also uses the separate Next.js server, not the Expo hosting domain
   if (serverUrl) {
     // EXPO_PUBLIC_SERVER_URL should point to Next.js API server (e.g., https://deezeroom-server.vercel.app)
     // Append /api/graphql to get the GraphQL endpoint
