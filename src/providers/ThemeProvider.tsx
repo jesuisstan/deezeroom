@@ -25,14 +25,13 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const THEME_STORAGE_KEY = 'app:themePreference';
 
-  Logger.info('Current theme:', currentTheme, '🎨 ThemeProvider');
-
   const toggleTheme = () => {
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     setCurrentTheme(newTheme);
     colorScheme.set(newTheme);
     // Persist selection for next app launches
     AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
+    Logger.info('Theme changed to', newTheme, '🎨 ThemeProvider');
   };
 
   // Web: set the dark mode strategy to class, so we can manually control the dark mode
