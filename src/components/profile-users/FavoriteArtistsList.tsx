@@ -4,19 +4,23 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import ArtistLabel from '@/components/ui/ArtistLabel';
 import { TextCustom } from '@/components/ui/TextCustom';
 import type { Artist } from '@/graphql/types-return';
+import { useNetwork } from '@/providers/NetworkProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
 interface FavoriteArtistsListProps {
   artists: Artist[];
   loading?: boolean;
+  expectedCount?: number; // Number of artist IDs that should be loaded
 }
 
 const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
   artists,
-  loading = false
+  loading = false,
+  expectedCount = 0
 }) => {
   const { theme } = useTheme();
+  const { isOnline } = useNetwork();
 
   const hasArtists = artists && artists.length > 0;
 
@@ -35,8 +39,18 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
         </View>
       )}
 
+      {/* Server unavailable indicator */}
+      {isOnline && !loading && artists.length === 0 && expectedCount > 0 && (
+        <View className="rounded-md bg-bg-secondary">
+          <TextCustom color={themeColors[theme]['intent-warning']}>
+            Unable to load favorite artists. Please check if the server is
+            running.
+          </TextCustom>
+        </View>
+      )}
+
       {/* Empty state */}
-      {!loading && !hasArtists && (
+      {!loading && !hasArtists && expectedCount === 0 && (
         <View className="items-center">
           <TextCustom
             size="s"
@@ -70,9 +84,16 @@ const FavoriteArtistsList: FC<FavoriteArtistsListProps> = ({
               gap: 2
             }}
           >
-            {artists.map((artist) => (
-              <ArtistLabel key={artist.id} artist={artist} />
-            ))}
+            {artists
+              .filter(
+                (artist): artist is Artist =>
+                  artist !== null &&
+                  artist !== undefined &&
+                  artist.id !== undefined
+              )
+              .map((artist) => (
+                <ArtistLabel key={artist.id} artist={artist} />
+              ))}
           </ScrollView>
         </>
       )}

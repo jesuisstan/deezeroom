@@ -71,10 +71,14 @@ const ProfileScreen: FC = () => {
         if (result.error) {
           throw result.error;
         }
-        const artists = result.data?.artistsByIds || [];
+        const artists = (result.data?.artistsByIds || []).filter(
+          (artist: Artist | null | undefined): artist is Artist =>
+            artist !== null && artist !== undefined && artist.id !== undefined
+        );
         if (!active) return;
         setFavoriteArtists(artists);
-      } catch {
+      } catch (error) {
+        console.warn('Failed to load favorite artists:', error);
         if (active) {
           setFavoriteArtists([]);
         }
@@ -215,6 +219,7 @@ const ProfileScreen: FC = () => {
           <FavoriteArtistsList
             artists={favoriteArtists}
             loading={favoriteArtistsLoading}
+            expectedCount={profile?.favoriteArtistIds?.length || 0}
           />
         </View>
 
