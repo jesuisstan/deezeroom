@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import UserChip from '@/components/profile-users/UserChip';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
-import Divider from '@/components/ui/Divider';
+import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
@@ -14,7 +14,10 @@ import { MAX_USERS_INVITE } from '@/constants';
 import { Logger } from '@/modules/logger';
 import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
+import { listAcceptedConnectionsFor } from '@/utils/firebase/firebase-service-connections';
+import { getPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
 import {
   UserProfile,
   UserService
@@ -44,6 +47,12 @@ interface UserSearchResult extends UserProfile {
   isSelected: boolean;
 }
 
+type FriendSummary = {
+  uid: string;
+  displayName?: string;
+  photoURL?: string;
+};
+
 const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   // Modal props
   visible,
@@ -64,10 +73,16 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
   description
 }) => {
   const { theme } = useTheme();
+  const { user } = useUser();
+  const [activeTab, setActiveTab] = useState<'search' | 'friends'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+
+  // Friends state
+  const [friends, setFriends] = useState<FriendSummary[]>([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
 
   // Internal state for modal mode
   const [internalSelectedUsers, setInternalSelectedUsers] = useState<
@@ -121,8 +136,63 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
     [excludeUserId, selectedUsers]
   );
 
+  // Load friends list
+  useEffect(() => {
+    if (!user?.uid || activeTab !== 'friends') return;
+
+    let active = true;
+    const loadFriends = async () => {
+      try {
+        setIsLoadingFriends(true);
+        const connections = await listAcceptedConnectionsFor(user.uid);
+        const otherUids = connections.map((c) =>
+          c.userA === user.uid ? c.userB : c.userA
+        );
+        const unique = Array.from(new Set(otherUids));
+
+        // Filter out excluded user and existing users
+        const filteredUids = unique.filter(
+          (uid) => uid !== excludeUserId && !existingUsers.includes(uid)
+        );
+
+        const docs = await Promise.all(
+          filteredUids.map((friendId) => getPublicProfileDoc(friendId))
+        );
+
+        if (!active) return;
+
+        const friendList: FriendSummary[] = filteredUids.map(
+          (friendId, index) => ({
+            uid: friendId,
+            displayName: docs[index]?.displayName || 'User',
+            photoURL: docs[index]?.photoURL
+          })
+        );
+
+        setFriends(friendList);
+      } catch (error) {
+        Logger.error('Error loading friends:', error);
+        if (active) {
+          setFriends([]);
+        }
+      } finally {
+        if (active) {
+          setIsLoadingFriends(false);
+        }
+      }
+    };
+
+    void loadFriends();
+
+    return () => {
+      active = false;
+    };
+  }, [user?.uid, activeTab, excludeUserId, existingUsers]);
+
   // Debounced search
   useEffect(() => {
+    if (activeTab !== 'search') return;
+
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim().length >= 2) {
         await performSearch(searchQuery.trim());
@@ -133,7 +203,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, performSearch]);
+  }, [searchQuery, performSearch, activeTab]);
 
   const handleUserSelect = useCallback(
     (user: UserProfile) => {
@@ -220,57 +290,6 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
     onClose?.();
   };
 
-  const renderSearchResult = ({ item }: { item: UserSearchResult }) => (
-    <Pressable
-      onPress={() => handleUserSelect(item)}
-      className="flex-col items-center bg-bg-secondary"
-    >
-      <View className="w-full flex-row items-center justify-between gap-4 px-4 py-2">
-        {/* Avatar */}
-        <View className="mr-3">
-          {item.photoURL ? (
-            <Image
-              source={{ uri: item.photoURL }}
-              className="h-8 w-8 rounded-full"
-            />
-          ) : (
-            <View className="h-8 w-8 items-center justify-center rounded-full bg-bg-main">
-              <MaterialCommunityIcons
-                name="account"
-                size={18}
-                color={themeColors[theme]['text-secondary']}
-              />
-            </View>
-          )}
-        </View>
-
-        {/* User Info */}
-        <View className="flex-1">
-          <TextCustom
-            type="semibold"
-            size="m"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {item.displayName || 'Unknown User'}
-          </TextCustom>
-        </View>
-
-        {/* Selection Indicator */}
-        <MaterialCommunityIcons
-          name={item.isSelected ? 'check-circle' : 'circle-outline'}
-          size={20}
-          color={
-            item.isSelected
-              ? themeColors[theme]['intent-success']
-              : themeColors[theme]['text-secondary']
-          }
-        />
-      </View>
-      <Divider />
-    </Pressable>
-  );
-
   const renderSelectedUser = ({ item }: { item: UserProfile }) => (
     <UserChip
       key={item.uid}
@@ -296,17 +315,25 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
     />
   );
 
-  const renderContent = () => (
-    <View className="gap-4">
-      {/* Existing Users Info */}
-      {existingUsers.length > 0 && (
-        <View>
-          <TextCustom type="semibold" className="mb-2">
-            Current Members ({existingUsers.length} of {maxUsers} max)
-          </TextCustom>
-        </View>
-      )}
+  const handleFriendSelect = useCallback(
+    (friend: FriendSummary) => {
+      // Convert FriendSummary to UserProfile
+      const userProfile: UserProfile = {
+        uid: friend.uid,
+        email: '', // Not available from friend summary
+        displayName: friend.displayName || 'Unknown User',
+        photoURL: friend.photoURL,
+        createdAt: null as any,
+        updatedAt: null as any,
+        emailVerified: false
+      };
+      handleUserSelect(userProfile);
+    },
+    [handleUserSelect]
+  );
 
+  const renderSearchTab = () => (
+    <View className="gap-4">
       {/* Search Input */}
       <InputCustom
         value={searchQuery}
@@ -326,15 +353,28 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
 
       {/* Search Results */}
       {showResults && searchResults.length > 0 && (
-        <View>
-          <TextCustom type="semibold" className="mb-2">
-            Search Results
-          </TextCustom>
-          <View>
-            {searchResults.map((user) => (
-              <View key={user.uid}>{renderSearchResult({ item: user })}</View>
-            ))}
-          </View>
+        <View className="flex-row flex-wrap gap-2 rounded-md border border-border bg-bg-secondary p-2">
+          {searchResults.map((user) => (
+            <UserChip
+              key={user.uid}
+              user={{
+                uid: user.uid,
+                displayName: user.displayName,
+                photoURL: user.photoURL
+              }}
+              onPress={() => handleUserSelect(user)}
+              disabled={false}
+              rightAccessory={
+                user.isSelected ? (
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={16}
+                    color={themeColors[theme]['intent-success']}
+                  />
+                ) : undefined
+              }
+            />
+          ))}
         </View>
       )}
 
@@ -356,6 +396,112 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
             </TextCustom>
           </View>
         )}
+    </View>
+  );
+
+  const renderFriendsTab = () => (
+    <View className="gap-4">
+      {isLoadingFriends || friends.length === 0 ? (
+        <View className="items-center justify-center rounded-md border border-border bg-bg-secondary p-3">
+          {isLoadingFriends ? (
+            <View className="flex-row items-center gap-2">
+              <ActivityIndicator size="small" />
+              <TextCustom
+                size="s"
+                color={themeColors[theme]['text-secondary']}
+                className="animate-pulse"
+              >
+                Loading friends...
+              </TextCustom>
+            </View>
+          ) : (
+            <TextCustom size="s" color={themeColors[theme]['text-secondary']}>
+              No friends available
+            </TextCustom>
+          )}
+        </View>
+      ) : (
+        <View className="flex-row flex-wrap gap-2 rounded-md border border-border bg-bg-secondary p-2">
+          {friends.map((friend) => {
+            const isSelected = selectedUsers.some(
+              (selected) => selected.uid === friend.uid
+            );
+            return (
+              <UserChip
+                key={friend.uid}
+                user={friend}
+                onPress={() => handleFriendSelect(friend)}
+                disabled={false}
+                rightAccessory={
+                  isSelected ? (
+                    <MaterialCommunityIcons
+                      name="check-circle"
+                      size={16}
+                      color={themeColors[theme]['intent-success']}
+                    />
+                  ) : undefined
+                }
+              />
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+
+  const renderContent = () => (
+    <View className="gap-4">
+      {/* Existing Users Info */}
+      {existingUsers.length > 0 && (
+        <View
+          className="flex-row items-center gap-2 rounded-md px-3 py-2"
+          style={{
+            backgroundColor: themeColors[theme]['primary'] + '20',
+            borderWidth: 1,
+            borderColor: themeColors[theme]['primary']
+          }}
+        >
+          <MaterialCommunityIcons
+            name="account-group"
+            size={18}
+            color={themeColors[theme]['text-main']}
+          />
+          <View className="flex-1 flex-row flex-wrap items-center gap-1">
+            <TextCustom size="s" color={themeColors[theme]['text-main']}>
+              {existingUsers.length}
+            </TextCustom>
+            <TextCustom size="s" color={themeColors[theme]['text-main']}>
+              of
+            </TextCustom>
+            <TextCustom size="s" color={themeColors[theme]['text-main']}>
+              {maxUsers}
+            </TextCustom>
+            <TextCustom size="s" color={themeColors[theme]['text-main']}>
+              participants
+            </TextCustom>
+          </View>
+        </View>
+      )}
+
+      {/* Tabs Header */}
+      <View
+        className="flex-row gap-2 rounded-md"
+        style={{ backgroundColor: themeColors[theme]['primary'] + '10' }}
+      >
+        <TabButton
+          title="Search"
+          isActive={activeTab === 'search'}
+          onPress={() => setActiveTab('search')}
+        />
+        <TabButton
+          title="Friends"
+          isActive={activeTab === 'friends'}
+          onPress={() => setActiveTab('friends')}
+        />
+      </View>
+
+      {/* Tab Content */}
+      {activeTab === 'search' ? renderSearchTab() : renderFriendsTab()}
     </View>
   );
 
@@ -381,7 +527,7 @@ const UserInviteComponent: React.FC<UserInviteComponentProps> = ({
           <View>
             <TextCustom type="semibold" className="mb-2">
               Inviting ({selectedUsers.length} of{' '}
-              {maxUsers - existingUsers.length} left max)
+              {maxUsers - existingUsers.length} max left)
             </TextCustom>
             <View className="flex-row flex-wrap gap-2">
               {selectedUsers.length > 0 ? (
