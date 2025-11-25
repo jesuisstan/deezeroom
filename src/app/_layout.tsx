@@ -75,9 +75,9 @@ const fetchWithRetry = async (
 
 // Initialize GraphQL client with platform-specific URL and retry logic
 const urqlClient = new UrqlClient({
+  //fetch: fetchWithRetry,
   url: getGraphQLUrl(),
-  exchanges: [cacheExchange, fetchExchange],
-  fetch: fetchWithRetry
+  exchanges: [cacheExchange, fetchExchange]
 });
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
