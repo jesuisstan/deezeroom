@@ -1,0 +1,2 @@
+# GraphQL query to fetch the popular tracks page (mirrors home feed)
+https://deezeroom.expo.app/api/graphql POST {"query":"query GetPopularTracks($limit:Int,$index:Int){getPopularTracks(limit:$limit,index:$index){total hasMore tracks{id title titleShort duration}}}","variables":{"limit":15,"index":0}}
