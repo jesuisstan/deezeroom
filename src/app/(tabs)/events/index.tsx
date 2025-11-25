@@ -28,7 +28,6 @@ import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 const EventsScreen = () => {
   const { theme } = useTheme();
   const { user, profile } = useUser();
-  const { currentTrack } = usePlaybackState();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,8 +37,14 @@ const EventsScreen = () => {
   >('my');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0;
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   const loadEvents = useCallback(

@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { Image, Platform, ScrollView, View } from 'react-native';
 
 import ChangePasswordSection from '@/components/profile-users/ChangePasswordSection';
 import ConnectedAccountsSection from '@/components/profile-users/ConnectedAccountsSection';
@@ -21,7 +21,11 @@ const ProfileSettingsScreen: FC = () => {
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   return !profile ? (

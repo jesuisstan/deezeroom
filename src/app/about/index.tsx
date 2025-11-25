@@ -1,25 +1,51 @@
 import { useMemo, useState } from 'react';
-import { Image, Linking, ScrollView, View } from 'react-native';
+import { Image, Linking, Platform, ScrollView, View } from 'react-native';
 
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Constants from 'expo-constants';
 
 import BulletList from '@/components/ui/BulletList';
 import TabButton from '@/components/ui/buttons/TabButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants';
-import { getGraphQLUrl } from '@/graphql/utils';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 
+/**
+ * Get base server URL (without /api/graphql) for displaying in UI
+ */
+function getServerBaseUrl(): string {
+  const serverUrl =
+    process.env.EXPO_PUBLIC_SERVER_URL ||
+    Constants.expoConfig?.extra?.serverUrl;
+
+  if (__DEV__) {
+    if (serverUrl) {
+      return serverUrl;
+    }
+    return 'http://localhost:3000';
+  }
+
+  if (Platform.OS === 'web') {
+    // For web production, use relative path
+    return '';
+  }
+
+  if (serverUrl) {
+    return serverUrl;
+  }
+
+  // Fallback
+  return 'https://deezeroom-server.vercel.app';
+}
+
 const AboutScreen = () => {
   const { theme } = useTheme();
   const { currentTrack } = usePlaybackState();
   const [activeTab, setActiveTab] = useState<'about' | 'developers'>('about');
-
-  const graphQLUrl = getGraphQLUrl();
 
   // Add padding when mini player is visible
   const bottomPadding = useMemo(() => {
@@ -374,7 +400,7 @@ const AboutScreen = () => {
             style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
           >
             <TextCustom size="m" color={themeColors[theme]['primary']}>
-              {graphQLUrl}
+              {getServerBaseUrl()}/api/graphql
             </TextCustom>
           </View>
         </View>
@@ -585,7 +611,7 @@ const AboutScreen = () => {
               type="link"
               onPress={() =>
                 handleLinkPress(
-                  `${graphQLUrl}?query={searchTracks(query:"jazz",limit:5){tracks{id title artist{name}}total}}`
+                  `${getServerBaseUrl()}/api/graphql?query={searchTracks(query:"jazz",limit:5){tracks{id title artist{name}}total}}`
                 )
               }
             >
@@ -608,7 +634,7 @@ const AboutScreen = () => {
               type="link"
               onPress={() =>
                 handleLinkPress(
-                  `${graphQLUrl}?query={getPopularTracks(limit:5){tracks{id title artist{name}album{title}}}}`
+                  `${getServerBaseUrl()}/api/graphql?query={getPopularTracks(limit:5){tracks{id title artist{name}album{title}}}}`
                 )
               }
             >
@@ -631,7 +657,7 @@ const AboutScreen = () => {
               type="link"
               onPress={() =>
                 handleLinkPress(
-                  `${graphQLUrl}?query={searchArtists(query:"daft punk",limit:3){artists{id name picture}}}`
+                  `${getServerBaseUrl()}/api/graphql?query={searchArtists(query:"daft punk",limit:3){artists{id name picture}}}`
                 )
               }
             >
@@ -654,7 +680,7 @@ const AboutScreen = () => {
               type="link"
               onPress={() =>
                 handleLinkPress(
-                  `${graphQLUrl}?query={track(id:"3135556"){id title duration artist{name}album{title}}}`
+                  `${getServerBaseUrl()}/api/graphql?query={track(id:"3135556"){id title duration artist{name}album{title}}}`
                 )
               }
             >
@@ -690,7 +716,7 @@ const AboutScreen = () => {
             size="m"
             color={themeColors[theme]['primary']}
             type="link"
-            onPress={() => handleLinkPress(`${graphQLUrl}`)}
+            onPress={() => handleLinkPress(`${getServerBaseUrl()}/api/graphql`)}
           >
             Open GraphQL Playground →
           </TextCustom>

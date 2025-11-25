@@ -42,7 +42,11 @@ const ProfileScreen: FC = () => {
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   const handlePlayTrack = (track: Track | null) => {

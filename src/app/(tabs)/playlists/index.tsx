@@ -35,7 +35,6 @@ import { UserProfile } from '@/utils/firebase/firebase-service-user';
 const PlaylistsScreen = () => {
   const { theme } = useTheme();
   const { user, profile } = useUser();
-  const { currentTrack } = usePlaybackState();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -46,8 +45,13 @@ const PlaylistsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   const loadPlaylists = useCallback(
