@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { usePathname, useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -126,13 +126,13 @@ const MiniPlayer = () => {
               }}
               loading={isLoading}
               disabled={!currentTrack}
-              className="h-11 w-11"
-              backgroundColor={themeColors[theme]['primary']}
+              className="h-12 w-12"
+              //backgroundColor={themeColors[theme]['primary']}
             >
-              <MaterialCommunityIcons
+              <Ionicons
                 name={isPlaying ? 'pause' : 'play'}
-                size={22}
-                color={themeColors[theme]['text-inverse']}
+                size={30}
+                color={themeColors[theme]['primary']}
               />
             </IconButton>
             <View className="flex-1">
@@ -179,11 +179,11 @@ const MiniPlayer = () => {
               }
               onPress={handleToggleFavorite}
               disabled={!currentTrackId}
-              className="h-10 w-10"
+              className="h-12 w-12"
             >
-              <FontAwesome
-                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                size={20}
+              <Ionicons
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
+                size={26}
                 color={
                   isCurrentTrackFavorite
                     ? themeColors[theme]['primary']
@@ -198,11 +198,11 @@ const MiniPlayer = () => {
                 playNext();
               }}
               disabled={!hasNext || !currentTrack}
-              className="h-10 w-10"
+              className="h-12 w-12"
             >
-              <MaterialCommunityIcons
-                name="skip-next"
-                size={22}
+              <Ionicons
+                name="play-skip-forward"
+                size={26}
                 color={themeColors[theme]['text-main']}
               />
             </IconButton>

@@ -18,7 +18,7 @@ import {
   View
 } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Octicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FirestoreError } from 'firebase/firestore';
 import { useSharedValue } from 'react-native-reanimated';
@@ -1052,8 +1052,8 @@ const PlaylistDetailScreen = () => {
                       onPress={handleDeletePlaylist}
                       className="h-9 w-9"
                     >
-                      <MaterialCommunityIcons
-                        name="delete-outline"
+                      <Octicons
+                        name="trash"
                         size={18}
                         color={themeColors[theme]['text-main']}
                       />
@@ -1065,8 +1065,8 @@ const PlaylistDetailScreen = () => {
                     onPress={handleEditPlaylist}
                     className="h-9 w-9"
                   >
-                    <MaterialCommunityIcons
-                      name="pencil-outline"
+                    <Ionicons
+                      name="settings-outline"
                       size={18}
                       color={themeColors[theme]['text-main']}
                     />

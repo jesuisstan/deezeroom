@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -856,7 +856,7 @@ const EventMonitor = memo(
                     backgroundColor={themeColors[theme]['primary']}
                     disabled={!previewUrl}
                   >
-                    <MaterialCommunityIcons
+                    <Ionicons
                       name={event.isPlaying ? 'pause' : 'play'}
                       size={24}
                       color={themeColors[theme]['text-inverse']}

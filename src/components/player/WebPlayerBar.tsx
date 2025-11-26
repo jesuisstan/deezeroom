@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Image, Platform, View } from 'react-native';
 
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import ProgressBar from '@/components/player/ProgressBar';
@@ -158,8 +159,8 @@ const WebPlayerBar = () => {
                 onPress={playPrevious}
                 className="h-8 w-8"
               >
-                <MaterialCommunityIcons
-                  name="skip-previous"
+                <Ionicons
+                  name="play-skip-back"
                   size={21}
                   color={themeColors[theme]['text-main']}
                 />
@@ -171,12 +172,12 @@ const WebPlayerBar = () => {
                 onPress={togglePlayPause}
                 loading={isLoading}
                 className="h-9 w-9"
-                backgroundColor={themeColors[theme]['primary']}
+                //backgroundColor={themeColors[theme]['primary']}
               >
-                <MaterialCommunityIcons
+                <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
-                  size={25}
-                  color={themeColors[theme]['text-inverse']}
+                  size={30}
+                  color={themeColors[theme]['primary']}
                 />
               </IconButton>
               <IconButton
@@ -185,8 +186,8 @@ const WebPlayerBar = () => {
                 disabled={!hasNext}
                 className="h-8 w-8"
               >
-                <MaterialCommunityIcons
-                  name="skip-next"
+                <Ionicons
+                  name="play-skip-forward"
                   size={21}
                   color={themeColors[theme]['text-main']}
                 />
@@ -242,8 +243,8 @@ const WebPlayerBar = () => {
               disabled={!currentTrackId}
               className="h-11 w-11"
             >
-              <FontAwesome
-                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+              <Ionicons
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
                 size={25}
                 color={
                   isCurrentTrackFavorite

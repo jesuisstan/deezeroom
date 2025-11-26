@@ -1,7 +1,12 @@
 import { FC, memo, useCallback, useMemo } from 'react';
 import { GestureResponderEvent, Image, View } from 'react-native';
 
-import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import {
+  AntDesign,
+  Ionicons,
+  MaterialIcons,
+  Octicons
+} from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -154,11 +159,7 @@ const TrackCard: FC<TrackCardProps> = ({
                 onPress={handleRemove}
                 className="h-9 w-9"
               >
-                <MaterialIcons
-                  name="delete-outline"
-                  size={20}
-                  color={colors.intentError}
-                />
+                <Octicons name="trash" size={20} color={colors.intentError} />
               </IconButton>
             )}
             <IconButton
@@ -170,9 +171,9 @@ const TrackCard: FC<TrackCardProps> = ({
               onPress={handleToggleFavorite}
               className="h-9 w-9"
             >
-              <FontAwesome
-                name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
-                size={18}
+              <Ionicons
+                name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
+                size={21}
                 color={
                   isCurrentTrackFavorite ? colors.primary : colors.textSecondary
                 }

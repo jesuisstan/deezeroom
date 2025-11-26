@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { Dimensions, Platform, View } from 'react-native';
 
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -205,8 +205,8 @@ const PlayerScreen = () => {
                     disabled={!currentTrackId}
                     className="h-12 w-12"
                   >
-                    <FontAwesome
-                      name={isCurrentTrackFavorite ? 'heart' : 'heart-o'}
+                    <Ionicons
+                      name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
                       size={24}
                       color={
                         isCurrentTrackFavorite
@@ -277,8 +277,8 @@ const PlayerScreen = () => {
                   disabled={!currentTrack}
                   className="h-14 w-14"
                 >
-                  <MaterialCommunityIcons
-                    name="skip-previous"
+                  <Ionicons
+                    name="play-skip-back"
                     size={32}
                     color={themeColors[theme]['text-main']}
                   />
@@ -287,14 +287,13 @@ const PlayerScreen = () => {
                   accessibilityLabel="Play or pause"
                   onPress={togglePlayPause}
                   className="h-16 w-16"
-                  backgroundColor={themeColors[theme]['primary']}
                   loading={isLoading}
                   disabled={queue.length === 0}
                 >
-                  <MaterialCommunityIcons
+                  <Ionicons
                     name={isPlaying ? 'pause' : 'play'}
-                    size={38}
-                    color={themeColors[theme]['text-inverse']}
+                    size={42}
+                    color={themeColors[theme]['primary']}
                   />
                 </IconButton>
                 <IconButton
@@ -303,8 +302,8 @@ const PlayerScreen = () => {
                   disabled={!hasNext || !currentTrack}
                   className="h-14 w-14"
                 >
-                  <MaterialCommunityIcons
-                    name="skip-next"
+                  <Ionicons
+                    name="play-skip-forward"
                     size={32}
                     color={themeColors[theme]['text-main']}
                   />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Octicons } from '@expo/vector-icons';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import Divider from '@/components/ui/Divider';
@@ -111,8 +111,8 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               accessibilityLabel="Remove track from event"
               className="h-8 w-8"
             >
-              <MaterialCommunityIcons
-                name="delete-outline"
+              <Octicons
+                name="trash"
                 size={18}
                 color={themeColors[theme]['intent-error']}
               />

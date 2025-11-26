@@ -274,14 +274,12 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (currentTrack && playbackIntent) {
       // Activate wake lock when playing
-      console.log('[PlaybackProvider] Activating wake lock');
       activateKeepAwakeAsync('playback').catch((error) => {
         console.warn('[PlaybackProvider] Failed to activate wake lock:', error);
       });
 
       return () => {
         // Deactivate wake lock when stopped
-        console.log('[PlaybackProvider] Deactivating wake lock');
         deactivateKeepAwake('playback');
       };
     }
@@ -310,7 +308,6 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
           status.currentTime >= status.duration - 0.5);
 
       if (isFinished) {
-        console.log('[PlaybackProvider] Periodic check: track finished');
         handleStatusChange(status);
       }
     }, 1000); // Check every second
