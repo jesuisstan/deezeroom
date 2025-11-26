@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Image, View } from 'react-native';
 
-import { MaterialCommunityIcons, Octicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, Octicons } from '@expo/vector-icons';
 
 import IconButton from '@/components/ui/buttons/IconButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { useFavoriteTracks } from '@/hooks/useFavoriteTracks';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { EventTrack } from '@/utils/firebase/firebase-service-events';
@@ -32,6 +33,11 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
   isCurrentlyPlaying = false
 }) => {
   const { theme } = useTheme();
+  const { isTrackFavorite, toggleFavoriteTrack } = useFavoriteTracks();
+  // Check if current track is favorite
+  const isCurrentTrackFavorite = useMemo(() => {
+    return isTrackFavorite(track.track.id);
+  }, [isTrackFavorite, track.track.id]);
 
   const canRemove =
     onRemoveTrack &&
@@ -45,6 +51,13 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
     }
     return track.track.artist.name;
   };
+
+  const handleToggleFavorite = useCallback(async () => {
+    if (!track.track?.id) {
+      return;
+    }
+    await toggleFavoriteTrack(track.track.id);
+  }, [track.track?.id, toggleFavoriteTrack]);
 
   return (
     <View className="gap-2">
@@ -113,29 +126,41 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
             >
               <Octicons
                 name="trash"
-                size={18}
+                size={16}
                 color={themeColors[theme]['intent-error']}
               />
             </IconButton>
           ) : null}
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <MaterialCommunityIcons
-              name="vote"
-              size={16}
+          <IconButton
+            accessibilityLabel={
+              isCurrentTrackFavorite
+                ? 'Remove from favorites'
+                : 'Add to favorites'
+            }
+            onPress={handleToggleFavorite}
+            className="h-8 w-8"
+          >
+            <Ionicons
+              name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
+              size={18}
               color={
-                track.voteCount > 0
+                isCurrentTrackFavorite
                   ? themeColors[theme]['primary']
                   : themeColors[theme]['text-secondary']
               }
             />
+          </IconButton>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <MaterialCommunityIcons
+              name="vote"
+              size={16}
+              color={themeColors[theme]['text-secondary']}
+            />
             <TextCustom
               size="xs"
-              color={
-                track.voteCount > 0
-                  ? themeColors[theme]['primary']
-                  : themeColors[theme]['text-secondary']
-              }
+              color={themeColors[theme]['text-secondary']}
               type="semibold"
             >
               {track.voteCount}
@@ -151,7 +176,11 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               <MaterialCommunityIcons
                 name={hasVoted ? 'thumb-up' : 'thumb-up-outline'}
                 size={18}
-                color={themeColors[theme]['primary']}
+                color={
+                  hasVoted
+                    ? themeColors[theme]['primary']
+                    : themeColors[theme]['text-secondary']
+                }
               />
             </IconButton>
           ) : isCurrentlyPlaying ? (

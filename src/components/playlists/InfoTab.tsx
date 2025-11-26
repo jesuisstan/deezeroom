@@ -237,7 +237,7 @@ const InfoTab: FC<InfoTabProps> = ({ playlist }) => {
               color={themeColors[theme]['text-main']}
               className="text-right"
             >
-              Edit Permissions
+              Add-track Permissions
             </TextCustom>
             <TextCustom
               size="m"
@@ -245,8 +245,8 @@ const InfoTab: FC<InfoTabProps> = ({ playlist }) => {
               className="text-right"
             >
               {playlist.editPermissions === 'everyone'
-                ? 'All Can Edit'
-                : 'Invited Only'}
+                ? 'All can'
+                : 'Invited only'}
             </TextCustom>
             <MaterialCommunityIcons
               name={
