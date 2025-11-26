@@ -5,16 +5,16 @@ import Feather from '@expo/vector-icons/Feather';
 import { useAudioPlayer } from 'expo-audio';
 import { useClient, useQuery } from 'urql';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import AddTrackCard from '@/components/playlists/AddTrackCard';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { LIMIT_DEFAULT } from '@/constants/deezer';
+import { LIMIT_DEFAULT } from '@/graphql/constants';
 import { GET_POPULAR_TRACKS, SEARCH_TRACKS } from '@/graphql/queries';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 

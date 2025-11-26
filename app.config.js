@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '1.54.7',
+    version: '2.54.0',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',
@@ -15,9 +15,8 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICE_INFO_PLIST ||
         './credentials/ios/GoogleService-Info.plist',
-      backgroundModes: ['audio'],
       infoPlist: {
-        UIBackgroundModes: ['remote-notification']
+        UIBackgroundModes: ['audio', 'remote-notification', 'fetch']
       }
     },
     android: {
@@ -32,7 +31,12 @@ module.exports = () => ({
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON ||
         './credentials/android/google-services.json',
-      permissions: ['POST_NOTIFICATIONS']
+      permissions: [
+        'POST_NOTIFICATIONS',
+        'FOREGROUND_SERVICE',
+        'FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+        'WAKE_LOCK'
+      ]
     },
     web: {
       bundler: 'metro',
@@ -113,7 +117,9 @@ module.exports = () => ({
     extra: {
       eas: {
         projectId: '18bc0796-aebe-48d1-b5c5-60f8c3ace65f'
-      }
+      },
+      appUrl: process.env.EXPO_PUBLIC_APP_URL || 'https://deezeroom.expo.app',
+      serverUrl: process.env.EXPO_PUBLIC_SERVER_URL
     }
   }
 });

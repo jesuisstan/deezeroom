@@ -1,5 +1,6 @@
 import { Image, Platform, View } from 'react-native';
 
+import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 
@@ -67,11 +68,7 @@ const TabLayout = () => {
             title: 'Home',
             href: '/',
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons
-                name="home-search"
-                size={28}
-                color={color}
-              />
+              <Foundation name="home" size={28} color={color} />
             ),
             headerRight: () => <HeaderRight />
           }}

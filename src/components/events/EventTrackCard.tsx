@@ -4,6 +4,7 @@ import { Image, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import IconButton from '@/components/ui/buttons/IconButton';
+import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -46,17 +47,15 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
   };
 
   return (
-    <View
-      style={{
-        backgroundColor: themeColors[theme]['bg-secondary'],
-        borderRadius: 6,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: themeColors[theme]['border'],
-        gap: 10
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <View className="gap-2">
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10
+        }}
+      >
+        {/* Album cover */}
         {track.track?.album?.coverMedium ? (
           <Image
             source={{ uri: track.track.album.coverMedium }}
@@ -84,6 +83,8 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
             />
           </View>
         )}
+
+        {/* Track info */}
         <View style={{ flex: 1 }}>
           <TextCustom
             type="semibold"
@@ -101,30 +102,8 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
             {renderArtists() || 'Unknown artist'}
           </TextCustom>
         </View>
-      </View>
 
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <MaterialCommunityIcons
-            name="vote"
-            size={16}
-            color={themeColors[theme]['text-secondary']}
-          />
-          <TextCustom
-            size="xs"
-            color={themeColors[theme]['text-secondary']}
-            type="semibold"
-          >
-            {track.voteCount} vote{track.voteCount === 1 ? '' : 's'}
-          </TextCustom>
-        </View>
-
+        {/* Vote count and actions */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {canRemove ? (
             <IconButton
@@ -139,6 +118,29 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               />
             </IconButton>
           ) : null}
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <MaterialCommunityIcons
+              name="vote"
+              size={16}
+              color={
+                track.voteCount > 0
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['text-secondary']
+              }
+            />
+            <TextCustom
+              size="xs"
+              color={
+                track.voteCount > 0
+                  ? themeColors[theme]['primary']
+                  : themeColors[theme]['text-secondary']
+              }
+              type="semibold"
+            >
+              {track.voteCount}
+            </TextCustom>
+          </View>
           {canVote && !isCurrentlyPlaying ? (
             <IconButton
               onPress={onToggleVote}
@@ -149,11 +151,7 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               <MaterialCommunityIcons
                 name={hasVoted ? 'thumb-up' : 'thumb-up-outline'}
                 size={18}
-                color={
-                  hasVoted
-                    ? themeColors[theme]['primary']
-                    : themeColors[theme]['text-secondary']
-                }
+                color={themeColors[theme]['primary']}
               />
             </IconButton>
           ) : isCurrentlyPlaying ? (
@@ -177,12 +175,15 @@ const EventTrackCard: React.FC<EventTrackCardProps> = ({
               </TextCustom>
             </View>
           ) : !canVote ? (
-            <TextCustom size="xs" color={themeColors[theme]['text-secondary']}>
-              Voting disabled
-            </TextCustom>
+            <MaterialCommunityIcons
+              name="email-remove-outline"
+              size={16}
+              color={themeColors[theme]['intent-warning']}
+            />
           ) : null}
         </View>
       </View>
+      <Divider />
     </View>
   );
 };

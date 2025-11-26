@@ -20,7 +20,9 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
+        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON",
+        "EXPO_PUBLIC_APP_URL": "https://deezeroom.expo.app",
+        "EXPO_PUBLIC_SERVER_URL": "https://deezeroom-server.vercel.app"
       },
       "android": {
         "image": "latest"
@@ -32,7 +34,9 @@
     "production": {
       "distribution": "internal",
       "env": {
-        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON"
+        "GOOGLE_SERVICES_JSON": "GOOGLE_SERVICES_JSON",
+        "EXPO_PUBLIC_APP_URL": "https://deezeroom.expo.app",
+        "EXPO_PUBLIC_SERVER_URL": "https://deezeroom-server.vercel.app"
       },
       "android": {
         "image": "latest"

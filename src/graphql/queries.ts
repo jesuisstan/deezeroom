@@ -1,5 +1,5 @@
 // GraphQL Queries as strings
-import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/constants/deezer';
+import { INDEX_DEFAULT, LIMIT_DEFAULT } from '@/graphql/constants';
 
 export const SEARCH_TRACKS = `
   query SearchTracks($query: String!, $limit: Int = ${LIMIT_DEFAULT}, $index: Int = ${INDEX_DEFAULT}) {

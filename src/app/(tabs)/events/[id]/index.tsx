@@ -9,8 +9,11 @@ import {
 } from 'react-native';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import Octicons from '@expo/vector-icons/Octicons';
 import clsx from 'clsx';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Timestamp } from 'firebase/firestore';
 import { TabView } from 'react-native-tab-view';
 
 import EditEventModal from '@/components/events/EditEventModal';
@@ -20,10 +23,7 @@ import EventMonitor from '@/components/events/EventMonitor';
 import EventParticipantsTab from '@/components/events/EventParticipantsTab';
 import EventStatusIndicator from '@/components/events/EventStatusIndicator';
 import EventTrackCard from '@/components/events/EventTrackCard';
-import PlayedTrackCard from '@/components/events/PlayedTrackCard';
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
+import PlayedTracksTab from '@/components/events/PlayedTracksTab';
 import AddTracksToPlaylistComponent from '@/components/playlists/AddTracksToPlaylistComponent';
 import UserInviteComponent from '@/components/playlists/UserInviteComponent';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
@@ -31,24 +31,24 @@ import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Track } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { Track } from '@/graphql/types-return';
 import { useEventStatus } from '@/hooks/useEventStatus';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import {
-  Event,
-  EventService,
-  EventTrack
-} from '@/utils/firebase/firebase-service-events';
+import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 import { UserProfile } from '@/utils/firebase/firebase-service-user';
+import { checkGeofenceAccess, formatRadius } from '@/utils/geofence-utils';
 
 const EventDetailScreen = () => {
   const { theme } = useTheme();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const router = useRouter();
   const { currentTrack } = usePlaybackState();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,41 +61,152 @@ const EventDetailScreen = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [processingVote, setProcessingVote] = useState<string | null>(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [tabIndex, setTabIndex] = useState(0);
   const [tracksTabIndex, setTracksTabIndex] = useState(0); // 0 = Queue, 1 = Played
+  const [screenWidth, setScreenWidth] = useState(
+    Dimensions.get('window').width
+  );
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
     { key: 'info', title: 'Info' },
     { key: 'participants', title: 'Participants' }
   ]);
 
+  // Check if screen is wide enough for horizontal layout (desktop)
+  const isWideScreen = Platform.OS === 'web' && screenWidth >= 768;
+
+  // Track screen width changes for responsive layout
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenWidth(window.width);
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (!id) return;
     setIsLoading(true);
 
-    const unsubscribe = EventService.subscribeToEvent(id, (updatedEvent) => {
-      if (!updatedEvent) {
-        setError('Event not found');
-        setEvent(null);
+    const unsubscribe = EventService.subscribeToEvent(
+      id,
+      (updatedEvent) => {
+        if (!updatedEvent) {
+          setError('Event not found');
+          setEvent(null);
+          setIsLoading(false);
+          return;
+        }
+
+        Logger.info(
+          'Event subscription update received',
+          {
+            eventId: updatedEvent.id,
+            status: updatedEvent.status,
+            isPlaying: updatedEvent.isPlaying
+          },
+          '🔄 EventDetailScreen'
+        );
+
+        setEvent(updatedEvent);
+        setError(null);
         setIsLoading(false);
-        return;
+      },
+      (error: any) => {
+        // Handle permission-denied or other errors
+        Logger.error(
+          'Error subscribing to event:',
+          {
+            eventId: id,
+            errorCode: error?.code,
+            errorMessage: error?.message,
+            error
+          },
+          '🚫 EventDetailScreen'
+        );
+
+        setIsLoading(false);
+
+        if (error?.code === 'permission-denied') {
+          // Show alert and redirect
+          Alert.alert(
+            'Access Denied',
+            'You do not have permission to access this event. It may be private or require you to be within a specific location.'
+          );
+
+          // Redirect after a short delay
+          setTimeout(() => {
+            router.replace('/(tabs)/events');
+          }, 1500);
+        } else {
+          setError('Failed to load event');
+        }
       }
-      // Ignore subscription updates while we're manually updating status
-      // This prevents intermediate status changes (draft -> live -> ended)
-      // We'll use the forced refresh data instead
-      if (isUpdatingStatus) {
-        return;
-      }
-      setEvent(updatedEvent);
-      setError(null);
-      setIsLoading(false);
-    });
+    );
 
     return () => {
       unsubscribe();
     };
-  }, [id, isUpdatingStatus]);
+  }, [id, router]);
+
+  // Check geofence when event is first loaded
+  useEffect(() => {
+    if (!event || isLoading || !user || !profile) return;
+
+    // Check if user is participant or host
+    const isParticipant = event.participantIds.includes(user.uid);
+    const isHost = event.hostIds.includes(user.uid);
+
+    // Skip geofence check if user is already participant or host
+    if (isParticipant || isHost) {
+      return;
+    }
+
+    // Check geofence for public events with geofence
+    if (event.visibility === 'public' && event.geofence) {
+      const geofenceCheck = checkGeofenceAccess(
+        profile?.privateInfo?.location?.coords,
+        event.geofence,
+        false
+      );
+
+      Logger.info(
+        'Geofence check on event screen',
+        {
+          eventId: event.id,
+          eventName: event.name,
+          userCoords: profile?.privateInfo?.location?.coords,
+          eventCoords: {
+            lat: event.geofence.latitude,
+            lng: event.geofence.longitude
+          },
+          radius: event.geofence.radiusMeters,
+          distance: geofenceCheck.distance,
+          formattedDistance: geofenceCheck.formattedDistance,
+          canAccess: geofenceCheck.canAccess,
+          reason: geofenceCheck.reason
+        },
+        '📍 EventDetailScreen'
+      );
+
+      if (!geofenceCheck.canAccess) {
+        const message =
+          geofenceCheck.reason === 'Location not set'
+            ? `This event requires you to be within ${formatRadius(event.geofence.radiusMeters)} of ${event.geofence.locationName || 'the event location'}. Please set your location in your profile.`
+            : `You are ${geofenceCheck.formattedDistance || 'too far'} away from ${event.geofence.locationName || 'the event location'}. You need to be within ${formatRadius(event.geofence.radiusMeters)} to access this event.`;
+
+        Alert.alert('Location Required', message);
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.replace('/(tabs)/events');
+        }, 1500);
+        return;
+      }
+    }
+  }, [event, isLoading, user, profile, router]);
 
   // Use custom hook for real-time event status updates
   const { eventStatus, isEventEnded, hasEventStarted } = useEventStatus(event);
@@ -252,21 +363,27 @@ const EventDetailScreen = () => {
   const handleRemoveTrack = async (trackId: string) => {
     if (!id || !user) return;
 
-    try {
-      await EventService.removeTrackFromEvent(id, trackId, user.uid);
-      Notifier.shoot({
-        type: 'warn',
-        title: 'Track removed',
-        message: 'Track has been removed from the event'
-      });
-    } catch (error: any) {
-      Logger.error('Error removing track from event:', error);
-      Notifier.shoot({
-        type: 'error',
-        title: 'Error',
-        message: error?.message || 'Failed to remove track'
-      });
-    }
+    Alert.delete(
+      'Remove Track',
+      'Are you sure you want to remove this track from the event?',
+      async () => {
+        try {
+          await EventService.removeTrackFromEvent(id, trackId, user.uid);
+          Notifier.shoot({
+            type: 'warn',
+            title: 'Track removed',
+            message: 'Track has been removed from the event'
+          });
+        } catch (error: any) {
+          Logger.error('Error removing track from event:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'Failed to remove track'
+          });
+        }
+      }
+    );
   };
 
   const handleEventUpdated = async () => {
@@ -284,15 +401,32 @@ const EventDetailScreen = () => {
   };
 
   const handleStartEventEarly = async () => {
-    if (!id || !user || !event || isUpdatingStatus) return;
+    if (!id || !user || !event) return;
 
     Alert.confirm(
       'Start Event Early?',
       'Are you sure you want to start this event now? The event will begin immediately.',
       async () => {
-        setIsUpdatingStatus(true);
         try {
           await EventService.startEventEarly(id, user.uid);
+
+          // Immediately update local state with current time
+          // This ensures UI updates instantly without waiting for Firebase sync
+          setEvent((prevEvent) =>
+            prevEvent
+              ? {
+                  ...prevEvent,
+                  startAt: Timestamp.now()
+                }
+              : null
+          );
+
+          Logger.info(
+            'Event started - local state updated immediately',
+            { eventId: id },
+            '🔄 EventDetailScreen'
+          );
+
           // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
@@ -306,23 +440,50 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to start event early'
           });
-        } finally {
-          setIsUpdatingStatus(false);
         }
       }
     );
   };
 
   const handleEndEventEarly = async () => {
-    if (!id || !user || !event || isUpdatingStatus) return;
+    if (!id || !user || !event) return;
 
     Alert.confirm(
       'End Event Early?',
       'Are you sure you want to end this event now? The event will be closed immediately and participants will no longer be able to vote or add tracks.',
       async () => {
-        setIsUpdatingStatus(true);
         try {
+          // Step 1: Stop music playback if it's currently playing
+          if (event.isPlaying) {
+            await EventService.pausePlayback(id, user.uid);
+            Logger.info('Stopped playback before ending event', {
+              eventId: id,
+              eventName: event.name
+            });
+          }
+
+          // Step 2: End the event
           await EventService.endEventEarly(id, user.uid);
+
+          // Immediately update local state with current time
+          // This ensures UI updates instantly without waiting for Firebase sync
+          setEvent((prevEvent) =>
+            prevEvent
+              ? {
+                  ...prevEvent,
+                  endAt: Timestamp.now(),
+                  isPlaying: false,
+                  currentlyPlayingTrack: null
+                }
+              : null
+          );
+
+          Logger.info(
+            'Event ended - local state updated immediately',
+            { eventId: id },
+            '🔄 EventDetailScreen'
+          );
+
           // Real-time subscription will automatically update the event
           Notifier.shoot({
             type: 'success',
@@ -336,8 +497,6 @@ const EventDetailScreen = () => {
             title: 'Error',
             message: error?.message || 'Failed to end event early'
           });
-        } finally {
-          setIsUpdatingStatus(false);
         }
       }
     );
@@ -403,6 +562,7 @@ const EventDetailScreen = () => {
           <EventParticipantsTab
             hostIds={event!.hostIds || []}
             participantIds={event!.participantIds || []}
+            eventVisibility={event!.visibility}
           />
         );
       default:
@@ -463,20 +623,18 @@ const EventDetailScreen = () => {
         }}
         showsVerticalScrollIndicator={true}
       >
-        {/* Adaptive layout: horizontal for web, vertical for mobile */}
+        {/* Adaptive layout: horizontal for wide screens, vertical for narrow */}
         <View
           style={
-            Platform.OS === 'web'
+            isWideScreen
               ? { flexDirection: 'row', gap: 24, paddingHorizontal: 16 }
               : {}
           }
         >
-          {/* Left Column (Web) / Top Section (Mobile): TabView with info */}
+          {/* Left Column (Wide screens) / Top Section (Narrow screens): TabView with info */}
           <View
             style={
-              Platform.OS === 'web'
-                ? { width: 450, flexShrink: 0 }
-                : { width: '100%' }
+              isWideScreen ? { width: 450, flexShrink: 0 } : { width: '100%' }
             }
           >
             <View style={{ position: 'relative' }}>
@@ -485,21 +643,16 @@ const EventDetailScreen = () => {
                 renderScene={renderScene}
                 onIndexChange={setTabIndex}
                 initialLayout={{
-                  width:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  width: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 style={{
-                  height:
-                    Platform.OS === 'web' ? 450 : Dimensions.get('window').width
+                  height: isWideScreen ? 450 : Dimensions.get('window').width
                 }}
                 renderTabBar={() => null}
               />
 
               {/* Event status indicator */}
-              <EventStatusIndicator
-                eventStatus={eventStatus}
-                isUpdatingStatus={isUpdatingStatus}
-              />
+              <EventStatusIndicator eventStatus={eventStatus} />
 
               {/* Event actions bar */}
               {!isEventEnded && (
@@ -507,16 +660,16 @@ const EventDetailScreen = () => {
                   style={{
                     position: 'absolute',
                     zIndex: 10,
-                    right: 12,
-                    bottom: 12,
+                    right: 8,
+                    bottom: 8,
                     flexDirection: 'row',
                     alignItems: 'center',
-                    borderRadius: 6,
+                    borderRadius: 4,
                     padding: 2,
                     backgroundColor: themeColors[theme]['bg-secondary'] + '99',
                     borderColor: themeColors[theme]['border'],
                     borderWidth: 1,
-                    opacity: isUpdatingStatus ? 0.5 : 1
+                    gap: 4
                   }}
                 >
                   {canManageEvent && (
@@ -525,12 +678,11 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="Start event early"
                           onPress={handleStartEventEarly}
-                          disabled={isUpdatingStatus}
-                          loading={isUpdatingStatus}
+                          className="h-9 w-9"
                         >
                           <MaterialCommunityIcons
-                            name="flag-triangle"
-                            size={20}
+                            name="clock-start"
+                            size={18}
                             color={themeColors[theme]['primary']}
                           />
                         </IconButton>
@@ -539,12 +691,11 @@ const EventDetailScreen = () => {
                         <IconButton
                           accessibilityLabel="End event early"
                           onPress={handleEndEventEarly}
-                          disabled={isUpdatingStatus}
-                          loading={isUpdatingStatus}
+                          className="h-9 w-9"
                         >
-                          <MaterialCommunityIcons
-                            name="flag-variant-remove-outline"
-                            size={20}
+                          <Octicons
+                            name="stop"
+                            size={16}
                             color={themeColors[theme]['intent-error']}
                           />
                         </IconButton>
@@ -552,25 +703,25 @@ const EventDetailScreen = () => {
                       <IconButton
                         accessibilityLabel="Edit event"
                         onPress={() => setShowEditModal(true)}
-                        disabled={isUpdatingStatus}
+                        className="h-9 w-9"
                       >
-                        <MaterialCommunityIcons
-                          name="pencil-outline"
-                          size={20}
+                        <Ionicons
+                          name="settings-outline"
+                          size={18}
                           color={themeColors[theme]['text-main']}
                         />
                       </IconButton>
                       <IconButton
                         accessibilityLabel="Invite participants"
                         onPress={() => {
-                          if (!event || !user || isUpdatingStatus) return;
+                          if (!event || !user) return;
                           setShowInviteModal(true);
                         }}
-                        disabled={isUpdatingStatus}
+                        className="h-9 w-9"
                       >
                         <MaterialCommunityIcons
                           name="account-plus-outline"
-                          size={20}
+                          size={18}
                           color={themeColors[theme]['text-main']}
                         />
                       </IconButton>
@@ -608,8 +759,8 @@ const EventDetailScreen = () => {
             </View>
           </View>
 
-          {/* Right Column (Web) / Bottom Section (Mobile): Tracks list */}
-          <View className={clsx(Platform.OS === 'web' ? 'mt-4' : '', 'flex-1')}>
+          {/* Right Column (Wide screens) / Bottom Section (Narrow screens): Tracks list */}
+          <View className={clsx(isWideScreen ? 'mt-4' : '', 'flex-1')}>
             {isEventEnded ? (
               <View
                 style={{
@@ -618,7 +769,7 @@ const EventDetailScreen = () => {
                   backgroundColor: themeColors[theme]['intent-warning'] + '22',
                   borderWidth: 1,
                   borderColor: themeColors[theme]['intent-warning'],
-                  marginHorizontal: Platform.OS === 'web' ? 0 : 16
+                  marginHorizontal: isWideScreen ? 0 : 16
                 }}
               >
                 <TextCustom
@@ -645,8 +796,8 @@ const EventDetailScreen = () => {
             <View
               className="gap-4"
               style={{
-                padding: Platform.OS === 'web' ? 0 : 16,
-                paddingTop: Platform.OS === 'web' && !isEventEnded ? 0 : 16
+                padding: isWideScreen ? 0 : 16,
+                paddingTop: isWideScreen && !isEventEnded ? 0 : 16
               }}
             >
               {/* Event Monitor - visible to all, play/pause button only for hosts */}
@@ -655,6 +806,11 @@ const EventDetailScreen = () => {
                 currentTrack={event.currentlyPlayingTrack || null}
                 isHost={isHost}
                 queueTracks={queueTracks}
+                hasEventStarted={hasEventStarted}
+                isEventEnded={isEventEnded}
+                onStartEventEarly={
+                  canManageEvent ? handleStartEventEarly : undefined
+                }
               />
 
               {/* Tracks tabs - Queue / Played */}
@@ -782,33 +938,7 @@ const EventDetailScreen = () => {
                 </>
               ) : (
                 /* Played tab */
-                <>
-                  {playedTracks.length === 0 ? (
-                    <View className="items-center justify-center py-12">
-                      <MaterialCommunityIcons
-                        name="history"
-                        size={42}
-                        color={themeColors[theme]['text-secondary']}
-                      />
-                      <TextCustom
-                        className="mt-4 text-center"
-                        color={themeColors[theme]['text-secondary']}
-                      >
-                        No tracks played yet
-                      </TextCustom>
-                    </View>
-                  ) : (
-                    playedTracks
-                      .slice()
-                      .reverse()
-                      .map((playedTrack, index) => (
-                        <PlayedTrackCard
-                          key={`${playedTrack.trackId}-${index}`}
-                          playedTrack={playedTrack}
-                        />
-                      ))
-                  )}
-                </>
+                <PlayedTracksTab playedTracks={playedTracks} />
               )}
             </View>
           </View>
@@ -847,7 +977,7 @@ const EventDetailScreen = () => {
           onInvite={handleSendInvitations}
           excludeUserId={user?.uid}
           existingUsers={[]}
-          placeholder="Search users by email or name..."
+          placeholder="Search users by name..."
           title="Invite Participants"
         />
       )}

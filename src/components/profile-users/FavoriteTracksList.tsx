@@ -4,14 +4,14 @@ import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { useAudioPlayer } from 'expo-audio';
 import { useClient } from 'urql';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { LIMIT_DEFAULT } from '@/constants/deezer';
+import { LIMIT_DEFAULT } from '@/graphql/constants';
 import { GET_TRACK } from '@/graphql/queries';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useNetwork } from '@/providers/NetworkProvider';
 import {
   usePlaybackActions,
@@ -126,7 +126,8 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
 
         const tracks = await Promise.all(trackPromises);
         const validTracks = tracks.filter(
-          (track): track is Track => track !== null
+          (track): track is Track =>
+            track !== null && track !== undefined && track.id !== undefined
         );
 
         if (isInitialLoad) {
@@ -148,7 +149,14 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           error,
           '💟 FavoriteTracksList'
         );
-        Notifier.error('Failed to load favorite tracks');
+        // Don't show error notification if it's a network/server error
+        // The component will show empty state or cached tracks
+        if (isInitialLoad && loadedTracks.length === 0) {
+          // Only show error if we have no tracks at all
+          Notifier.error(
+            'Failed to load favorite tracks. Please check your connection.'
+          );
+        }
       } finally {
         loadingState(false);
       }
@@ -274,6 +282,23 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
         </View>
       )}
 
+      {/* Server unavailable indicator */}
+      {isOnline &&
+        !isLoading &&
+        loadedTracks.length === 0 &&
+        favoriteTrackIds.length > 0 && (
+          <View className="rounded-md bg-bg-secondary p-4">
+            <TextCustom
+              size="s"
+              color={themeColors[theme]['intent-warning']}
+              className="text-center"
+            >
+              Unable to load favorite tracks. Please check if the server is
+              running.
+            </TextCustom>
+          </View>
+        )}
+
       <View className="flex-row items-center justify-between px-4 py-4">
         <TextCustom type="semibold" size="xl">
           Favorite Tracks{' '}
@@ -290,17 +315,22 @@ const FavoriteTracksList: FC<FavoriteTracksListProps> = ({
           nestedScrollEnabled
           removeClippedSubviews={true}
         >
-          {loadedTracks.map((track, index) => {
-            const activeId = currentPlayingTrackId ?? currentPreviewTrackId;
-            return (
-              <TrackCard
-                key={`${track.id}-${index}`}
-                track={track}
-                isPlaying={activeId === track.id}
-                onPress={handlePlayTrack}
-              />
-            );
-          })}
+          {loadedTracks
+            .filter(
+              (track): track is Track =>
+                track !== null && track !== undefined && track.id !== undefined
+            )
+            .map((track, index) => {
+              const activeId = currentPlayingTrackId ?? currentPreviewTrackId;
+              return (
+                <TrackCard
+                  key={`${track.id}-${index}`}
+                  track={track}
+                  isPlaying={activeId === track.id}
+                  onPress={handlePlayTrack}
+                />
+              );
+            })}
         </ScrollView>
       )}
 

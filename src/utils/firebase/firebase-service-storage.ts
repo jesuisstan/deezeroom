@@ -5,7 +5,7 @@ import {
   uploadBytes
 } from 'firebase/storage';
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 import { auth, storage } from '@/utils/firebase/firebase-init';
 
 /**

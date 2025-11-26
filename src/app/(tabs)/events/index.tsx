@@ -12,12 +12,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CreateEventButton from '@/components/events/CreateEventButton';
 import CreateEventModal from '@/components/events/CreateEventModal';
 import EventCard from '@/components/events/EventCard';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -28,7 +28,6 @@ import { Event, EventService } from '@/utils/firebase/firebase-service-events';
 const EventsScreen = () => {
   const { theme } = useTheme();
   const { user, profile } = useUser();
-  const { currentTrack } = usePlaybackState();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,8 +37,14 @@ const EventsScreen = () => {
   >('my');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0;
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   const loadEvents = useCallback(

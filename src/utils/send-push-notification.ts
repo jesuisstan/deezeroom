@@ -3,7 +3,9 @@
  * This is used for sending notifications when user performs an action
  */
 
-import { Logger } from '@/components/modules/logger';
+import { Platform } from 'react-native';
+
+import { Logger } from '@/modules/logger';
 
 interface NotificationPayload {
   to: string;
@@ -16,11 +18,19 @@ interface NotificationPayload {
 
 /**
  * Send a push notification via Expo Push Notification Service
- * This runs on the client side, so it should only be called after user authentication
  */
 export async function sendPushNotification(
   payload: NotificationPayload
 ): Promise<void> {
+  if (Platform.OS === 'web') {
+    Logger.warn(
+      'Push notifications are not supported on web yet',
+      null,
+      '🔔 sendPushNotification function'
+    );
+    return;
+  }
+
   const message = {
     to: payload.to,
     sound: payload.sound || 'default',
@@ -51,13 +61,13 @@ export async function sendPushNotification(
     Logger.info(
       'Push notification sent successfully:',
       result,
-      '🔔 SendPushNotification'
+      '🔔 sendPushNotification function'
     );
   } catch (error) {
     Logger.error(
       'Failed to send push notification:',
       error,
-      '🔔 SendPushNotification'
+      '🔔 sendPushNotification function'
     );
     throw error;
   }

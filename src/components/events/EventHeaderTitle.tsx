@@ -24,6 +24,10 @@ const EventHeaderTitle: React.FC = () => {
       eventId,
       (updatedEvent) => {
         setEvent(updatedEvent);
+      },
+      () => {
+        // On error, just show default title
+        setEvent(null);
       }
     );
 

@@ -15,7 +15,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger/LoggerModule';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { db } from '@/utils/firebase/firebase-init';
 import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
 import {

@@ -7,7 +7,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  increment,
   limit,
   onSnapshot,
   query,
@@ -18,8 +17,8 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
+import { Logger } from '@/modules/logger';
 import { db } from '@/utils/firebase/firebase-init';
 import { getUserPushTokens } from '@/utils/firebase/firebase-service-notifications';
 import {
@@ -322,16 +321,28 @@ export class EventService {
 
   static subscribeToEvent(
     id: string,
-    callback: (event: Event | null) => void
+    callback: (event: Event | null) => void,
+    onError?: (error: Error) => void
   ): () => void {
     const eventRef = doc(db, this.collection, id);
-    return onSnapshot(eventRef, (docSnap) => {
-      if (!docSnap.exists()) {
-        callback(null);
-        return;
+    return onSnapshot(
+      eventRef,
+      (docSnap) => {
+        if (!docSnap.exists()) {
+          callback(null);
+          return;
+        }
+        callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
+      },
+      (error) => {
+        Logger.error('Error in event subscription:', error);
+        if (onError) {
+          onError(error);
+        } else {
+          callback(null);
+        }
       }
-      callback(this.deserializeEventDoc(docSnap.id, docSnap.data()));
-    });
+    );
   }
 
   static subscribeToEventTracks(
@@ -506,7 +517,11 @@ export class EventService {
         callback(events);
       },
       (error) => {
-        Logger.error('Error in subscribeToPublicEvents:', error);
+        Logger.error(
+          'Error in subscribeToPublicEvents:',
+          error,
+          '🔥 Firebase EventService'
+        );
       }
     );
   }
@@ -542,12 +557,16 @@ export class EventService {
       // Check if track already exists in the array
       const tracks = Array.isArray(event.tracks) ? [...event.tracks] : [];
 
-      Logger.info('Adding track to event', {
-        eventId,
-        trackId: track.id,
-        currentTracksCount: tracks.length,
-        currentTrackIds: tracks.map((t) => t.trackId)
-      });
+      Logger.info(
+        'Adding track to event',
+        {
+          eventId,
+          trackId: track.id,
+          currentTracksCount: tracks.length,
+          currentTrackIds: tracks.map((t) => t.trackId)
+        },
+        '🔥 Firebase EventService'
+      );
 
       const existingTrackIndex = tracks.findIndex(
         (t) => t.trackId === track.id
@@ -573,9 +592,13 @@ export class EventService {
           });
         }
         // If not autoVote, track already exists - nothing to do
-        Logger.info('Track already exists, not adding again', {
-          trackId: track.id
-        });
+        Logger.info(
+          'Track already exists, not adding again',
+          {
+            trackId: track.id
+          },
+          '🔥 Firebase EventService'
+        );
         return;
       }
 
@@ -590,11 +613,15 @@ export class EventService {
 
       const updatedTracks = [...tracks, newTrack];
 
-      Logger.info('Adding new track', {
-        trackId: track.id,
-        newTracksCount: updatedTracks.length,
-        newTrackIds: updatedTracks.map((t) => t.trackId)
-      });
+      Logger.info(
+        'Adding new track',
+        {
+          trackId: track.id,
+          newTracksCount: updatedTracks.length,
+          newTrackIds: updatedTracks.map((t) => t.trackId)
+        },
+        '🔥 Firebase EventService'
+      );
 
       transaction.update(eventRef, {
         tracks: updatedTracks,
@@ -786,6 +813,11 @@ export class EventService {
       return false;
     }
 
+    // Hosts can always add tracks
+    if (event.hostIds?.includes(userId)) {
+      return true;
+    }
+
     // Private events: only participants can add tracks
     if (event.visibility === 'private') {
       return event.participantIds?.includes(userId) ?? false;
@@ -808,6 +840,11 @@ export class EventService {
   static canUserVoteWithEvent(event: Event, userId: string): boolean {
     if (this.hasEventEnded(event)) {
       return false;
+    }
+
+    // Hosts can always vote
+    if (event.hostIds?.includes(userId)) {
+      return true;
     }
 
     // Private events: only participants can vote
@@ -885,13 +922,90 @@ export class EventService {
 
     const eventRef = doc(db, this.collection, eventId);
 
-    // Set endAt to current server time (exactly now, not earlier or later)
+    // First stop playback if currently playing
+    if (event.isPlaying || event.currentlyPlayingTrack) {
+      await updateDoc(eventRef, {
+        isPlaying: false,
+        currentlyPlayingTrack: null,
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    // Then set endAt to current server time (exactly now, not earlier or later)
     // Use serverTimestamp() to ensure it's exactly the current server time
     // Status will be computed automatically from startAt/endAt, no need to store it
     await updateDoc(eventRef, {
       endAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+
+    Logger.info(
+      'Event ended early, playback stopped',
+      { eventId, userId },
+      '🔥 Firebase EventService'
+    );
+  }
+
+  /**
+   * Delegate hosting rights to another participant
+   * Current host becomes a regular participant
+   * New host is removed from participants and added to hosts
+   */
+  static async delegateHosting(
+    eventId: string,
+    currentHostId: string,
+    newHostId: string
+  ): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    // Validate current host
+    if (!this.canUserManageEvent(event, currentHostId)) {
+      throw new Error('Only hosts can delegate hosting rights');
+    }
+
+    // Validate new host is a participant
+    if (!event.participantIds.includes(newHostId)) {
+      throw new Error('New host must be a participant in this event');
+    }
+
+    // Cannot delegate to yourself
+    if (currentHostId === newHostId) {
+      throw new Error('Cannot delegate hosting rights to yourself');
+    }
+
+    // Cannot delegate if new host is already a host
+    if (event.hostIds.includes(newHostId)) {
+      throw new Error('Selected user is already a host');
+    }
+
+    const eventRef = doc(db, this.collection, eventId);
+
+    // Remove current host from hostIds, add new host
+    const updatedHostIds = event.hostIds.filter((id) => id !== currentHostId);
+    updatedHostIds.push(newHostId);
+
+    // Remove new host from participantIds, add current host (if not already there)
+    const updatedParticipantIds = event.participantIds.filter(
+      (id) => id !== newHostId
+    );
+    if (!updatedParticipantIds.includes(currentHostId)) {
+      updatedParticipantIds.push(currentHostId);
+    }
+
+    await updateDoc(eventRef, {
+      hostIds: updatedHostIds,
+      participantIds: updatedParticipantIds,
+      updatedAt: serverTimestamp()
+    });
+
+    Logger.info(
+      'Hosting rights delegated',
+      { eventId, from: currentHostId, to: newHostId },
+      '🔥 Firebase EventService'
+    );
   }
 
   // ===== INVITATIONS =====
@@ -968,10 +1082,17 @@ export class EventService {
       );
 
       if (uniqueTokens.size > 0) {
-        Logger.info('Push notification sent to invited user');
+        Logger.info(
+          'Push notification sent to invited user',
+          '🔥 Firebase EventService'
+        );
       }
     } catch (error) {
-      Logger.error('Error sending push notification:', error);
+      Logger.error(
+        'Error sending push notification:',
+        error,
+        '🔥 Firebase EventService'
+      );
       // Don't throw - invitation is created, notification is optional
     }
 
@@ -1079,7 +1200,11 @@ export class EventService {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         errors.push(`${user.userId} - ${errorMessage}`);
-        Logger.error('Error inviting user to event:', error);
+        Logger.error(
+          'Error inviting user to event:',
+          error,
+          '🔥 Firebase EventService'
+        );
       }
     }
 
@@ -1124,7 +1249,8 @@ export class EventService {
       (error) => {
         Logger.error(
           'Error in real-time event invitation subscriptions:',
-          error
+          error,
+          '🔥 Firebase EventService'
         );
       }
     );
@@ -1297,6 +1423,17 @@ export class EventService {
       }
 
       const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      // Check if event has ended
+      if (this.hasEventEnded(event)) {
+        throw new Error('Cannot start playback: event has ended');
+      }
+
+      // Check if event has started
+      if (!this.hasEventStarted(event)) {
+        throw new Error('Cannot start playback: event has not started yet');
+      }
+
       const tracks = Array.isArray(event.tracks) ? event.tracks : [];
 
       const trackExists = tracks.some((t) => t.trackId === track.trackId);
@@ -1320,31 +1457,53 @@ export class EventService {
       });
     });
 
-    Logger.info('Track playback started', { eventId, trackId: track.trackId });
+    Logger.info(
+      'Track playback started',
+      { eventId, trackId: track.trackId },
+      '🔥 Firebase EventService'
+    );
   }
 
   /**
    * Pause playback
    */
   static async pausePlayback(eventId: string, hostId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (this.hasEventEnded(event)) {
+      throw new Error('Cannot pause playback: event has ended');
+    }
+
     await updateDoc(doc(db, this.collection, eventId), {
       isPlaying: false,
       updatedAt: serverTimestamp()
     });
 
-    Logger.info('Playback paused', { eventId });
+    Logger.info('Playback paused', { eventId }, '🔥 Firebase EventService');
   }
 
   /**
    * Resume playback
    */
   static async resumePlayback(eventId: string, hostId: string): Promise<void> {
+    const event = await this.getEvent(eventId);
+    if (!event) {
+      throw new Error('Event not found');
+    }
+
+    if (this.hasEventEnded(event)) {
+      throw new Error('Cannot resume playback: event has ended');
+    }
+
     await updateDoc(doc(db, this.collection, eventId), {
       isPlaying: true,
       updatedAt: serverTimestamp()
     });
 
-    Logger.info('Playback resumed', { eventId });
+    Logger.info('Playback resumed', { eventId }, '🔥 Firebase EventService');
   }
 
   /**
@@ -1361,6 +1520,12 @@ export class EventService {
       }
 
       const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      // Check if event has ended
+      if (this.hasEventEnded(event)) {
+        throw new Error('Cannot finish track: event has ended');
+      }
+
       const currentTrack = event.currentlyPlayingTrack;
 
       if (!currentTrack) {
@@ -1406,6 +1571,6 @@ export class EventService {
       });
     });
 
-    Logger.info('Track finished', { eventId });
+    Logger.info('Track finished', { eventId }, '🔥 Firebase EventService');
   }
 }

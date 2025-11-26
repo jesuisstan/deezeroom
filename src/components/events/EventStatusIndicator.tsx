@@ -6,11 +6,9 @@ import { themeColors } from '@/style/color-theme';
 import { EventStatus } from '@/utils/firebase/firebase-service-events';
 
 const EventStatusIndicator = ({
-  eventStatus,
-  isUpdatingStatus
+  eventStatus
 }: {
   eventStatus: EventStatus;
-  isUpdatingStatus?: boolean;
 }) => {
   const { theme } = useTheme();
 
@@ -28,8 +26,7 @@ const EventStatusIndicator = ({
         paddingHorizontal: 4,
         backgroundColor: themeColors[theme]['bg-secondary'] + '99',
         borderColor: themeColors[theme]['border'],
-        borderWidth: 1,
-        opacity: isUpdatingStatus ? 0.5 : 1
+        borderWidth: 1
       }}
     >
       <TextCustom
@@ -43,9 +40,7 @@ const EventStatusIndicator = ({
               : themeColors[theme]['intent-warning']
         }
       >
-        {isUpdatingStatus
-          ? '...'
-          : eventStatus.charAt(0).toUpperCase() + eventStatus.slice(1)}
+        {eventStatus.charAt(0).toUpperCase() + eventStatus.slice(1)}
       </TextCustom>
     </View>
   );

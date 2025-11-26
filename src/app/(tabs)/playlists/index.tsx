@@ -10,8 +10,6 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import CreatePlaylistButton from '@/components/playlists/CreatePlaylistButton';
 import CreatePlaylistModal from '@/components/playlists/CreatePlaylistModal';
 import PlaylistCard from '@/components/playlists/PlaylistCard';
@@ -20,7 +18,9 @@ import RippleButton from '@/components/ui/buttons/RippleButton';
 import TabButton from '@/components/ui/buttons/TabButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -35,7 +35,6 @@ import { UserProfile } from '@/utils/firebase/firebase-service-user';
 const PlaylistsScreen = () => {
   const { theme } = useTheme();
   const { user, profile } = useUser();
-  const { currentTrack } = usePlaybackState();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -46,8 +45,13 @@ const PlaylistsScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Add padding when mini player is visible
+  const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   const loadPlaylists = useCallback(

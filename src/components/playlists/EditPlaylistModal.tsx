@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import SwipeModal from '@/components/ui/SwipeModal';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';

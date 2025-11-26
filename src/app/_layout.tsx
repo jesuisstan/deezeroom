@@ -18,10 +18,11 @@ import {
 } from 'urql';
 
 import DeezeroomApp from '@/components/DeezeroomApp';
-import AlertModule from '@/components/modules/alert/AlertModule';
-import LoggerModule from '@/components/modules/logger/LoggerModule';
-import NotifierModule from '@/components/modules/notifier/NotifierModule';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import { getGraphQLUrl } from '@/graphql/utils';
+import AlertModule from '@/modules/alert/AlertModule';
+import LoggerModule from '@/modules/logger/LoggerModule';
+import NotifierModule from '@/modules/notifier/NotifierModule';
 import { NetworkProvider } from '@/providers/NetworkProvider';
 import { NotificationsProvider } from '@/providers/NotificationsProvider';
 import { PlaybackProvider } from '@/providers/PlaybackProvider';
@@ -30,8 +31,9 @@ import { UserProvider } from '@/providers/UserProvider';
 
 import '@/global.css';
 
+// Initialize GraphQL client with platform-specific URL
 const urqlClient = new UrqlClient({
-  url: process.env.EXPO_PUBLIC_APP_URL + '/api/graphql',
+  url: getGraphQLUrl(),
   exchanges: [cacheExchange, fetchExchange]
 });
 

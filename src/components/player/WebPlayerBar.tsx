@@ -12,7 +12,7 @@ import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { getAlbumCover } from '@/utils/image-utils';
 
-const WEB_BOTTOM_OFFSET = 55;
+const WEB_BOTTOM_OFFSET = 52;
 const WEB_HORIZONTAL_PADDING = 28;
 
 const WebPlayerBar = () => {

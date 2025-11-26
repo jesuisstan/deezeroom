@@ -12,9 +12,9 @@ import { Animated, Easing, Platform, Pressable, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
-import { Logger } from '@/components/modules/logger/LoggerModule';
 import IconButton from '@/components/ui/buttons/IconButton';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 
@@ -169,7 +169,8 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        pointerEvents: 'box-none'
+        pointerEvents: 'box-none',
+        userSelect: 'none'
       }}
     >
       <View
@@ -234,14 +235,13 @@ export const NotifierModule = forwardRef<NotifierRef>((_, ref) => {
               </View>
               {/* Text content with title */}
               <View style={{ flex: 1 }}>
-                {state.title ? (
-                  <TextCustom
-                    type="bold"
-                    color={themeColors[theme]['text-main']}
-                  >
-                    {state.title}
-                  </TextCustom>
-                ) : null}
+                <TextCustom
+                  type="bold"
+                  color={themeColors[theme]['text-main']}
+                  style={{ display: state.title ? 'flex' : 'none' }}
+                >
+                  {state.title || ''}
+                </TextCustom>
                 <TextCustom
                   type="default"
                   color={themeColors[theme]['text-main']}

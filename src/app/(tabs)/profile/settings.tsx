@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { Image, Platform, ScrollView, View } from 'react-native';
 
 import ChangePasswordSection from '@/components/profile-users/ChangePasswordSection';
 import ConnectedAccountsSection from '@/components/profile-users/ConnectedAccountsSection';
@@ -8,7 +8,7 @@ import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import LineButton from '@/components/ui/buttons/LineButton';
 import Divider from '@/components/ui/Divider';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
 import useContactSupport from '@/hooks/useContactSupport';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useUser } from '@/providers/UserProvider';
@@ -21,7 +21,11 @@ const ProfileSettingsScreen: FC = () => {
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState();
   const bottomPadding = useMemo(() => {
-    return currentTrack ? MINI_PLAYER_HEIGHT : 0; // Mini player height
+    return currentTrack
+      ? Platform.OS === 'web'
+        ? 16 + MINI_PLAYER_HEIGHT
+        : MINI_PLAYER_HEIGHT
+      : 0;
   }, [currentTrack]);
 
   return !profile ? (

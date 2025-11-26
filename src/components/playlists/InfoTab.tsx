@@ -99,7 +99,7 @@ const InfoTab: FC<InfoTabProps> = ({ playlist }) => {
 
   return (
     <ScrollView
-      className="h-full w-full flex-1"
+      className="h-full w-full flex-1 select-none"
       style={{
         backgroundColor:
           playlist.visibility === 'public'

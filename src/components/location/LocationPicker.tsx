@@ -11,12 +11,12 @@ import { Platform, ScrollView, TouchableOpacity, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ExpoLocation from 'expo-location';
 
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger/LoggerModule';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import Divider from '@/components/ui/Divider';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger/LoggerModule';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 

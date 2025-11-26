@@ -4,16 +4,16 @@ import { ActivityIndicator, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useClient, useQuery } from 'urql';
 
-import { Alert } from '@/components/modules/alert';
-import { Logger } from '@/components/modules/logger';
 import TrackCard from '@/components/search-tracks/TrackCard';
 import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import InputCustom from '@/components/ui/InputCustom';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { LIMIT_DEFAULT } from '@/constants/deezer';
+import { LIMIT_DEFAULT } from '@/graphql/constants';
 import { GET_POPULAR_TRACKS, SEARCH_TRACKS } from '@/graphql/queries';
-import { Track } from '@/graphql/schema';
+import { Track } from '@/graphql/types-return';
+import { Alert } from '@/modules/alert';
+import { Logger } from '@/modules/logger';
 import { useNetwork } from '@/providers/NetworkProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
@@ -315,7 +315,16 @@ const SearchTracksComponent = ({
 
       {/* Offline indicator */}
       {!isOnline && (
-        <View className="bg-intent-warning/10 mb-2 rounded-md p-4">
+        <View
+          style={{
+            margin: 16,
+            borderRadius: 6,
+            padding: 16,
+            backgroundColor: themeColors[theme]['intent-warning'] + '22',
+            borderWidth: 1,
+            borderColor: themeColors[theme]['intent-warning']
+          }}
+        >
           <TextCustom color={themeColors[theme]['intent-warning']}>
             Offline mode - showing cached data only. Search and pagination will
             use cached results.
@@ -325,7 +334,16 @@ const SearchTracksComponent = ({
 
       {/* Error display */}
       {error && (
-        <View className="bg-intent-error/10 mb-2 rounded-md p-4">
+        <View
+          style={{
+            margin: 16,
+            borderRadius: 6,
+            padding: 16,
+            backgroundColor: themeColors[theme]['intent-error'] + '22',
+            borderWidth: 1,
+            borderColor: themeColors[theme]['intent-error']
+          }}
+        >
           <TextCustom color={themeColors[theme]['intent-error']}>
             Error: {error.message}
           </TextCustom>

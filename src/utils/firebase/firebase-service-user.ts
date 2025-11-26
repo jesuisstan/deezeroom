@@ -17,7 +17,7 @@ import {
   where
 } from 'firebase/firestore';
 
-import { Logger } from '@/components/modules/logger';
+import { Logger } from '@/modules/logger';
 import { getFirebaseErrorMessage } from '@/utils/firebase/firebase-error-handler';
 import { db } from '@/utils/firebase/firebase-init';
 import { setPublicProfileDoc } from '@/utils/firebase/firebase-service-profiles';
@@ -416,6 +416,18 @@ export class UserService {
         '🔥 Firebase UserService'
       );
     }
+  }
+
+  // Update user location (convenience method)
+  static async updateUserLocation(
+    uid: string,
+    location: NonNullable<UserProfile['privateInfo']>['location']
+  ): Promise<void> {
+    return this.updateUserProfile(uid, {
+      privateInfo: {
+        location
+      }
+    } as Partial<UserProfile>);
   }
 
   // Update auth providers information for existing user

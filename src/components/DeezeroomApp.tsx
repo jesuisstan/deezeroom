@@ -115,6 +115,17 @@ const DeezeroomApp = () => {
           />
         </Stack.Protected>
 
+        {/* About screen available for all users */}
+        <Stack.Screen
+          name="about"
+          options={{
+            presentation: 'transparentModal',
+            headerShown: false,
+            animation: 'slide_from_bottom',
+            contentStyle: { backgroundColor: 'transparent' }
+          }}
+        />
+
         {/* Fallback screen */}
         <Stack.Screen name="+not-found" options={{ headerShown: false }} />
       </Stack>

@@ -17,7 +17,7 @@ const PlayedTrackCard: FC<PlayedTrackCardProps> = ({ playedTrack }) => {
 
   return (
     <View
-      className="flex-row items-center gap-3 rounded-lg border p-3"
+      className="flex-row items-center gap-3 rounded-lg border px-4 py-2"
       style={{
         backgroundColor: themeColors[theme]['bg-secondary'],
         borderColor: themeColors[theme]['border']
@@ -62,11 +62,19 @@ const PlayedTrackCard: FC<PlayedTrackCardProps> = ({ playedTrack }) => {
         <MaterialCommunityIcons
           name="vote"
           size={16}
-          color={themeColors[theme]['text-secondary']}
+          color={
+            playedTrack.voteCount > 0
+              ? themeColors[theme]['primary']
+              : themeColors[theme]['text-secondary']
+          }
         />
         <TextCustom
           size="xs"
-          color={themeColors[theme]['text-secondary']}
+          color={
+            playedTrack.voteCount > 0
+              ? themeColors[theme]['primary']
+              : themeColors[theme]['text-secondary']
+          }
           type="semibold"
         >
           {playedTrack.voteCount}

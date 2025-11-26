@@ -26,6 +26,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
 
   const { width } = Dimensions.get('window');
   const cardWidth = Math.min(width / 3.5, 200); // For web compatibility
+  const isWideScreen = Platform.OS === 'web' && width >= 768;
 
   const getCardBackgroundColor = () => {
     return playlist.visibility === 'public'
@@ -136,7 +137,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
               >
                 <MaterialCommunityIcons
                   name={playlist.visibility === 'public' ? 'earth' : 'lock'}
-                  size={Platform.OS === 'web' ? 42 : 18}
+                  size={isWideScreen ? 42 : 21}
                   color={themeColors[theme]['white']}
                 />
               </View>
@@ -159,7 +160,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
                       ? 'account-group'
                       : 'account-plus'
                   }
-                  size={Platform.OS === 'web' ? 42 : 18}
+                  size={isWideScreen ? 42 : 21}
                   color={themeColors[theme]['white']}
                 />
               </View>

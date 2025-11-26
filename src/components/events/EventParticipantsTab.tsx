@@ -16,11 +16,13 @@ import {
 interface EventParticipantsTabProps {
   hostIds: string[];
   participantIds: string[];
+  eventVisibility: 'public' | 'private' | undefined;
 }
 
 const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
   hostIds,
-  participantIds
+  participantIds,
+  eventVisibility
 }) => {
   const { theme } = useTheme();
   const router = useRouter();
@@ -85,8 +87,13 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
 
   return (
     <ScrollView
-      className="h-full w-full flex-1"
-      style={{ backgroundColor: themeColors[theme]['bg-secondary'] }}
+      className="h-full w-full flex-1 select-none"
+      style={{
+        backgroundColor:
+          eventVisibility === 'public'
+            ? themeColors[theme].primary + '20'
+            : themeColors[theme]['intent-success'] + '20'
+      }}
       contentContainerStyle={{
         padding: Platform.OS === 'web' ? 32 : 16,
         gap: 16
@@ -107,7 +114,7 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
             Loading...
           </TextCustom>
         ) : (
-          <View className="gap-2">
+          <View className="flex-row flex-wrap gap-2">
             {hostIds.map((hostId) => (
               <UserChip
                 key={hostId}
@@ -154,11 +161,7 @@ const EventParticipantsTab: FC<EventParticipantsTabProps> = ({
             </TextCustom>
           </TextCustom>
           <View className="flex-row flex-wrap gap-2">
-            {otherParticipantIds.map((userId) => (
-              <View key={userId} className="max-w-[48%] flex-shrink">
-                {renderParticipant(userId)}
-              </View>
-            ))}
+            {otherParticipantIds.map((userId) => renderParticipant(userId))}
           </View>
         </View>
       ) : (

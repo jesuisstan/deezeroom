@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 
 import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
+import RippleButton from '@/components/ui/buttons/RippleButton';
 import FeatureTile from '@/components/ui/FeatureTile';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Track } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { Track } from '@/graphql/types-return';
 import {
   usePlaybackActions,
   usePlaybackState,
@@ -90,6 +92,20 @@ const HomeScreen = () => {
               welcome to the party
             </TextCustom>
           </View>
+
+          <RippleButton
+            title="About"
+            variant="ghost"
+            onPress={() => router.push('/about' as any)}
+            size="sm"
+            leftIcon={
+              <MaterialCommunityIcons
+                name="information"
+                size={21}
+                color={themeColors[theme]['primary']}
+              />
+            }
+          />
 
           <TextCustom
             size="m"

@@ -2,9 +2,8 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, RefreshControl, ScrollView, View } from 'react-native';
 
 import { router, useLocalSearchParams } from 'expo-router';
+import { useClient } from 'urql';
 
-import { Logger } from '@/components/modules/logger';
-import { Notifier } from '@/components/modules/notifier';
 import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList';
 import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
 import FriendsList from '@/components/profile-users/FriendsList';
@@ -13,15 +12,16 @@ import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
-import { MINI_PLAYER_HEIGHT } from '@/constants/deezer';
-import { Track } from '@/graphql/schema';
+import { MINI_PLAYER_HEIGHT } from '@/constants';
+import { GET_ARTISTS_BY_IDS } from '@/graphql/queries';
+import type { Artist, Track } from '@/graphql/types-return';
+import { Logger } from '@/modules/logger';
+import { Notifier } from '@/modules/notifier';
 import { usePlaybackState } from '@/providers/PlaybackProvider';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUser } from '@/providers/UserProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
-import { DeezerService } from '@/utils/deezer/deezer-service';
-import type { DeezerArtist } from '@/utils/deezer/deezer-types';
 import {
   acceptFriendship,
   type ConnectionDoc,
@@ -46,6 +46,7 @@ const OtherProfileScreen: FC = () => {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { user, profile: currentUserProfile } = useUser();
   const { theme } = useTheme();
+  const urqlClient = useClient();
   const [refreshing, setRefreshing] = useState(false);
   const [publicDoc, setPublicDoc] = useState<PublicProfileDoc | null>(null);
   const [privateProfile, setPrivateProfile] = useState<UserProfile | null>(
@@ -57,7 +58,7 @@ const OtherProfileScreen: FC = () => {
   >();
   const [connection, setConnection] = useState<ConnectionDoc | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [favoriteArtists, setFavoriteArtists] = useState<DeezerArtist[]>([]);
+  const [favoriteArtists, setFavoriteArtists] = useState<Artist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
 
   // Add padding when mini player is visible
@@ -166,7 +167,7 @@ const OtherProfileScreen: FC = () => {
     };
   }, [fetchProfileSnapshot, id]);
 
-  // Load favorite artists (public) by IDs and transform to DeezerArtist shape for FavoriteArtistsList
+  // Load favorite artists (public) by IDs
   useEffect(() => {
     let active = true;
     (async () => {
@@ -180,19 +181,15 @@ const OtherProfileScreen: FC = () => {
           return;
         }
         if (active) setFavoriteArtistsLoading(true);
-        const svc = DeezerService.getInstance();
-        const artists = await svc.getArtistsByIdsViaGraphQL(ids.slice(0, 20));
+        const result = await urqlClient.query(GET_ARTISTS_BY_IDS, {
+          ids: ids.slice(0, 20)
+        });
+        if (result.error) {
+          throw result.error;
+        }
+        const artists = result.data?.artistsByIds || [];
         if (!active) return;
-        const deezerLike = artists.map((a) => ({
-          id: a.id,
-          name: a.name,
-          picture: a.picture,
-          picture_small: a.pictureSmall,
-          picture_medium: a.pictureMedium,
-          picture_big: a.pictureBig,
-          picture_xl: a.pictureXl
-        })) as DeezerArtist[];
-        setFavoriteArtists(deezerLike);
+        setFavoriteArtists(artists);
       } catch (e) {
         Logger.warn('Failed to load favorite artists', e, '👤 OtherProfile');
         if (active) setFavoriteArtists([]);
@@ -203,6 +200,7 @@ const OtherProfileScreen: FC = () => {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [publicDoc?.favoriteArtistIds]);
 
   const handlePlayTrack = (track: Track | null) => {
@@ -521,7 +519,7 @@ const OtherProfileScreen: FC = () => {
                     }
                     // Incoming request from the other user
                     return (
-                      <View className="flex-row items-center gap-2">
+                      <View className="w-full flex-row items-center gap-2">
                         <View className="flex-1">
                           <RippleButton
                             title="Accept"
@@ -610,8 +608,17 @@ const OtherProfileScreen: FC = () => {
               </View>
             </>
           ) : (
-            <View className="rounded-md border border-border bg-bg-tertiary p-4">
-              <TextCustom>
+            <View
+              className="rounded-md border border-intent-warning p-2"
+              style={{
+                backgroundColor: themeColors[theme]['intent-warning'] + '22'
+              }}
+            >
+              <TextCustom
+                className="text-center"
+                size="s"
+                color={themeColors[theme]['intent-warning']}
+              >
                 Phone, birth date, location and friends list are visible to
                 friends only.
               </TextCustom>
@@ -621,6 +628,7 @@ const OtherProfileScreen: FC = () => {
         <View className="mb-4 flex-1">
           <RippleButton
             title="Home"
+            size="md"
             onPress={() => router.push('/')}
             disabled={actionLoading}
           />

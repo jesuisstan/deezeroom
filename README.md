@@ -1,3 +1,10 @@
+# DeezerRoom
+
+A complete mobile solution focused on music and collaborative user experience. Built with React Native, Expo, Firebase, and a separate Next.js GraphQL API server.
+
+**Live API Server:** [https://deezeroom-server.vercel.app/](https://deezeroom-server.vercel.app/)  
+**Server Repository:** [https://github.com/jesuisstan/deezeroom-server](https://github.com/jesuisstan/deezeroom-server)
+
 Get started with [EAS Hosting](https://docs.expo.dev/eas/hosting/introduction/).
 
 ## Project Scripts
@@ -81,6 +88,48 @@ npx eas env:create --scope project --name FIREBASE_ADMINSDK_JSON --type file --v
 ```
 
 ## 🏗 Application Architecture
+
+### Backend Architecture
+
+DeezerRoom uses a **hybrid backend architecture** combining:
+
+- **GraphQL API Server** (Next.js) - Separate server for music data operations
+  - **Deployed at:** [https://deezeroom-server.vercel.app/](https://deezeroom-server.vercel.app/)
+  - **Repository:** [https://github.com/jesuisstan/deezeroom-server](https://github.com/jesuisstan/deezeroom-server)
+  - Provides GraphQL API endpoints for Deezer music data (tracks, artists, albums)
+  - Handles search queries, popular tracks, and batch artist fetching
+  - Built with Next.js 16, GraphQL Yoga, and TypeScript
+
+- **Firebase** - Real-time collaborative features
+  - Firestore for real-time database (events, playlists, user profiles)
+  - Firebase Authentication (email/password, Google OAuth)
+  - Firebase Storage (avatars, cover images)
+  - Cloud Messaging for push notifications
+
+**Environment Variables:**
+
+- `EXPO_PUBLIC_SERVER_URL` - URL of the GraphQL API server (defaults to `http://localhost:3000` in dev, `https://deezeroom-server.vercel.app` in production)
+- `EXPO_PUBLIC_APP_URL` - URL of the Expo app itself (for deep linking)
+
+**Development Setup:**
+
+For local development, you need to run both the client and server:
+
+1. **Start the GraphQL server:**
+
+   ```bash
+   cd deezeroom-server
+   npm run dev
+   ```
+
+   Server will be available at `http://localhost:3000/api/graphql`
+
+2. **Start the Expo client:**
+   ```bash
+   cd deezeroom
+   npm run start
+   ```
+   The client will automatically connect to the local server in dev mode.
 
 ### Navigation Flow
 
@@ -177,9 +226,27 @@ graph TD
 - **Type-safe routing** - All navigation through Expo Router with TypeScript support
 - **Fallback handling** - `+not-found` screen for invalid routes
 
+### Backend Services
+
+- **GraphQL API** (Next.js Server):
+  - `searchTracks` - Search tracks by keyword
+  - `getPopularTracks` - Get trending tracks
+  - `track` - Get track details by ID
+  - `searchArtists` - Search artists by name
+  - `artistsByIds` - Batch fetch artists by IDs
+
+- **Firebase Services**:
+  - **UserService** - Authentication and profile management
+  - **EventService** - Music Track Vote events with real-time voting
+  - **PlaylistService** - Collaborative real-time playlist editing
+  - **ConnectionsService** - Friend relationships and social features
+  - **NotificationService** - Push notifications via Expo
+  - **StorageService** - File storage and management
+
 ### New Features
 
 - **Password Reset**: Complete reset password flow with email verification
 - **Email Verification**: Mandatory email verification before app access
 - **Profile Settings**: Dedicated settings screen with stack navigation
 - **Help System**: SwipeModal and SwipeDrawer components for help content
+- **Separate API Server**: GraphQL API moved to dedicated Next.js server for better scalability and deployment
