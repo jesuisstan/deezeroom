@@ -719,8 +719,8 @@ const EventDetailScreen = () => {
                         }}
                         className="h-9 w-9"
                       >
-                        <MaterialCommunityIcons
-                          name="account-plus-outline"
+                        <Octicons
+                          name="person-add"
                           size={18}
                           color={themeColors[theme]['text-main']}
                         />

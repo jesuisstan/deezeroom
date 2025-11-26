@@ -7,6 +7,7 @@ import {
   View
 } from 'react-native';
 
+import { Octicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useClient } from 'urql';
 
@@ -14,8 +15,10 @@ import FavoriteArtistsList from '@/components/profile-users/FavoriteArtistsList'
 import FavoriteTracksList from '@/components/profile-users/FavoriteTracksList';
 import FriendsList from '@/components/profile-users/FriendsList';
 import InfoRow from '@/components/profile-users/InfoRow';
+import UserSearchModal from '@/components/profile-users/UserSearchModal';
 import ShareButton from '@/components/share/ShareButton';
 import ActivityIndicatorScreen from '@/components/ui/ActivityIndicatorScreen';
+import IconButton from '@/components/ui/buttons/IconButton';
 import RippleButton from '@/components/ui/buttons/RippleButton';
 import { TextCustom } from '@/components/ui/TextCustom';
 import { MINI_PLAYER_HEIGHT } from '@/constants';
@@ -38,6 +41,8 @@ const ProfileScreen: FC = () => {
   const [favoriteArtists, setFavoriteArtists] = useState<Artist[]>([]);
   const [favoriteArtistsLoading, setFavoriteArtistsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isUserSearchModalVisible, setIsUserSearchModalVisible] =
+    useState(false);
 
   // Add padding when mini player is visible
   const { currentTrack } = usePlaybackState(); // global playback state for mini player appeared on the bottom of the screen
@@ -258,7 +263,28 @@ const ProfileScreen: FC = () => {
           />
         </View>
 
-        <View className="rounded-md border border-border bg-bg-secondary p-4">
+        <View className="relative rounded-md border border-border bg-bg-secondary p-4">
+          <View
+            style={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              zIndex: 1
+            }}
+          >
+            <IconButton
+              accessibilityLabel="Find a friend"
+              onPress={() => setIsUserSearchModalVisible(true)}
+              className="h-9 w-9"
+              children={
+                <Octicons
+                  name="person-add"
+                  size={18}
+                  color={themeColors[theme]['primary']}
+                />
+              }
+            />
+          </View>
           <FriendsList
             uid={(profile as any)?.uid}
             friendIds={profile?.friendIds}
@@ -290,6 +316,13 @@ const ProfileScreen: FC = () => {
           </View>
         )}
       </View>
+
+      {/* User Search Modal */}
+      <UserSearchModal
+        visible={isUserSearchModalVisible}
+        onClose={() => setIsUserSearchModalVisible(false)}
+        excludeUserId={user?.uid}
+      />
     </ScrollView>
   );
 };
