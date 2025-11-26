@@ -1,6 +1,6 @@
 # Siege scenarios for deezeroom GraphQL API
 
-All endpoints target the production GraphQL gateway at `https://deezeroom.expo.app/api/graphql`. Siege always needs an explicit content-type header for these JSON payloads:
+All endpoints target the production GraphQL gateway at `https://deezeroom-server.vercel.app/api/graphql`. Siege always needs an explicit content-type header for these JSON payloads:
 
 ```bash
 siege -H 'Content-Type: application/json' -f load-testing/siege/popular-tracks.siege
@@ -14,6 +14,9 @@ siege -H 'Content-Type: application/json' -f load-testing/siege/popular-tracks.s
 | `search-mix.siege` | Mixes two paginated `searchTracks` queries and one `searchArtists` call to emulate user discovery. |
 | `track-details.siege` | Sequentially fetches a track by ID and then the artist metadata via `artistsByIds`. |
 | `full-schema.siege` | Single request that hits every resolver with the full selection set to stress GraphQL serialization. |
+| `search-pagination.siege` | Focuses on deep pagination for a single query to surface Deezer/GraphQL latency spikes. |
+| `artists-batch.siege` | Sends different `artistsByIds` batch sizes to mimic favorite-artists hydration. |
+| `track-flow.siege` | A realistic flow: search → track details → load related artists. |
 
 ## Running examples
 
@@ -37,6 +40,23 @@ siege -H 'Content-Type: application/json' -f load-testing/siege/popular-tracks.s
   ```bash
   siege -c 10 -r 20 -H 'Content-Type: application/json' \
     --log=siege-full.log -f load-testing/siege/full-schema.siege
+  ```
+- Deep pagination burst (`searchTracks` only, random order, bypass cache):
+  ```bash
+  siege -c 12 -r 25 -i \
+    -H 'Content-Type: application/json' \
+    -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+    --log=siege-pagination.log -f load-testing/siege/search-pagination.siege
+  ```
+- Artist batch hydration:
+  ```bash
+  siege -c 6 -t 4M -H 'Content-Type: application/json' \
+    --log=siege-artists.log -f load-testing/siege/artists-batch.siege
+  ```
+- Search → detail → artists flow with pacing:
+  ```bash
+  siege -c 10 -d1 -t 5M -H 'Content-Type: application/json' \
+    --log=siege-track-flow.log -f load-testing/siege/track-flow.siege
   ```
 
 Always monitor GraphQL logs, Deezer API quotas, and Firebase usage while running these tests. Stop immediately if you start seeing elevated `4xx/5xx` responses or latency spikes.

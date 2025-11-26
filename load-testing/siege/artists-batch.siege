@@ -1,0 +1,4 @@
+# Stress artistsByIds resolver with different batch sizes
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query ArtistsBatch($ids:[ID!]!){artistsByIds(ids:$ids){id name pictureSmall pictureMedium pictureBig}}","variables":{"ids":["27","412","246791"]}}
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query ArtistsBatch($ids:[ID!]!){artistsByIds(ids:$ids){id name pictureSmall pictureMedium pictureBig}}","variables":{"ids":["13","525","1032487","400"]}}
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query ArtistsBatch($ids:[ID!]!){artistsByIds(ids:$ids){id name pictureSmall pictureMedium pictureBig}}","variables":{"ids":["224","755","1200","813","546"]}}

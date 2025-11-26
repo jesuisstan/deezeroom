@@ -1,0 +1,4 @@
+# Combined flow: search track -> open detail -> hydrate related artists
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query SearchTracks($query:String!,$limit:Int){searchTracks(query:$query,limit:$limit,index:0){tracks{id title artist{id name}}}}","variables":{"query":"Linkin Park","limit":5}}
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query GetTrack($id:ID!){track(id:$id){id title artist{id name id} album{id title coverSmall}}}","variables":{"id":"3135556"}}
+https://deezeroom-server.vercel.app/api/graphql POST {"query":"query ArtistsByIds($ids:[ID!]!){artistsByIds(ids:$ids){id name pictureSmall}}","variables":{"ids":["27","92"]}}
