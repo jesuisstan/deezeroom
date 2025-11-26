@@ -46,7 +46,8 @@ const DeezeroomApp = () => {
           <Stack.Screen
             name="(tabs)"
             options={{
-              headerShown: false
+              headerShown: false,
+              animation: 'fade'
             }}
           />
 
@@ -54,7 +55,7 @@ const DeezeroomApp = () => {
             name="notifications"
             options={{
               headerShown: false,
-              animation: 'slide_from_right'
+              animation: 'fade'
             }}
           />
 

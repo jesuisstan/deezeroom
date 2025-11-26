@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Fontisto from '@expo/vector-icons/Fontisto';
 import { useRouter } from 'expo-router';
 
 import IconButton from '@/components/ui/buttons/IconButton';
@@ -21,8 +21,8 @@ const NotificationsButton = () => {
         accessibilityLabel="Open notifications"
         onPress={() => router.push('/notifications')}
       >
-        <MaterialCommunityIcons
-          name={badgeCount > 0 ? 'bell' : 'bell-outline'}
+        <Fontisto
+          name={badgeCount > 0 ? 'bell-alt' : 'bell'}
           size={22}
           color={themeColors[theme]['text-main']}
         />

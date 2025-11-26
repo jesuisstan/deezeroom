@@ -8,6 +8,7 @@ import React, {
   useState,
   useSyncExternalStore
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import type { AudioStatus } from 'expo-audio';
 import {
@@ -119,6 +120,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
   const didFinishHandledRef = useRef(false);
   const queueRef = useRef<Track[]>([]);
   const repeatModeRef = useRef<RepeatMode>('off');
+  const wasPlayingBeforeBackgroundRef = useRef(false);
 
   const setPlaybackIntent = useCallback((intent: boolean) => {
     playbackIntentRef.current = intent;
@@ -315,6 +317,60 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
     return () => clearInterval(checkInterval);
   }, [currentTrack, playbackIntent, handleStatusChange]);
 
+  // Handle app state changes to resume playback after screen unlock
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App returned to foreground
+        // Resume playback if it was playing before going to background
+        if (
+          wasPlayingBeforeBackgroundRef.current &&
+          currentTrackRef.current &&
+          !playbackIntentRef.current
+        ) {
+          const status = statusRef.current;
+          // Only resume if track is loaded and not finished
+          if (
+            status &&
+            !status.didJustFinish &&
+            status.duration &&
+            status.currentTime !== undefined &&
+            status.currentTime < status.duration - 0.5
+          ) {
+            try {
+              setPlaybackIntent(true);
+              autoPlayRef.current = true;
+              player.play();
+            } catch (resumeError) {
+              console.warn(
+                '[PlaybackProvider] Failed to resume playback after unlock',
+                resumeError
+              );
+              setPlaybackIntent(false);
+              autoPlayRef.current = false;
+            }
+          }
+        }
+        wasPlayingBeforeBackgroundRef.current = false;
+      } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // App went to background or became inactive (screen locked)
+        // Save current playback state
+        if (playbackIntentRef.current && currentTrackRef.current) {
+          wasPlayingBeforeBackgroundRef.current = true;
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [player, setPlaybackIntent]);
+
   // Clear playback state when user logs out
   useEffect(() => {
     if (!user) {
@@ -334,6 +390,7 @@ const PlaybackProvider = ({ children }: { children: React.ReactNode }) => {
       currentTrackRef.current = null;
       currentIndexRef.current = -1;
       queueRef.current = [];
+      wasPlayingBeforeBackgroundRef.current = false;
     }
   }, [user, player, setPlaybackIntent]);
 

@@ -159,7 +159,7 @@ const TrackCard: FC<TrackCardProps> = ({
                 onPress={handleRemove}
                 className="h-9 w-9"
               >
-                <Octicons name="trash" size={20} color={colors.intentError} />
+                <Octicons name="trash" size={18} color={colors.intentError} />
               </IconButton>
             )}
             <IconButton
