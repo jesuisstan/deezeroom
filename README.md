@@ -256,5 +256,5 @@ graph TD
 
 ### Android APK files
 
-- **DEV build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/ed9fd1cd-c411-4beb-a4e2-275b47ac24e4) to download the file
-- **PRODUCTION build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/1742e765-25c2-4de3-8963-eb072d363bb4) to download the file
+- **DEV build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/d4dc8826-0368-4636-b5c2-bfc04b90c485) to download the file
+- **PRODUCTION build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/dfb92ecb-4bfc-41b5-87df-a67b3bd863d3) to download the file
