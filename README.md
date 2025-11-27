@@ -1,4 +1,4 @@
-# DeezerRoom
+# DeezerRoom 
 
 A complete mobile solution focused on music and collaborative user experience. Built with React Native, Expo, Firebase, and a separate Next.js GraphQL API server.
 
@@ -256,8 +256,9 @@ graph TD
 
 ### Important links
 
-- **Android DEV build apk**: Version 2.54.1, 26/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/d4dc8826-0368-4636-b5c2-bfc04b90c485) the .apk file
-- **Android PRODUCTION build apk**: Version 2.54.2, 27/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/dfb92ecb-4bfc-41b5-87df-a67b3bd863d3) the .apk file
-- **DeezeRoom WEB App**: dep;oyed on Expo available [here](https://deezeroom.expo.app)
-- **DeezeRoom graphQL API (server)**: deployed on Vercel, available [here](https://deezeroom-server.vercel.app/)
+- **Android DEV build apk**: version 2.54.1, 26/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/d4dc8826-0368-4636-b5c2-bfc04b90c485) the .apk file
+- **Android PRODUCTION build apk**: version 2.54.2, 27/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/4afdc100-94ae-44ae-a3b2-6611e0a32865) the .apk file
+- **DeezeRoom WEB App**: Github [codebase](https://github.com/jesuisstan/deezeroom). Deployed on Expo, available [here](https://deezeroom.expo.app)
+- **DeezeRoom graphQL API (server)**: Github [codebase](https://github.com/jesuisstan/deezeroom-server). Deployed on Vercel, available [here](https://deezeroom-server.vercel.app/)
 - **Firebase console**: available [here](https://console.firebase.google.com/u/0/project/deezeroom-1bc3c/firestore/databases/-default-/data/)
+- **EXPO dev project**: Expo development console is available [here](https://expo.dev/accounts/jesuisstan/projects/deezeroom)
