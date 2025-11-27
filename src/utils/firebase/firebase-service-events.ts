@@ -829,15 +829,16 @@ export class EventService {
     }
 
     // Public + everyone: everyone can add tracks
-    // (geofence check is handled on client side, but requires participant status for now)
-    if (event.geofence) {
-      return event.participantIds?.includes(userId) ?? false;
-    }
-
+    // Geofence check is handled on client side, so we allow all authenticated users
+    // The client will verify geofence before allowing track addition
     return true;
   }
 
   static canUserVoteWithEvent(event: Event, userId: string): boolean {
+    if (!this.hasEventStarted(event)) {
+      return false;
+    }
+
     if (this.hasEventEnded(event)) {
       return false;
     }
@@ -858,12 +859,8 @@ export class EventService {
     }
 
     // Public + everyone: everyone can vote
-    // (geofence check is handled on client side, but requires participant status for now)
-    if (event.geofence) {
-      return event.participantIds?.includes(userId) ?? false;
-    }
-
-    // Public + everyone: everyone can vote
+    // Geofence check is handled on client side, so we allow all authenticated users
+    // The client will verify geofence before allowing vote
     return true;
   }
 
@@ -1004,6 +1001,49 @@ export class EventService {
     Logger.info(
       'Hosting rights delegated',
       { eventId, from: currentHostId, to: newHostId },
+      '🔥 Firebase EventService'
+    );
+  }
+
+  // ===== LEAVE EVENT =====
+
+  static async leaveEvent(eventId: string, userId: string): Promise<void> {
+    const eventRef = doc(db, this.collection, eventId);
+
+    await runTransaction(db, async (transaction) => {
+      const eventSnap = await transaction.get(eventRef);
+      if (!eventSnap.exists()) {
+        throw new Error('Event not found');
+      }
+
+      const event = this.deserializeEventDoc(eventSnap.id, eventSnap.data());
+
+      // Check if user is a host
+      if (event.hostIds?.includes(userId)) {
+        throw new Error(
+          'Hosts cannot leave events. Please delegate hosting rights to another participant first.'
+        );
+      }
+
+      // Check if user is a participant
+      if (!event.participantIds?.includes(userId)) {
+        throw new Error('You are not a participant in this event');
+      }
+
+      // Remove user from participantIds
+      const updatedParticipantIds = event.participantIds.filter(
+        (id) => id !== userId
+      );
+
+      transaction.update(eventRef, {
+        participantIds: updatedParticipantIds,
+        updatedAt: serverTimestamp()
+      });
+    });
+
+    Logger.info(
+      'User left event',
+      { eventId, userId },
       '🔥 Firebase EventService'
     );
   }

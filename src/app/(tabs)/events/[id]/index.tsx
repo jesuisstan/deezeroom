@@ -66,6 +66,7 @@ const EventDetailScreen = () => {
   const [screenWidth, setScreenWidth] = useState(
     Dimensions.get('window').width
   );
+
   const [routes] = useState([
     { key: 'cover', title: 'Cover' },
     { key: 'info', title: 'Info' },
@@ -272,6 +273,11 @@ const EventDetailScreen = () => {
   const isHost = useMemo(() => {
     if (!event || !user) return false;
     return event.hostIds.includes(user.uid);
+  }, [event, user]);
+
+  const isParticipant = useMemo(() => {
+    if (!event || !user) return false;
+    return event.participantIds.includes(user.uid);
   }, [event, user]);
 
   const handleBack = () => {
@@ -570,6 +576,24 @@ const EventDetailScreen = () => {
     }
   };
 
+  const handleLeaveEvent = async () => {
+    if (!event || !user) return;
+    Alert.confirm(
+      'Leave Event',
+      'Are you sure you want to leave this event?',
+      async () => {
+        await EventService.leaveEvent(event.id, user.uid).catch((error) => {
+          Logger.error('Error leaving event:', error);
+          Notifier.shoot({
+            type: 'error',
+            title: 'Error',
+            message: error?.message || 'Failed to leave event'
+          });
+        });
+      }
+    );
+  };
+
   if (isLoading) {
     return <ActivityIndicatorScreen />;
   }
@@ -726,6 +750,19 @@ const EventDetailScreen = () => {
                         />
                       </IconButton>
                     </>
+                  )}
+                  {isParticipant && !isHost && (
+                    <IconButton
+                      accessibilityLabel="Leave event"
+                      onPress={handleLeaveEvent}
+                      className="h-9 w-9"
+                    >
+                      <Ionicons
+                        name="exit-outline"
+                        size={18}
+                        color={themeColors[theme]['text-main']}
+                      />
+                    </IconButton>
                   )}
                 </View>
               )}

@@ -863,28 +863,33 @@ const EventMonitor = memo(
                     />
                   </IconButton>
                 )}
-                {!isEventEnded && !isHost && (
-                  /* Participant: Listening toggle button */
+                {!isEventEnded && !isHost && isListening && (
+                  /* Participant: Listening toggle button (active) */
                   <IconButton
-                    accessibilityLabel={
-                      isListening ? 'Stop listening' : 'Start listening'
-                    }
+                    accessibilityLabel={'Stop listening'}
                     onPress={handleToggleListening}
-                    className="h-12 w-12"
-                    backgroundColor={
-                      isListening
-                        ? themeColors[theme]['primary']
-                        : themeColors[theme]['bg-tertiary']
-                    }
+                    className="h-12 w-12 animate-pulse"
+                    backgroundColor={themeColors[theme]['intent-success']}
                   >
                     <MaterialCommunityIcons
-                      name={isListening ? 'broadcast' : 'broadcast-off'}
+                      name={'broadcast'}
                       size={24}
-                      color={
-                        isListening
-                          ? themeColors[theme]['text-inverse']
-                          : themeColors[theme]['text-secondary']
-                      }
+                      color={themeColors[theme]['text-inverse']}
+                    />
+                  </IconButton>
+                )}
+                {!isEventEnded && !isHost && !isListening && (
+                  /* Participant: Listening toggle button (inactive) */
+                  <IconButton
+                    accessibilityLabel={'Start listening'}
+                    onPress={handleToggleListening}
+                    className="h-12 w-12"
+                    backgroundColor={themeColors[theme]['bg-tertiary']}
+                  >
+                    <MaterialCommunityIcons
+                      name={'broadcast-off'}
+                      size={24}
+                      color={themeColors[theme]['text-secondary']}
                     />
                   </IconButton>
                 )}

@@ -3,7 +3,7 @@ module.exports = () => ({
     name: 'deezeroom',
     owner: 'jesuisstan',
     slug: 'deezeroom',
-    version: '2.54.0',
+    version: '2.54.1',
     orientation: 'portrait',
     icon: './src/assets/images/icon.png',
     scheme: 'deezeroom',

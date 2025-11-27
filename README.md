@@ -17,7 +17,11 @@ Get started with [EAS Hosting](https://docs.expo.dev/eas/hosting/introduction/).
 
 `npm run start:clear` → Start Expo server with cache cleared.
 
-`npm run start:tunnel` → Start server using a tunnel (for external devices).
+`npm run start:tunnel` → Start server using a tunnel (for external devices). Before running, ensure that `ngrok` is installed.
+
+```bash
+npm i -g @expo/ngrok
+```
 
 `npm run start:tunnel:clear` → Start tunnel with cache cleared.
 
@@ -33,12 +37,6 @@ Get started with [EAS Hosting](https://docs.expo.dev/eas/hosting/introduction/).
 
 `npm run lint:fix` → Run ESLint with automatic fixes for code style issues.
 
-`npm run format` → Format all files with Prettier (enforces LF line endings).
-
-`npm run format:check` → Check if all files are properly formatted without making changes.
-
-`npm run fix:line-endings` → Convert all files to use LF line endings (Unix-style).
-
 `npm run verify:deps` → Verify that installed dependencies match Expo SDK requirements.
 
 `npm run verify:lockfile` → Dry-run installation to ensure `package-lock.json` is valid and consistent.
@@ -47,7 +45,7 @@ Get started with [EAS Hosting](https://docs.expo.dev/eas/hosting/introduction/).
 
 `npm run clean` → Remove all generated folders (`node_modules`, lockfile, Expo, Android/iOS/web builds).
 
-`npm run c:i` → Clean the project and reinstall dependencies from scratch.
+`npm run fresh` → Clean the project and reinstall dependencies from scratch.
 
 ### 📦 Building
 
@@ -163,17 +161,26 @@ graph TD
     G9 --> G10["Firebase Auth"]
     G10 --> E
 
-    H --> H1["(tabs)/_layout.tsx<br/>(Main App)"]
-    H1 --> H2["(tabs)/index.tsx"]
-    H1 --> H3["(tabs)/events.tsx"]
-    H1 --> H4["(tabs)/playlists.tsx"]
-    H1 --> H5["Profile Button"]
-    H5 --> H6["profile/_layout.tsx"]
-    H6 --> H7["profile/index.tsx"]
-    H6 --> H8["profile/settings.tsx"]
-    H7 --> H9["Sign Out Button"]
-    H9 --> H10["UserProvider.signOut()"]
-    H10 --> E
+    H --> H1["(tabs)/_layout.tsx<br/>(Tabs Navigator)"]
+    H1 --> H2["(tabs)/index.tsx<br/>(Home Tab)"]
+    H1 --> H3["(tabs)/events/index.tsx<br/>(Events Tab)"]
+    H1 --> H4["(tabs)/playlists/index.tsx<br/>(Playlists Tab)"]
+    H1 --> H5["(tabs)/profile/index.tsx<br/>(Profile Tab)"]
+
+    H5 --> H6["(tabs)/profile/_layout.tsx<br/>(Stack Navigator)"]
+    H6 --> H7["profile/index.tsx<br/>(Profile Screen)"]
+    H6 --> H8["profile/settings.tsx<br/>(Settings Screen)"]
+    H6 --> H9["profile/edit-profile.tsx<br/>(Edit Profile Screen)"]
+
+    H7 --> H10["Sign Out Button"]
+    H10 --> H11["UserProvider.signOut()"]
+    H11 --> E
+
+    H --> H12["notifications/index.tsx<br/>(Notifications Screen)"]
+    H --> H13["player.tsx<br/>(Player Modal)"]
+    H --> H14["users/[id]/index.tsx<br/>(Other User Profile)"]
+
+    H --> H15["about/index.tsx<br/>(About Screen - Available to all)"]
 
     I --> I1["verify-email.tsx<br/>(EmailVerificationScreen)"]
     I1 --> I2["Resend verification"]
@@ -191,6 +198,7 @@ graph TD
     style G5 fill:#fff3e0
     style G7 fill:#fff3e0
     style H1 fill:#e8f5e8
+    style H6 fill:#e8f5e8
     style H7 fill:#e8f5e8
     style I1 fill:#e1f5fe
     style E fill:#fab1a0
@@ -213,8 +221,11 @@ graph TD
 2. **Unauthenticated**: Protected by `guard={!isAuthenticated}`
    - `/auth/*` - All authentication screens
 3. **Authenticated + Email Verified**: Protected by `guard={isAuthenticated && isEmailVerified}`
-   - `/(tabs)/*` - Main app with tab navigation
-   - `/profile/*` - Profile screens with stack navigation
+   - `/(tabs)/*` - Main app with tab navigation (includes profile tab with nested stack)
+   - `/notifications` - Notifications screen
+   - `/player` - Player modal
+   - `/users/[id]` - Other user profiles
+   - `/about` - About screen (available to all authenticated users)
 4. **Authenticated + Email NOT Verified**: Protected by `guard={isAuthenticated && !isEmailVerified}`
    - `/verify-email` - Email verification screen
 
@@ -236,17 +247,14 @@ graph TD
   - `artistsByIds` - Batch fetch artists by IDs
 
 - **Firebase Services**:
-  - **UserService** - Authentication and profile management
-  - **EventService** - Music Track Vote events with real-time voting
-  - **PlaylistService** - Collaborative real-time playlist editing
-  - **ConnectionsService** - Friend relationships and social features
-  - **NotificationService** - Push notifications via Expo
-  - **StorageService** - File storage and management
+  - **UserService** (`firebase-service-user.ts`) - Authentication and profile management
+  - **EventService** (`firebase-service-events.ts`) - Music Track Vote events with real-time voting
+  - **PlaylistService** (`firebase-service-playlists.ts`) - Collaborative real-time playlist editing
+  - **Connections** (`firebase-service-connections.ts`) - Friend relationships and social features (functions, not a class)
+  - **NotificationService** (`firebase-service-notifications.ts`) - Push notifications via Expo (singleton instance)
+  - **StorageService** (`firebase-service-storage.ts`) - File storage and management
 
-### New Features
+### Android APK files
 
-- **Password Reset**: Complete reset password flow with email verification
-- **Email Verification**: Mandatory email verification before app access
-- **Profile Settings**: Dedicated settings screen with stack navigation
-- **Help System**: SwipeModal and SwipeDrawer components for help content
-- **Separate API Server**: GraphQL API moved to dedicated Next.js server for better scalability and deployment
+- **DEV build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/ed9fd1cd-c411-4beb-a4e2-275b47ac24e4) to download the file
+- **PRODUCTION build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/1742e765-25c2-4de3-8963-eb072d363bb4) to download the file
