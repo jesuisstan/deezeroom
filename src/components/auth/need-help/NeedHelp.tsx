@@ -144,15 +144,47 @@ const NeedHelp = () => {
     </View>
   );
 
+  const BackToHelpButton = () => (
+    <RippleButton
+      title="Back to Help"
+      size="md"
+      variant="outline"
+      width="full"
+      onPress={slideBackToMain}
+      leftIcon={
+        <Entypo
+          name="chevron-thin-left"
+          size={19}
+          color={themeColors[theme]['text-secondary']}
+        />
+      }
+    />
+  );
+
   const SecondaryContent = () => {
     const renderContent = () => {
       switch (secondaryContentType) {
         case 'account-compromised':
-          return <AccountCompromisedSection />;
+          return (
+            <View className="flex-1 flex-col gap-4">
+              <AccountCompromisedSection />
+              <BackToHelpButton />
+            </View>
+          );
         case 'cant-access-email':
-          return <CanNotAccessEmailSection />;
+          return (
+            <View className="flex-1 flex-col gap-4">
+              <CanNotAccessEmailSection />
+              <BackToHelpButton />
+            </View>
+          );
         case 'incorrect-email':
-          return <IncorrectEmailSection />;
+          return (
+            <View className="flex-1 flex-col gap-4">
+              <IncorrectEmailSection />
+              <BackToHelpButton />
+            </View>
+          );
         default:
           return null;
       }
@@ -160,25 +192,7 @@ const NeedHelp = () => {
 
     return (
       <View className="flex-1 gap-4 px-4 pb-4" style={{ width: '50%' }}>
-        <View>{renderContent()}</View>
-
-        <View className="flex-1">
-          {/* Back button */}
-          <RippleButton
-            title="Back to Help"
-            size="md"
-            variant="outline"
-            width="full"
-            onPress={slideBackToMain}
-            leftIcon={
-              <Entypo
-                name="chevron-thin-left"
-                size={19}
-                color={themeColors[theme]['text-secondary']}
-              />
-            }
-          />
-        </View>
+        {renderContent()}
       </View>
     );
   };

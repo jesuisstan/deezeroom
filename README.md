@@ -254,7 +254,10 @@ graph TD
   - **NotificationService** (`firebase-service-notifications.ts`) - Push notifications via Expo (singleton instance)
   - **StorageService** (`firebase-service-storage.ts`) - File storage and management
 
-### Android APK files
+### Important links
 
-- **DEV build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/d4dc8826-0368-4636-b5c2-bfc04b90c485) to download the file
-- **PRODUCTION build**: Version 2.54.1. Follow the [link](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/dfb92ecb-4bfc-41b5-87df-a67b3bd863d3) to download the file
+- **Android DEV build apk**: Version 2.54.1, 26/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/d4dc8826-0368-4636-b5c2-bfc04b90c485) the .apk file
+- **Android PRODUCTION build apk**: Version 2.54.2, 27/11/2025. [Download](https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/dfb92ecb-4bfc-41b5-87df-a67b3bd863d3) the .apk file
+- **DeezeRoom WEB App**: dep;oyed on Expo available [here](https://deezeroom.expo.app)
+- **DeezeRoom graphQL API (server)**: deployed on Vercel, available [here](https://deezeroom-server.vercel.app/)
+- **Firebase console**: available [here](https://console.firebase.google.com/u/0/project/deezeroom-1bc3c/firestore/databases/-default-/data/)

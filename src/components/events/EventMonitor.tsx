@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAudioPlayer } from 'expo-audio';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useClient } from 'urql';
 
@@ -377,6 +378,39 @@ const EventMonitor = memo(
 
       stopPlayback();
     }, [isEventEnded, audioPlayer, event.id, event.name, isHost]);
+
+    // Keep device awake during playback to prevent JS throttling
+    // Works for both host and listening participants
+    useEffect(() => {
+      const shouldKeepAwake =
+        currentTrack &&
+        event.isPlaying &&
+        !isEventEnded &&
+        (isHost || (!isHost && isListening));
+
+      if (shouldKeepAwake) {
+        // Activate wake lock when playing
+        activateKeepAwakeAsync(`event_${event.id}`).catch((error) => {
+          Logger.warn(
+            '[EventMonitor] Failed to activate wake lock:',
+            { eventId: event.id, error: error },
+            '📺 EventMonitor'
+          );
+        });
+
+        return () => {
+          // Deactivate wake lock when stopped
+          deactivateKeepAwake(`event_${event.id}`);
+        };
+      }
+    }, [
+      currentTrack,
+      event.isPlaying,
+      event.id,
+      isEventEnded,
+      isHost,
+      isListening
+    ]);
 
     // Sync audio player with isPlaying state (for host and listening participants)
     useEffect(() => {
