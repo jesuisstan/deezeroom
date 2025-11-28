@@ -266,7 +266,7 @@ const AboutScreen = () => {
           Developed by Stanislav Krivtsov as part of École 42 curriculum.
         </TextCustom>*/}
         <View className="gap-2">
-          {/*<TextCustom size="m" color={themeColors[theme]['text-secondary']}>
+          <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
             🌐 Portfolio:{' '}
             <TextCustom
               size="m"
@@ -276,7 +276,7 @@ const AboutScreen = () => {
             >
               www.krivtsoff.site
             </TextCustom>
-          </TextCustom>*/}
+          </TextCustom>
           <TextCustom size="m" color={themeColors[theme]['text-secondary']}>
             💻 Source Code:{' '}
             <TextCustom
