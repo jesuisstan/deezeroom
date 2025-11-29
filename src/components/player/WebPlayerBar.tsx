@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Image, Platform, View } from 'react-native';
+import { Image, Platform, View, useWindowDimensions } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -18,6 +18,7 @@ const WEB_HORIZONTAL_PADDING = 28;
 
 const WebPlayerBar = () => {
   const { theme } = useTheme();
+  const { width } = useWindowDimensions(); // Used to apply adaptive layout
 
   const {
     currentTrack,
@@ -47,15 +48,20 @@ const WebPlayerBar = () => {
   );
 
   const shouldRender = Platform.OS === 'web' && !!currentTrack;
-  if (!shouldRender) {
-    return null;
-  }
+  if (!shouldRender) return null;
 
   const track = currentTrack!;
 
-  const handleToggleFavorite = async () => {
-    await toggleFavorite();
-  };
+  // Adaptive modifiers for screens < 700px
+  const isCompact = width < 700;
+
+  // Dynamic sizes
+  const coverSize = isCompact ? 45 : 55;
+  const titleSize = isCompact ? 'xs' : 's';
+  const artistSize = isCompact ? 'xxs' : 'xs';
+  const controlIconSize = isCompact ? 24 : 30;
+  const sideIconSize = isCompact ? 20 : 25;
+  const horizontalGap = isCompact ? 6 : 12;
 
   return (
     <View
@@ -83,77 +89,84 @@ const WebPlayerBar = () => {
             shadowOpacity: 0.14,
             shadowRadius: 16,
             shadowOffset: { width: 0, height: 4 },
-            minHeight: 32
+            minHeight: 32,
+            gap: horizontalGap // adaptive spacing
           }}
         >
+          {/* Left: Cover + Title */}
           <View
-            className="flex-row items-center gap-3"
+            className="flex-row items-center"
             style={{
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
-              minWidth: 0
+              minWidth: 0,
+              gap: horizontalGap
             }}
           >
-            <View
-              className="flex-row items-center gap-3"
-              style={{ flexShrink: 1, flexGrow: 1, minWidth: 0 }}
-            >
-              <Image
-                source={artworkSource}
-                style={{
-                  height: 55,
-                  width: 55,
-                  borderRadius: 8,
-                  backgroundColor: themeColors[theme]['bg-tertiary']
-                }}
-                resizeMode="cover"
-              />
-              <View style={{ flexShrink: 1 }}>
-                <View className="flex-row items-center gap-2">
-                  <TextCustom
-                    type="semibold"
-                    size="s"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {track.title}
-                  </TextCustom>
-                  {track.explicitLyrics && (
-                    <MaterialIcons
-                      name="explicit"
-                      size={18}
-                      color={themeColors[theme]['intent-warning']}
-                    />
-                  )}
-                </View>
-                {track.artist?.name ? (
-                  <TextCustom
-                    size="xs"
-                    color={themeColors[theme]['text-secondary']}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {track.artist.name}
-                  </TextCustom>
-                ) : null}
+            <Image
+              source={artworkSource}
+              style={{
+                height: coverSize,
+                width: coverSize,
+                borderRadius: 8,
+                backgroundColor: themeColors[theme]['bg-tertiary']
+              }}
+              resizeMode="cover"
+            />
+
+            <View style={{ flexShrink: 1, minWidth: 0 }}>
+              <View
+                className="flex-row items-center"
+                style={{ gap: isCompact ? 2 : 4 }}
+              >
+                <TextCustom
+                  type="semibold"
+                  size={titleSize}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {track.title}
+                </TextCustom>
+
+                {track.explicitLyrics && (
+                  <MaterialIcons
+                    name="explicit"
+                    size={isCompact ? 14 : 18}
+                    color={themeColors[theme]['intent-warning']}
+                  />
+                )}
               </View>
+
+              {track.artist?.name ? (
+                <TextCustom
+                  size={artistSize}
+                  color={themeColors[theme]['text-secondary']}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {track.artist.name}
+                </TextCustom>
+              ) : null}
             </View>
           </View>
 
+          {/* Center: Playback Controls + Progress */}
           <View
             className="items-center"
             style={{
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
-              maxWidth: 460,
               minWidth: 0,
-              //gap: 1,
-              paddingTop: 4
+              paddingTop: 4,
+              maxWidth: isCompact ? 320 : 460
             }}
           >
-            <View className="flex-row items-center justify-center gap-4">
+            <View
+              className="flex-row items-center justify-center"
+              style={{ gap: isCompact ? 6 : 14 }}
+            >
               <IconButton
                 accessibilityLabel="Play previous track"
                 onPress={playPrevious}
@@ -161,10 +174,11 @@ const WebPlayerBar = () => {
               >
                 <Ionicons
                   name="play-skip-back"
-                  size={21}
+                  size={sideIconSize}
                   color={themeColors[theme]['text-main']}
                 />
               </IconButton>
+
               <IconButton
                 accessibilityLabel={
                   isPlaying ? 'Pause playback' : 'Start playback'
@@ -172,14 +186,14 @@ const WebPlayerBar = () => {
                 onPress={togglePlayPause}
                 loading={isLoading}
                 className="h-9 w-9"
-                //backgroundColor={themeColors[theme]['primary']}
               >
                 <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
-                  size={30}
+                  size={controlIconSize}
                   color={themeColors[theme]['primary']}
                 />
               </IconButton>
+
               <IconButton
                 accessibilityLabel="Play next track"
                 onPress={playNext}
@@ -188,12 +202,13 @@ const WebPlayerBar = () => {
               >
                 <Ionicons
                   name="play-skip-forward"
-                  size={21}
+                  size={sideIconSize}
                   color={themeColors[theme]['text-main']}
                 />
               </IconButton>
             </View>
-            <View style={{ width: '100%', maxWidth: 300 }}>
+
+            <View style={{ width: '100%', maxWidth: isCompact ? 220 : 300 }}>
               <ProgressBar
                 theme={theme}
                 trackDuration={track.duration}
@@ -202,20 +217,22 @@ const WebPlayerBar = () => {
             </View>
           </View>
 
+          {/* Right: Favorite + Repeat */}
           <View
-            className="flex-row items-center justify-end gap-2"
+            className="flex-row items-center justify-end"
             style={{
               flexBasis: 0,
               flexGrow: 1,
               flexShrink: 1,
               minWidth: 0,
-              paddingLeft: 12
+              paddingLeft: isCompact ? 6 : 12,
+              gap: isCompact ? 6 : 12
             }}
           >
             <IconButton
               accessibilityLabel={`Repeat mode: ${repeatMode}. Tap to change`}
               onPress={cycleRepeatMode}
-              className="h-11 w-11"
+              className="h-10 w-10"
             >
               <MaterialCommunityIcons
                 name={
@@ -225,7 +242,7 @@ const WebPlayerBar = () => {
                       ? 'repeat-off'
                       : 'repeat'
                 }
-                size={25}
+                size={sideIconSize}
                 color={
                   repeatMode === 'off'
                     ? themeColors[theme]['text-main']
@@ -233,19 +250,23 @@ const WebPlayerBar = () => {
                 }
               />
             </IconButton>
+
             <IconButton
               accessibilityLabel={
                 isCurrentTrackFavorite
                   ? 'Remove from favorites'
                   : 'Add to favorites'
               }
-              onPress={handleToggleFavorite}
+              onPress={async () => {
+                // Comment: toggles favorite state
+                await toggleFavorite();
+              }}
               disabled={!currentTrackId}
-              className="h-11 w-11"
+              className="h-10 w-10"
             >
               <Ionicons
                 name={isCurrentTrackFavorite ? 'heart' : 'heart-outline'}
-                size={25}
+                size={sideIconSize}
                 color={
                   isCurrentTrackFavorite
                     ? themeColors[theme]['primary']
