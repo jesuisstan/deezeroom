@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
+import * as Linking from 'expo-linking';
+import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 
@@ -93,28 +95,43 @@ const HomeScreen = () => {
             </TextCustom>
           </View>
 
-          <RippleButton
-            title="About"
-            variant="ghost"
-            onPress={() => router.push('/about' as any)}
-            size="sm"
-            leftIcon={
-              <MaterialCommunityIcons
-                name="information"
-                size={21}
-                color={themeColors[theme]['primary']}
+          <View className="flex-row items-center">
+            <View className="flex-1">
+              <RippleButton
+                title="About"
+                variant="outline"
+                onPress={() => router.push('/about' as any)}
+                size="sm"
+                leftIcon={
+                  <MaterialCommunityIcons
+                    name="information"
+                    size={21}
+                    color={themeColors[theme]['text-main']}
+                  />
+                }
+                width='full'
               />
-            }
-          />
-
-          <TextCustom
-            size="m"
-            color={themeColors[theme]['text-secondary']}
-            className="text-center"
-          >
-            Create playlists with friends, vote for tracks at events and enjoy
-            music together
-          </TextCustom>
+            </View>
+            <View className="flex-1">
+              <RippleButton
+                title="Get the App"
+                variant="outline"
+                onPress={() => Linking.openURL(
+                    'https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/4afdc100-94ae-44ae-a3b2-6611e0a32865'
+                  );
+                }
+                size="sm"
+                leftIcon={
+                  <Foundation
+                    name="social-android"
+                    size={21}
+                    color={themeColors[theme]['text-main']}
+                  />
+                }
+                width='full'
+              />
+            </View> 
+          </View>    
         </View>
 
         {/* Feature Tiles */}
