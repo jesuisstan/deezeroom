@@ -116,10 +116,11 @@ const HomeScreen = () => {
               <RippleButton
                 title="Get the App"
                 variant="outline"
-                onPress={() => Linking.openURL(
+                onPress={() => {
+                  Linking.openURL(
                     'https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/4afdc100-94ae-44ae-a3b2-6611e0a32865'
                   );
-                }
+                }}
                 size="sm"
                 leftIcon={
                   <Foundation
