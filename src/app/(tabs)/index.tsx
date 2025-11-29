@@ -95,7 +95,7 @@ const HomeScreen = () => {
             </TextCustom>
           </View>
 
-          <View className="flex-row items-center">
+          <View className="flex-row items-center gap-4">
             <View className="flex-1">
               <RippleButton
                 title="About"
