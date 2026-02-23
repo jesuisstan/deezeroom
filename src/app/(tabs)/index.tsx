@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 
-import * as Linking from 'expo-linking';
 import Foundation from '@expo/vector-icons/Foundation';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 
 import SearchTracksComponent from '@/components/search-tracks/SearchTracksComponent';
@@ -20,6 +20,10 @@ import {
 import { useTheme } from '@/providers/ThemeProvider';
 import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
+
+const ANDROID_APP_URL =
+  process.env.EXPO_PUBLIC_APP_URL ||
+  'https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/2b3b4120-833f-4701-ad9a-7423778be33c';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
@@ -109,7 +113,7 @@ const HomeScreen = () => {
                     color={themeColors[theme]['text-main']}
                   />
                 }
-                width='full'
+                width="full"
               />
             </View>
             <View className="flex-1">
@@ -117,9 +121,7 @@ const HomeScreen = () => {
                 title="Get the App"
                 variant="outline"
                 onPress={() => {
-                  Linking.openURL(
-                    'https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/4afdc100-94ae-44ae-a3b2-6611e0a32865'
-                  );
+                  Linking.openURL(ANDROID_APP_URL);
                 }}
                 size="sm"
                 leftIcon={
@@ -129,10 +131,10 @@ const HomeScreen = () => {
                     color={themeColors[theme]['text-main']}
                   />
                 }
-                width='full'
+                width="full"
               />
-            </View> 
-          </View>    
+            </View>
+          </View>
         </View>
 
         {/* Feature Tiles */}
