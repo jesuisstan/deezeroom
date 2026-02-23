@@ -22,7 +22,7 @@ import { themeColors } from '@/style/color-theme';
 import { containerWidthStyle } from '@/style/container-width-style';
 
 const ANDROID_APP_URL =
-  process.env.EXPO_PUBLIC_APP_URL ||
+  process.env.EXPO_PUBLIC_ANDROID_APP_LINK ||
   'https://expo.dev/accounts/jesuisstan/projects/deezeroom/builds/2b3b4120-833f-4701-ad9a-7423778be33c';
 
 const HomeScreen = () => {
